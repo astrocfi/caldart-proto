@@ -74,8 +74,8 @@ describe('Add a saved group', () => {
     renderCompose(state, 'management');
     await user.click(await screen.findByRole('button', { name: 'Add a saved group' }));
     expect(
-      await screen.findByRole('button', { name: 'Marin friends: live, 2 people' }),
-    ).toBeVisible();
+      await screen.findByRole('option', { name: 'Marin friends: live, 2 people' }),
+    ).toBeInTheDocument();
   });
 
   it('adds the group chosen and says what the add did', async () => {
@@ -84,7 +84,11 @@ describe('Add a saved group', () => {
     const user = userEvent.setup();
     renderCompose(state, 'management');
     await user.click(await screen.findByRole('button', { name: 'Add a saved group' }));
-    await user.click(await screen.findByRole('button', { name: 'Board: fixed, 2 people' }));
+    await user.selectOptions(
+      await screen.findByRole('combobox', { name: 'Group' }),
+      'Board: fixed, 2 people',
+    );
+    await user.click(screen.getByRole('button', { name: 'Add this group' }));
     expect(await screen.findByText('Added 1 person; 1 was already on the list.')).toBeVisible();
     expect(calls.added).toEqual([{ group: 5 }]);
   });
@@ -99,13 +103,13 @@ describe('Add a saved group', () => {
 });
 
 describe('Save as a group', () => {
-  it('saves the batch under the name and kind given, then links the group', async () => {
+  it('saves the search under the name and kind given, then links the group', async () => {
     const state = draft();
     const calls = answerCompose(state);
     const user = userEvent.setup();
     renderCompose(state, 'management');
     await user.click(await screen.findByRole('button', { name: 'Save as a group' }));
-    const form = screen.getByRole('form', { name: 'Save the recipient list as a group' });
+    const form = screen.getByRole('form', { name: 'Save this search as a group' });
     await user.type(within(form).getByRole('textbox', { name: /Group name/ }), 'Hangar crew');
     await user.click(within(form).getByRole('radio', { name: 'Live' }));
     await user.click(within(form).getByRole('button', { name: 'Add group' }));
@@ -113,7 +117,7 @@ describe('Save as a group', () => {
       'href',
       '/bulk-email/groups/9',
     );
-    expect(calls.saved).toEqual([{ name: 'Hangar crew', kind: 'live' }]);
+    expect(calls.saved).toEqual([{ name: 'Hangar crew', kind: 'live', filters: {} }]);
   });
 
   it('shows a taken name beside the name', async () => {
@@ -122,7 +126,7 @@ describe('Save as a group', () => {
     const user = userEvent.setup();
     renderCompose(state, 'management');
     await user.click(await screen.findByRole('button', { name: 'Save as a group' }));
-    const form = screen.getByRole('form', { name: 'Save the recipient list as a group' });
+    const form = screen.getByRole('form', { name: 'Save this search as a group' });
     await user.type(within(form).getByRole('textbox', { name: /Group name/ }), 'Board');
     await user.click(within(form).getByRole('button', { name: 'Add group' }));
     await waitFor(() =>
@@ -132,11 +136,58 @@ describe('Save as a group', () => {
     );
   });
 
-  it('is not offered for an empty batch', async () => {
+  it('is offered while the recipient list is empty, since it saves the search', async () => {
     const state: BulkEmailState = { email: makeBulkEmail(), batch: makeBatch([]) };
     answerCompose(state);
     renderCompose(state, 'management');
     await screen.findByText('Nobody is on the recipient list yet');
-    expect(screen.queryByRole('button', { name: 'Save as a group' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Save as a group' })).toBeVisible();
+  });
+
+  it('saves the filters of the search shown', async () => {
+    const state = draft();
+    const calls = answerCompose(state);
+    const user = userEvent.setup();
+    renderCompose(state, 'management');
+    const filters = await screen.findByRole('search', { name: 'Choose people to add' });
+    await user.selectOptions(within(filters).getByLabelText('Kind'), 'friend');
+    await screen.findByText('1 person matches these filters.');
+    await user.click(screen.getByRole('button', { name: 'Save as a group' }));
+    const form = screen.getByRole('form', { name: 'Save this search as a group' });
+    await user.type(within(form).getByRole('textbox', { name: /Group name/ }), 'Friends');
+    await user.click(within(form).getByRole('button', { name: 'Add group' }));
+    await screen.findByRole('link', { name: 'Friends' });
+    expect(calls.saved).toEqual([{ name: 'Friends', kind: 'fixed', filters: { kind: 'friend' } }]);
+  });
+
+  it('stays open on a press on the words inside it', async () => {
+    const state = draft();
+    answerCompose(state);
+    const user = userEvent.setup();
+    renderCompose(state, 'management');
+    await user.click(await screen.findByRole('button', { name: 'Save as a group' }));
+    await user.click(screen.getByText(/The same people every time/));
+    expect(screen.getByRole('form', { name: 'Save this search as a group' })).toBeVisible();
+  });
+
+  it('checks Live when its name is pressed', async () => {
+    const state = draft();
+    answerCompose(state);
+    const user = userEvent.setup();
+    renderCompose(state, 'management');
+    await user.click(await screen.findByRole('button', { name: 'Save as a group' }));
+    await user.click(screen.getByText('Live', { selector: 'label' }));
+    expect(screen.getByRole('radio', { name: 'Live' })).toBeChecked();
+  });
+
+  it('closes on Cancel without saving', async () => {
+    const state = draft();
+    const calls = answerCompose(state);
+    const user = userEvent.setup();
+    renderCompose(state, 'management');
+    await user.click(await screen.findByRole('button', { name: 'Save as a group' }));
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('form', { name: 'Save this search as a group' })).toBeNull();
+    expect(calls.saved).toEqual([]);
   });
 });

@@ -244,6 +244,14 @@ const CALLSIGN_RE = /^(?:[KNW][A-Z]?|A[A-L])[0-9][A-Z]{1,3}$/;
 
 const CALLSIGN_MESSAGE = 'Enter a US amateur radio callsign, such as W6ABC.';
 
+/** The digits of a pilot certificate number, which holds nothing else. */
+export const CERTIFICATE_NUMBER_DIGITS = 7;
+
+/** A certificate number as it is stored, matching `CERTIFICATE_NUMBER_RE` on the server. */
+const CERTIFICATE_NUMBER_RE = /^\d{7}$/;
+
+const CERTIFICATE_NUMBER_MESSAGE = 'Enter the 7 digits of the pilot certificate number.';
+
 const NAME_MESSAGES: Record<ProfileNameKey, string> = {
   first_name: 'Enter your first name.',
   last_name: 'Enter your last name.',
@@ -358,12 +366,9 @@ export function validateProfileForm(
     errors.postal_code = 'Use a 5-digit ZIP code, such as 95035.';
   }
 
-  if (values.medical_type !== 'none' && !values.medical_expiration) {
-    errors.medical_expiration = "Enter the medical's expiration date.";
-  }
-
-  if (values.pilot_certificate_type !== 'none' && !values.certificate_number.trim()) {
-    errors.certificate_number = 'Enter the pilot certificate number.';
+  const certificate = values.certificate_number.trim();
+  if (certificate && !CERTIFICATE_NUMBER_RE.test(certificate)) {
+    errors.certificate_number = CERTIFICATE_NUMBER_MESSAGE;
   }
 
   const hours = values.total_hours.trim();

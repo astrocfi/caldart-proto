@@ -48,7 +48,7 @@ import {
   maskPostalCode,
 } from '@/portal/masks';
 import { useAddressSuggestions } from './api';
-import { maskCallsign } from './form';
+import { CERTIFICATE_NUMBER_DIGITS, maskCallsign } from './form';
 import { CERTIFICATE_TYPES, MEDICAL_TYPES, PHOTO_ID_TYPES, VOLUNTEER_INTERESTS } from './constants';
 import type { Choice } from './constants';
 import type { ProfileFormErrors, ProfileFormValues } from './form';
@@ -64,6 +64,10 @@ type CodedKey = 'pilot_certificate_type' | 'medical_type' | 'photo_id_type';
 
 /** Under each airport box: the format, with an example. */
 const AIRPORT_HINT = 'Leave off the leading K: PAO, not KPAO';
+
+const PHONE_HINT = '10 digits, such as 415-555-0100';
+
+const ADDRESS_HINT = 'Start typing the whole address, city included, then pick it from the list';
 
 /** Said once, under the first verified item, so the member knows who checks them. */
 export const VERIFICATION_HINT = 'A DART leader or verifier checks these against the documents.';
@@ -350,10 +354,15 @@ export function ProfileFieldsets({
           ) : null}
           {phone('phone', 'phone_extension', 'Phone', {
             autoComplete: 'tel',
-            hint: '10 digits, such as 415-555-0100',
+            hint: PHONE_HINT,
           })}
-          {phone('phone_alt', 'phone_alt_extension', 'Alternate phone')}
-          <Field label="Address" error={errors.address_line1} required={markRequired}>
+          {phone('phone_alt', 'phone_alt_extension', 'Alternate phone', { hint: PHONE_HINT })}
+          <Field
+            label="Address"
+            hint={ADDRESS_HINT}
+            error={errors.address_line1}
+            required={markRequired}
+          >
             {(props) => (
               <Typeahead
                 {...props}
@@ -489,14 +498,15 @@ export function ProfileFieldsets({
           )}
           {text('certificate_number', {
             label: 'Certificate number',
+            hint: `${CERTIFICATE_NUMBER_DIGITS} digits`,
             className: 'num',
-            required: value.pilot_certificate_type !== 'none',
+            inputMode: 'numeric',
+            mask: (raw) => maskDigits(raw, CERTIFICATE_NUMBER_DIGITS),
           })}
           {coded('medical_type', 'Medical', MEDICAL_TYPES)}
           {text('medical_expiration', {
             label: 'Medical expires',
             type: 'date',
-            required: value.medical_type !== 'none',
             status: mark('medical'),
           })}
           {coded('photo_id_type', 'Photo ID', PHOTO_ID_TYPES, mark('photo_id'))}

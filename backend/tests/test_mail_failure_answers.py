@@ -186,22 +186,6 @@ def reactivation(client: APIClient) -> Exchange:
     )
 
 
-def admin_user_edit(client: APIClient) -> Exchange:
-    """A user administrator changes an address, which is mailed a verification link."""
-    signed_in_admin(client, USER_ADMIN)
-    account = UserFactory(email="eli.edit@example.test", roles=[MEMBER])
-    url = f"{USERS_URL}/{account.pk}"
-    response = client.patch(url, {"email": "eli.moved@example.test"}, format="json")
-    return Exchange(
-        response.status_code,
-        response.json(),
-        200,
-        client.get(url).json(),
-        account,
-        "email_verification",
-    )
-
-
 def admin_user_reactivation(client: APIClient) -> Exchange:
     """A user administrator reactivates an unverified account, which mails a link."""
     signed_in_admin(client, USER_ADMIN)
@@ -280,7 +264,6 @@ FLOWS: list[Flow] = [
     verification_resend,
     email_change,
     reactivation,
-    admin_user_edit,
     admin_user_reactivation,
     admin_member_creation,
     admin_member_edit,

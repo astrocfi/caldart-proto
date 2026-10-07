@@ -16,7 +16,9 @@ describe('ScheduledPage', () => {
   it('is headed Scheduled, with its lede', async () => {
     renderPage();
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Scheduled' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Scheduled tasks' }),
+    ).toBeInTheDocument();
     expect(
       screen.getByText(
         'The jobs CalDART runs on a schedule. Run any of them by hand here: each is safe to run ' +

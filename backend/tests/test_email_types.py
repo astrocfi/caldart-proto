@@ -206,13 +206,53 @@ def test_a_type_needs_a_description(system_admin_client: APIClient) -> None:
 # -- changing --------------------------------------------------------------
 def test_a_rename_moves_the_slug(system_admin_client: APIClient) -> None:
     """The slug follows the name on every save."""
-    email_type = EmailTypeFactory(name="Mission")
+    email_type = EmailTypeFactory(name="Training")
 
     response = system_admin_client.put(
-        detail_url(email_type), payload(name="Mission Calls"), format="json"
+        detail_url(email_type), payload(name="Training Calls"), format="json"
     )
 
-    assert response.json()["slug"] == "mission-calls"
+    assert response.json()["slug"] == "training-calls"
+
+
+def _mission_type() -> EmailType:
+    """The Mission type, as the default types make it or built here when they have not."""
+    return EmailType.objects.filter(slug="mission").first() or EmailTypeFactory(name="Mission")
+
+
+def test_the_mission_type_cannot_be_renamed(system_admin_client: APIClient) -> None:
+    """A mission callout finds its type by the slug its name makes, so the name stays."""
+    response = system_admin_client.put(
+        detail_url(_mission_type()), payload(name="Missions and exercises"), format="json"
+    )
+
+    assert response.json() == {
+        "name": ["Mission is the type every mission callout goes as, so its name cannot change."]
+    }
+
+
+def test_the_mission_type_keeps_its_other_settings_editable(
+    system_admin_client: APIClient,
+) -> None:
+    """Saving the Mission type under its own name with a new description goes through."""
+    response = system_admin_client.put(
+        detail_url(_mission_type()),
+        payload(name="Mission", description="Calls for pilots."),
+        format="json",
+    )
+
+    assert response.json()["description"] == "Calls for pilots."
+
+
+def test_the_mission_type_cannot_be_deleted(system_admin_client: APIClient) -> None:
+    """The delete is refused, used or not, and the type stays."""
+    mission = _mission_type()
+
+    response = system_admin_client.delete(detail_url(mission))
+
+    assert response.json() == {
+        "detail": "Mission is the type every mission callout goes as, so it cannot be deleted."
+    }
 
 
 def test_a_type_may_keep_its_own_name(system_admin_client: APIClient) -> None:
@@ -238,7 +278,7 @@ def test_an_edit_without_a_position_keeps_the_place(system_admin_client: APIClie
 def test_an_edit_takes_another_types_name_only_if_free(system_admin_client: APIClient) -> None:
     """Renaming a type to a name another holds is refused."""
     EmailTypeFactory(name="Fundraising")
-    email_type = EmailTypeFactory(name="Mission")
+    email_type = EmailTypeFactory(name="Training")
 
     response = system_admin_client.put(
         detail_url(email_type), payload(name="fundraising"), format="json"
@@ -389,7 +429,7 @@ def test_a_type_nobody_is_named_for_is_the_system_administrators_alone(
 def test_a_sendable_type_carries_what_the_compose_screen_shows(
     api_client: APIClient, management: User
 ) -> None:
-    """A row is the type's id, name, description, and opt-out flag."""
+    """A row is the type's id, name, description, opt-out flag, and mission flag."""
     email_type = EmailTypeFactory(name="Mission", description="Pilots wanted.")
     api_client.force_login(management)
 
@@ -401,6 +441,7 @@ def test_a_sendable_type_carries_what_the_compose_screen_shows(
             "name": "Mission",
             "description": "Pilots wanted.",
             "allow_opt_out": True,
+            "is_mission": True,
         }
     ]
 

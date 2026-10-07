@@ -160,10 +160,10 @@ def test_the_default_close_time_is_two_days_ahead_rounded_up_to_the_half_hour() 
     )
 
 
-def test_the_switch_keeps_the_type_of_a_sender_who_may_not_send_mission(
+def test_the_switch_clears_another_type_for_a_sender_who_may_not_send_mission(
     api_client: APIClient,
 ) -> None:
-    """A leader whose role Mission does not name keeps the type they chose."""
+    """A callout goes as Mission only: a leader whose role Mission omits has no type."""
     only_management = mission()
     only_management.sender_roles = [MANAGEMENT]
     only_management.save()
@@ -171,7 +171,31 @@ def test_the_switch_keeps_the_type_of_a_sender_who_may_not_send_mission(
     bulk = BulkEmailFactory(sender=leader)
     api_client.force_login(leader)
     body = api_client.patch(f"{API}/{bulk.pk}", {"is_callout": True}, format="json").json()
-    assert (body["is_callout"], body["email_type_name"]) == (True, "Operational")
+    assert (body["is_callout"], body["email_type"]) == (True, None)
+
+
+def test_a_callout_refuses_a_type_other_than_mission(
+    management_client: APIClient, management: User
+) -> None:
+    """Operational is refused for a mission callout, and the type stays Mission."""
+    bulk = BulkEmailFactory(sender=management)
+    management_client.patch(f"{API}/{bulk.pk}", {"is_callout": True}, format="json")
+    operational = EmailType.objects.get(slug="operational")
+    response = management_client.patch(
+        f"{API}/{bulk.pk}", {"email_type": operational.pk}, format="json"
+    )
+    bulk.refresh_from_db()
+    assert (response.status_code, response.json(), bulk.email_type) == (
+        400,
+        {"email_type": ["A mission callout goes as the Mission type."]},
+        mission(),
+    )
+
+
+def test_the_sendable_types_mark_the_mission_type(management_client: APIClient) -> None:
+    """``is_mission`` is true for Mission alone, so a callout's choice offers only it."""
+    rows = management_client.get("/api/v1/email-types/sendable").json()
+    assert [row["name"] for row in rows if row["is_mission"]] == ["Mission"]
 
 
 def test_a_close_time_can_be_chosen(management_client: APIClient, management: User) -> None:
@@ -272,7 +296,7 @@ def test_a_copy_token_reads_back_as_its_callout_and_recipient(management: User, 
 def test_a_copy_links_its_answer_page_to_read_it_in_the_browser(
     management: User, ann: User
 ) -> None:
-    """A callout's View in browser line opens the answer page, not Messages."""
+    """A callout's View in browser line opens the answer page, not Email to me."""
     # The token carries the second it was minted, so the copy and the expected link
     # must be signed at the same instant.
     with freeze_time("2026-08-01T15:10:00Z"):
@@ -323,7 +347,7 @@ def test_the_message_on_the_sent_page_carries_inert_buttons(
 def test_messages_leads_a_callout_to_the_readers_own_answer_page(
     api_client: APIClient, management: User, ann: User, bea: User
 ) -> None:
-    """Ann's Messages entry for a callout links her own answer page."""
+    """Ann's Email to me entry for a callout links her own answer page."""
     bulk = sent_callout(management, ann, bea)
     api_client.force_login(ann)
     (entry,) = api_client.get("/api/v1/messages").json()
@@ -395,6 +419,33 @@ def test_sending_an_answer_records_it_with_the_note(
         CalloutAnswerKind.LIMITED,
         "Saturday only",
     )
+
+
+def test_an_answer_is_recorded_for_the_links_person_whoever_is_signed_in(
+    client: Client, management: User, ann: User, bea: User
+) -> None:
+    """With Bea signed in, Ann's link records Ann's answer and leaves Bea's alone."""
+    bulk = sent_callout(management, ann, bea)
+    record_answer(bulk.callout, bea, answer="available", note="")
+    client.force_login(bea)
+    client.post(page_url(token_for(bulk, ann)), {"answer": "unavailable"})
+    answers = dict(CalloutAnswer.objects.values_list("user__email", "answer"))
+    assert answers == {"ann@example.test": "unavailable", "bea@example.test": "available"}
+
+
+def test_the_page_asks_who_can_participate(client: Client, management: User, ann: User) -> None:
+    """The page asks *Can you participate?* and names **Send answer** in quotes."""
+    bulk = sent_callout(management, ann)
+    page = client.get(page_url(token_for(bulk, ann))).content.decode()
+    assert 'Can you participate? Choose your answer and press "Send answer".' in page
+
+
+def test_the_email_asks_who_can_participate(management: User, ann: User) -> None:
+    """Both parts of a copy ask whether the person can participate."""
+    sent_callout(management, ann)
+    message = message_to(ann.email)
+    question = "Can you participate? Choose your answer."
+    assert (question in str(message.body), question in html_of(message)) == (True, True)
 
 
 def test_an_answer_can_be_changed(client: Client, management: User, ann: User) -> None:

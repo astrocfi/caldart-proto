@@ -20,31 +20,30 @@ kept as you go, so you can leave and come back from :doc:`drafts`. A draft made 
 ==============
 
 The people you add make up the recipient list: everyone this email goes to. You build it a
-group at a time, with the filters the member list uses:
+search at a time, with the filters the member list uses:
 
 - **Kind**: **Members only** or **Friends only**. A friend supports CalDART without paying
   dues; a member who has not paid yet counts with the members, as on :doc:`../admin/members`.
 - **Search**: a name or an email address.
 - **Membership**, **Certificate**, **Medical**, **DART** (a Disaster Airlift Response Team,
-  one of CalDART's local groups), **County**, and **Role**.
+  one of CalDART's local groups; check as many as you like, as with **County**), **County**,
+  and **Role**.
 - **Expiring within (days)**: members whose membership ends within that many days.
 
-Choose the filters, then press **Add these people**. Everybody they choose joins the recipient list, and a
-line, which takes the keyboard focus, says what happened, such as *Added 12 people; 3 were
-already on the recipient list.* or *Nobody matches these filters.* Add again as often as you like:
-nobody is added twice. With no filters chosen, it adds every member and friend. Donors are
-never added.
+The people the filters match show under them, ten at a time, counted, as in *12 people match
+these filters.* (every member and friend with no filters chosen; donors never match). Each row
+has **Name**, **Email**, **Will receive?** (*Yes*, or why not, as below), **Kind**, and **DART**.
 
-**Add a saved group**, beside **Add these people**, adds everybody in a recipient group kept on
-:doc:`groups` the same way: nobody is added twice.
+Press **Add these people** to put everybody the search matches on the recipient list. A line,
+which takes the keyboard focus, says what happened, such as *Added 12 people; 3 were already
+on the recipient list.* Search and add as often as you like: nobody is added twice.
+**Save as a group** keeps the search as a group (:doc:`groups`). **Add a saved group** opens
+a **Group** drop-down, with each group's size; choose one and press **Add this group**.
 
-Once somebody is on the recipient list, a line counts it, such as *38 people will receive this email;
-4 are skipped.*, or *39 people will receive this email.* when nobody is skipped. Under it, in
-one row, **Download list** saves the recipient list as a spreadsheet file (CSV) with
-each person's membership status, the filters that chose them, whether they will receive
-the email, and its type. **Save as a group** keeps the recipient list as a group to add to another
-email later (:doc:`groups` explains the two kinds). **Remove everyone** takes everybody off the list once
-you confirm it.
+Once somebody is on the recipient list, a line counts it, such as *38 people will receive this
+email; 4 are skipped.* **Download list** saves the list as a spreadsheet file (CSV) with each
+person's membership status, the filters that chose them, whether they will receive the email,
+and its type; **Remove everyone** takes everybody off it once you confirm it.
 
 The table lists the people in surname order, ten at a time until you press **Show all**. Each
 row has the person's **Name**, **Email**, **Will receive?** (*Yes* or the reason they are
@@ -82,13 +81,14 @@ To ask who can fly for a mission, switch on **This is a mission callout** and se
 close**; :doc:`callouts` explains the answer buttons and where the answers collect.
 
 First choose the **Type of email**: one button for each type you may send, such as
-**Operational** or **Mission**, with a sentence saying what it is for. Until you choose,
+**Operational** or **Mission**, with a sentence saying what it is for. A mission callout offers
+**Mission** alone, and switching one on chooses it. Until you choose,
 the card reads *Choose what type of email this is.* The choice saves at once. Everybody who
 has turned that type off is then skipped on the recipient list above. The types, and who may send
 each, are kept on :doc:`email-types`.
 
-Then write the **Subject**, one line, and the **Message**. Once you start typing, a quiet note
-under the message reads *Saving…* and then *Saved*.
+Then write the **Subject**, one line, and the **Message**. Your work is automatically saved: a
+quiet note under the message reads *Saving…* and then *Saved*.
 
 **Replies go to** is where a reader's reply goes. Every copy comes from the site's own address,
 which nobody reads, so without it a reply would reach nobody. Left empty, replies go to the
@@ -113,11 +113,11 @@ press it again to take the style off.
   **Put image in**. The description is required: many mail programs hide pictures until the
   reader allows them, and the description is what they see instead. A large picture is made
   smaller to suit an email, and any location the camera recorded in it is removed.
-- **Insert field** lists details each person's copy fills in for them: **First name**, **Last
-  name**, **Full name**, **Email address**, **DART**, **Membership plan**, **Membership
-  status**, **Expiration date**, and **Home airport**. Choose one and it goes in where the
-  cursor was last: in braces in the subject, *{first_name}*, or as a chip in the message,
-  which Backspace or Delete removes whole; braces typed in the message become a chip once the
+- **Insert field**, here and beside the subject, lists details each person's copy fills in
+  for them: **First name**, **Last name**, **Full name**, **Email address**, **DART**,
+  **Membership plan**, **Membership status**, **Expiration date**, and **Home airport**.
+  Choose one and it goes in at the cursor: in braces in the subject, *{first_name}*, or as a
+  chip in the message, which Backspace or Delete removes whole; braces typed in the message become a chip once the
   cursor moves on. To show a word for an empty value, click the chip or press Enter or Space
   on it, fill in **If we don't have their first name, show**, and **Apply** (*First name, or
   friend*); in the subject, write *{first_name|friend}*.
@@ -210,7 +210,7 @@ such as *Sending starts in 2 minutes, and until then you can cancel it.* or *It 
 confirmation also asks you to **Type 38 to confirm**, and the button that sends stays off
 until the number matches. A different number reads *That number does not match. Type 38, the
 number of people who will receive it.* The focus starts in that box, or on **Cancel**, so
-Enter pressed twice never sends. Press **Send now** or **Schedule it**, or **Cancel**. A recipient list
+Enter pressed twice never sends. Press **Send** or **Schedule it**, or **Cancel**. A recipient list
 that changed meanwhile is refused with its new number, such as *The recipient list has changed: it
 now holds 39 people. Type the new count.*
 
@@ -218,26 +218,26 @@ now holds 39 people. Type the new count.*
 Once it is sent
 ===============
 
-Where the email stands then shows in a banner at the top of the screen.
+Once you press **Send**, the cards go. The banner at the top is all that stays.
 
-After **Send now** you have two minutes to change your mind. The banner reads *Sending in 1
-min 58 s* with a bar counting down and **Cancel**, in place of **Check and send**; then
-*Starting to send. Nothing has been sent yet.* **Cancel** turns the email back into a draft
-with nothing lost until the first copy goes out.
+After **Send** you have two minutes to change your mind. The banner reads *Sending in 1
+min 58 s* with a bar counting down and **Cancel**; then *Starting to send. Nothing has been
+sent yet.* **Cancel** turns the email back into a draft with nothing lost until the first
+copy goes out, and the three cards come back.
 
-A scheduled email shows *Scheduled for* its date and time with **Cancel the schedule**. Until
-it starts you can still change its message, and **Check and send** offers **Change the
-time** and **Send in 2 minutes instead**, which starts the two-minute countdown. A change to
-its recipient list takes it back to your drafts, since the count you confirmed changed: *The
-recipients changed, so this email is back in your drafts.*
+A scheduled email keeps its cards until it starts. Its banner shows *Scheduled for* its date
+and time with **Cancel the schedule**. You can still change its message, and **Check and
+send** offers **Change the time** and **Send in 2 minutes instead**, which starts the
+two-minute countdown. A change to its recipient list takes it back to your drafts, since the
+count you confirmed changed: *The recipients changed, so this email is back in your drafts.*
 
-Once sending starts, the screen holds still and the banner reads, for example, *Sending… 12
-of 38 sent, about 1 minute left.* with a bar. CalDART sends a few copies a minute so the mail
-provider never turns them away, so a large email takes a while. **Stop sending** stops it
-after the copy going out now, once you press **Stop now**: copies already sent cannot be
-called back. When it finishes, the banner says how it went, such as *Sent to 51 people.
-Everyone was sent a copy.*, beside **See who received it** (:doc:`sent`). A partly sent email
-can never be changed again.
+Once sending starts, the banner reads, for example, *Sending… 12 of 38 sent, about 1 minute
+left.* with a bar. CalDART sends a few copies a minute so the mail provider never turns them
+away, so a large email takes a while. **Stop sending** stops it after the copy going out
+now, once you press **Stop now**: copies already sent cannot be called back. When it
+finishes, the banner says how it went, such as *Sent to 51 people. Everyone was sent a
+copy.*, beside **See who received it** (:doc:`sent`). A partly sent email can never be
+changed again.
 
 
 If something looks wrong
@@ -246,5 +246,5 @@ If something looks wrong
 If the recipient list holds fewer people than you expected, look at the skips first, then at the
 **Chosen by** column: a forgotten **County** or **Kind** narrows an add quietly. If the email
 still says *Starting to send* a few minutes after the countdown ended, the server's sender may
-have stopped; a system administrator can start it by hand from the Scheduled page. If somebody
+have stopped; a system administrator can start it by hand from the Scheduled tasks page. If somebody
 says the email never arrived, find their row under :doc:`sent`.

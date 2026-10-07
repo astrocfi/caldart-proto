@@ -62,6 +62,7 @@ MAX_SCHEDULE_AHEAD = timedelta(days=365)
 #: words, ``NO_SUBJECT_MESSAGE`` and ``NO_BODY_MESSAGE``, imported above.
 NO_TYPE_MESSAGE = "Choose a type."
 NOT_SENDABLE_MESSAGE = "You cannot send {type} email. Choose another type."
+NOT_MISSION_MESSAGE = "A mission callout goes as the Mission type."
 NOBODY_MESSAGE = (
     "Nobody on the recipient list can receive this email. Add people to the recipient list."
 )
@@ -143,10 +144,11 @@ def update(bulk: BulkEmail, changes: dict[str, object], *, actor: User) -> BulkE
     ``is_callout`` and ``closes_at`` make the email a mission callout or not, and set
     when its answers close (``apps.bulk_email.callouts.apply_settings``, which chooses
     the Mission type when ``actor`` may send it, a change of type like any other); a
-    queued callout's answers must still close after it starts.  Raises
-    ``DomainValidationError`` keyed ``subject``, ``body``, or ``closes_at`` for a queued
-    email that breaks one of those, and ``DomainError`` once the email has started
-    sending.
+    queued callout's answers must still close after it starts, and a callout's type
+    must be Mission.  Raises ``DomainValidationError`` keyed ``email_type`` with
+    :data:`NOT_MISSION_MESSAGE` for another type chosen for a callout, keyed ``subject``,
+    ``body``, or ``closes_at`` for a queued email that breaks one of those, and
+    ``DomainError`` once the email has started sending.
     """
     fields = dict(changes)
     is_callout = fields.pop("is_callout", None)
@@ -162,6 +164,8 @@ def update(bulk: BulkEmail, changes: dict[str, object], *, actor: User) -> BulkE
             closes_at=closes_at if isinstance(closes_at, datetime) else None,
             actor=actor,
         )
+        if "email_type" in fields and locked.is_callout and not _is_mission(locked):
+            raise DomainValidationError("email_type", NOT_MISSION_MESSAGE)
         is_type_change = locked.email_type_id != type_before
         if locked.status == BulkEmailStatus.QUEUED and not is_type_change:
             _check_content(locked)
@@ -172,6 +176,11 @@ def update(bulk: BulkEmail, changes: dict[str, object], *, actor: User) -> BulkE
         if is_type_change:
             back_to_draft(locked, actor=actor, reason=TYPE_CHANGED)
     return locked
+
+
+def _is_mission(bulk: BulkEmail) -> bool:
+    """Whether ``bulk``'s type is Mission; an email with no type is not refused here."""
+    return bulk.email_type is None or bulk.email_type.is_mission
 
 
 def delete_draft(bulk: BulkEmail) -> None:

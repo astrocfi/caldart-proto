@@ -49,10 +49,10 @@ The search finds members and friends of CalDART. A friend supports CalDART witho
 dues. Two kinds of account are never found: an account that has been deactivated, and a
 donor, who gave through the public site and cannot sign in.
 
-You see at most twenty people, each on one line: the name, their DART and email address,
-such as *Monterey DART · marta@example.org* (or *No DART*), and **GO** or **NO-GO** at the
-end. The DART and the address tell two people of the same name apart. For a single name
-that line is the whole check.
+You see at most twenty people, each on one line: the name, their DART in a column of its
+own, such as *Monterey DART* (or *No DART*), and **GO** or **NO-GO** at the end. The DART
+tells two people of the same name apart; on a phone it sits under the name. For a single
+name that line is the whole check.
 
 
 Reading the status card
@@ -68,7 +68,7 @@ current and the pilot certificate, the medical, and the photo ID are all verifie
 *Membership and medical are current and verified* beside it. Otherwise it reads **NO-GO**
 and names each reason:
 
-- *Membership expired*; *No membership yet* for somebody who joined as a member and has
+- *Membership expired*; *Not yet paid* for somebody who joined as a member and has
   never paid; or, for a friend, *Friend of CalDART, not a member*. A friend pays no dues,
   so a friend is always a NO-GO on membership.
 - *Not a pilot* for somebody with no pilot certificate. It is their only reason besides the
@@ -91,8 +91,8 @@ Under the band is the person's name, then one line: their DART, such as *Montere
 *No DART*), *DART leader* and *Verifier* when they hold those roles, their phone number, and
 their email address. Tap the number to call them, or the address to write to them.
 
-**Membership** shows the status (**Current**, **Expiring soon**, **Expired**, **No
-membership yet**, **Friend**, or **Never expires** for a life member), then the plan and the expiry date. A membership
+**Membership** shows the status (**Current**, **Expiring soon**, **Expired**, **Not
+yet paid**, **Friend**, or **Never expires** for a life member), then the plan and the expiry date. A membership
 counts as current up to and including its last day.
 
 **Medical** shows **Current**, **Expired** once its date has passed, or **Not current**
@@ -140,7 +140,8 @@ administrator see **Verify** under the person's name. Press it to open the
 
 #. Check the fields against the documents in front of you: **Pilot certificate**,
    **Certificate number**, **Medical**, **Medical expires**, and **Photo ID**. Correct
-   any that are wrong.
+   any that are wrong. **Certificate number** takes seven digits and nothing else, and
+   it and **Medical expires** may be left blank.
 #. Check **Pilot certificate verified**, **Medical verified**, and **Photo ID verified**
    for each document you have seen. The boxes open checked for the items already
    verified, and changing a field unchecks its box, so you check it again only once you
@@ -175,18 +176,31 @@ page loads. See :doc:`../roles`.
 The verification report
 =======================
 
-Above the search box, *Everything nobody has checked yet:* stands beside **Export CSV**
-and **Export PDF**, which download the CalDART verification report: every pilot
-certificate, medical, photo ID, and aircraft insurance nobody has verified yet, each under
-its own heading, with the person or airplane, their DART or owner, the details, and the
-day the record last changed. The line under the PDF's title reads *Showing: Not yet
-verified*. Only what somebody holds is listed: a non-pilot has no certificate to check,
-nor a person with no medical a medical, nor one with no photo ID on file a photo ID, nor an
-airplane with no policy on file its insurance. A section heading always starts on the page
-with its first rows. The CSV names each row's section in its first column, **Section**,
-which the PDF leaves to its headings. The report can also be emailed on a schedule from
-the :doc:`subscriptions` screen, where the **Verified**, **Verified by**, and **Verified
-on** columns can be added.
+Above the search box, *Everything requiring validation:* stands beside **Export CSV**
+and **Export PDF**, which download the CalDART verification report of everything nobody
+has verified yet, in two sections:
+
+- **People**, one row per person with something to verify, sorted by name, under the
+  columns **Name**, **DART**, **Photo ID**, **Certificate**, **Medical**, **Details**,
+  **Expires**, and **Updated**. Each of the three checks reads *Not verified*,
+  *Verified*, or *Not provided*; **Details** is what is on file, such as *Passport ·
+  Private · 1234567 · Third class*; **Expires** is the medical's expiry date; and
+  **Updated** is the day their profile last changed.
+- **Aircraft insurance**, one row per airplane, under its own columns: **N-number**,
+  **Owner**, **Carrier**, **Expires** (the policy's expiry date), and **Updated** (the day
+  the record last changed). An airplane has no check columns.
+
+The line under the PDF's title reads *Showing: Not yet verified*. Only what somebody holds
+is checked: a non-pilot's **Certificate** reads *Not provided*, as does the **Medical** of a
+person with no medical and the **Photo ID** of one with no photo ID on file. A person who holds none of
+the three, and an airplane with no policy on file, is not listed. A section heading always
+starts on the page with its first rows. The CSV is one table under one header row, so a
+spreadsheet reads it whole: it names each row's section in its first column, **Section**,
+which the PDF leaves to its headings, and it carries the People columns for both
+sections, with an airplane's N-number under **Name**, its owner under **DART or owner**,
+its carrier under **Details**, and its three check cells left blank. The report can also
+be emailed on a schedule from the :doc:`subscriptions` screen, where the **Verified**,
+**Verified by**, and **Verified on** columns can be added.
 
 
 When nobody matches

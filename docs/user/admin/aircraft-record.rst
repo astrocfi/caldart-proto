@@ -7,7 +7,7 @@ Aircraft record
 The **aircraft record** holds everything the register knows about one airplane: its
 details, its owner, its insurance, every change made to it, and the members who fly it.
 Only an account administrator can open it, by clicking an N-number on the
-:doc:`aircraft-register`, on a member record, or in a list of pilots. A system
+:doc:`aircraft`, on a member record, or in a list of pilots. A system
 administrator can open it too.
 
 
@@ -54,7 +54,7 @@ change has no such line. The form has four parts.
    entry, which shows its seats. The make and model come from the type, and picking one
    with **Seats** empty fills in its seats and, when the registry knows it, the
    **Category**. A type the list lacks can be added with **New aircraft type**, as the
-   :doc:`aircraft-register` describes. **Category** (Airplane, Helicopter, Gyroplane,
+   :doc:`aircraft` describes. **Category** (Airplane, Helicopter, Gyroplane,
    Glider, Balloon, Airship, Powered lift, Weight-shift control, Powered parachute, or
    Other) and **Airworthiness** (Standard, Limited, Restricted, Experimental, Provisional,
    Multiple, Primary, Special flight permit, or Light sport) may stay **Not recorded**;

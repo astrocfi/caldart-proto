@@ -32,7 +32,7 @@ documents them.
      - ``apps/aircraft/verification_report.py``
      - ``verifier``, ``dart_leader``, ``user_admin``, ``account_admin``
    * - ``aircraft``
-     - Aircraft register
+     - Aircraft
      - ``apps/aircraft/reports.py``
      - ``account_admin``
    * - ``payments``
@@ -82,7 +82,7 @@ report (:ref:`reports-roles`) lists active accounts only; the verification repor
 The engine
 ==========
 
-``ReportSpec(slug, title, filename_stem, columns, roles, query, landscape=True, choosable=True, resolve=keep_params, section=None, empty_section="", section_column="")``
+``ReportSpec(slug, title, filename_stem, columns, roles, query, landscape=True, choosable=True, resolve=keep_params, section=None, empty_section="", section_column="", section_columns=())``
    One report.  ``slug`` names it in every URL; ``title`` heads its PDF and
    labels it in the portal; ``filename_stem`` begins its file name
    (``caldart-members``).  ``columns`` is its registry of ``ReportColumn``
@@ -97,8 +97,9 @@ The engine
    reads; a dated report uses it for ``period`` (below), and ``spec.periods`` is
    true exactly when it is not ``keep_params``, the identity.  ``section(row)``
    names the section a row is drawn in, ``empty_section`` is the line the PDF
-   draws under a section with no rows, and ``section_column`` the column a default
-   PDF leaves to its section headings (see `Sections`_ below).
+   draws under a section with no rows, ``section_column`` the column a default
+   PDF leaves to its section headings, and ``section_columns`` the columns each
+   section draws in the PDF (see `Sections`_ below).
 ``build_report(spec, params, *, fmt, today=None)``
    The whole job.  It resolves the parameters for ``today`` (the local date by
    default), chooses the columns — the ``columns`` parameter, or the defaults,
@@ -128,7 +129,8 @@ function is set names each row's section, and its query answers
 ``ReportQuery.sections``, every title in the order they are drawn, so a section no
 row falls in still appears.  ``spec.table()`` answers a ``ReportTable`` whose
 ``rows`` are every row in the order the query answered them and whose ``sections``
-are ``ReportSection(title, rows)`` entries grouping the same rows:
+are ``ReportSection(title, rows, header=None, widths=None)`` entries grouping the
+same rows:
 
 * with no ``section`` function, one section titled ``""`` holds every row, and the
   PDF is drawn exactly as a report without sections;
@@ -149,6 +151,20 @@ a PDF of the default columns leaves it out, since its headings say the same.  A 
 with less than
 ``SECTION_KEEP_HEIGHT`` (an inch) left under it on the page starts the next page,
 so a title is never left alone above a page break.
+
+A section can draw its own columns in the PDF.  ``section_columns`` is a list of
+``SectionColumns(title, keys, labels={})``: of the columns chosen for the report, the
+section titled ``title`` draws those whose key is in ``keys``, in the chosen order, and
+heads a column with ``labels[key]`` in place of its registry label.  Its
+``ReportSection`` then carries that ``header``, the columns' registry ``widths`` (scaled
+to fill the page as the table's are), and rows holding those columns' cells alone; a
+section the list does not name keeps ``header`` and ``widths`` at ``None`` and is drawn
+under every chosen column.  So the **Columns** chooser governs every section at once: a
+column it leaves out is left out of each section that lists it, and a section left with
+no column draws its title alone.  The CSV is never cut by section: ``ReportTable.header``
+and ``ReportTable.rows`` keep every chosen column under its registry label, one header
+row for the whole file, so a spreadsheet reads it as one table and a section's row
+leaves blank the cells of the columns that section does not draw.
 
 Periods
 -------
@@ -188,12 +204,17 @@ Columns and cells
    The registry as the chooser reads it: one ``{"key", "label", "default"}``
    entry per column, in registry order.  ``spec.column_choices()`` answers it
    for a spec, serialized by ``ReportColumnSerializer``.
-``Money(cents, drop_zero_cents=False)`` and ``cell_text(value, fmt)``
-   Money is the one cell the two formats render differently.  A column whose
-   value is a ``Money`` prints ``1234.56`` in a CSV, which a spreadsheet sums,
-   and ``$1,234.56`` in a PDF, which a person reads; ``drop_zero_cents`` leaves
-   the cents off a round PDF amount, ``$1,000,000``.  ``None`` is a blank cell
-   and anything else its ``str``.
+``Money(cents, drop_zero_cents=False)``, ``Marked(text, ok)``, and ``cell_text(value, fmt)``
+   Money and a marked cell are the two the formats render differently.  A column
+   whose value is a ``Money`` prints ``1234.56`` in a CSV, which a spreadsheet
+   sums, and ``$1,234.56`` in a PDF, which a person reads; ``drop_zero_cents``
+   leaves the cents off a round PDF amount, ``$1,000,000``.  A ``Marked`` cell
+   prints its ``text`` alone in a CSV and, in a PDF, its text followed by a
+   space and ``PDF_MARK_YES`` (✓) when ``ok`` or ``PDF_MARK_NO`` (✗) when not,
+   so a printed table reads without color.  Helvetica has neither glyph, so
+   reportlab draws the mark in ZapfDingbats, the standard font it substitutes
+   for a character its base font lacks.  ``None`` is a blank cell and anything
+   else its ``str``.
 ``money_label(cents, *, currency=True)``
    Integer cents as the dollars a reader sees: ``12345`` becomes ``$123.45``,
    with commas between thousands.  ``currency=False`` gives ``123.45``.  It is
@@ -205,7 +226,7 @@ Columns and cells
 spreadsheet sorts it: the membership, aircraft, and payments reports read that
 way.  A column that describes rather than sorts writes its date through
 ``caldart.dates`` (:doc:`architecture`), the ``MM/DD/YYYY`` a screen shows: the
-verification report's *Details*, *Updated*, and *Verified on* cells, and the
+verification report's *Expires*, *Updated*, and *Verified on* cells, and the
 email log's *Sent* cell (``MM/DD/YYYY at h:mm AM``).  The PDF footer stamps the
 moment it was generated the same way.  A file's name keeps ``YYYY-MM-DD``.
 
@@ -243,9 +264,10 @@ The house style
    ``widths`` gives the columns relative shares of the printable width —
    ``[3, 1, 1]`` makes the first column three times either of the others — and
    is scaled to fill the page; without it every column is the same width.  One
-   width per column, or ``ValueError``.  ``sections``, a list of
-   ``(title, rows)`` pairs, replaces ``rows`` with one titled table per section,
-   drawn as `Sections`_ describes.
+   width per column, or ``ValueError``.  ``sections``, a list of ``ReportSection``
+   entries, replaces ``rows`` with one titled table per section, drawn as
+   `Sections`_ describes; a section with its own ``header`` is drawn under it and its
+   own ``widths``, held to the same one-width-per-column rule.
 ``csv_rows(header, rows)`` and ``csv_cell(value)``
    The CSV lines, every cell through ``csv_cell``: ``None`` as an empty string,
    a formula-looking string with a leading apostrophe, everything else
@@ -496,27 +518,30 @@ check can find, because it lists both people and aircraft.  An item
 is verified when its ``<item>_verified_at`` column is set; the columns are in
 :doc:`data-model`.
 
-It is sectioned, one section per kind of item, always in this order and each drawn
-even when empty, with the line "Nothing to show." under an empty one:
+It is sectioned, always in this order and each section drawn even when empty, with the
+line "Nothing to show." under an empty one:
 
-``Pilot certificates``, ``Medicals``, ``Photo IDs``
-   One row per checkable person with a profile who holds the item, in each of the
-   three: every active member and friend (``checkable_people()`` in
-   ``apps/aircraft/services.py``).  An item the person does not hold (``is_held`` in
-   ``apps/members/verification.py``: a certificate of *Not a pilot*, a medical of
-   *None*, a photo ID of *Not provided*) has nothing to verify and is left out.  A
-   donor, a deactivated account, and an account with no profile are never listed.
-   The rows are ordered by last name, first name, then address.
+``People``
+   One row per checkable person with a profile who holds at least one of a photo ID, a
+   pilot certificate, and a medical: every active member and friend
+   (``checkable_people()`` in ``apps/aircraft/services.py``).  Each of the three has a
+   check column; an item the person does not hold (``is_held`` in
+   ``apps/members/verification.py``: a photo ID of *Not provided*, a certificate of
+   *Not a pilot*, a medical of *None*) has nothing to verify, and its check reads
+   ``Not provided``, whatever stamp it carries.  A person who holds none of the three, a donor, a
+   deactivated account, and an account with no profile are never listed.  The rows are
+   ordered by last name, first name, then address.
 ``Aircraft insurance``
    One row per aircraft in service (``is_active``) with a policy on file (an
    ``insurance_expiration``), in N-number order.  An aircraft out of service, or with
    no policy, is never listed.
 
-Two filters narrow the rows:
+A row's held items decide its state: it is verified when every one of them carries a
+stamp, and requires validation otherwise.  Two filters narrow the rows:
 
 ``status``
-   ``unverified`` (the default, also when blank) keeps the items not yet verified,
-   ``verified`` the verified ones, and ``all`` every item.  Any other value is
+   ``unverified`` (the default, also when blank) keeps the rows that require
+   validation, ``verified`` the verified ones, and ``all`` every row.  Any other value is
    refused with a 400,
    ``{"status": ["Select a valid choice. <value> is not one of the available choices."]}``.
 ``dart``
@@ -527,11 +552,22 @@ Two filters narrow the rows:
 The PDF subtitle always names the status in words, since it has a default
 (*Showing: Not yet verified*, *Verified*, or *Everything*), and then the DART when
 one is given, by name for an id (*DART: Monterey*) and as given for part of a name.
-Any other parameter is ignored, apart from ``columns``.  The default list is of items
-nobody has verified, so the three verification columns are there to choose but off by
-default.  Section is a default, which keeps the grouping in the flat CSV; the spec names
-it as its ``section_column``, so a PDF of the default columns leaves it to the section
-headings and prints it only when ``columns`` asks for it.  In order:
+Any other parameter is ignored, apart from ``columns``.  The default list is of rows
+that require validation, and the check columns already say which items are verified, so
+the three verification stamp columns are there to choose but off by default.  Section
+is a default, which keeps the grouping in the flat CSV; the spec names it as its
+``section_column``, so a PDF of the default columns leaves it to the section headings
+and prints it only when ``columns`` asks for it.  Details is the one default column a
+PDF row may wrap in; ``test_report_columns.py`` holds every other default cell of the
+seeded data to one line.
+
+The table below is the CSV's: one header row for both sections, in which an aircraft's
+row leaves the three check cells blank.  In the PDF each section draws its own columns
+(``VERIFICATION_SECTION_COLUMNS``, through the spec's ``section_columns``): *People*
+draws every column but Section under the labels below, except ``dart``, headed
+``DART``; *Aircraft insurance* draws ``name`` headed ``N-number``, ``dart`` headed
+``Owner``, ``details`` headed ``Carrier``, Expires, and Updated, with no check columns.  Section and the three
+stamp columns are drawn in either section when they are chosen.  In order:
 
 ============= ============== ======= =============================================
 Key           Label          Default Contents
@@ -540,20 +576,30 @@ section       Section        yes     The section's title, so the CSV keeps the
                                      grouping
 name          Name           yes     The person's full name (or address), or the
                                      aircraft's N-number
-dart          DART           yes     The person's DART, or the aircraft's owner
-details       Details        yes     What is on file: ``Private · 1234567``,
-                                     ``Third class · expires 03/01/2027``,
-                                     ``Passport``, ``Avemco · expires 03/01/2027``;
-                                     a blank part is left out
+dart          DART or owner  yes     The person's DART, or the aircraft's owner
+photo_id      Photo ID       yes     ``Verified`` or ``Not verified``;
+                                     ``Not provided`` when the person holds no
+                                     photo ID, and blank on an aircraft's row
+certificate   Certificate    yes     The same, for the pilot certificate
+medical       Medical        yes     The same, for the medical
+details       Details        yes     What is on file, in check-column order:
+                                     ``Passport · Private · 1234567 · Third class``
+                                     for a person, the held items only and a blank
+                                     certificate number left out; the carrier,
+                                     ``Avemco``, for an aircraft
+expires       Expires        yes     ``MM/DD/YYYY`` of the medical's or the policy's
+                                     expiration; blank without a medical
 updated       Updated        yes     ``MM/DD/YYYY`` of the profile's
-                                     ``profile_updated_at`` or the aircraft's
-                                     ``updated_at``; blank for a profile nobody has
-                                     written
-verified      Verified       no      ``Yes`` or ``No``
-verified_by   Verified by    no      The verifier's name, blank when unverified or
-                                     when the verifier's account is gone
-verified_on   Verified on    no      ``MM/DD/YYYY`` of the verification, in local
-                                     time
+                                     ``profile_updated_at`` (its ``created_at``
+                                     when nobody has edited it) or the aircraft's
+                                     ``updated_at``
+verified      Verified       no      ``Yes`` when every held item on the row is
+                                     verified, else ``No``
+verified_by   Verified by    no      The name of whoever made the row's most recent
+                                     verification, blank when nothing on the row is
+                                     verified or the verifier's account is gone
+verified_on   Verified on    no      ``MM/DD/YYYY`` of that most recent
+                                     verification, in local time
 ============= ============== ======= =============================================
 
 ``backend/tests/test_verification_report.py`` covers the report.
@@ -644,14 +690,20 @@ Key                      Label                   Default Contents
 n_number                 N-number                yes     Registration, canonical form
 make                     Make                    yes     Manufacturer
 model                    Model                   yes     Model designation
+category                 Category                no      Airplane, Helicopter, …
+airworthiness            Airworthiness           no      Standard, Experimental, …
 owner_name               Owner                   yes     Registered owner
 owner_type               Owner type              no      Individual, flying club, FBO, …
 insurance_carrier        Carrier                 yes     Insurer on the policy
 liability_per_occurrence Liability / occurrence  yes     Liability limit per occurrence
 liability_per_person     Liability / person      no      Liability limit per person
 hull                     Hull                    yes     Hull value insured
-insurance_expiration     Expires                 yes     Date the cover runs out
-insurance_current        Current                 yes     ``yes`` or ``no``
+insurance_expiration     Expires                 yes     Date the cover runs out; in a
+                                                         PDF, a ✓ while it runs and a
+                                                         ✗ once it has lapsed
+covered                  Covered                 yes     ``Yes``, or ``No`` when the
+                                                         coverage policy excludes the
+                                                         category or airworthiness
 pilots                   Pilots                  no      Display names of the members who
                                                          have attached the airplane, from
                                                          ``apps.aircraft.services``
@@ -663,7 +715,10 @@ chooser on the register screen.  The pilot list is off by default because it is
 as long as the number of members who fly the plane, which is the one cell no
 width can promise to hold.
 
-The insured amounts are ``Money`` cells that drop round cents:
+Each row is a ``RegisterRow``: the aircraft and whether the coverage policy
+covers it, judged by one ``CoverageRule`` read before the first row, so the
+**Covered** column costs no query per row.  The insured amounts are ``Money``
+cells that drop round cents, and the expiry is a ``Marked`` cell:
 
 .. list-table::
    :header-rows: 1
@@ -675,6 +730,9 @@ The insured amounts are ``Money`` cells that drop round cents:
    * - Money
      - plain decimals, ``1000000.00``
      - currency, ``$1,000,000``
+   * - Expires
+     - the date, ``2027-04-29``
+     - the date and its mark, ``2027-04-29 ✓``
 
 The report takes the register's full filter set: ``search``, ``make``,
 ``owner_type``, ``insurance`` (``current`` / ``expired`` / ``missing``),

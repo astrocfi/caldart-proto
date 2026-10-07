@@ -11,7 +11,7 @@ import io
 
 import pytest
 
-from caldart.reports import build_pdf_table
+from caldart.reports import ReportSection, build_pdf_table
 from tests.conftest import PdfText
 
 #: The second section's title, which the test looks for on every page.
@@ -35,7 +35,10 @@ def _second_title_and_next(pdf_text: PdfText, rows_before: int) -> list[str]:
         header=[HEADER],
         rows=[],
         landscape=False,
-        sections=[("First section", [["x"]] * rows_before), (SECOND, [["y"]])],
+        sections=[
+            ReportSection(title="First section", rows=[["x"]] * rows_before),
+            ReportSection(title=SECOND, rows=[["y"]]),
+        ],
     )
     for page in pdf_text(buffer.getvalue()):
         if SECOND in page:

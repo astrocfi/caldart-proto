@@ -11,12 +11,13 @@ import type { JSX } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { ApiError } from '@/portal/api/client';
-import type { AircraftPatch } from '@/portal/api/types';
+import type { AircraftPatch, MembershipState } from '@/portal/api/types';
 import { Card } from '@/portal/components/Card';
 import { DeleteButton } from '@/portal/components/DeleteButton';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Page } from '@/portal/components/Page';
 import { StatusDot } from '@/portal/components/StatusDot';
+import type { StatusTone } from '@/portal/components/StatusDot';
 import { useToast } from '@/portal/components/Toast';
 import { AircraftForm } from '@/portal/features/aircraft/AircraftForm';
 import { ServiceDot } from '@/portal/features/aircraft/ServiceDot';
@@ -27,7 +28,7 @@ import {
   useUpdateAircraft,
 } from '@/portal/features/aircraft/api';
 import { aircraftToValues } from '@/portal/features/aircraft/form';
-import { InsuranceCheckDot, PILOT_MEMBERSHIP } from '@/portal/features/leader/AircraftStatusCard';
+import { InsuranceCheckDot } from '@/portal/features/leader/AircraftStatusCard';
 import { GoMark, isReady } from '@/portal/features/leader/LeaderLookup';
 import { InsuranceVerificationCard } from '@/portal/features/verification/InsuranceVerificationCard';
 import { changeLine, lastUpdatedLine } from './history';
@@ -47,6 +48,15 @@ function EmailWithBreak({ email }: { email: string }): JSX.Element {
     </>
   );
 }
+
+/** How the pilot list names each membership state: a friend is a friend, never expired. */
+const PILOT_MEMBERSHIP: Record<MembershipState, { tone: StatusTone; label: string }> = {
+  current: { tone: 'current', label: 'Member current' },
+  expired: { tone: 'expired', label: 'Member expired' },
+  friend: { tone: 'none', label: 'Friend' },
+  none: { tone: 'none', label: 'Not yet paid' },
+  donor: { tone: 'none', label: 'Donor' },
+};
 
 /** `/admin/aircraft/:id` page: edit, view pilots, and delete an aircraft record. */
 export function AircraftRecordPage(): JSX.Element {
@@ -89,7 +99,7 @@ export function AircraftRecordPage(): JSX.Element {
               ? 'It may have been deleted from the register.'
               : (record.error as Error)?.message
           }
-          action={<Link to="/admin/aircraft">Back to aircraft register</Link>}
+          action={<Link to="/admin/aircraft">Back to aircraft</Link>}
         />
       </Page>
     );
@@ -155,7 +165,7 @@ export function AircraftRecordPage(): JSX.Element {
             verified={aircraft.insurance_verification.verified}
           />
           <ServiceDot aircraft={aircraft} />
-          <Link to="/admin/aircraft">Back to aircraft register</Link>
+          <Link to="/admin/aircraft">Back to aircraft</Link>
         </>
       }
     >

@@ -6,12 +6,13 @@
  * draft saves itself as it is typed. Once Send is pressed, a banner at the top
  * says where the email stands, with the one action that fits: the countdown or
  * the scheduled time with **Cancel**, the progress with **Stop sending**, or the
- * result. A scheduled email can still be changed; while an email waits out the
- * short undo wait after Send, and once it has started sending, the banner alone
- * says where it stands and the Check and send card is gone. Once it has started
- * the screen holds still, without the drafting instructions. The email is read
- * again every few seconds while it waits to start or is sending. A draft just made
- * by **Duplicate** says at the top which email it is a copy of.
+ * result. A scheduled email keeps its three cards and can still be changed until
+ * it starts. While an email waits out the short undo wait after Send, and once it
+ * has started sending, the banner is the whole screen: the cards and the drafting
+ * instructions are gone, and Cancel during the wait brings them back with the
+ * draft. The email is read again every few seconds while it waits to start or is
+ * sending. A draft just made by **Duplicate** says at the top which email it is a
+ * copy of.
  */
 import { useRef, useState } from 'react';
 import type { JSX } from 'react';
@@ -93,9 +94,10 @@ function ComposeForm({
   const subjectRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<RichTextEditorHandle>(null);
   const copy = copiedFrom(useLocation().state);
-  // During the undo wait after Send the banner alone says where the email stands; a
-  // scheduled email can still be rescheduled or sent sooner from Check and send.
-  const isSendable =
+  // The three cards belong to a draft and to a scheduled email, which can still be
+  // changed, rescheduled, or sent sooner from Check and send. From the undo wait
+  // after Send onward the banner alone says where the email stands.
+  const isDrafting =
     email.status === 'draft' ||
     (email.can_edit && email.status === 'queued' && email.scheduled && email.started_at === null);
 
@@ -108,8 +110,8 @@ function ComposeForm({
     <Page
       title="Compose"
       lede={
-        email.can_edit
-          ? 'Choose who gets it, write it, then check and send. Your work saves itself.'
+        isDrafting
+          ? 'Choose who gets it, write it, then check and send. Your work is automatically saved.'
           : undefined
       }
     >
@@ -124,44 +126,46 @@ function ComposeForm({
         </p>
       )}
       <Banner email={email} />
-      <RecipientsCard
-        emailId={email.id}
-        isEditable={email.can_edit}
-        isQueued={email.status === 'queued'}
-        dartName={email.dart_name}
-        senderNotice={email.sender_notice}
-      />
-      <MessageCard
-        emailId={email.id}
-        emailType={email.email_type}
-        emailTypeName={email.email_type_name}
-        isCallout={email.is_callout}
-        closesAt={email.closes_at}
-        subject={values.subject}
-        body={values.body}
-        replyTo={email.reply_to}
-        defaultReplyTo={email.default_reply_to}
-        onSubjectChange={handleSubjectChange}
-        onBodyChange={handleBodyChange}
-        onBeforeTest={handleBeforeSend}
-        saveState={saveState}
-        errors={errors}
-        isEditable={email.can_edit}
-        onBeforeReplace={handleBeforeSend}
-        onReplaced={handleReplaced}
-        subjectRef={subjectRef}
-        editorRef={editorRef}
-      />
-      {isSendable ? (
-        <SendCard
-          email={email}
-          subject={values.subject}
-          body={values.body}
-          onBeforeSend={handleBeforeSend}
-          saveState={saveState}
-          saveErrors={errors}
-          onFixField={handleFixField}
-        />
+      {isDrafting ? (
+        <>
+          <RecipientsCard
+            emailId={email.id}
+            isEditable={email.can_edit}
+            isQueued={email.status === 'queued'}
+            dartName={email.dart_name}
+            senderNotice={email.sender_notice}
+          />
+          <MessageCard
+            emailId={email.id}
+            emailType={email.email_type}
+            emailTypeName={email.email_type_name}
+            isCallout={email.is_callout}
+            closesAt={email.closes_at}
+            subject={values.subject}
+            body={values.body}
+            replyTo={email.reply_to}
+            defaultReplyTo={email.default_reply_to}
+            onSubjectChange={handleSubjectChange}
+            onBodyChange={handleBodyChange}
+            onBeforeTest={handleBeforeSend}
+            saveState={saveState}
+            errors={errors}
+            isEditable={email.can_edit}
+            onBeforeReplace={handleBeforeSend}
+            onReplaced={handleReplaced}
+            subjectRef={subjectRef}
+            editorRef={editorRef}
+          />
+          <SendCard
+            email={email}
+            subject={values.subject}
+            body={values.body}
+            onBeforeSend={handleBeforeSend}
+            saveState={saveState}
+            saveErrors={errors}
+            onFixField={handleFixField}
+          />
+        </>
       ) : null}
     </Page>
   );

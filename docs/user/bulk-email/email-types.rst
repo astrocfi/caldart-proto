@@ -81,6 +81,9 @@ pointer over the trashcan gives the reason in full: *Operational has been used f
 email, so it cannot be deleted. To keep DART leaders and CalDART management from sending it,
 take their roles off it instead.* Edit the type, clear both boxes under **Who may send it**,
 and save.
+
+The **Mission** type is the one every mission callout goes as, so it can be neither deleted
+nor renamed; its description, its senders, and whether members may turn it off can change.
 After that only a system administrator can send it.
 
 

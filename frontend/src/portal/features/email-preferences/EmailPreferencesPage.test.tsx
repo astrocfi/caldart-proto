@@ -58,7 +58,7 @@ describe('EmailPreferencesPage', () => {
   it('speaks to the reader of their own email, not of bulk email', () => {
     stubPreferences([MISSION]);
     renderPage();
-    expect(screen.getByText('Your email')).toBeVisible();
+    expect(screen.getByText('My account')).toBeVisible();
   });
 
   it('shows one switch per type, on when the person receives it', async () => {

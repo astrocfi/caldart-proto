@@ -221,13 +221,3 @@ def test_a_missing_field_is_answered_in_plain_words(
     response = client.post(url, body, format="json")
     assert response.status_code == 400
     assert response.json()[field] == [message]
-
-
-def test_a_user_record_saved_with_no_address_says_to_enter_one(
-    api_client: APIClient, user_admin: User, member: User
-) -> None:
-    """The user record answers a blank address in plain words, not DRF's stock text."""
-    api_client.force_login(user_admin)
-    response = api_client.patch(f"/api/v1/admin/users/{member.pk}", {"email": ""}, format="json")
-    assert response.status_code == 400
-    assert response.json()["email"] == ["Enter their email address."]

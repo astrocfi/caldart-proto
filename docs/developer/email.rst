@@ -215,7 +215,7 @@ DMARC
 
       _dmarc.caldart.example.org.  TXT  "v=DMARC1; p=none; rua=mailto:dmarc@caldart.example.org"
 
-``manage.py check_mail_dns`` and the portal's **Mail delivery** screen look these
+``manage.py check_mail_dns`` and the **Mail delivery** card on Health and database look these
 records up and say which are missing, malformed, or too weak, and whether the
 mail host and ``BOUNCE_ADDRESS`` fit them (:ref:`deploy-mail-dns`).  Set
 ``DKIM_SELECTOR`` to the selector the DKIM record is published under so the check
@@ -431,7 +431,7 @@ How it works
 7. Each message read, ignored and unmatched ones included, is then marked seen, so
    the next run reads only what has arrived since.
 
-A dry run (``--dry-run``, or the box on the Scheduled page) opens the mailbox
+A dry run (``--dry-run``, or the box on the Scheduled tasks page) opens the mailbox
 read-only (IMAP ``EXAMINE``), reads and matches exactly as a live one, and writes
 nothing and marks nothing seen.  Every run prints, and ``POST /system/bounces/run``
 answers, the counts ``bounced``, ``unmatched``, ``ignored`` and ``skipped`` with one
@@ -450,7 +450,7 @@ leaves the password out of its ``repr``, and the check's own frames are marked
 sensitive, so a traceback shows none of their variables.
 
 The flag on the account shows as a red dot and the word **Bounced** beside the address
-on the member record and the user record, and Users and roles filters on it
+on the member record and the user record, and Roles filters on it
 (``?email_bounced=``).  It clears when the address changes, when a verification,
 password reset, or invitation link sent to it is followed, and when a user
 administrator presses **Clear bounce** on the user record

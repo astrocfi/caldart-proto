@@ -42,7 +42,7 @@ changes both (see `Choosing the columns`_). At first it shows the report's eleve
 **Status**
    A colored dot and the membership's state: **Current** (green), **Expiring soon** in its
    last 30 days (amber), **Expired** (red), **Never expires** for a life member (green),
-   **No membership yet** (gray) for a member who has not paid their first dues, or
+   **Not yet paid** (gray) for a member who has not paid their first dues, or
    **Friend** (gray).
 
 **Kind**
@@ -115,7 +115,7 @@ the page's address, so a filtered list is a link you can bookmark or send to a c
 
 **Membership**
    **Any**, the blank choice, takes in everybody. **Current** (a term covers today),
-   **Expired** (a paid term has run out), **No membership yet** (somebody who joined as a
+   **Expired** (a paid term has run out), **Not yet paid** (somebody who joined as a
    member and has never paid), and **Friend** (a friend of CalDART) between them cover
    every person exactly once, and the report's **Status** column prints the same words.
 
@@ -162,7 +162,7 @@ date and page numbers at the bottom, so it says on its face what it is a list of
 Both files carry eleven columns unless you choose others: **Name**, **Email**, **Phone**,
 **DART**, **Status**, **Kind**, **Expires**, **Certificate**, **Medical**, **Medical
 expires**, and **Aircraft**. **Kind** reads Member or Friend. A life member, a friend, and
-a member with no membership yet have an empty **Expires** cell.
+a member who has not paid yet have an empty **Expires** cell.
 
 
 Choosing the columns

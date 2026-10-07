@@ -21,7 +21,7 @@ from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.members.models import MemberProfile
-from caldart.casing import person_name
+from caldart.casing import person_last_name, person_name
 from tests.conftest import REGISTER_URL, register_payload
 from tests.factories import UserFactory
 
@@ -127,9 +127,45 @@ def test_person_name_matches_the_documented_examples(value: str, expected: str) 
     assert person_name(value) == expected
 
 
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("van dyke", "van Dyke"),
+        ("VAN DER BERG", "van der Berg"),
+        ("de la cruz", "de la Cruz"),
+        ("VAN", "Van"),
+        ("Van Dyke", "Van Dyke"),
+        ("mcdonald iii", "McDonald III"),
+    ],
+    ids=[
+        "a-leading-particle-stays-lower",
+        "leading-particles-stay-lower",
+        "spanish-leading-particles",
+        "a-particle-alone-is-a-name",
+        "mixed-case-kept",
+        "the-other-rules-still-apply",
+    ],
+)
+def test_person_last_name_keeps_a_leading_particle_lower(value: str, expected: str) -> None:
+    """A last name keeps a leading particle lower; otherwise it is ``person_name``."""
+    assert person_last_name(value) == expected
+
+
+def test_person_name_capitalizes_a_leading_particle() -> None:
+    """A first name, or a whole name, still capitalizes a particle as its first word."""
+    assert person_name("van dyke") == "Van Dyke"
+
+
 # --------------------------------------------------------------------------
 # The model's save method
 # --------------------------------------------------------------------------
+def test_saving_an_account_keeps_a_last_names_leading_particle_lower() -> None:
+    """``User.save()`` keeps a last name's leading particle lower, not a first name's."""
+    user = UserFactory(first_name="van", last_name="van dyke")
+    user.refresh_from_db()
+    assert (user.first_name, user.last_name) == ("Van", "van Dyke")
+
+
 def test_saving_an_account_normalizes_both_names() -> None:
     """``User.save()`` passes the first and the last name through ``person_name``."""
     user = UserFactory(first_name="MARY ANN", last_name="mcdonald")
@@ -230,7 +266,7 @@ def test_patch_profile_answers_with_the_stored_names(
     )
     assert (response.json()["first_name"], response.json()["last_name"]) == (
         "Nora",
-        "Van der Berg",
+        "van der Berg",
     )
 
 

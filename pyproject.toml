@@ -24,6 +24,7 @@ dependencies = [
     "dnspython>=2.8.0",
     "nh3>=0.3.7",
     "idna>=3.7",
+    "tldextract>=5.4",
 ]
 
 [dependency-groups]

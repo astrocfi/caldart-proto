@@ -1,5 +1,5 @@
 /**
- * The client for the signed-in person's Messages: the bulk emails they received,
+ * The client for the signed-in person's Email to me screen: the bulk emails they received,
  * from `GET /messages`, and one of them as their own copy, from `GET /messages/{id}`.
  */
 import { useQuery } from '@tanstack/react-query';

@@ -37,8 +37,9 @@ Choosing who gets it
 On **Compose**, card **1. Who gets it** says *Sending to the Marin DART* (with your DART's
 name) where CalDART management sees a **DART** filter. Every other filter works as it does
 for management, inside your DART: **Kind**, **Search**, **Membership**, **Certificate**,
-**Medical**, **County**, **Role**, and **Expiring within (days)**. With no filters chosen,
-**Add these people** adds every member and friend of your DART, you among them.
+**Medical**, **County**, **Role**, and **Expiring within (days)**. The people they match,
+shown under the filters before you add them, are all in your DART: with no filters chosen,
+every member and friend of it, you among them. **Add these people** adds them.
 
 Anybody on the recipient list whose profile no longer names your DART, such as a member who moved to
 another DART after you added them, shows *Not in your DART* under **Will receive?** and is

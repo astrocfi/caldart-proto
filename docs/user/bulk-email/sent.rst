@@ -15,7 +15,8 @@ The list
 
 One line per email, the most recently started first, which the arrow on **Date** shows:
 
-- **Subject**: what it said. It opens the email's own page, below.
+- **Subject**: what it said, a field in it shown as a chip, as on :doc:`compose`. It opens
+  the email's own page, below.
 - **Date**: the day it started sending.
 - **Type**: the type of email it was, such as *Operational*.
 - **From** and **DART**, for CalDART management only: who sent it, and the DART a DART
@@ -61,10 +62,10 @@ Grace Holloway on 10/03/2026 at 5:34 PM.*, and has three cards:
   until then, with **Stop sending**. A mission callout adds *This is a mission callout.*
   with **See who can fly**, which opens its answers on :doc:`callouts`.
 - **The message**: the email as it was sent, with the subject at its head, and above it its
-  type and *Replies go to:* with the address for replies its copies carried. Fields such as
-  *{first_name}* show as written, because each person's copy had their own details filled
-  in. Under it, a line says whether the people it went to can read it again under
-  **Messages**, with **Hide from Messages** or **Show in Messages** (`Messages`_).
+  type and *Replies go to:* with the address for replies its copies carried. A field shows
+  in the subject and the message as the chip you wrote it with, such as *First name, or
+  friend*, because each person's copy had their own details filled in. Under it, a line says whether the people it went to can read it again under
+  **Email to me**, with **Hide from Email to me** or **Show in Email to me** (`Email to me`_).
 - **Who received it**: the delivery report, described next.
 
 
@@ -142,10 +143,10 @@ failed copies. Each retry is listed under **Retries** at the bottom of the repor
 it was pressed, who pressed it, and how many people it sent a fresh copy to.
 
 
-Messages
-========
+Email to me
+===========
 
-Every person a bulk email went to can read it again on their own **Messages** page, and
+Every person a bulk email went to can read it again on their own **Email to me** page, and
 every copy ends with a *View this email in your browser* link to it there. Each person sees
 only their own copy.
 
@@ -186,6 +187,8 @@ copy to the mail server, so ask them to check their spam folder, or point them t
 Messages page, where they can read it. *Failed*, *Bounced*, or *Skipped* gives the reason.
 After a failure the mail server reported, **Retry failed** may get the copy through. An
 address that needs correcting is corrected on the person's account by a user administrator
-or an account administrator. To write to everybody again, use **Duplicate**
+or an account administrator. If many people find CalDART's email in their spam folders, ask a
+system administrator to read **Mail delivery** on :doc:`../admin/health-database`. To write
+to everybody again, use **Duplicate**
 with the people; to write to only the people a failure left out, download the results and add
 them to a new email.

@@ -5,12 +5,18 @@ from __future__ import annotations
 from datetime import date
 
 import pytest
+from reportlab.pdfbase.pdfmetrics import getFont, unicode2T1
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
-from apps.aircraft.models import Aircraft
-from apps.aircraft.reports import AIRCRAFT_REPORT, AIRCRAFT_REPORT_COLUMNS, EXPORT_FILTER_PARAMS
-from caldart.reports import ReportFormat, cell_text
+from apps.aircraft.models import Aircraft, AircraftCategory, AircraftCoveragePolicy
+from apps.aircraft.reports import (
+    AIRCRAFT_REPORT,
+    AIRCRAFT_REPORT_COLUMNS,
+    EXPORT_FILTER_PARAMS,
+    RegisterRow,
+)
+from caldart.reports import BODY_FONT, PDF_MARK_NO, PDF_MARK_YES, ReportFormat, cell_text
 from tests.conftest import PdfText, RegisterDict, pdf_page_count, read_csv
 from tests.factories import AircraftFactory, MemberProfileFactory, UserFactory
 
@@ -30,7 +36,7 @@ EXPECTED_HEADER = [
     "Liability / occurrence",
     "Hull",
     "Expires",
-    "Current",
+    "Covered",
 ]
 
 #: Every column, by key, so a test can read a cell by its position below.
@@ -42,6 +48,19 @@ PDF_FIRST_ROW = 11
 
 #: The footer draws two more strings after the last row of the page.
 PDF_FOOTER = -2
+
+
+def drawn_mark(mark: str) -> str:
+    """``mark`` as the page's content stream shows it.
+
+    Helvetica has no check mark or X, so reportlab draws each in ZapfDingbats, where it
+    is a different character code; the date before it is a string of its own.
+    """
+    body = getFont(BODY_FONT)
+    ((font, code),) = unicode2T1(mark, [body, *body.substitutionFonts])
+    assert font.fontName == "ZapfDingbats"
+    assert isinstance(code, bytes)
+    return code.decode()
 
 
 # --------------------------------------------------------------------------
@@ -89,13 +108,29 @@ def test_csv_content(api_client: APIClient, account_admin: User, register: Regis
     expiration = register["current"].insurance_expiration
     assert expiration is not None
     assert current[11] == expiration.isoformat()
-    assert current[12] == "yes"
+    assert current[12] == "Yes"
 
-    assert by_number["N33MM"][12] == "no"
     missing = by_number["N44BE"]
     assert missing[10] == ""
     assert missing[11] == ""
-    assert missing[12] == "no"
+
+
+def test_csv_covered_says_whether_the_coverage_policy_covers_each_aircraft(
+    api_client: APIClient, account_admin: User, register: RegisterDict
+) -> None:
+    """An aircraft whose category the coverage policy excludes reads No; the rest Yes."""
+    AircraftCoveragePolicy.objects.create(excluded_categories=[AircraftCategory.HELICOPTER])
+    AircraftFactory(n_number="N407HL", category=AircraftCategory.HELICOPTER)
+    api_client.force_login(account_admin)
+    rows = read_csv(api_client.get(CSV_URL))
+    covered = {row[0]: row[8] for row in rows[1:]}
+    assert covered == {
+        "N172SP": "Yes",
+        "N9021K": "Yes",
+        "N33MM": "Yes",
+        "N44BE": "Yes",
+        "N407HL": "No",
+    }
 
 
 def test_csv_pilots_column_lists_attached_members(
@@ -190,9 +225,31 @@ def test_pdf_is_filtered_like_the_list(
         "Avemco",
         "$1,000,000",
         "$200,000",
-        expires_on.isoformat(),
-        "no",
+        f"{expires_on.isoformat()} ",
+        drawn_mark(PDF_MARK_NO),
+        "Yes",
     ]
+
+
+def test_pdf_marks_a_current_expiry_with_a_check(
+    api_client: APIClient, account_admin: User, register: RegisterDict, pdf_text: PdfText
+) -> None:
+    """An expiry still in force carries a check mark in the PDF."""
+    api_client.force_login(account_admin)
+    page = pdf_text(api_client.get(PDF_URL, {"search": "N172SP"}).content)[0]
+    expires_on = register["current"].insurance_expiration
+    assert expires_on is not None
+    cells = page[PDF_FIRST_ROW:PDF_FOOTER]
+    assert cells[7:9] == [f"{expires_on.isoformat()} ", drawn_mark(PDF_MARK_YES)]
+
+
+def test_the_csv_carries_the_expiry_without_a_mark(register: RegisterDict) -> None:
+    """A CSV expiry is the bare date, so a spreadsheet still reads it as one."""
+    expires = next(c for c in AIRCRAFT_REPORT_COLUMNS if c.key == "insurance_expiration")
+    row = RegisterRow(aircraft=register["expired"], covered=True)
+    expires_on = register["expired"].insurance_expiration
+    assert expires_on is not None
+    assert cell_text(expires.value(row), "csv") == expires_on.isoformat()
 
 
 def test_pdf_paginates_a_large_register(api_client: APIClient, account_admin: User) -> None:
@@ -237,8 +294,9 @@ def test_pdf_says_when_it_was_run_with_no_filters(
 def money_cells(aircraft: Aircraft, fmt: ReportFormat) -> list[str]:
     """The three insured amounts of ``aircraft``, as format ``fmt`` prints them."""
     keys = {"liability_per_occurrence", "liability_per_person", "hull"}
+    row = RegisterRow(aircraft=aircraft, covered=True)
     return [
-        cell_text(column.value(aircraft), fmt)
+        cell_text(column.value(row), fmt)
         for column in AIRCRAFT_REPORT_COLUMNS
         if column.key in keys
     ]

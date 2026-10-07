@@ -201,21 +201,21 @@ def test_search_does_not_treat_a_name_as_a_registration(
 def test_search_result_shape(
     api_client: APIClient, dart_leader: User, pilot: User, dart: Dart
 ) -> None:
-    """A search result row carries the member's id, name, email, dart, and status.
+    """A search result row carries the member's id, name, DART, and status, and no email.
 
     The medical and the go/no-go the same row carries are covered in
     ``test_leader_search_readiness.py``.
     """
     api_client.force_login(dart_leader)
     row = api_client.get(SEARCH_URL, {"q": "Reyes"}).json()[0]
-    identity = {key: row[key] for key in ("user_id", "name", "email", "dart", "membership_status")}
+    identity = {key: row[key] for key in ("user_id", "name", "dart", "membership_status")}
     assert identity == {
         "user_id": pilot.pk,
         "name": "Marta Reyes",
-        "email": "marta@example.test",
         "dart": dart.name,
         "membership_status": "current",
     }
+    assert "email" not in row
 
 
 def test_search_reports_an_expired_membership(
@@ -381,7 +381,7 @@ def test_no_medical_on_file_is_never_current(api_client: APIClient, dart_leader:
     assert data["go_no_go"]["medical"] is False
 
 
-def test_a_member_who_never_paid_reads_no_membership_yet_and_is_a_no_go(
+def test_a_member_who_never_paid_reads_not_yet_paid_and_is_a_no_go(
     api_client: APIClient, dart_leader: User
 ) -> None:
     """A member who has never held a term reads ``none``, a no-go for membership."""

@@ -21,7 +21,7 @@ import { useAuth } from '@/portal/auth/useAuth';
 import { ACCOUNT_KIND_LABELS, roleLabel } from '@/portal/choices';
 import { BouncedDot } from '@/portal/components/BouncedDot';
 import { Card } from '@/portal/components/Card';
-import { DateText, todayIso } from '@/portal/components/DateText';
+import { DateText } from '@/portal/components/DateText';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Page } from '@/portal/components/Page';
 import { StatusDot } from '@/portal/components/StatusDot';
@@ -133,18 +133,13 @@ function TabPanel({
   );
 }
 
-/**
- * The record's summary strip.  The joining date shows once it has come: a member whose
- * only term starts later reads when it starts, in the membership's words, and nothing
- * more, rather than the same date again as the day they joined.
- */
+/** The record's summary strip: the membership, the joining date, and the account's state. */
 function MemberHeader({ member }: { member: MemberDetail }) {
-  const hasJoined = member.joined_on !== null && member.joined_on <= todayIso();
   return (
     <Card>
       <div className="cluster">
         <MembershipSummary facts={factsFromTerms(member, member.memberships)} grantHint />
-        {!hasJoined || member.joined_on === null ? null : (
+        {member.joined_on === null ? null : (
           <span className="muted">
             joined <DateText value={member.joined_on} />
           </span>

@@ -13,7 +13,7 @@ administrator uses.
    members
    new-member
    member-record
-   aircraft-register
+   aircraft
    aircraft-record
    darts
    reminders

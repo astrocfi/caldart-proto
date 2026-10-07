@@ -36,28 +36,28 @@ describe('MessagesVisibility', () => {
 
   it('hides the email from Messages after asking', async () => {
     const bodies = renderLine();
-    await userEvent.click(screen.getByRole('button', { name: 'Hide from Messages' }));
-    const confirm = screen.getByRole('region', { name: 'Hide from Messages' });
+    await userEvent.click(screen.getByRole('button', { name: 'Hide from Email to me' }));
+    const confirm = screen.getByRole('region', { name: 'Hide from Email to me' });
     await userEvent.click(within(confirm).getByRole('button', { name: 'Hide it' }));
     await waitFor(() => expect(bodies).toEqual([{ hidden: true }]));
   });
 
   it('says the email is hidden once it is', async () => {
     renderLine();
-    await userEvent.click(screen.getByRole('button', { name: 'Hide from Messages' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Hide from Email to me' }));
     await userEvent.click(screen.getByRole('button', { name: 'Hide it' }));
     expect(await screen.findByText(HIDDEN_MESSAGE)).toBeVisible();
   });
 
   it('shows a hidden email again at once', async () => {
     const bodies = renderLine({ hidden_from_archive: true });
-    await userEvent.click(screen.getByRole('button', { name: 'Show in Messages' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Show in Email to me' }));
     await waitFor(() => expect(bodies).toEqual([{ hidden: false }]));
   });
 
   it('says a hidden email is back once shown', async () => {
     renderLine({ hidden_from_archive: true });
-    await userEvent.click(screen.getByRole('button', { name: 'Show in Messages' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Show in Email to me' }));
     expect(await screen.findByText(SHOWN_MESSAGE)).toBeVisible();
   });
 
@@ -68,6 +68,6 @@ describe('MessagesVisibility', () => {
 
   it('offers nothing to a sender who is not CalDART management', () => {
     renderLine({}, ['dart_leader']);
-    expect(screen.queryByRole('button', { name: 'Hide from Messages' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Hide from Email to me' })).toBeNull();
   });
 });

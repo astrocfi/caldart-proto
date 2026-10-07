@@ -3,8 +3,9 @@
  *
  * At the top are the subject, who sent it and when, and where it stands: the
  * progress with **Stop** while it sends, or the counts, with **Send the rest**
- * after a stop. Then the message as it was sent, in a sandboxed frame with its
- * recipient field tokens as written, with whether it is on the recipients' Messages
+ * after a stop. Then the message as it was sent, in a sandboxed frame with each
+ * recipient field shown as the editor's chip (the subject too), with whether it is on
+ * the recipients' Email to me
  * page, and the delivery report: every person in the batch with what became of their
  * copy and why. A mission callout links to its answers. The page is read again every
  * few seconds while the email is sending.
@@ -25,6 +26,7 @@ import './bulk-email.css';
 import { DeliveryReport } from './DeliveryReport';
 import { MessagesVisibility } from './MessagesVisibility';
 import { DuplicateButton } from './DuplicateButton';
+import { FieldText, useFieldLabels, withFrameChips } from './FieldChips';
 import { SendStatus } from './SendStatus';
 
 /** One send's page: the counts, the message, and every person's result. */
@@ -56,6 +58,7 @@ export function SentDetailPage(): JSX.Element {
   return (
     <Page
       title={sent.subject || 'Sent bulk email'}
+      heading={sent.subject === '' ? undefined : <FieldText text={sent.subject} />}
       lede={sentLede(sent)}
       actions={<Link to="/bulk-email/sent">Back to sent emails</Link>}
     >
@@ -88,11 +91,11 @@ export function SentDetailPage(): JSX.Element {
         <p className="muted">Replies go to: {sent.reply_to || sent.default_reply_to}</p>
         {hasFields(sent) ? (
           <p className="muted">
-            Recipient fields show here in braces; each person&apos;s copy had their own details
-            filled in.
+            Recipient fields show here as the chips you wrote them with; each person&apos;s copy had
+            their own details filled in.
           </p>
         ) : null}
-        <EmailFrame title="The message as it was sent" html={sent.message_html} />
+        <SentMessage html={sent.message_html} />
         {sent.started_at === null ? null : <MessagesVisibility email={sent} />}
       </Card>
 
@@ -101,6 +104,12 @@ export function SentDetailPage(): JSX.Element {
       </Card>
     </Page>
   );
+}
+
+/** The message as it was sent, in its frame, each recipient field drawn as a chip. */
+function SentMessage({ html }: { html: string }): JSX.Element {
+  const labels = useFieldLabels();
+  return <EmailFrame title="The message as it was sent" html={withFrameChips(html, labels)} />;
 }
 
 /** A recipient field token, `{first_name}` or `{first_name|friend}`, as the server reads one. */

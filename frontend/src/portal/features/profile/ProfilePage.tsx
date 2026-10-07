@@ -4,9 +4,9 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
+import { Link } from 'react-router-dom';
 
 import { ApiError } from '@/portal/api/client';
-import { ButtonLink } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Page } from '@/portal/components/Page';
@@ -62,15 +62,7 @@ export function ProfilePage(): JSX.Element {
   const { verification } = profile.data;
 
   return (
-    <Page
-      title="My profile"
-      lede="CalDART uses these details to reach you during an activation and to check you are current to fly."
-      actions={
-        <ButtonLink to="/profile/aircraft" variant="secondary">
-          My aircraft
-        </ButtonLink>
-      }
-    >
+    <Page title="My profile" actions={<Link to="/profile/aircraft">My aircraft</Link>}>
       <div ref={formCardRef}>
         <Card>
           <ProfileForm

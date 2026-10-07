@@ -19,9 +19,9 @@ test('an account administrator subscribes somebody to the member report, sends i
   await expect(page).toHaveURL(/\/portal\/admin\/reports/);
   await expect(page.getByRole('heading', { level: 1, name: 'Emailed reports' })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Email a report' }).click();
+  await page.getByRole('button', { name: 'Add a scheduled report' }).click();
   await page.getByLabel('Report', { exact: true }).selectOption('members');
-  const form = page.getByRole('form', { name: 'Email a report' });
+  const form = page.getByRole('form', { name: 'Add a scheduled report' });
 
   // The treasurer holds no role that may read the member report.
   await form.getByLabel(/^Recipient email/).fill(DEMO.treasurer);

@@ -75,9 +75,6 @@ DEFAULT_OPEN_HOURS = 48
 #: The default close time is rounded up to the next whole multiple of this many minutes.
 ROUND_TO_MINUTES = 30
 
-#: The slug of the email type a callout starts as, when its sender may send it.
-MISSION_SLUG = "mission"
-
 #: The longest note an answer keeps.
 NOTE_MAX_LENGTH = 500
 
@@ -223,7 +220,7 @@ def default_closes_at(now: datetime | None = None) -> datetime:
 
 def mission_type(user: User) -> EmailType | None:
     """The Mission type when ``user`` may send it, else ``None``."""
-    return next((kind for kind in sendable_types(user) if kind.slug == MISSION_SLUG), None)
+    return next((kind for kind in sendable_types(user) if kind.is_mission), None)
 
 
 # -- the compose screen ----------------------------------------------------------------
@@ -239,7 +236,9 @@ def apply_settings(
 
     ``is_callout`` true makes the email a callout: its :class:`Callout` row is made with
     ``closes_at``, or :func:`default_closes_at` when none is given, and its type becomes
-    Mission when ``actor`` is given and may send that (:func:`mission_type`).  False
+    Mission when ``actor`` is given and may send that (:func:`mission_type`), or none
+    when ``actor`` may not and the type was another, since a callout goes as Mission
+    only.  False
     makes it an ordinary email again and deletes the row, which holds no answer before a
     send.
     ``closes_at`` alone moves the close time of an email that is a callout already; it
@@ -262,6 +261,10 @@ def apply_settings(
         mission = None if actor is None else mission_type(actor)
         if mission is not None and locked.email_type_id != mission.pk:
             locked.email_type = mission
+            changed.append("email_type")
+        elif mission is None and locked.email_type is not None and not locked.email_type.is_mission:
+            # A callout goes as Mission only; one its sender may not send is chosen later.
+            locked.email_type = None
             changed.append("email_type")
         return changed
     if is_callout is False and locked.is_callout:

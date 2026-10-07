@@ -31,7 +31,7 @@ export interface Role {
 /**
  * A donor's membership reads `donor`; no screen draws it, since a donor cannot sign in.
  * `none` is an account that chose to be a member and holds no term yet, such as one an
- * administrator created that has not paid: *No membership yet*, never *Friend*.
+ * administrator created that has not paid: *Not yet paid*, never *Friend*.
  */
 export type MembershipState = 'current' | 'expired' | 'friend' | 'none' | 'donor';
 
@@ -204,22 +204,18 @@ export interface AccountActor {
 /**
  * `GET|PATCH /admin/users/{id}` and the record's status actions: the list's row plus
  * what the record needs to word the membership as the member record does.
- * `next_term_starts_on` is the start of the earliest active term that has not begun.
  */
 export interface AdminUserDetail extends AdminUser {
   has_terms: boolean;
   has_suspended_term: boolean;
-  next_term_starts_on: IsoDate | null;
 }
 
 /**
- * The writable half of `PATCH /admin/users/{id}`. The active flag and the block are
- * changed through the record's own actions, never a patch.
+ * The writable half of `PATCH /admin/users/{id}`: the roles alone. The names and the
+ * address are refused there, and the active flag and the block are changed through the
+ * record's own actions, never a patch.
  */
 export interface AdminUserPatch {
-  first_name?: string;
-  last_name?: string;
-  email?: string;
   roles?: RoleSlug[];
 }
 
@@ -1492,7 +1488,6 @@ export interface LeaderGoNoGo {
 export interface LeaderSearchResult {
   user_id: number;
   name: string;
-  email: string;
   dart: string | null;
   membership_status: MembershipState;
   go_no_go: LeaderGoNoGo;
@@ -1606,12 +1601,16 @@ export interface EmailTypeInput {
   position?: number;
 }
 
-/** A type the caller may send, from `GET /email-types/sendable`. */
+/**
+ * A type the caller may send, from `GET /email-types/sendable`. `is_mission` is true
+ * for the Mission type, the only one a mission callout offers.
+ */
 export interface SendableEmailType {
   id: number;
   name: string;
   description: string;
   allow_opt_out: boolean;
+  is_mission: boolean;
 }
 
 /**
@@ -1980,7 +1979,7 @@ export type BulkEmailRecipientStatus =
  * copies the bounce check later found refused, which `sent_count` no longer counts;
  * `retries` lists each press of Retry failed, oldest first, and `retried_count` adds
  * up the copies they queued again. `hidden_from_archive` is true while the email is
- * kept off the recipients' Messages page. `is_callout` is true for a mission callout,
+ * kept off the recipients' Email to me page. `is_callout` is true for a mission callout,
  * whose answers close at `closes_at`, null for any other email.
  */
 export interface BulkEmailDetail {
@@ -2051,7 +2050,7 @@ export interface BulkEmailCopy {
   text: string;
 }
 
-/** The body of `POST /bulk-email/{id}/hide`: true to hide it from Messages, false to show it. */
+/** The body of `POST /bulk-email/{id}/hide`: true to hide it from Email to me, false to show it. */
 export interface BulkEmailHideRequest {
   hidden: boolean;
 }
@@ -2173,6 +2172,20 @@ export interface BulkEmailBatchAdd {
   added_count: number;
   already_count: number;
   created_at: IsoDateTime;
+}
+
+/**
+ * One person a search on the compose screen matches, before anybody is added:
+ * `will_receive` and `reason` say whether a copy would go and why not.
+ */
+export interface BulkEmailMatch {
+  user_id: number;
+  name: string;
+  email: string;
+  kind: string;
+  dart_name: string;
+  will_receive: boolean;
+  reason: string;
 }
 
 /**
@@ -2424,10 +2437,14 @@ export interface AddGroupRequest {
   group: number;
 }
 
-/** The body of `POST /bulk-email/{id}/save-group`: the batch's name and kind as a group. */
+/**
+ * The body of `POST /bulk-email/{id}/save-group`: the group's name and kind, and the
+ * search it keeps, the member list filters the compose screen shows.
+ */
 export interface SaveGroupRequest {
   name: string;
   kind: RecipientGroupKind;
+  filters: Record<string, string>;
 }
 
 /* ----------------------------------------------------------- mission callouts */

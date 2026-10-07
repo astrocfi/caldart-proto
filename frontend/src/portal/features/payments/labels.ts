@@ -47,7 +47,7 @@ export function automaticCardTitle(isLifetime: boolean): string {
 }
 
 /**
- * The Payments page's lede: what the screen covers, in reading order.
+ * The My payments page's lede: what the screen covers, in reading order.
  *
  * Somebody with no membership to renew -- a life member or a friend -- is not
  * told about a renewal they will not get.

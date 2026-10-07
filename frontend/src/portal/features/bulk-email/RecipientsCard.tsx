@@ -1,18 +1,23 @@
 /**
- * Card 1 of the compose screen, **Who gets it**: the member list's filters, one
- * **Add to batch** button, and the batch, the list of people the email goes to.
+ * Card 1 of the compose screen, **Who gets it**: the member list's filters, the
+ * people they match, **Add these people**, and the batch, the list of people the
+ * email goes to.
  *
- * Each add puts everybody the filters choose into the batch, unless they are in
- * it already, and says how many joined. The table lists everybody in the batch in
+ * The filters search first: the people they match show under them, ten at a time,
+ * with how many in all and whether each would receive the email. **Add these
+ * people** then puts everybody the search matches into the batch, unless they are in
+ * it already, and says how many joined. **Save as a group**, beside it, keeps the
+ * search itself: a live group its filters, a fixed group the people they match. The
+ * DART filter takes several DARTs, as County takes several counties. The table lists everybody in the batch in
  * surname order, which filters chose them, and whether they will receive the email
  * or why not; it shows the first ten until **Show all** is pressed. One person can be
  * taken out with the trashcan, or everybody with **Clear batch**; both ask first.
- * **Download list** saves the batch as a spreadsheet. **Download list**, **Save as a
- * group**, and **Clear batch** sit in one row. After an add the focus moves to the
+ * **Download list** saves the batch as a spreadsheet; it and **Remove everyone** sit in
+ * one row. After an add the focus moves to the
  * line saying what it did. A change to the batch of a
  * scheduled email takes it back to the drafts, and the screen says so. A DART
  * leader's email goes to one DART only: the DART filter gives way to that DART,
- * named as a fixed value. While that leader's profile names no DART, nobody can be
+ * named as a fixed value, and the search matches people of that DART only. While that leader's profile names no DART, nobody can be
  * added, and the card says so, naming the leader, in place of the filters.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -28,7 +33,6 @@ import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
 import { DeleteButton } from '@/portal/components/DeleteButton';
 import { FilterBar } from '@/portal/components/FilterBar';
-import { StatusDot } from '@/portal/components/StatusDot';
 import { useToast } from '@/portal/components/Toast';
 import { SEARCH_DEBOUNCE_MS } from '@/portal/components/useDebounced';
 import { listFilters, REPORTS } from '@/portal/reports/definitions';
@@ -40,16 +44,24 @@ import {
   givenFilters,
   useAddToBatch,
   useBatch,
+  useBatchMatches,
   useClearBatch,
   useRemoveFromBatch,
 } from './api';
 import { SaveGroupButton } from './SaveGroupButton';
+import { SearchResults, WillReceive } from './SearchResults';
 import { addSentence, batchSentence, kindLabel, people } from './status';
 
-/** The member list's filters, less any only a subscription offers, with a short search hint. */
-export const FILTER_FIELDS = listFilters(REPORTS.members).map((field) =>
-  field.key === 'search' ? { ...field, placeholder: 'Name or email' } : field,
-);
+/**
+ * The member list's filters, less any only a subscription offers, with a short search
+ * hint, and a DART filter that takes several DARTs, as County takes several counties.
+ */
+export const FILTER_FIELDS = listFilters(REPORTS.members).map((field) => {
+  if (field.key === 'search') return { ...field, placeholder: 'Name or email' };
+  if (field.key === 'dart')
+    return { ...field, kind: 'multiselect' as const, placeholder: 'Any DART' };
+  return field;
+});
 
 /** The filters of an email limited to one DART: every one but the DART's own. */
 const DART_LIMITED_FIELDS = FILTER_FIELDS.filter((field) => field.key !== 'dart');
@@ -102,6 +114,7 @@ export function RecipientsCard({
   senderNotice,
 }: RecipientsCardProps): JSX.Element {
   const [filters, setFilters] = useState<FilterValues>({});
+  const [page, setPage] = useState(1);
   const [lastAdd, setLastAdd] = useState<BulkEmailAddResult | null>(null);
   const [search, setSearch] = useState('');
   const [isShowingAll, setIsShowingAll] = useState(false);
@@ -111,6 +124,7 @@ export function RecipientsCard({
   const dartOptions = useDartOptions();
 
   const batch = useBatch(emailId);
+  const matches = useBatchMatches(emailId, filters, page, isEditable && senderNotice === '');
   const add = useAddToBatch(emailId);
   const remove = useRemoveFromBatch(emailId);
   const clear = useClearBatch(emailId);
@@ -141,6 +155,7 @@ export function RecipientsCard({
   const handleFilterChange = (next: FilterValues): void => {
     filtersRef.current = next;
     setFilters(next);
+    setPage(1);
   };
 
   // A search typed just before the press applies after a short pause, so the add
@@ -171,16 +186,19 @@ export function RecipientsCard({
     setSearch(event.target.value);
   };
 
-  const failure = add.error ?? remove.error ?? clear.error;
+  const failure = add.error ?? matches.error ?? remove.error ?? clear.error;
   const count = batch.data?.count ?? 0;
+  const isUnfiltered = Object.keys(givenFilters(filters)).length === 0;
+  const isNobodyMatched = matches.data?.count === 0;
 
   return (
     <Card title="1. Who gets it" className="bulk-email__card">
       {isEditable ? (
         <p className="muted">
           The people you add make up the recipient list: everyone this email goes to. Choose people
-          with the filters, then press <strong>Add these people</strong>. Add as many groups as you
-          like: nobody is added twice.
+          with the filters: the people they match show below them. Then press{' '}
+          <strong>Add these people</strong>. Add as many searches as you like: nobody is added
+          twice.
         </p>
       ) : null}
       {isEditable && senderNotice !== '' ? (
@@ -203,26 +221,30 @@ export function RecipientsCard({
             options={dartOptions}
             label="Choose people to add"
           />
-          <div className="stack-tight">
-            <div className="cluster">
-              <Button ref={addRef} onClick={handleAdd} disabled={add.isPending || isSettling}>
-                {add.isPending || isSettling ? 'Adding…' : 'Add these people'}
-              </Button>
-              <AddGroupButton
-                emailId={emailId}
-                onAdded={(result) => {
-                  setLastAdd(result);
-                  afterChange();
-                }}
-              />
-            </div>
-            {Object.keys(givenFilters(filters)).length > 0 ? null : (
-              <p className="muted">
-                {dartName === ''
-                  ? 'With no filters chosen, this adds every member and friend.'
-                  : `With no filters chosen, this adds every member and friend of the ${dartName} DART.`}
-              </p>
-            )}
+          <SearchResults
+            matches={matches.data}
+            isLoading={matches.isLoading}
+            isUnfiltered={isUnfiltered}
+            dartName={dartName}
+            page={page}
+            onPageChange={(next) => setPage(next)}
+          />
+          <div className="cluster bulk-email__batch-actions">
+            <Button
+              ref={addRef}
+              onClick={handleAdd}
+              disabled={add.isPending || isSettling || isNobodyMatched}
+            >
+              {add.isPending || isSettling ? 'Adding…' : 'Add these people'}
+            </Button>
+            <SaveGroupButton emailId={emailId} filters={filters} />
+            <AddGroupButton
+              emailId={emailId}
+              onAdded={(result) => {
+                setLastAdd(result);
+                afterChange();
+              }}
+            />
           </div>
           {lastAdd === null ? null : (
             <p ref={resultRef} role="status" tabIndex={-1}>
@@ -249,7 +271,6 @@ export function RecipientsCard({
           <a className="button button--quiet button--small" href={batchCsvUrl(emailId)} download>
             Download list
           </a>
-          <SaveGroupButton emailId={emailId} />
           {isEditable ? (
             <ConfirmButton
               label="Remove everyone"
@@ -437,16 +458,6 @@ export function batchColumns(
     },
   ];
   return [name, ...remove, ...delivery, ...details];
-}
-
-/** A dot and *Yes*, or a dot and the reason the person is skipped. */
-function WillReceive({ row }: { row: BulkEmailBatchRow }): JSX.Element {
-  const words = row.will_receive ? 'Yes' : row.reason;
-  return (
-    <span className="bulk-email__will-receive">
-      <StatusDot tone={row.will_receive ? 'current' : 'none'} label={words} />
-    </span>
-  );
 }
 
 /**

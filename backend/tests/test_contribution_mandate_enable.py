@@ -1,4 +1,4 @@
-"""Turning a life member's recurring donation on from the Payments screen.
+"""Turning a life member's recurring donation on from the My payments screen.
 
 A recurring donation names no plan, so confirming the saved method has no plan slug
 to record.  The audit record renders that absence rather than refusing it, which is

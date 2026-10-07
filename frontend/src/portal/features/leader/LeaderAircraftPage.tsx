@@ -39,7 +39,7 @@ export function LeaderAircraftPage(): JSX.Element {
   return (
     <LeaderLookup<Aircraft>
       title="Aircraft check"
-      lede="Look up the aircraft in front of you to see whether CalDART's policy covers it and its insurance is current and verified."
+      lede="Look up an aircraft to see whether CalDART's policy covers it and its insurance is current and verified."
       param="aircraft"
       parse={parseRegistration}
       label="N-number, make, model, or owner"

@@ -224,7 +224,6 @@ def search_result(user: UserModel) -> dict[str, Any]:
     return {
         "user_id": user.id,
         "name": user.display_name,
-        "email": user.email,
         "dart": dart.name if dart is not None else None,
         "membership_status": status,
         "go_no_go": _go_no_go(status, profile),

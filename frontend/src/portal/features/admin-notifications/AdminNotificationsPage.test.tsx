@@ -11,14 +11,18 @@ describe('AdminNotificationsPage', () => {
     server.use(...notificationHandlers());
     renderWithProviders(<AdminNotificationsPage />);
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Notifications' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Notification emails' }),
+    ).toBeInTheDocument();
   });
 
   it('holds the subscriptions card', async () => {
     server.use(...notificationHandlers());
     renderWithProviders(<AdminNotificationsPage />);
 
-    expect(await screen.findByRole('heading', { name: 'Notification emails' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 2, name: 'Notification emails' }),
+    ).toBeInTheDocument();
   });
 
   it('ledes with what the screen is for', () => {

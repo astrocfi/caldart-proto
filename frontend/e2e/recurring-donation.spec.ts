@@ -1,7 +1,7 @@
 /**
  * Somebody gives on a schedule from the Donate screen: monthly with the first
  * gift taken now, or quarterly with the first charge on a later day and nothing
- * taken today.  Either way the Payments screen then shows the Recurring donation
+ * taken today.  Either way the My payments screen then shows the Recurring donation
  * card with its cadence and its next charge.
  *
  * The account is created here rather than borrowed from the seed, so its
@@ -109,7 +109,7 @@ test('a quarterly donation on a later day takes nothing today', async ({ page })
   await expect(page.getByText('No payments yet')).toBeVisible();
 });
 
-test('a recurring donation is changed and turned off from the Payments screen', async ({
+test('a recurring donation is changed and turned off from the My payments screen', async ({
   page,
 }) => {
   await createAccount(page, uniqueEmail('changer'));

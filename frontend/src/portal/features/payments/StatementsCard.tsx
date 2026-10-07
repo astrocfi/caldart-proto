@@ -10,7 +10,7 @@ import { Card } from '@/portal/components/Card';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { statementUrl, useStatementYears } from './api';
 
-/** The contribution statements card on the member's Payments screen. */
+/** The contribution statements card on the member's My payments screen. */
 export function StatementsCard(): JSX.Element {
   const statements = useStatementYears();
   const years = statements.data?.years ?? [];

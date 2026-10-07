@@ -37,7 +37,7 @@ export const KIND_LABELS: Record<PaymentKind, string> = {
 /**
  * What one payment paid for, by the plan's own name: "Annual", "Annual and contribution",
  * or "Contribution", so a member's money history names the plan as the member's own
- * Payments screen does.
+ * My payments screen does.
  */
 export function paymentForLabel(payment: Pick<PaymentDetail, 'kind' | 'plan'>): string {
   if (payment.kind === 'contribution') return KIND_LABELS.contribution;

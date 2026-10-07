@@ -116,8 +116,8 @@ Other things about donors
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 A donor's giving counts toward the year-end contribution statement, emailed to every
-active account that gave (see :doc:`contributions`). A user administrator can find a
-donor's account, flagged **Donor**, and correct a mistyped email address.
+active account that gave (see :doc:`contributions`). An account administrator corrects a
+mistyped email address on the donor's member record.
 
 If something looks wrong
 ========================

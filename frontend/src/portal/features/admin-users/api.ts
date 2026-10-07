@@ -96,7 +96,7 @@ export function useAdminUserHistory(id: string | number): UseQueryResult<Account
 }
 
 /**
- * Patches one account's names, email, or roles.
+ * Patches one account's roles.
  *
  * Also invalidates the signed-in caller's own `auth/me` query, since editing
  * your own roles changes what the nav may show.

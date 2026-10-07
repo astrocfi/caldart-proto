@@ -2,12 +2,13 @@
  * The client for the bulk email endpoints under `/api/v1/bulk-email`.
  *
  * A bulk email is a draft on the server from the moment Compose opens it: the
- * screen saves its subject and message as they are typed (`PATCH`), builds its
- * batch with the member list's filters (`.../batch/add`), and queues it with
+ * screen saves its subject and message as they are typed (`PATCH`), shows who the
+ * member list's filters match (`.../batch/matches`), builds its batch with them
+ * (`.../batch/add`), and queues it with
  * Send (`.../send`). The background sender does the sending; the screens poll
  * `GET /bulk-email/{id}` while an email waits to start or is sending.
  */
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { QueryClient, UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
 import { api } from '@/portal/api/client';
@@ -15,11 +16,13 @@ import type {
   BulkEmailAddResult,
   BulkEmailBatch,
   BulkEmailDetail,
+  BulkEmailMatch,
   BulkEmailPatch,
   BulkEmailSender,
   BulkEmailSendRequest,
   BulkEmailStatus,
   BulkEmailSummary,
+  Paginated,
   SendableEmailType,
 } from '@/portal/api/types';
 import type { FilterValues } from '@/portal/reports/types';
@@ -160,6 +163,40 @@ export function useDeleteDraft(): UseMutationResult<void, unknown, number> {
   return useMutation({
     mutationFn: (id: number) => api.delete<void>(`/bulk-email/${id}`),
     onSuccess: () => invalidateLists(queryClient),
+  });
+}
+
+/** How many matched people one page of a search shows. */
+export const MATCHES_PAGE_SIZE = 10;
+
+/**
+ * One page of the people the filters match for email `id`, before anybody is added,
+ * via `GET /bulk-email/{id}/batch/matches`. The page shown stays while the next loads.
+ *
+ * @param id the email.
+ * @param filters the filter bar's values; blank ones are left out.
+ * @param page the page wanted, from 1.
+ * @param enabled false while nobody can be added, when there is nothing to search.
+ */
+export function useBatchMatches(
+  id: number,
+  filters: FilterValues,
+  page: number,
+  enabled: boolean,
+): UseQueryResult<Paginated<BulkEmailMatch>> {
+  const given = givenFilters(filters);
+  return useQuery({
+    queryKey: [...BULK_EMAIL_KEY, 'matches', id, given, page],
+    queryFn: () => {
+      const params = new URLSearchParams({
+        ...given,
+        page: String(page),
+        page_size: String(MATCHES_PAGE_SIZE),
+      });
+      return api.get<Paginated<BulkEmailMatch>>(`/bulk-email/${id}/batch/matches?${params}`);
+    },
+    placeholderData: keepPreviousData,
+    enabled,
   });
 }
 

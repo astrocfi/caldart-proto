@@ -1,10 +1,10 @@
 :roles: account_admin
 
-=============
-Notifications
-=============
+===================
+Notification emails
+===================
 
-**Notifications** says who is emailed when something happens, such as a sign-up, a payment,
+**Notification emails** says who is emailed when something happens, such as a sign-up, a payment,
 or a refund, and which events each address hears about. A notification is a short email sent the moment
 something happens: somebody signs up, a friend becomes a member, a donation arrives, an
 account is deactivated, or an aircraft changes. Each email address you subscribe hears
@@ -198,6 +198,6 @@ If something looks wrong
 If an address stops hearing about an event, look at its **Active** column: *Paused* means
 the subscription is paused, and **Resume** says whether the account may still receive every
 event on it. An account that lost a role or was deactivated is skipped quietly, so check
-its roles on the **Users and roles** screen. If a notification never arrives, a system
+its roles on the **Roles and status** screen. If a notification never arrives, a system
 administrator can find it on the :doc:`sent-emails` page and see whether the
 mail server refused it.

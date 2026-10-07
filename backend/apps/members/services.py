@@ -542,7 +542,7 @@ def awaits_first_term(user: User, today: date | None = None) -> bool:
     ``active``, ``expired``, or ``suspended``: an account an administrator created that
     has not paid, or a joiner still at the pay step.  :func:`account_kind` counts such
     an account a friend, since it owes its dues before it is anything more, but its
-    membership reads ``none`` (*No membership yet*) and a list shows its kind as
+    membership reads ``none`` (*Not yet paid*) and a list shows its kind as
     *Member*.  :func:`awaits_first_term_annotation` states the same rule in SQL.
     """
     today = today or timezone.localdate()
@@ -574,28 +574,12 @@ def awaits_first_term_annotation(today: date | None = None) -> Case:
     )
 
 
-def upcoming_term_start(user: User, today: date | None = None) -> date | None:
-    """The first day of ``user``'s earliest active term that starts after ``today``.
-
-    ``today`` defaults to the local date.  ``None`` when no such term is coming, as for a
-    member whose only term was canceled.  A member awaiting a first term that an
-    administrator granted to start later is told this day rather than asked for dues.
-    """
-    today = today or timezone.localdate()
-    starts = [
-        term.starts_on
-        for term in user.memberships.all()
-        if term.status == MembershipStatusChoices.ACTIVE and term.starts_on > today
-    ]
-    return min(starts, default=None)
-
-
 def listed_kind(user: MemberRow) -> AccountKind:
     """The kind a list shows for an annotated row.
 
     That is its effective kind, except that an account awaiting its first term
     (``awaits_first_term``) shows as a member, the kind it chose, while its membership
-    reads *No membership yet*.
+    reads *Not yet paid*.
     """
     if user.awaits_first_term:
         return AccountKind.MEMBER
@@ -655,7 +639,7 @@ def _friend_membership() -> MembershipStatusDict:
     }
 
 
-def _no_membership_yet() -> MembershipStatusDict:
+def _not_yet_paid() -> MembershipStatusDict:
     """The status of a member awaiting a first term: ``none``, with nothing else set."""
     return {
         "status": MembershipState.NONE,
@@ -779,7 +763,7 @@ def membership_status(
         return _donor_membership()
     if kind == AccountKind.FRIEND:
         if awaits_first_term(user, on_date):
-            return _no_membership_yet()
+            return _not_yet_paid()
         return _friend_membership()
 
     covering = _coverage(user, on_date)
@@ -888,7 +872,7 @@ def membership_payload(user: MemberRow) -> MembershipStatusDict:
     if user.effective_kind == AccountKind.DONOR:
         return _donor_membership()
     if user.effective_kind == AccountKind.FRIEND:
-        return _no_membership_yet() if user.awaits_first_term else _friend_membership()
+        return _not_yet_paid() if user.awaits_first_term else _friend_membership()
     if user.covers_today:
         lifetime = user.coverage_end is None
         return {

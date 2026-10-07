@@ -16,7 +16,7 @@ lives here too: saved templates (:ref:`api-bulk-email-templates`) and saved reci
 groups (:ref:`api-bulk-email-groups`); so do mission callouts
 (:ref:`api-bulk-email-callouts`).  The
 ``/messages`` endpoints, under :ref:`api-bulk-email-messages`, are every signed-in
-person's own: the bulk emails they received, read on the portal's **Messages** page.
+person's own: the bulk emails they received, read on the portal's **Email to me** page.
 :doc:`api-reference` covers the conventions these endpoints share: session
 authentication, the CSRF header, and the error shapes.
 
@@ -169,7 +169,8 @@ in, and once **Send** has queued the email ``reply_to`` is the address its copie
 carry.  ``body`` is the message as sanitized HTML, its recipient field tokens as written
 (:ref:`api-bulk-email-rich-text`).  ``message_html`` is the whole HTML email as the
 history shows it: the message inside the house email layout, with its tokens as
-written rather than filled in.  ``status`` is ``draft``, ``queued``, ``sending``, ``sent``, or ``stopped``
+written rather than filled in; the portal's Sent detail draws each as the editor's chip
+before it frames the email.  ``status`` is ``draft``, ``queued``, ``sending``, ``sent``, or ``stopped``
 (:ref:`choices-bulk-email-status`); ``can_edit`` is true for a draft or a queued
 email that has never started sending (:ref:`the edit rule <bulk-email-edit-rule>`).
 ``start_at`` is when a queued email starts and ``scheduled`` whether the sender
@@ -184,7 +185,7 @@ which ``sent_count`` then no longer counts (:ref:`api-bulk-email-delivery`).
 ``{"id", "requested_at", "requested_by", "count"}`` (``requested_by`` a display name,
 blank once the account is deleted), and ``retried_count`` adds up their counts.
 ``hidden_from_archive`` is true while the email is kept off its recipients'
-**Messages** page.  ``is_callout`` is true for a mission callout, whose answers close
+**Email to me** page.  ``is_callout`` is true for a mission callout, whose answers close
 at ``closes_at``, and ``closes_at`` is null for any other email
 (:ref:`api-bulk-email-callouts`).  ``confirm_above`` is
 ``BULK_EMAIL_CONFIRM_ABOVE`` and ``undo_seconds`` is ``BULK_EMAIL_UNDO_SECONDS``,
@@ -209,8 +210,8 @@ valid email address."]}``.
 
 ``is_callout`` true makes the email a mission callout: its answers close two days
 ahead, rounded up to the half hour, unless ``closes_at`` is given too, and its type
-becomes Mission when the caller may send that type.  False makes it an ordinary email
-again.  ``closes_at`` is when a callout's answers close, a time given without an
+becomes Mission when the caller may send that type, or none when the caller may not and
+it was another.  False makes it an ordinary email again.  ``closes_at`` is when a callout's answers close, a time given without an
 offset read in the site's time zone; it is ignored for an email that is not a callout,
 and a time not after now is **400** ``{"closes_at": ["Choose a time in the
 future."]}``.  A queued callout cannot be changed so that its answers would close
@@ -218,7 +219,9 @@ before it starts: **400** keyed ``closes_at``, worded as **Send** words it.
 
 ``email_type`` is the id of a type the caller may send (``GET
 /email-types/sendable``); any other is **400** *You cannot send <type> email. Choose
-another type.*, and an id no type carries is DRF's *Invalid pk* message.  Choosing
+another type.*, and an id no type carries is DRF's *Invalid pk* message.  A mission
+callout takes the Mission type only: another is **400** ``{"email_type": ["A mission
+callout goes as the Mission type."]}``.  Choosing
 a type changes who the batch skips, since everybody who has turned it off is.
 
 ``subject`` is at most 200 characters, one line, and free of control characters,
@@ -404,6 +407,31 @@ other than the sender's DART's id, a DART's name included, is **400**
 ``{"filters": {"dart": ["You can only send to your own DART."]}}``.  Once the email
 has started sending the answer is **409**, and so is an add to the email of a DART
 leader whose profile names no DART, with the sentence ``sender_notice`` carries.
+
+``GET /bulk-email/{id}/batch/matches``
+--------------------------------------
+
+Who the filters choose, before anybody is added: the compose screen's search.  The
+query parameters are the filters ``POST /bulk-email/{id}/batch/add`` takes in its
+body (``?kind=friend&dart=3,7``), with the shared ``page`` and ``page_size``.  The
+filters are held to a DART leader's DART exactly as an add holds them, and nothing is
+stored.  **200** with one page of the people, in the order an add puts them, and how
+many in all:
+
+.. code-block:: json
+
+   {"count": 41, "next": "https://…/batch/matches?kind=friend&page=2", "previous": null,
+    "results": [{"user_id": 12, "name": "Bea Bell", "email": "bea@example.org",
+                 "kind": "member", "dart_name": "Marin DART",
+                 "will_receive": true, "reason": ""}]}
+
+``will_receive`` and ``reason`` say whether the person would be sent a copy and why
+not, as a batch row says it, with a second account at an address already matched
+skipped as a duplicate.  Whether the person is in the batch already plays no part.
+A refused filter is **400** under ``filters``, as for an add; a DART leader's search
+naming any other DART, or several, is **400** ``{"filters": {"dart": ["You can only
+send to your own DART."]}}``; and a search on the email of a leader whose profile
+names no DART is **409**.
 
 ``DELETE /bulk-email/{id}/batch/{rid}``
 ---------------------------------------
@@ -805,7 +833,7 @@ was not sent a copy.*
 ------------------------------
 
 **Hide from Messages** and **Show in Messages**: keeps the email off every
-recipient's **Messages** page (:ref:`api-bulk-email-messages`), or puts it back.
+recipient's **Email to me** page (:ref:`api-bulk-email-messages`), or puts it back.
 
 .. code-block:: json
 
@@ -825,7 +853,7 @@ Messages
 ========
 
 Every signed-in person can read again the bulk emails they were sent, on the
-portal's **Messages** page (``/messages``).  ``apps.bulk_email.archive`` answers it.
+portal's **Email to me** page (``/messages``).  ``apps.bulk_email.archive`` answers it.
 An email is the reader's when one of its recipient rows names their account and reads
 ``sent`` or ``bounced``: a skipped, failed, stopped, or unsent copy is not one they
 received.  Each is shown as the reader's own copy, filled in from the values stored
@@ -911,8 +939,9 @@ callout goes out a few times a year.
      "counts": {"reached": 41, "available": 12, "limited": 5,
                 "unavailable": 9, "no_answer": 15}}]
 
-``subject`` reads as the sender's own copy would, each recipient field filled in with
-the sender's values, or its fallback once the sender's account is gone.  ``sender`` is
+``subject`` is the subject as written, a recipient field token such as ``{first_name}``
+left in, since the list is about the callout rather than one person's copy; the portal
+draws each token as the compose editor's chip.  ``sender`` is
 blank once the account is deleted, and ``dart_name`` blank for CalDART management's
 callout.  ``closes_at`` is when the answers close, ``closed_at`` when
 **Close now** closed it sooner, and ``is_open`` whether it takes answers now.
@@ -1169,7 +1198,7 @@ such as ``{"first_name": "Pat", "expiration": "04/30/2026"}``; a message that fi
 in nothing stores ``{}``, and a deleted account fills every field in empty.
 ``render.render_copy(bulk, recipient)`` builds a copy from those stored values, so
 a copy rebuilt later reads as it went, whatever happened to the profile since, and
-puts the link to the email on the recipient's **Messages** page above its footer
+puts the link to the email on the recipient's **Email to me** page above its footer
 (:ref:`api-bulk-email-messages`).  The preview carries that link too, as the copy
 will; a test copy carries none, since it is nobody's message.
 
@@ -1539,21 +1568,18 @@ one that has started sending is **409**.
 ``POST /bulk-email/{id}/save-group``
 ------------------------------------
 
-Saves the batch as a group: ``{"name": "Hangar crew", "kind": "fixed"}``, the name
-checked as ``POST /bulk-email/groups`` checks it.  **201** with the group, audited as
-``recipient_group.create`` like a group made empty.
+Saves the compose screen's search as a group:
+``{"name": "Hangar crew", "kind": "fixed", "filters": {"county": "Marin"}}``, the name
+checked as ``POST /bulk-email/groups`` checks it, and ``filters`` taken and refused as
+``POST /bulk-email/{id}/batch/add`` takes them, held to a DART leader's DART the same
+way.  The batch plays no part, so a search can always be saved.  **201** with the
+group, audited as ``recipient_group.create`` like a group made empty.
 
-- A ``fixed`` group holds every account in the batch now, whether or not each will
-  receive the email; a deleted account is left out.
-- A ``live`` group holds the filters behind the batch, once each, in the order they
-  were added: every add's filters, and every live group added, its sets as they are
-  now.  People taken out of the batch one by one are not remembered.  A batch with
-  people no filters chose, from a fixed group or **Duplicate**, is **400** under
-  ``batch``: *Some people in this batch came from a fixed group or were copied from
-  another email, so there are no filters to save for them. Save it as a fixed group
-  instead.*  One with people from a group since deleted is refused the same way with
-  *The group "Board" was deleted, so its filters are gone. Save this batch as a fixed
-  group instead.*
+- A ``fixed`` group holds every account the filters match now, whether or not each
+  would receive the email, deactivated ones included.  A search matching nobody saves
+  an empty group.
+- A ``live`` group holds the filters, blank ones dropped, as its one filter set, so it
+  matches afresh each time it is used.
 
-An empty batch is **400** under ``batch``: *The batch is empty. Add people to it
-before you save it as a group.*
+A refused filter is **400** under ``filters``; an email whose DART leader names no
+DART is **409**.

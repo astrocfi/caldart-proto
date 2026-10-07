@@ -56,13 +56,21 @@ describe('<ProfilePage/>', () => {
     expect(actions).toHaveAttribute('data-dirty', 'true');
   });
 
-  it('leaves My aircraft to its button, with no sentence repeating it', async () => {
+  it('leaves My aircraft to its link, with no sentence repeating it', async () => {
     server.use(http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile())));
     renderWithProviders(<ProfilePage />, { route: '/profile' });
 
     await screen.findByLabelText(label('City'));
     expect(screen.getAllByRole('link', { name: 'My aircraft' })).toHaveLength(1);
     expect(screen.queryByText(/The planes you commonly fly are kept/)).not.toBeInTheDocument();
+  });
+
+  it('reaches My aircraft by a plain link, as My aircraft reaches back', async () => {
+    server.use(http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile())));
+    renderWithProviders(<ProfilePage />, { route: '/profile' });
+
+    await screen.findByLabelText(label('City'));
+    expect(screen.getByRole('link', { name: 'My aircraft' })).not.toHaveClass('button');
   });
 
   it('offers the DARTs the catalog returned', async () => {
@@ -138,12 +146,10 @@ describe('<ProfilePage/>', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Save changes' })).toHaveFocus());
   });
 
-  it('reports a medical without an expiration date', async () => {
+  it('reports a certificate number short of seven digits', async () => {
     server.use(
       http.get(`${API}/me/profile`, () =>
-        HttpResponse.json(
-          makeVerifiedProfile({ medical_type: 'basicmed', medical_expiration: null }),
-        ),
+        HttpResponse.json(makeVerifiedProfile({ certificate_number: '12345' })),
       ),
     );
 
@@ -151,7 +157,9 @@ describe('<ProfilePage/>', () => {
     await screen.findByLabelText(label('Phone'));
     await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
-    expect(await screen.findByText("Enter the medical's expiration date.")).toBeInTheDocument();
+    expect(
+      await screen.findByText('Enter the 7 digits of the pilot certificate number.'),
+    ).toBeInTheDocument();
   });
 
   it('clears an inline error as soon as the member fixes it', async () => {

@@ -25,19 +25,20 @@ describe('HealthDatabasePage', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        'How the server is doing, the backups it holds, and the FAA aircraft data it loads.',
+        'How the server is doing, whether its email will be trusted, the backups it holds, ' +
+          'and the FAA aircraft data it loads.',
       ),
     ).toBeInTheDocument();
   });
 
-  it('shows Health, Backups, and FAA aircraft data, in that order', async () => {
+  it('shows Health, Mail delivery, Backups, and FAA aircraft data, in that order', async () => {
     renderWithProviders(<HealthDatabasePage />);
 
     await screen.findByText('0.1.0');
     const titles = screen
       .getAllByRole('heading', { level: 2 })
       .map((heading) => heading.textContent);
-    expect(titles).toEqual(['Health', 'Backups', 'FAA aircraft data']);
+    expect(titles).toEqual(['Health', 'Mail delivery', 'Backups', 'FAA aircraft data']);
   });
 
   it('says what the FAA aircraft data is and when it loads', async () => {
@@ -56,5 +57,13 @@ describe('HealthDatabasePage', () => {
 
     expect(await screen.findByText('0.1.0')).toBeInTheDocument();
     expect(await screen.findByText('No backups yet')).toBeInTheDocument();
+  });
+
+  it('shows the mail delivery check in its own card', async () => {
+    renderWithProviders(<HealthDatabasePage />);
+
+    expect(
+      await screen.findByRole('heading', { level: 3, name: /^Good\s*Approved senders \(SPF\)$/ }),
+    ).toBeInTheDocument();
   });
 });

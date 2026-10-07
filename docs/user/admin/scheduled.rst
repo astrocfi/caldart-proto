@@ -1,10 +1,10 @@
 :roles: system_admin
 
-=========
-Scheduled
-=========
+===============
+Scheduled tasks
+===============
 
-**Scheduled** lists the six jobs the server runs on a schedule. Each one can be run by hand
+**Scheduled tasks** lists the six jobs the server runs on a schedule. Each one can be run by hand
 here, each is safe to run twice, and all but the bulk email sender have a practice run that
 shows what they would do. Only a system administrator sees it, under **System** in the menu.
 In normal running you never need to touch it.

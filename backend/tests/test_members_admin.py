@@ -28,6 +28,7 @@ from apps.accounts.roles import (
     WEBSITE_ADMIN,
 )
 from apps.darts.models import Dart
+from apps.members.api.admin_serializers import GRANT_STARTS_LATER_MESSAGE
 from apps.members.filters import MemberOrderingFilter
 from apps.members.models import (
     MedicalType,
@@ -450,7 +451,7 @@ def test_ordering_by_pilot_ranks_current_medicals_first(
     assert order.index("lapsed@example.test") < order.index("nonpilot@example.test")
 
 
-def test_a_member_who_never_paid_is_listed_under_no_membership_yet_alone(
+def test_a_member_who_never_paid_is_listed_under_not_yet_paid_alone(
     account_admin_client: APIClient, user_factory: type[UserFactory]
 ) -> None:
     """Somebody who chose member and has not paid reads none, in no other bucket."""
@@ -881,11 +882,11 @@ def test_create_applies_the_same_profile_rules_as_the_member_form(
 
     response = account_admin_client.post(
         LIST_URL,
-        {"email": "sloppy@example.test", "profile": {"medical_type": MedicalType.THIRD}},
+        {"email": "sloppy@example.test", "profile": {"certificate_number": "12345"}},
         format="json",
     )
     assert response.status_code == 400
-    assert "medical_expiration" in response.json()["profile"]
+    assert set(response.json()["profile"]) == {"certificate_number"}
 
 
 def test_create_needs_nothing_but_an_email_and_the_names(account_admin_client: APIClient) -> None:
@@ -1174,6 +1175,56 @@ def test_grant_honors_an_explicit_start_date(
     assert response.json()["ends_on"] == (start + timedelta(days=364)).isoformat()
 
 
+def test_grant_honors_a_start_date_of_today(
+    account_admin_client: APIClient,
+    population: dict[str, User],
+    annual_plan: MembershipPlan,
+    today: date,
+) -> None:
+    """A start date of today is the latest a granted term may start."""
+    response = account_admin_client.post(
+        grant_url(population["never"]),
+        {"plan": annual_plan.slug, "starts_on": today.isoformat()},
+        format="json",
+    )
+    assert response.status_code == 201
+    assert response.json()["starts_on"] == today.isoformat()
+
+
+def test_grant_refuses_a_start_date_after_today(
+    account_admin_client: APIClient,
+    population: dict[str, User],
+    annual_plan: MembershipPlan,
+    today: date,
+) -> None:
+    """A term granted to start tomorrow is a 400 keyed on ``starts_on``, with no term."""
+    member = population["never"]
+    response = account_admin_client.post(
+        grant_url(member),
+        {"plan": annual_plan.slug, "starts_on": (today + timedelta(days=1)).isoformat()},
+        format="json",
+    )
+    assert response.status_code == 400
+    assert response.json() == {"starts_on": [GRANT_STARTS_LATER_MESSAGE]}
+    assert not member.memberships.exists()
+
+
+def test_grant_without_a_start_date_follows_a_current_term(
+    account_admin_client: APIClient,
+    population: dict[str, User],
+    annual_plan: MembershipPlan,
+) -> None:
+    """A blank start date still places a renewal after the term in force."""
+    member = population["current"]
+    current_end = member.memberships.get().ends_on
+    assert current_end is not None
+    response = account_admin_client.post(
+        grant_url(member), {"plan": annual_plan.slug}, format="json"
+    )
+    assert response.status_code == 201
+    assert response.json()["starts_on"] == (current_end + timedelta(days=1)).isoformat()
+
+
 def test_grant_rejects_an_unknown_plan(
     account_admin_client: APIClient, population: dict[str, User]
 ) -> None:
@@ -1219,7 +1270,7 @@ def test_patch_a_term_changes_its_end_date_status_and_note(
 def test_patch_a_term_to_canceled_drops_the_membership(
     account_admin_client: APIClient, population: dict[str, User]
 ) -> None:
-    """Canceling the only term drops it, so the member reads as no membership yet."""
+    """Canceling the only term drops it, so the member reads as not yet paid."""
     term = first_membership(population["current"])
     response = account_admin_client.patch(
         membership_url(term), {"status": "canceled"}, format="json"

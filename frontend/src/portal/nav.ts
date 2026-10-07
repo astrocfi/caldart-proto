@@ -8,7 +8,7 @@ import type { RoleSlug } from './api/types';
 
 /** The rail's groups, in the order they render. */
 export type NavGroup =
-  'Membership' | 'Your email' | 'Operations' | 'Bulk email' | 'Administration' | 'System';
+  'My account' | 'Operations' | 'Bulk email' | 'Finance' | 'Administration' | 'System';
 
 export interface NavItem {
   /** Route path, relative to the `/portal` basename. */
@@ -21,11 +21,6 @@ export interface NavItem {
    * every page the entry leads to (`navEyebrow`).
    */
   group: NavGroup;
-  /**
-   * The eyebrow over the entry's pages when it heads an area of its own with
-   * tabs, such as Finance; the group's name otherwise.
-   */
-  area?: string;
   /**
    * Match the route exactly rather than by prefix.
    *
@@ -48,23 +43,25 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { to: '/', label: 'Dashboard', roles: [], group: 'Membership', end: true },
-  { to: '/profile', label: 'My profile', roles: [], group: 'Membership', end: true },
-  { to: '/profile/aircraft', label: 'My aircraft', roles: [], group: 'Membership' },
-  { to: '/payments', label: 'Payments', roles: [], group: 'Membership' },
-  { to: '/donate', label: 'Donate', roles: [], group: 'Membership' },
+  { to: '/', label: 'Dashboard', roles: [], group: 'My account', end: true },
+  { to: '/profile', label: 'My profile', roles: [], group: 'My account', end: true },
+  { to: '/profile/aircraft', label: 'My aircraft', roles: [], group: 'My account' },
+  { to: '/payments', label: 'My payments', roles: [], group: 'My account' },
+  { to: '/donate', label: 'Donate', roles: [], group: 'My account' },
   {
     to: '/renew',
     label: 'Renew',
     roles: [],
-    group: 'Membership',
+    group: 'My account',
     hideForFriend: true,
     hideForLifetime: true,
   },
   // `/change-password` is a real route with a real screen; without an entry
   // here nothing in the portal linked to it.
-  { to: '/change-password', label: 'Change password', roles: [], group: 'Membership' },
-  { to: '/change-email', label: 'Change email', roles: [], group: 'Membership' },
+  { to: '/change-password', label: 'Change password', roles: [], group: 'My account' },
+  { to: '/change-email', label: 'Change email', roles: [], group: 'My account' },
+  { to: '/messages', label: 'Email to me', roles: [], group: 'My account' },
+  { to: '/email-preferences', label: 'Email preferences', roles: [], group: 'My account' },
 
   // The two checks are where a person or an aircraft is verified, so the leader
   // API and `routes/leader.tsx` admit every verifying role, and the rail has to as
@@ -82,11 +79,6 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['dart_leader', 'account_admin', 'user_admin', 'verifier'],
     group: 'Operations',
   },
-
-  // A person's own mail is theirs whatever their roles, so it has a group of its
-  // own, apart from the sending tools.
-  { to: '/messages', label: 'Messages', roles: [], group: 'Your email' },
-  { to: '/email-preferences', label: 'Email preferences', roles: [], group: 'Your email' },
 
   // Bulk email has a group of its own. Compose opens a draft at
   // `/bulk-email/drafts/:id`, so Drafts and scheduled is current while one is written.
@@ -129,12 +121,20 @@ export const NAV_ITEMS: NavItem[] = [
     group: 'Bulk email',
   },
   { to: '/bulk-email/types', label: 'Email types', roles: ['system_admin'], group: 'Bulk email' },
-  // The DNS check is visible to management and (as for every entry) a system administrator.
+
+  // Accounting admits a treasurer as well as an account administrator, and the rail
+  // has to say so or a treasurer reaches it by URL only.
   {
-    to: '/bulk-email/mail-delivery',
-    label: 'Mail delivery',
-    roles: ['management'],
-    group: 'Bulk email',
+    to: '/admin/payments',
+    label: 'Accounting',
+    roles: ['account_admin', 'treasurer'],
+    group: 'Finance',
+  },
+  {
+    to: '/admin/reminders',
+    label: 'Reminders',
+    roles: ['account_admin'],
+    group: 'Finance',
   },
 
   // A DART leader reads the member list and its report too; the member record
@@ -147,27 +147,17 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     to: '/admin/aircraft',
-    label: 'Aircraft register',
+    label: 'Aircraft',
     roles: ['account_admin'],
     group: 'Administration',
   },
-  { to: '/admin/users', label: 'Users and roles', roles: ['user_admin'], group: 'Administration' },
+  {
+    to: '/admin/users',
+    label: 'Roles and status',
+    roles: ['user_admin'],
+    group: 'Administration',
+  },
   { to: '/admin/darts', label: 'DARTs', roles: ['account_admin'], group: 'Administration' },
-  // The finance area admits a treasurer as well as an account administrator,
-  // and the rail has to say so or a treasurer reaches it by URL only.
-  {
-    to: '/admin/payments',
-    label: 'Finance',
-    roles: ['account_admin', 'treasurer'],
-    group: 'Administration',
-    area: 'Finance',
-  },
-  {
-    to: '/admin/reminders',
-    label: 'Reminders',
-    roles: ['account_admin'],
-    group: 'Administration',
-  },
   // The emailed reports are the finance roles', so a treasurer reaches the
   // screen too; the DART rosters on it are the account administrator's.
   {
@@ -178,22 +168,22 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     to: '/admin/notifications',
-    label: 'Notifications',
+    label: 'Notification emails',
     roles: ['account_admin'],
     group: 'Administration',
   },
 
   { to: '/system/health', label: 'Health and database', roles: ['system_admin'], group: 'System' },
   { to: '/system/emails', label: 'Sent emails', roles: ['system_admin'], group: 'System' },
-  { to: '/system/scheduled', label: 'Scheduled', roles: ['system_admin'], group: 'System' },
+  { to: '/system/scheduled', label: 'Scheduled tasks', roles: ['system_admin'], group: 'System' },
 ];
 
 /** Order the rail renders groups in. */
 export const NAV_GROUPS: NavGroup[] = [
-  'Membership',
-  'Your email',
+  'My account',
   'Operations',
   'Bulk email',
+  'Finance',
   'Administration',
   'System',
 ];
@@ -204,7 +194,7 @@ export const NAV_GROUPS: NavGroup[] = [
  * opens the first System screen.
  */
 const UNLISTED_AREAS: readonly { to: string; group: NavGroup }[] = [
-  { to: '/membership', group: 'Membership' },
+  { to: '/membership', group: 'My account' },
   { to: '/system', group: 'System' },
 ];
 
@@ -264,7 +254,7 @@ function isWithin(to: string, pathname: string): boolean {
 
 /**
  * The eyebrow over the page at `pathname`: the rail group of the entry that leads to
- * it, or the entry's `area` when it heads an area of its own, such as Finance.
+ * it.
  *
  * A page nested under an entry (a member record under Members) takes that entry's,
  * the deepest entry wins (Aircraft check over Member check), and a screen outside
@@ -273,7 +263,7 @@ function isWithin(to: string, pathname: string): boolean {
  */
 export function navEyebrow(pathname: string): string | null {
   const candidates = [
-    ...NAV_ITEMS.map((item) => ({ to: item.to, eyebrow: item.area ?? item.group })),
+    ...NAV_ITEMS.map((item) => ({ to: item.to, eyebrow: item.group })),
     ...UNLISTED_AREAS.map((area) => ({ to: area.to, eyebrow: area.group })),
   ].filter((candidate) => isWithin(candidate.to, pathname));
   const deepest = candidates.reduce<{ to: string; eyebrow: string } | null>(

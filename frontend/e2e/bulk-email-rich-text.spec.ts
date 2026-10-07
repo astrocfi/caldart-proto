@@ -2,7 +2,7 @@
  * A bulk email written in the rich text editor: bold words, a link, two recipient
  * fields, one inserted and one typed, each shown as a chip, and an uploaded image,
  * previewed as the first person receives it, then sent by the background sender,
- * which the system administrator runs from the Scheduled page.
+ * which the system administrator runs from the Scheduled tasks page.
  *
  * `make e2e` runs with `DEBUG` off, so Django does not serve `/media/` and the image
  * itself never loads; the spec checks the address the email links it by instead.
@@ -102,7 +102,7 @@ test('CalDART management writes a formatted email with an image, previews it, an
 
   await page.getByRole('button', { name: /^Send to \d+ (person|people)$/ }).click();
   const confirm = page.getByRole('region', { name: 'Confirm sending' });
-  await confirm.getByRole('button', { name: 'Send now' }).click();
+  await confirm.getByRole('button', { name: 'Send', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Waiting to send' })).toBeVisible();
 
   await page.context().clearCookies();

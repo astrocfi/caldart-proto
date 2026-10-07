@@ -1,6 +1,6 @@
 /**
  * A member turns automatic renewal on while paying, reads the standing
- * authority on their Payments screen, downloads a receipt, and turns it off
+ * authority on My payments screen, downloads a receipt, and turns it off
  * again.
  *
  * The account is created here rather than borrowed from the seed, because the
@@ -89,7 +89,7 @@ test('a member pays with renewal on, reads it, takes a receipt, and turns it off
   await expect(page.getByRole('heading', { name: 'Welcome to CalDART' })).toBeVisible();
   await expect(page.getByText(/A receipt is on its way to your inbox/)).toBeVisible();
 
-  // The Payments screen names the saved method and what will be charged.
+  // The My payments screen names the saved method and what will be charged.
   await page.goto('portal/payments');
   const card = renewalCard(page);
   await expect(card.getByText('On', { exact: true })).toBeVisible();
@@ -117,10 +117,10 @@ test('a member pays with renewal on, reads it, takes a receipt, and turns it off
   await expect(card.getByRole('button', { name: 'Turn on' })).toBeVisible();
 });
 
-test('a member turns automatic renewal on from the Payments screen alone', async ({ page }) => {
+test('a member turns automatic renewal on from the My payments screen alone', async ({ page }) => {
   await register(page, uniqueEmail('later'));
 
-  // Pay without renewal, so the mandate is created on the Payments screen.
+  // Pay without renewal, so the mandate is created on the My payments screen.
   await page.getByRole('tab', { name: 'Test payment' }).click();
   await page.getByRole('button', { name: 'Succeed', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Welcome to CalDART' })).toBeVisible();

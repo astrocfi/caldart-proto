@@ -1,4 +1,4 @@
-"""The batch endpoints: read it, add to it, remove one person, clear it, download it.
+"""The batch endpoints: read it, search, add to it, remove one, clear it, download it.
 
 A change to an email that has started sending is a 409 ``{"detail": <sentence>}``.
 """
@@ -8,6 +8,7 @@ from __future__ import annotations
 from django.http import Http404, HttpResponse
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -23,11 +24,15 @@ from apps.bulk_email.api.serializers import (
     BulkEmailAddResultSerializer,
     BulkEmailAddSerializer,
     BulkEmailBatchSerializer,
+    BulkEmailMatchPageSerializer,
+    BulkEmailMatchSerializer,
     batch_payload,
+    checked_filters,
 )
 from apps.bulk_email.models import BulkEmailRecipient
 from apps.members.api.actors import acting_user
 from caldart.exceptions import DomainError
+from caldart.pagination import StandardPagination
 from caldart.reports import CSV_MEDIA_TYPE, download_responses, report_response
 
 #: The answer to a change refused because the email has started sending.
@@ -85,6 +90,46 @@ class BatchAddView(APIView):
         except DomainError as error:
             return refused(error)
         return Response(BulkEmailAddResultSerializer(result).data)
+
+
+#: The query parameters of the matches endpoint that page it rather than filter it.
+PAGE_PARAMS = frozenset({"page", "page_size"})
+
+
+class BatchMatchesView(APIView):
+    """``GET /bulk-email/{id}/batch/matches`` -- who the filters choose, before adding.
+
+    The query parameters are the member list's filters, as ``.../batch/add`` takes them
+    in its body, and the shared ``page`` and ``page_size``.
+    """
+
+    permission_classes = BULK_EMAIL_PERMISSIONS
+
+    @extend_schema(responses={200: BulkEmailMatchPageSerializer, 409: CONFLICT})
+    def get(self, request: Request, pk: int) -> Response:
+        """200 with one page of the people the filters choose, and how many in all.
+
+        A filter the member list does not have, or a value it refuses, is a 400 keyed
+        ``filters``.  A DART leader's email is held to the leader's DART, and naming
+        another DART is a 400 keyed ``filters``; a leader with no DART is a 409.
+        """
+        bulk = email_for(request, pk)
+        given = {key: str(value) for key, value in request.query_params.items()}
+        try:
+            filters = checked_filters(
+                {key: value for key, value in given.items() if key not in PAGE_PARAMS}
+            )
+        except ValidationError as refused_filters:
+            raise ValidationError({"filters": refused_filters.detail}) from refused_filters
+        try:
+            matches = batch.matching_people(bulk, filters)
+        except DomainError as error:
+            return refused(error)
+        paginator = StandardPagination()
+        page = paginator.paginate_queryset(matches, request, view=self) or []
+        return paginator.get_paginated_response(
+            [BulkEmailMatchSerializer(row).data for row in page]
+        )
 
 
 class BatchRowView(APIView):

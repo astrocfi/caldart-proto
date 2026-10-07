@@ -15,7 +15,7 @@ The background sender records each copy's immediate answer: ``sent``, ``failed``
   sends those copies afresh; a bounced or skipped copy is never retried.
 * **A recipient's copy.**  :func:`recipient_copy` rebuilds one person's copy exactly as
   it went, from the field values stored on the row when it was tried.
-* **Hiding.**  :func:`set_hidden` keeps a sent email off every recipient's **Messages**
+* **Hiding.**  :func:`set_hidden` keeps a sent email off every recipient's **Email to me**
   page (``apps.bulk_email.archive``) or puts it back, changing nothing else.
 """
 
@@ -316,7 +316,7 @@ def retried_count(bulk: BulkEmail) -> int:
 
 
 def set_hidden(bulk: BulkEmail, *, hidden: bool, actor: User) -> BulkEmail:
-    """Keep ``bulk`` off every recipient's **Messages** page, or put it back.
+    """Keep ``bulk`` off every recipient's **Email to me** page, or put it back.
 
     Nothing else about the email changes: its copies, counts, and history stay as they
     are, and CalDART management still sees it on the Sent page.  Raises ``DomainError``

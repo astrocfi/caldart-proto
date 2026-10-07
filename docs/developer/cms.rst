@@ -154,9 +154,7 @@ to action, chosen by ``members_wall_state``:
 ``none``         A signed-in member who has never paid (membership ``none``).
                  Says "This page is open to CalDART members. Pay your dues to
                  read it." and offers **Pay dues**, a link to
-                 ``/portal/membership/join``; when a granted term is still to
-                 come (``starts_on``, from ``upcoming_term_start``), it names
-                 the day the page opens instead and asks for nothing.
+                 ``/portal/membership/join``.
 ``friend``       A signed-in friend of CalDART (:ref:`kinds of account <account-kinds>`).
                  Says "Friends of CalDART can read this page by becoming a
                  member." and offers **Make me a member**, a link to
@@ -164,7 +162,7 @@ to action, chosen by ``members_wall_state``:
 ===============  =========================================================
 
 Those four are every state a reader the wall stops can be in: a signed-in
-account is current (and so let through), expired, without a membership yet, or a
+account is current (and so let through), expired, not yet paid, or a
 friend, and a donor cannot sign in.
 
 Who gets through is ``User.can_access_members_content`` (:doc:`data-model`): a current
@@ -193,7 +191,7 @@ its panel::
 No account screens
 ------------------
 
-Accounts and roles are managed in the portal alone: **Users and roles** for an
+Accounts and roles are managed in the portal alone: **Roles** for an
 administrator, **My profile**, **Change password**, and **Change email** for the
 person themselves.  Those screens apply the rules an account change needs
 (roles, deactivation and the reactivation block, address verification, and the

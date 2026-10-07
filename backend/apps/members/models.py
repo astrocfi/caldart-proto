@@ -209,6 +209,29 @@ HAM_CALLSIGN_RE = re.compile(r"^(?:[KNW][A-Z]?|A[A-L])[0-9][A-Z]{1,3}$")
 #: What a callsign that is not in US format is answered with.
 HAM_CALLSIGN_MESSAGE = "Enter a US amateur radio callsign, such as W6ABC."
 
+#: The number of digits in a pilot certificate number, which holds nothing else.
+CERTIFICATE_NUMBER_DIGITS = 7
+
+#: A pilot certificate number: exactly ``CERTIFICATE_NUMBER_DIGITS`` digits.
+CERTIFICATE_NUMBER_RE = re.compile(rf"^[0-9]{{{CERTIFICATE_NUMBER_DIGITS}}}$")
+
+#: What a certificate number that is not seven digits is answered with.
+CERTIFICATE_NUMBER_MESSAGE = "Enter the 7 digits of the pilot certificate number."
+
+#: Refuses a certificate number that is not seven digits; Django skips it for a blank one.
+CERTIFICATE_NUMBER_VALIDATOR = RegexValidator(CERTIFICATE_NUMBER_RE, CERTIFICATE_NUMBER_MESSAGE)
+
+
+def check_certificate_number(value: str) -> str:
+    """Return the certificate number ``value`` when it is blank or seven digits.
+
+    Anything else raises Django's ``ValidationError`` with ``CERTIFICATE_NUMBER_MESSAGE``,
+    which a DRF serializer reports under the field it validates.
+    """
+    if value:
+        CERTIFICATE_NUMBER_VALIDATOR(value)
+    return value
+
 
 def normalize_ham_callsign(value: str) -> str:
     """A callsign as it is stored: upper case, with every space removed.
@@ -265,7 +288,11 @@ class MemberProfile(TimestampedModel):
     pilot_certificate_type = models.CharField(
         max_length=16, choices=PilotCertificateType.choices, default=PilotCertificateType.NONE
     )
-    certificate_number = models.CharField(max_length=40, blank=True)
+    certificate_number = models.CharField(
+        max_length=40,
+        blank=True,
+        validators=[CERTIFICATE_NUMBER_VALIDATOR],
+    )
     ratings = models.JSONField(default=list, blank=True)
     medical_type = models.CharField(
         max_length=16, choices=MedicalType.choices, default=MedicalType.NONE
@@ -500,8 +527,8 @@ class MembershipState(models.TextChoices):
     current and never expired, whatever terms they held as a member.  ``NONE`` is an
     account that chose to be a member and holds no term that has started yet, such as
     one an administrator created that has not paid: it is still a friend by
-    ``account_kind`` (it owes the dues before it is anything more), but it reads *No
-    membership yet* rather than *Friend*, so a list never calls it a friend.  ``DONOR``
+    ``account_kind`` (it owes the dues before it is anything more), but it reads *Not
+    yet paid* rather than *Friend*, so a list never calls it a friend.  ``DONOR``
     is what a donor account reads, and a donor never appears in a member list.  These
     labels are what the member list's status filter, the member report, and the
     portal's status select all show, so a change here is a change everywhere at once.
@@ -510,7 +537,7 @@ class MembershipState(models.TextChoices):
     CURRENT = "current", "Current"
     EXPIRED = "expired", "Expired"
     FRIEND = "friend", "Friend"
-    NONE = "none", "No membership yet"
+    NONE = "none", "Not yet paid"
     DONOR = "donor", "Donor"
 
 

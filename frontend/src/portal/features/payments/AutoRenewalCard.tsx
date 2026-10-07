@@ -1,5 +1,5 @@
 /**
- * The cards on the member's Payments screen that state a standing authority.
+ * The cards on the member's My payments screen that state a standing authority.
  *
  * `MandateCard` is one component for both of a person's authorities: the
  * automatic renewal, which renews their membership each year, and the recurring

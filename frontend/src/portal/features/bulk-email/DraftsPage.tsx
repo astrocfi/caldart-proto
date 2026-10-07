@@ -29,6 +29,7 @@ import { useBulkEmailAction, useBulkSender, useDeleteDraft, useDrafts } from './
 import './bulk-email.css';
 import { formatCountdown, useSecondsUntil } from './countdown';
 import { SenderNotice } from './SenderNotice';
+import { FieldText } from './FieldChips';
 import { withSenderColumns } from './senderColumns';
 import { actionError, CANCELED_MESSAGE } from './SendStatus';
 import { statusLabel, statusTone } from './status';
@@ -53,7 +54,7 @@ function SubjectLink({ row }: { row: BulkEmailSummary }): JSX.Element {
       to={`/bulk-email/compose/${row.id}`}
       aria-label={row.subject === '' ? draftName(row) : undefined}
     >
-      {row.subject || NO_SUBJECT}
+      {row.subject === '' ? NO_SUBJECT : <FieldText text={row.subject} />}
     </Link>
   );
 }
@@ -83,7 +84,7 @@ export function DraftsPage(): JSX.Element {
   return (
     <Page
       title="Drafts and scheduled"
-      lede="Emails still being written, and emails waiting for their time to send."
+      lede="Emails still being written and emails waiting for their time to send."
       actions={cannotSend ? null : <ButtonLink to="/bulk-email/compose">New email</ButtonLink>}
     >
       {sender.data === undefined ? null : <SenderNotice sender={sender.data} />}

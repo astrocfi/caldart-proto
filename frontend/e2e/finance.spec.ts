@@ -12,7 +12,7 @@ import type { Locator, Page } from '@playwright/test';
 import { DEMO, SEED, signIn, uniqueEmail } from './helpers';
 
 /**
- * The finance area's rail entry, Finance under Administration, named by its address
+ * The rail entry for Accounting, under Finance, named by its address
  * so a change to its label leaves the specs alone.
  */
 function financeRailEntry(page: Page): Locator {
@@ -21,12 +21,12 @@ function financeRailEntry(page: Page): Locator {
     .locator('a[href$="/portal/admin/payments"]');
 }
 
-/** Open the finance area's Payments tab as the treasurer. */
+/** Open the Payments tab of Accounting as the treasurer. */
 async function openPaymentList(page: Page): Promise<void> {
   await signIn(page, DEMO.treasurer);
   await financeRailEntry(page).click();
   await expect(page).toHaveURL(/\/portal\/admin\/payments$/);
-  await page.getByRole('navigation', { name: 'Finance sections' }).getByText('Payments').click();
+  await page.getByRole('navigation', { name: 'Accounting sections' }).getByText('Payments').click();
   await expect(page).toHaveURL(/\/portal\/admin\/payments\/list/);
 }
 
@@ -117,8 +117,8 @@ test('a seeded refund is on the payment it came out of', async ({ page }) => {
 });
 
 // A payment recorded by hand is the one a refund can be demonstrated on without
-// a provider: the seed takes its card payments through Stripe and PayPal, which
-// an end-to-end run has no keys for, while a manual refund calls nobody.
+// a provider: a manual refund calls nobody, so the step holds whether the seed's
+// card payments went through the mock provider or through Stripe and PayPal.
 test('the treasurer refunds part of a payment and the status follows', async ({ page }) => {
   await openPaymentList(page);
   await page.getByLabel('Provider').selectOption('manual');

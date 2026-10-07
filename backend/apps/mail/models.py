@@ -19,6 +19,9 @@ from django.utils.text import slugify
 
 from caldart.models import TimestampedModel
 
+#: The slug of the Mission type: the only type a mission callout goes as.
+MISSION_SLUG = "mission"
+
 
 class EmailStatus(models.TextChoices):
     """Whether the mail server took the message, refused it, or later bounced it.
@@ -115,7 +118,8 @@ class EmailType(TimestampedModel):
 
     ``sender_roles`` is the list of role slugs whose holders may send the type; a system
     administrator sends every type whatever it names.  ``position`` orders the types on
-    every screen, then ``name``.
+    every screen, then ``name``.  ``is_mission`` is true for the Mission type, the only
+    one a mission callout may go as.
     """
 
     name = models.CharField(max_length=60, unique=True)
@@ -131,6 +135,11 @@ class EmailType(TimestampedModel):
     def __str__(self) -> str:
         """Return the type's ``name``."""
         return self.name
+
+    @property
+    def is_mission(self) -> bool:
+        """Whether this is the Mission type, the only one a mission callout goes as."""
+        return self.slug == MISSION_SLUG
 
     def save(self, *args: Any, **kwargs: Any) -> None:
         """Set ``slug`` from ``name``, then save."""

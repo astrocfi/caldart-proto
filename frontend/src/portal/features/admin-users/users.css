@@ -23,3 +23,8 @@
   margin: 0;
   font-size: var(--text-sm);
 }
+
+/* Whether the address is verified, the one fact about it the user record states. */
+.user-record__email {
+  margin: 0 0 var(--space-4);
+}

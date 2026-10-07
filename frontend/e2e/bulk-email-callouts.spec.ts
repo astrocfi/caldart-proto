@@ -40,7 +40,7 @@ function messageFor(file: string, address: string): string {
   return found[0] ?? '';
 }
 
-/** Run the background sender from the Scheduled page, as the system administrator. */
+/** Run the background sender from the Scheduled tasks page, as the system administrator. */
 async function runSender(page: Page): Promise<void> {
   await page.context().clearCookies();
   await signIn(page, DEMO.sysadmin);
@@ -70,7 +70,7 @@ test('a callout is answered from its email, and the rest are reminded', async ({
   await page.getByRole('button', { name: 'Send to 2 people' }).click();
   await page
     .getByRole('region', { name: 'Confirm sending' })
-    .getByRole('button', { name: 'Send now' })
+    .getByRole('button', { name: 'Send', exact: true })
     .click();
   await expect(page.getByRole('region', { name: 'Waiting to send' })).toBeVisible();
   await runSender(page);

@@ -1,5 +1,5 @@
 /**
- * The Recurring donation card on the Payments screen.
+ * The Recurring donation card on the My payments screen.
  *
  * It is {@link MandateCard} over the donation, the same card the automatic renewal
  * uses: what is on, how much, how often, and when it next charges, with **Change**,

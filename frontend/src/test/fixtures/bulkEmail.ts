@@ -11,10 +11,12 @@ import type {
   BulkEmailDetail,
   BulkEmailField,
   BulkEmailFinding,
+  BulkEmailMatch,
   BulkEmailPreview,
   BulkEmailPatch,
   BulkEmailSender,
   BulkEmailSummary,
+  Paginated,
 } from '@/portal/api/types';
 import { API, SENDABLE_TYPES } from '../handlers';
 import { server } from '../server';
@@ -133,6 +135,28 @@ export function makeRow(overrides: Partial<BulkEmailBatchRow> = {}): BulkEmailBa
   };
 }
 
+/** One person a search matches: Bea Bell of the Marin DART, who would receive a copy. */
+export function makeMatch(overrides: Partial<BulkEmailMatch> = {}): BulkEmailMatch {
+  return {
+    user_id: 12,
+    name: 'Bea Bell',
+    email: 'bea@example.org',
+    kind: 'member',
+    dart_name: 'Marin DART',
+    will_receive: true,
+    reason: '',
+    ...overrides,
+  };
+}
+
+/** One page of the given matches, the count `count` (their number unless given). */
+export function makeMatches(
+  results: BulkEmailMatch[] = [makeMatch()],
+  count = results.length,
+): Paginated<BulkEmailMatch> {
+  return { count, next: null, previous: null, results };
+}
+
 /** A batch of the given rows, with one add and the counts worked out from them. */
 export function makeBatch(rows: BulkEmailBatchRow[] = [makeRow()]): BulkEmailBatch {
   const receiving = rows.filter((row) => row.will_receive).length;
@@ -164,6 +188,8 @@ export interface BulkEmailCalls {
   sends: unknown[];
   actions: string[];
   previews: unknown[];
+  /** The query string of each search, without its leading `?`. */
+  searches: string[];
   checks: number;
   tests: number;
 }
@@ -171,6 +197,8 @@ export interface BulkEmailCalls {
 /** The fake server's state: the email and its batch, which the handlers change. */
 export interface BulkEmailState {
   email: BulkEmailDetail;
+  /** What a search answers; one match, Bea Bell, unless given. */
+  matches?: Paginated<BulkEmailMatch>;
   batch: BulkEmailBatch;
   /** What the checks find; none when left out. */
   findings?: BulkEmailFinding[];
@@ -191,6 +219,7 @@ export function answerBulkEmail(state: BulkEmailState): BulkEmailCalls {
     sends: [],
     actions: [],
     previews: [],
+    searches: [],
     checks: 0,
     tests: 0,
   };
@@ -219,6 +248,10 @@ export function answerBulkEmail(state: BulkEmailState): BulkEmailCalls {
       return HttpResponse.json(state.email);
     }),
     http.get(`${base}/batch`, () => HttpResponse.json(state.batch)),
+    http.get(`${base}/batch/matches`, ({ request }) => {
+      calls.searches.push(new URL(request.url).search.slice(1));
+      return HttpResponse.json(state.matches ?? makeMatches());
+    }),
     http.post(`${base}/batch/add`, async ({ request }) => {
       calls.adds.push(await request.json());
       recount([

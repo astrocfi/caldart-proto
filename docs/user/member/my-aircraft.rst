@@ -8,8 +8,9 @@ so keep it current.
 
 CalDART keeps one list of airplanes for everybody. Adding an airplane here
 attaches a record from that list to your profile; you do not get a private
-copy. Open the screen from **My aircraft** in the menu, from the button at the top
-of :doc:`profile`, or from **Add the planes I fly** at the end of :doc:`join`.
+copy. Open the screen from **My aircraft** in the menu, from the **My aircraft** link at
+the top of :doc:`profile`, or from **Add the planes I fly** at the end of :doc:`join`.
+**Back to My profile**, a link at the top right, returns to :doc:`profile`.
 
 
 What you see
@@ -87,9 +88,8 @@ register** in its place and takes you to the first box. **Cancel**, or Escape, c
 The form is the whole record, with every box the record has when you edit it later:
 
 * **N-number** (required). The box writes the N and takes digits first, then at
-  most two letters, so 172sp becomes N172SP. A registration you typed in the search
-  box is already in it; a search for a make or a model, such as piper, Cessna 172, or
-  PA-28, leaves it empty. As you type, the FAA data's airplanes whose N-number starts
+  most two letters, so 172sp becomes N172SP. It starts empty, whatever you searched
+  for, so type the N-number here. As you type, the FAA data's airplanes whose N-number starts
   with what you typed are listed under the box: see :ref:`registry-list`.
 * **Year**, four digits.
 * **Aircraft type** (required): type the make, the model, or a designator, for example
@@ -150,7 +150,8 @@ list.* While that line shows, the list of FAA airplanes under the box stays shut
 Editing an airplane
 ===================
 
-Press **Edit** beside an airplane. Escape, **Cancel**, or **Close** in its place closes the
+Press **Edit** beside an airplane. The form opens directly under that airplane, and
+the rest of your list carries on below it. Escape, **Cancel**, or **Close** in its place closes the
 form again, and saving does too, taking you back to **Edit**. For one you added yourself,
 the form opens with every detail, as it was added: **N-number**, **Year**, **Aircraft type**, **Seats**,
 **Category**, and **Airworthiness**; **Owner type** (Individual, FBO, or Flying club), **Owner name**, and
@@ -174,7 +175,8 @@ them **Edit** opens any airplane on the list.
 Removing an airplane
 ====================
 
-The trashcan asks first: press it and it turns into **Remove** and **Cancel**. Press
+The trashcan asks first: press it and it turns into **Remove** and **Cancel**, which
+stand alone on the line: **Edit**, or **Close**, steps aside until you choose. Press
 **Remove** and the airplane comes off your list, and *N12345 removed.* appears;
 press **Cancel**, press Escape, or click away and nothing changes. Removing only
 detaches the airplane from you. The record stays in CalDART's aircraft list, and anyone else

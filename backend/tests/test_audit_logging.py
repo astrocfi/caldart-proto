@@ -303,35 +303,36 @@ def test_the_audit_module_imports_nothing_from_an_app() -> None:
 # --------------------------------------------------------------------------
 def test_an_account_edit_records_the_field_names_only(
     api_client: APIClient,
-    user_admin: UserModel,
+    account_admin: UserModel,
     target_member: UserModel,
     audit_log: pytest.LogCaptureFixture,
 ) -> None:
     """Changing a name records the changed field name, not its value."""
-    api_client.force_login(user_admin)
+    api_client.force_login(account_admin)
     response = api_client.patch(
-        f"{USERS_URL}/{target_member.pk}", {"first_name": "Renamed"}, format="json"
+        f"{MEMBERS_URL}/{target_member.pk}", {"first_name": "Renamed"}, format="json"
     )
     assert response.status_code == 200
     assert one_message(audit_log) == (
-        f"action=account.update actor={user_admin.pk} target={target_member.pk} fields=first_name"
+        f"action=account.update actor={account_admin.pk} target={target_member.pk} "
+        "fields=first_name"
     )
 
 
 def test_an_email_change_records_the_field_name_and_not_the_address(
     api_client: APIClient,
-    user_admin: UserModel,
+    account_admin: UserModel,
     target_member: UserModel,
     audit_log: pytest.LogCaptureFixture,
 ) -> None:
     """Changing the email address records the field name ``email``, not its value."""
-    api_client.force_login(user_admin)
+    api_client.force_login(account_admin)
     response = api_client.patch(
-        f"{USERS_URL}/{target_member.pk}", {"email": "moved@example.test"}, format="json"
+        f"{MEMBERS_URL}/{target_member.pk}", {"email": "moved@example.test"}, format="json"
     )
     assert response.status_code == 200
     assert one_message(audit_log) == (
-        f"action=account.update actor={user_admin.pk} target={target_member.pk} fields=email"
+        f"action=account.update actor={account_admin.pk} target={target_member.pk} fields=email"
     )
 
 
@@ -387,14 +388,14 @@ def test_an_activation_is_its_own_action(
 
 def test_an_edit_that_changes_nothing_records_nothing(
     api_client: APIClient,
-    user_admin: UserModel,
+    account_admin: UserModel,
     target_member: UserModel,
     audit_log: pytest.LogCaptureFixture,
 ) -> None:
     """Resending the stored values is not a change, so it is not an entry."""
-    api_client.force_login(user_admin)
+    api_client.force_login(account_admin)
     response = api_client.patch(
-        f"{USERS_URL}/{target_member.pk}",
+        f"{MEMBERS_URL}/{target_member.pk}",
         {
             "email": TARGET_EMAIL,
             "first_name": TARGET_FIRST_NAME,
@@ -409,14 +410,14 @@ def test_an_edit_that_changes_nothing_records_nothing(
 
 def test_an_edit_records_only_the_columns_whose_value_changes(
     api_client: APIClient,
-    user_admin: UserModel,
+    account_admin: UserModel,
     target_member: UserModel,
     audit_log: pytest.LogCaptureFixture,
 ) -> None:
     """The portal resends the whole form, so an unaltered column is not a field name."""
-    api_client.force_login(user_admin)
+    api_client.force_login(account_admin)
     response = api_client.patch(
-        f"{USERS_URL}/{target_member.pk}",
+        f"{MEMBERS_URL}/{target_member.pk}",
         {
             "email": TARGET_EMAIL,
             "first_name": "Renamed",
@@ -427,7 +428,8 @@ def test_an_edit_records_only_the_columns_whose_value_changes(
     )
     assert response.status_code == 200
     assert one_message(audit_log) == (
-        f"action=account.update actor={user_admin.pk} target={target_member.pk} fields=first_name"
+        f"action=account.update actor={account_admin.pk} target={target_member.pk} "
+        "fields=first_name"
     )
 
 
@@ -448,18 +450,18 @@ def test_a_self_deactivation_is_refused_and_recorded(
 
 def test_an_email_change_on_a_higher_account_is_refused_and_recorded(
     api_client: APIClient,
-    user_admin: UserModel,
+    account_admin: UserModel,
     system_admin: UserModel,
     audit_log: pytest.LogCaptureFixture,
 ) -> None:
-    """A user administrator editing a system administrator is refused and logged."""
-    api_client.force_login(user_admin)
+    """Moving a system administrator's address is refused and logged."""
+    api_client.force_login(account_admin)
     response = api_client.patch(
-        f"{USERS_URL}/{system_admin.pk}", {"email": "taken-over@example.test"}, format="json"
+        f"{MEMBERS_URL}/{system_admin.pk}", {"email": "taken-over@example.test"}, format="json"
     )
     assert response.status_code == 400
     assert one_message(audit_log, logging.WARNING) == (
-        f"action=account.update actor={user_admin.pk} target={system_admin.pk} "
+        f"action=account.update actor={account_admin.pk} target={system_admin.pk} "
         f"fields=email reason=roles_not_held"
     )
 
@@ -878,14 +880,11 @@ def test_no_record_carries_an_email_address_or_a_name(
 ) -> None:
     """The whole point of the field rules: a log line is ids, counts and slugs."""
     api_client.force_login(user_admin)
-    api_client.patch(
-        f"{USERS_URL}/{target_member.pk}",
-        {"first_name": "Renamed", "roles": [DART_LEADER]},
-        format="json",
-    )
+    api_client.patch(f"{USERS_URL}/{target_member.pk}", {"roles": [DART_LEADER]}, format="json")
     api_client.post(f"{USERS_URL}/{target_member.pk}/send-password-reset")
 
     api_client.force_login(account_admin)
+    api_client.patch(f"{MEMBERS_URL}/{target_member.pk}", {"first_name": "Renamed"}, format="json")
     api_client.post(MEMBERS_URL, {"email": TARGET_EMAIL.upper()}, format="json")
     api_client.post(
         f"{MEMBERS_URL}/{target_member.pk}/memberships", {"plan": annual_plan.slug}, format="json"

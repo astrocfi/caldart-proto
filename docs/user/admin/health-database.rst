@@ -4,8 +4,8 @@
 Health and database
 ===================
 
-**Health and database** shows how the server is doing, the database backups it holds, and the
-FAA aircraft data it loads. Only a system administrator sees it, under
+**Health and database** shows how the server is doing, whether other mail systems will trust
+the email it sends, the database backups it holds, and the FAA aircraft data it loads. Only a system administrator sees it, under
 **System** in the menu, beside :doc:`sent-emails` and :doc:`scheduled`. Opening **System**
 on its own lands here.
 
@@ -15,8 +15,8 @@ the :doc:`user-record`. Anything that has to happen on the server itself, such a
 an upgrade, restoring a backup, or changing the settings, is a job for the person who
 installed the site.
 
-The page has three panels, top to bottom: **Health**, **Backups**, and **FAA aircraft
-data**.
+The page has four panels, top to bottom: **Health**, **Mail delivery**, **Backups**, and
+**FAA aircraft data**.
 
 
 Health
@@ -41,6 +41,73 @@ them again.
 - **Debug mode**: must read *Off*. If a live site reads *On*, ask the person who installed
   the site to turn it off at once, because it shows internal details to anyone who causes
   an error.
+
+
+Mail delivery
+=============
+
+**Mail delivery** tells you whether other mail systems, such as Gmail, Outlook, and the
+providers your members use, will trust the email CalDART sends. If they do not, a bulk
+email can land in people's spam folders or never arrive, and nothing on the compose screen
+would tell CalDART management. Read it once the site is installed, before the first large
+bulk email, and after anyone changes the domain name's records or the server's mail
+settings. Fixing what it finds is a job for whoever manages the CalDART domain name and the
+server.
+
+The panel opens with one sentence that sums everything up: either every check is good, or
+it says how many found a problem and what that costs. Under it is one block for each of
+four checks. Each block has:
+
+- a colored dot and a word, **Good**, **Warning**, or **Problem**, beside the check's name,
+  or on a line of its own under the name on a phone;
+- when the check is not good, a line that says what the check is for, in plain words, and
+  what it found, then **What to do**, a sentence you can pass on as it stands to the
+  person who looks after the domain name or the server. A check that is good shows its
+  name and the word alone.
+
+**Warning** means mail will probably still arrive, but the setup is weaker than it should
+be, or the panel could not judge it. **Problem** means some mail is likely to be marked as
+spam or refused until it is fixed.
+
+Under the blocks, **Checked** gives the date and time of the last look and the domain it was
+made for, for example *Checked 10/03/2026 at 8:00 AM for caldart.example.org.* Without
+**Check again**, the panel shows what it found in the last five minutes; press it after
+somebody says they have fixed something, and it looks the records up again, which takes a
+few seconds.
+
+The four checks:
+
+- **Approved senders (SPF)**: a public list, kept with the domain name (or, when bounces
+  return to a different address, the domain of that address, which the block names), of the
+  servers allowed to send email that claims to come from CalDART. It is good when the list
+  exists, names the server the website sends through, and tells receivers to be suspicious
+  of anything else. It is a problem when there is no list, the list is malformed, or the
+  website's server is not on it. It is a warning when the list is too lenient, or when the
+  website hands its mail to a server on the same machine, so the panel cannot tell which
+  public address the mail leaves from.
+- **Message signature (DKIM)**: a digital signature the mail server puts on every message,
+  checked against a public key published with the domain name. It is a problem when the key
+  is not published. *No DKIM selector is configured* is a warning: the website has not been
+  told the key's name, so the signature may be working but the panel cannot check it.
+- **Handling of forged mail (DMARC)**: a short public instruction that tells receiving
+  systems what to do with a message that claims to come from CalDART but fails the other
+  checks, and where to send reports about it. It is a problem when none is published, or
+  when more than one is, because receiving systems then follow none of them. It is a warning
+  while it only says to watch (``p=none``), and good when it says to send forgeries to spam
+  (``quarantine``) or refuse them (``reject``). When it names addresses for reports, the
+  block lists them. When CalDART sends from a part of a larger domain, such as
+  ``caldart.example.org``, and that part has no instruction of its own, receiving systems
+  follow the one for ``example.org``, and so does the check: the block says where it found
+  the instruction, and judges its setting for subdomains (``sp=``) when there is one.
+- **Bounce address**: where a receiving server sends back a message it cannot deliver,
+  which CalDART reads to find the addresses that are no good. Some systems trust a message
+  more when it is on the same domain as the From address, so it is a warning when it is on
+  an unrelated domain.
+
+Changes to a domain name can take a few hours to reach everyone, so **Check again** may show
+the old answer for a while. A lookup that *did not get an answer in time*, or a check that
+*took too long*, says nothing about the records: press **Check again** in a minute or two.
+*No name server could answer* means the domain's own name servers are not working.
 
 
 Backups
@@ -82,8 +149,8 @@ minutes later. A press while one runs says *An import is already running.*
 Routine
 =======
 
-Once a week, open **Health and database**: six **Good** checks and a recent backup are the whole
-check. Before any upgrade, take a backup and download it. Once a month, keep a copy somewhere
+Once a week, open **Health and database**: six **Good** health checks and a recent backup are
+the whole check. Before any upgrade, take a backup and download it. Once a month, keep a copy somewhere
 off the server. When someone reports a problem, read **Health** first and note the
 **Version**.
 

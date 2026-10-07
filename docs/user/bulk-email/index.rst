@@ -40,4 +40,3 @@ Email**.
    templates
    groups
    email-types
-   mail-delivery

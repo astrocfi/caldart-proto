@@ -9,6 +9,7 @@ import { API } from '@test/handlers';
 import { renderWithProviders, signedInClient } from '@test/render';
 import { server } from '@test/server';
 import type { MemberTerm } from '@/portal/api/types';
+import { todayIso } from '@/portal/components/DateText';
 import { MemberDetailPage } from './MemberDetailPage';
 import { makeDetail } from '@test/fixtures/members';
 import { makeLedger } from '@test/fixtures/finance';
@@ -130,43 +131,8 @@ describe('MemberDetailPage', () => {
     renderDetail();
 
     expect(
-      await screen.findByText('No membership yet: grant a term on Memberships'),
+      await screen.findByText('Not yet paid: grant a term on Memberships'),
     ).toBeInTheDocument();
-  });
-
-  it('says when a member whose only term has not begun starts, rather than asking for a grant', async () => {
-    const base = makeDetail();
-    const future = makeDetail({
-      membership: { status: 'none', expires_on: null, plan: null, is_lifetime: false },
-      memberships: base.memberships.map((term) => ({
-        ...term,
-        starts_on: '2099-11-03',
-        ends_on: '2100-11-02',
-      })),
-    });
-    server.use(...detailHandlers(future));
-    renderDetail();
-
-    const header = (await screen.findByText(/Membership starts/)).closest('.status');
-    expect(header).toHaveTextContent('Membership starts 11/03/2099');
-  });
-
-  it('does not repeat a future start date as the day the member joined', async () => {
-    const base = makeDetail();
-    const future = makeDetail({
-      membership: { status: 'none', expires_on: null, plan: null, is_lifetime: false },
-      joined_on: '2099-11-03',
-      memberships: base.memberships.map((term) => ({
-        ...term,
-        starts_on: '2099-11-03',
-        ends_on: '2100-11-02',
-      })),
-    });
-    server.use(...detailHandlers(future));
-    renderDetail();
-
-    const strip = (await screen.findByText(/Membership starts/)).closest('.cluster');
-    expect(strip?.textContent).not.toMatch(/joined/);
   });
 
   it('leaves out the expiry and joining dates a member with no term does not have', async () => {
@@ -178,7 +144,7 @@ describe('MemberDetailPage', () => {
     server.use(...detailHandlers(noTerm));
     renderDetail();
 
-    const header = (await screen.findByText(/No membership yet/)).closest('.cluster');
+    const header = (await screen.findByText(/Not yet paid/)).closest('.cluster');
     expect(header?.textContent).not.toMatch(/expires|joined/);
   });
 
@@ -352,12 +318,42 @@ describe('MemberDetailPage', () => {
 
     await screen.findByRole('option', { name: 'Life' });
     await user.selectOptions(screen.getByLabelText(/Plan/), 'life');
-    await user.type(screen.getByLabelText(/Start date/), '2027-01-01');
+    await user.type(screen.getByLabelText(/Start date/), '2026-01-01');
     await user.click(screen.getByRole('button', { name: 'Grant term' }));
 
     await waitFor(() => expect(captured.grantedTerm).not.toBeNull());
     expect(captured.grantedTerm?.plan).toBe('life');
-    expect(captured.grantedTerm?.starts_on).toBe('2027-01-01');
+    expect(captured.grantedTerm?.starts_on).toBe('2026-01-01');
+  });
+
+  it('offers no start date later than today', async () => {
+    server.use(...detailHandlers());
+    renderDetail('/admin/members/1?tab=memberships');
+
+    expect(await screen.findByLabelText(/Start date/)).toHaveAttribute('max', todayIso());
+  });
+
+  it('shows the refusal of a start date after today under Start date', async () => {
+    const user = userEvent.setup();
+    const refusal = 'A membership cannot start after today.';
+    // The first handler msw holds for a request answers it, so the refusal goes first.
+    server.use(
+      http.post(`${API}/admin/members/1/memberships`, () =>
+        HttpResponse.json({ starts_on: [refusal] }, { status: 400 }),
+      ),
+      ...detailHandlers(),
+    );
+    renderDetail('/admin/members/1?tab=memberships');
+
+    await screen.findByRole('option', { name: 'Annual' });
+    await user.selectOptions(screen.getByLabelText(/Plan/), 'annual');
+    await user.click(screen.getByRole('button', { name: 'Grant term' }));
+
+    await waitFor(() =>
+      expect(screen.getByLabelText(/Start date/)).toHaveAccessibleDescription(
+        expect.stringContaining(refusal),
+      ),
+    );
   });
 
   it('will not grant a term until a plan is chosen', async () => {

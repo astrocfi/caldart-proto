@@ -2,9 +2,9 @@
 
 Looks up the SPF, DKIM, and DMARC records for the domain of ``DEFAULT_FROM_EMAIL`` and
 prints one line per finding with its fix.  Always queries the name servers afresh.  Run
-it by hand after changing DNS or the mail server; the Mail delivery screen shows the
-same report.  A warning leaves the exit status at zero; any failing finding makes the
-command exit non-zero.
+it by hand after changing DNS or the mail server; the Mail delivery card on Health and
+database shows the same report.  A warning leaves the exit status at zero; any failing
+finding makes the command exit non-zero.
 """
 
 from __future__ import annotations

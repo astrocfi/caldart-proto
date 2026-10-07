@@ -91,14 +91,14 @@ describe('SendCard', () => {
     );
     // Cancel has the focus, so Enter pressed twice does not send by accident.
     expect(within(confirm).getByRole('button', { name: 'Cancel' })).toHaveFocus();
-    await userEvent.click(within(confirm).getByRole('button', { name: 'Send now' }));
+    await userEvent.click(within(confirm).getByRole('button', { name: 'Send' }));
     await waitFor(() => expect(calls.sends).toEqual([{ confirm_count: null, start_at: null }]));
   });
 
   it('keeps a large send off until the right count is typed, and says when it is wrong', async () => {
     const calls = renderCard(makeBulkEmail({ receiving_count: 52, confirm_above: 50 }));
     await userEvent.click(screen.getByRole('button', { name: 'Send to 52 people' }));
-    const send = await screen.findByRole('button', { name: 'Send now' });
+    const send = await screen.findByRole('button', { name: 'Send' });
     const count = screen.getByRole('textbox', { name: 'Type 52 to confirm' });
     expect(count).toHaveFocus();
     await userEvent.type(count, '51');
@@ -134,7 +134,7 @@ describe('SendCard', () => {
     );
     await userEvent.click(screen.getByRole('button', { name: 'Send to 52 people' }));
     await userEvent.type(await screen.findByRole('textbox', { name: 'Type 52 to confirm' }), '52');
-    await userEvent.click(screen.getByRole('button', { name: 'Send now' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Send' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('it now holds 53 people');
   });
 
@@ -177,7 +177,7 @@ describe('SendCard', () => {
       makeBulkEmail({ status: 'queued', scheduled: true, start_at: '2026-10-04T15:00:00Z' }),
     );
     await userEvent.click(screen.getByRole('button', { name: 'Send in 2 minutes instead' }));
-    await userEvent.click(await screen.findByRole('button', { name: 'Send now' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Send' }));
     await waitFor(() => expect(calls.sends).toEqual([{ confirm_count: null, start_at: null }]));
   });
 
@@ -267,7 +267,7 @@ describe('SendCard', () => {
       ),
     );
     await userEvent.click(screen.getByRole('button', { name: 'Send to 3 people' }));
-    await userEvent.click(await screen.findByRole('button', { name: 'Send now' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Send' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(BAD_REPLY_TO.message);
   });
 

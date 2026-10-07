@@ -1,7 +1,7 @@
 /**
  * The checks before a bulk email goes: a Reply-To address the sender chooses, a test
  * copy to the sender alone, and the checks list warning about placeholder text without
- * stopping the send. The background sender, run from the Scheduled page, then sends
+ * stopping the send. The background sender, run from the Scheduled tasks page, then sends
  * the copies with the chosen Reply-To.
  *
  * The message holds no web link, so the checks never reach for the network. The batch
@@ -65,7 +65,7 @@ test('CalDART management sets a Reply-To, sends a test, reads the checks, and se
 
   await page.getByRole('button', { name: /^Send to \d+ (person|people)$/ }).click();
   const confirm = page.getByRole('region', { name: 'Confirm sending' });
-  await confirm.getByRole('button', { name: 'Send now' }).click();
+  await confirm.getByRole('button', { name: 'Send', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Waiting to send' })).toBeVisible();
 
   await page.context().clearCookies();

@@ -66,7 +66,7 @@ It reads, one line each:
   what the recipient's mail server said.
 - **Attachments**: the names of any files attached.
 
-The log keeps who an email went to and what it was for. It keeps no copy of the text, so a
+The log keeps who an email went to and what it was for. It doesn't keep a copy of the text, so a
 password reset link or a verification link is never kept in it. A copy of a bulk email
 offers **Open the bulk email**, which opens that email's page on
 :doc:`../bulk-email/sent`, where its message is. **Back to sent emails** returns to the

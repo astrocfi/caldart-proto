@@ -165,29 +165,8 @@ describe('<DashboardPage/>', () => {
       status: none,
     });
 
-    await screen.findByRole('heading', { name: 'You have no membership yet' });
+    await screen.findByRole('heading', { name: 'Your membership is not yet paid' });
     expect(screen.queryByText(/friend of CalDART/)).not.toBeInTheDocument();
-  });
-
-  it('tells a member whose granted term is still to come when it starts, with nothing to pay', async () => {
-    const none: MembershipStatus = { ...FRIEND, status: 'none' };
-    mount({
-      user: makeUser({ kind: 'member', admin_created: true, membership: none }),
-      status: none,
-      history: [
-        {
-          id: 1,
-          plan: 'Annual',
-          starts_on: '2099-11-03',
-          ends_on: '2100-11-02',
-          status: 'active',
-          source: 'manual',
-        },
-      ],
-    });
-
-    await screen.findByRole('heading', { name: 'Your membership starts 11/03/2099' });
-    expect(screen.queryByRole('link', { name: 'Pay dues' })).not.toBeInTheDocument();
   });
 
   it('offers a member with no term yet Pay dues, which opens the checkout', async () => {
@@ -197,9 +176,9 @@ describe('<DashboardPage/>', () => {
       status: none,
     });
 
-    await screen.findByRole('heading', { name: 'You have no membership yet' });
+    await screen.findByRole('heading', { name: 'Your membership is not yet paid' });
     expect(
-      card('You have no membership yet').getByRole('link', { name: 'Pay dues' }),
+      card('Your membership is not yet paid').getByRole('link', { name: 'Pay dues' }),
     ).toHaveAttribute('href', '/membership/join');
   });
 
@@ -332,7 +311,7 @@ describe('<DashboardPage/>', () => {
     const names = card('Quick links')
       .getAllByRole('link')
       .map((link) => link.textContent);
-    expect(names).toEqual(['Renew', 'My profile', 'Member check', 'Finance', 'Members']);
+    expect(names).toEqual(['Renew', 'My profile', 'Member check', 'Accounting', 'Members']);
   });
 
   it('offers a plain member four next steps, not the whole menu', async () => {
@@ -342,7 +321,7 @@ describe('<DashboardPage/>', () => {
     const names = card('Quick links')
       .getAllByRole('link')
       .map((link) => link.textContent);
-    expect(names).toEqual(['Renew', 'My profile', 'My aircraft', 'Messages']);
+    expect(names).toEqual(['Renew', 'My profile', 'My aircraft', 'Email to me']);
   });
 
   it('hides administration links from a plain member', async () => {
@@ -580,18 +559,18 @@ describe('quickLinks', () => {
       'Renew',
       'My profile',
       'My aircraft',
-      'Messages',
+      'Email to me',
       'Member check',
     ]);
   });
 
-  it('adds Finance for a treasurer', () => {
+  it('adds Accounting for a treasurer', () => {
     expect(labels(['member', 'treasurer'])).toEqual([
       'Renew',
       'My profile',
       'My aircraft',
-      'Messages',
-      'Finance',
+      'Email to me',
+      'Accounting',
     ]);
   });
 
@@ -600,7 +579,7 @@ describe('quickLinks', () => {
       'Renew',
       'My profile',
       'Member check',
-      'Finance',
+      'Accounting',
       'Members',
     ]);
   });

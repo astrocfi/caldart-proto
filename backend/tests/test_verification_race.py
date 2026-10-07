@@ -128,7 +128,7 @@ def test_a_profile_edit_that_arrives_mid_verify_clears_the_stamp_it_raced(
     profile = MemberProfileFactory(
         user=member,
         pilot_certificate_type=PilotCertificateType.PRIVATE,
-        certificate_number="OLD123",
+        certificate_number="1234567",
     )
     api_client = APIClient()
     api_client.force_authenticate(user=member)
@@ -139,7 +139,7 @@ def test_a_profile_edit_that_arrives_mid_verify_clears_the_stamp_it_raced(
 
     def do_edit() -> None:
         held_member_verify.wait(timeout=JOIN_TIMEOUT_SECONDS)
-        response = api_client.patch(PROFILE_URL, {"certificate_number": "NEW456"}, format="json")
+        response = api_client.patch(PROFILE_URL, {"certificate_number": "7654321"}, format="json")
         assert response.status_code == 200
 
     threads = [run_in_thread(do_verify, failures), run_in_thread(do_edit, failures)]
@@ -149,7 +149,7 @@ def test_a_profile_edit_that_arrives_mid_verify_clears_the_stamp_it_raced(
     assert [thread.is_alive() for thread in threads] == [False, False]
     assert failures == []
     profile.refresh_from_db()
-    assert profile.certificate_number == "NEW456"
+    assert profile.certificate_number == "7654321"
     assert profile.certificate_is_verified is False
 
 

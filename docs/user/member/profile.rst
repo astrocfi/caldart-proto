@@ -11,7 +11,7 @@ What you see
 ============
 
 The form is the one the join wizard used, with your first and last name added at
-the top, filled in with what CalDART has on file. **My aircraft**, at the top right, opens :doc:`my-aircraft`. Below the form
+the top, filled in with what CalDART has on file. The **My aircraft** link, at the top right, opens :doc:`my-aircraft`. Below the form
 come the **Your kind of account** card and the **Deactivate my account** card.
 
 Contact
@@ -30,19 +30,23 @@ Contact
   ``smith-jones`` as **Smith-Jones**. A part with no vowel is taken for initials and
   saved in capitals, so ``tj`` and ``TJ`` are both saved as **TJ**. After the first word,
   *van*, *von*, *der*, *den*, *de*, *del*, *della*, *da*, *di*, *du*, *la*, and
-  *le* stay lower case, so ``VAN DER BERG`` is saved as **Van der Berg**, and
-  *II*, *III*, and *IV* stay capitals. A name you type with both capitals and
+  *le* stay lower case, so ``JAN VAN DER BERG`` is saved as **Jan van der Berg**, and
+  *II*, *III*, and *IV* stay capitals. In **Last name** they stay lower case as the
+  first word too when another word follows, so ``van dyke`` is saved as **van Dyke**. A name you type with both capitals and
   lower case, such as **DeAnna**, **MacArthur**, or **van Dyke**, is saved exactly as
   you typed it, so type yours that way if the rule gets it wrong. Spaces before,
   after, and doubled between words are dropped either way.
 * **Emergency contact** is a person's name too, and is saved by the same rule.
 * Each phone number has its own **ext.** box beside it for an extension.
 * A phone box takes digits only and writes the dashes for you as you type, so a
-  number reads 415-555-0100. An eleventh digit is refused.
+  number reads 415-555-0100. An eleventh digit is refused, and a letter typed in the
+  middle of a number leaves the number and the cursor where they were. **Phone** and
+  **Alternate phone** both say *10 digits, such as 415-555-0100* under the label.
 * **State** and **California county** are lists. The county list starts with
   *Not in California*.
 * **ZIP code** takes five digits.
-* **Address** suggests addresses as you type. Once you have typed three
+* **Address** suggests addresses as you type, and says so under the label: *Start
+  typing the whole address, city included, then pick it from the list.* Once you have typed three
   characters and paused, a list of matching US addresses opens under the box,
   California addresses first. Click one, or move to it with the up and down arrow
   keys and press Enter, and it fills **Address**, **City**, **State**, **ZIP code**,
@@ -78,6 +82,9 @@ Alliance number**, **Pilot certificate**, **Certificate number**, **Medical**,
 
 * **Pilot certificate** offers *Not a pilot*, Student, Sport, Recreational,
   Private, Commercial, and Airline transport pilot.
+* **Certificate number** takes the seven digits of your pilot certificate and nothing
+  else, and says *7 digits* under the label. It and **Medical expires** are optional,
+  even once you choose a certificate or a medical.
 * **Medical** offers *None*, BasicMed, First class, Second class, and Third class.
 * **Photo ID** offers *Not provided*, Driver's license, Passport, State ID card,
   Military ID, and Other. Only the kind of document is recorded, never its number or
@@ -129,8 +136,8 @@ button says how many fields to check:
 * *Use a three-character identifier like PAO, E16, or KLS.* Typing the four-letter
   form drops the K, so KPAO becomes PAO. An identifier that starts with K keeps it:
   KLS stays KLS.
-* *Enter the pilot certificate number.* when you chose a certificate.
-* *Enter the medical's expiration date.* when you chose a medical.
+* *Enter the 7 digits of the pilot certificate number.* for a certificate number of
+  fewer than seven digits.
 * *Enter your total hours as a whole number.*
 * *Enter a US amateur radio callsign, such as W6ABC.* for a callsign that is not a
   US one.
@@ -149,9 +156,8 @@ Your kind of account
 ====================
 
 The card says which you are: *You are a member of CalDART.*, *You are a life member
-of CalDART.*, *You have no membership yet. Pay your dues to become a member of
-CalDART.* (with **Pay dues**) when your account was made for you and nothing is paid yet
-(or *Your membership of CalDART starts on 11/03/2026.* when one is granted to start later),
+of CalDART.*, *Your membership is not yet paid. Pay your dues to become a member of
+CalDART.* (with **Pay dues**) when your account was made for you and nothing is paid yet,
 or *You are a friend of CalDART: no dues, no expiry. Become a member any time.* A friend of CalDART has the same portal as a member but pays no dues, so
 nothing expires, no renewal reminder is sent, and members-only pages stay closed.
 **Make me a friend** is offered here alone; your :doc:`dashboard` shows a change

@@ -124,11 +124,11 @@ describe('ComposePage', () => {
     await waitFor(() => expect(result).toHaveFocus());
   });
 
-  it('says what no filters add only until a filter is chosen', async () => {
+  it('says a search with no filters is everybody only until a filter is chosen', async () => {
     answerBulkEmail(draftState());
     renderCompose(draftState());
     const user = typist();
-    const hint = 'With no filters chosen, this adds every member and friend.';
+    const hint = 'With no filters chosen, this is every member and friend: 1 person.';
     expect(await screen.findByText(hint)).toBeVisible();
     const filters = screen.getByRole('search', { name: 'Choose people to add' });
     await user.type(within(filters).getByLabelText('Search'), 'bea');
@@ -207,7 +207,7 @@ describe('ComposePage', () => {
     answerBulkEmail(state);
     renderCompose(state);
     await screen.findByText('Zed Abbott');
-    const names = screen
+    const names = within(screen.getByRole('table', { name: /^Recipient list/ }))
       .getAllByRole('row')
       .slice(1)
       .map((row) => row.firstChild?.textContent);
@@ -293,7 +293,7 @@ describe('ComposePage', () => {
     expect(await screen.findByText('Saved')).toBeVisible();
   });
 
-  it('holds a sent email still, without the drafting instructions or the send card', async () => {
+  it('shows the banner alone once an email is sent, with the link to who received it', async () => {
     const state = draftState({ status: 'sent', can_edit: false, sent_count: 1 });
     answerBulkEmail(state);
     renderCompose(state);
@@ -302,10 +302,10 @@ describe('ComposePage', () => {
       'href',
       '/bulk-email/sent/7',
     );
-    expect(screen.getByRole('textbox', { name: /^Subject/ })).toBeDisabled();
-    expect(screen.queryByRole('button', { name: 'Add these people' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: '1. Who gets it' })).toBeNull();
+    expect(screen.queryByRole('textbox', { name: /^Subject/ })).toBeNull();
     expect(screen.queryByRole('heading', { name: '3. Check and send' })).toBeNull();
-    expect(screen.queryByText(/Your work saves itself/)).toBeNull();
+    expect(screen.queryByText(/Your work is automatically saved/)).toBeNull();
   });
 
   it('shows the progress and Stop in the banner while sending', async () => {
@@ -336,15 +336,35 @@ describe('ComposePage', () => {
     expect(screen.getAllByRole('button', { name: 'Cancel' })).toHaveLength(1);
   });
 
-  it('shows only the banner during the undo wait, without Check and send', async () => {
+  it('shows the banner alone during the undo wait: no cards, no fields, no lede', async () => {
     const state = draftState({
       status: 'queued',
       start_at: new Date(Date.now() + 60_000).toISOString(),
     });
     answerBulkEmail(state);
     renderCompose(state);
-    await screen.findByRole('region', { name: 'Waiting to send' });
-    expect(screen.queryByRole('heading', { name: '3. Check and send' })).toBeNull();
+    const banner = await screen.findByRole('region', { name: 'Waiting to send' });
+    expect(within(banner).getByRole('button', { name: 'Cancel' })).toBeVisible();
+    expect([
+      screen.queryByRole('heading', { name: '1. Who gets it' }),
+      screen.queryByRole('heading', { name: '2. What it says' }),
+      screen.queryByRole('heading', { name: '3. Check and send' }),
+      screen.queryByRole('textbox', { name: /^Subject/ }),
+      screen.queryByText(/Your work is automatically saved/),
+    ]).toEqual([null, null, null, null, null]);
+  });
+
+  it('brings the cards back once Cancel during the undo wait makes it a draft again', async () => {
+    const queued = draftState({
+      status: 'queued',
+      start_at: new Date(Date.now() + 60_000).toISOString(),
+    });
+    answerBulkEmail(queued);
+    renderCompose(queued);
+    const banner = await screen.findByRole('region', { name: 'Waiting to send' });
+    await typist().click(within(banner).getByRole('button', { name: 'Cancel' }));
+    expect(await screen.findByRole('heading', { name: '1. Who gets it' })).toBeVisible();
+    expect(screen.getByRole('textbox', { name: /^Subject/ })).toBeEnabled();
   });
 
   it('keeps the heading Compose once the email is waiting or sending', async () => {
@@ -416,6 +436,8 @@ describe('ComposePage', () => {
     renderCompose(state);
     const banner = await screen.findByRole('region', { name: 'Waiting to send' });
     expect(banner).toHaveTextContent('Scheduled for 10/04/2026 at 8:00 AM Pacific time.');
+    expect(screen.getByRole('heading', { name: '2. What it says' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Change the time' })).toBeVisible();
     await typist().click(within(banner).getByRole('button', { name: 'Cancel the schedule' }));
     await waitFor(() => expect(calls.actions).toEqual(['cancel']));
   });

@@ -140,7 +140,7 @@ describe('<ChangeEmailPage/>', () => {
   it('is a portal page under the Membership eyebrow, not a sign-in card', () => {
     const { container } = renderPage();
 
-    expect(container.querySelector('.page__header .eyebrow')).toHaveTextContent('Membership');
+    expect(container.querySelector('.page__header .eyebrow')).toHaveTextContent('My account');
   });
 
   it('is titled as its menu entry is', () => {

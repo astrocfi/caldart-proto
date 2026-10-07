@@ -121,9 +121,9 @@ class BulkEmail(TimestampedModel):
     counts the rows of that status: a copy the bounce check later finds refused moves
     from ``sent_count`` to ``bounced_count``, and **Retry failed** takes the copies it
     queues again out of ``failed_count``.  ``hidden_from_archive`` keeps a sent email
-    off every recipient's **Messages** page without changing its history.  ``is_callout``
-    marks a mission callout, whose copies carry the answer buttons and whose
-    :class:`Callout` row holds when answers close (``apps.bulk_email.callouts``).
+    off every recipient's **Email to me** page without changing its history.
+    ``is_callout`` marks a mission callout, whose copies carry the answer buttons and
+    whose :class:`Callout` row holds when answers close (``apps.bulk_email.callouts``).
     """
 
     subject = models.CharField(max_length=200, blank=True)

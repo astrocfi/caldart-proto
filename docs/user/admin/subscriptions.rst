@@ -37,7 +37,7 @@ screen too narrow for every column, **Last sent**, then **Next**, then **Formats
 scrolls sideways, says so above it, and keeps **Report** pinned at the left.
 
 **Edit**
-   Opens the subscription's form above the table, where **Email a report** opens it, to
+   Opens the subscription's form above the table, where **Add a scheduled report** opens it, to
    change its filters, columns, formats, and schedule, as **Changing one** below describes.
 
 **Send now**
@@ -61,12 +61,12 @@ With none set up the table reads *No reports are sent by email yet*.
 Setting one up
 ~~~~~~~~~~~~~~
 
-**Email a report** opens the form above the table and takes you to its first box. Until
+**Add a scheduled report** opens the form above the table and takes you to its first box. Until
 you choose a report, **Add emailed report** waits, and *Choose a report first.* sits beside
 it.
 
 #. **Report** offers the reports you may read, each by the name its own screen uses: the
-   membership report, the roles report, the verification report, the aircraft register,
+   membership report, the roles report, the verification report, the aircraft,
    the payments, the renewals, the reconciliation, and the contributions for an account
    administrator; the payments, the renewals, the reconciliation, the contributions, and
    the donors for the treasurer; and every one of them plus the sent emails for a system
@@ -74,14 +74,19 @@ it.
    in a section per role that says *Nobody holds this role.* when it is empty; it filters
    by name or email, by role, and by kind, and it can go to a user administrator as well
    as an account administrator. The verification report lists what a verifier checks, in
-   four sections: *Pilot certificates*, *Medicals*, *Photo IDs*, and *Aircraft insurance*,
-   each saying *Nothing to show.* when it is empty. Each row names the member (or the
-   aircraft's N-number), their DART (or the aircraft's owner, under the one heading **DART
-   or owner**), what is on file, and the day it last changed; **Verified**, **Verified
-   by**, and **Verified on** are there to add from **Columns**. Its
-   **Status** filter lists the items not yet verified when left blank, or the
-   **Verified** ones, or **All** of them, and its **DART** filter keeps one DART's people
-   and the aircraft they fly. It can go to a verifier, a DART leader, a user
+   two sections, *People* and *Aircraft insurance*, each saying *Nothing to show.* when it
+   is empty. A person has one row: their DART, then **Photo ID**, **Certificate**, and
+   **Medical**, each *Not verified*, *Verified*, or *Not provided* for an item they do not
+   hold; then what is on file, the medical's expiry date in **Expires**, and the day it
+   last changed. An aircraft's row names its N-number, its owner, the carrier, the
+   policy's expiry date, and the day it last changed. In the PDF each section has its own
+   header row, and the aircraft's has no check columns; in the CSV one header row covers
+   both, the owner under **DART or owner**, and an aircraft's check cells are blank.
+   **Verified** (*Yes* when everything on the row is verified), **Verified by**, and
+   **Verified on** (the most recent verification on the row) are there to add from
+   **Columns**. Its **Status** filter lists the rows with anything not yet verified when
+   left blank, or the fully **Verified** ones, or **All** of them, and its **DART** filter
+   keeps one DART's people and the aircraft they fly. It can go to a verifier, a DART leader, a user
    administrator, or an account administrator. Choosing a report draws the same filters its own screen
    has, with no **Reset filters** button among them. The payments and donors reports add
    **Period**: **This month**, **Last month**, **This year**, or **Last year**, worked out
@@ -91,7 +96,8 @@ it.
    one **Year** control: **This year** or **Last year**, also worked out on the day each
    email goes.
 #. **Columns** chooses what the report carries, as on the report's own screen; left alone,
-   it carries the default columns. The reconciliation and contributions reports have fixed
+   it carries the default columns. A column left out is left out of every section of the
+   PDF that has it. The reconciliation and contributions reports have fixed
    columns and offer no chooser.
 #. **Formats** attaches a CSV, a PDF, or both.
 #. **Schedule** is **Weekly**, **Monthly**, **Quarterly**, or **Yearly**. A weekly one asks
@@ -125,7 +131,7 @@ after today. **Cancel**, or Escape, closes the form and changes nothing, and you
 the row's **Edit**. A filter the report cannot use is named, with the reason, under the
 filters, as when setting one up.
 
-One form is open at a time. **Email a report** closes an open edit, **Edit** on another row
+One form is open at a time. **Add a scheduled report** closes an open edit, **Edit** on another row
 opens that row's subscription in its place, and **Edit** on the row being edited closes it.
 
 

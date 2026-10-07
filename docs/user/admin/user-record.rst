@@ -5,32 +5,36 @@ User record
 ===========
 
 The **user record** is one account seen by a user administrator: where its membership
-stands, its name and address, the roles it holds, whether it can sign in, and a button that
-sends a password reset link. Open it by clicking a name on :doc:`users`.
+stands, the roles it holds, whether it can sign in, and a button that sends a password
+reset link. Roles and the account's status are changed here; the name and the address are
+not. Open it by clicking a name on :doc:`users`.
 
 
 What you see
 ============
 
-The person's name heads the page, with their address under it and **Back to users** beside
-it. Five cards follow.
+The person's name heads the page, with their address under it and **Back to Roles and
+status** beside it. Five cards follow.
 
 **Membership**
    The kind of account (**Member**, **Friend**, or **Donor**), the membership status, and
-   *Profile complete* or *Profile incomplete*. A member with no term in force reads *No
-   membership yet* (or *No membership in force*), *Membership starts* and the date when
-   their term has not begun, or *Membership set aside while deactivated*, as on the
+   *Profile complete* or *Profile incomplete*. A member with no term in force reads *Not
+   yet paid* (or *No membership in force*), or *Membership set aside while
+   deactivated*, as on the
    :doc:`member-record`. A donor's card adds *A donor gave through the
-   public site and cannot sign in. Fix the email address here if a receipt went astray.* If
+   public site and cannot sign in. If a receipt went astray, an account administrator
+   corrects the email address on the member record.* If
    you are an account administrator too, **Member record** opens the person's
    :doc:`member-record`, where a donor can be deleted.
 
-**Account**
-   **First name**, **Last name**, and **Email address**, all three required, with the
-   hint *This is also how they sign in.* and **Verified** with a date, or **Unverified**, and **Bounced**, beside
-   a red dot, when the address bounces. Then **Roles**, a box for each role with a line saying what it
-   grants. Unless you are a system administrator, the **System administrator** box is grayed
-   out, and its line adds *Only a system administrator can give or take away this role.*
+**Roles**
+   A line that reads **Email address:** and then **Verified** with a date, or
+   **Unverified**, and **Bounced**, beside a red dot, when the address bounces. The address
+   itself is at the top of the page, and the name and the address are changed on the
+   :doc:`member-record` or by the person, never here. Then a box for each role with a line
+   saying what it grants. Unless you are a system administrator, the **System
+   administrator** box is grayed out, and its line adds *Only a system administrator can
+   give or take away this role.*
 
 **Account status**
    Whether the account can sign in, and the actions that change it: **Deactivate account**
@@ -50,24 +54,18 @@ it. Five cards follow.
    been deleted *A deleted account*. With none it reads *No change to this account's
    roles or status is recorded.*
 
-Nothing is saved until you press **Save changes**, and the message *Account saved.* confirms
-it. A refused save takes you to what the site refused. **Cancel** puts every box back the
-way the account has it and clears the refusal.
+No role change is saved until you press **Save changes**, and the message *Account saved.*
+confirms it. A refused save takes you to what the site refused. **Cancel** puts every box
+back the way the account has it and clears the refusal.
 
 
-Changing a name or an address
-=============================
+A name or an address
+====================
 
-Correct a misspelled name, or move an account to a new address, in the **Account** card.
-The address is also the sign-in, so tell the person you have changed it. Each address
-belongs to one account, capitals ignored: if another account already uses the one you type,
-the form says so and saves nothing.
-
-A changed address is marked **Unverified**, and CalDART emails the new address a message
-with the subject *CalDART: verify your email address*, with your organization's name in
-place of CalDART. It counts as verified again once they open the link. A change of capitals
-alone is not a new address. People can also change their own address from **Change email**
-in the portal's menu.
+The user record shows the name and the address but does not change them. An account
+administrator corrects a misspelled name, or moves an account to a new address, on the
+:doc:`member-record`, and people change their own name on their profile and their own
+address from **Change email** in the portal's menu.
 
 On an unverified address a **Resend verification message** button sends a fresh link, and
 the message at the top of the screen names the address it went to. It is disabled on a
@@ -84,8 +82,8 @@ not exist or no longer takes mail, the hint under **Email address** reads
 *5.1.1 550 User unknown*. The bounce check finds these every hour (:doc:`scheduled`), and
 :doc:`users` lists every bounced account under **Email**.
 
-Ask the person for an address that works and enter it: a new address clears the flag. So
-does the person following a verification or password reset link sent to the address, since
+Ask the person for an address that works: a new address, entered on the
+:doc:`member-record` or by the person, clears the flag. So does the person following a verification or password reset link sent to the address, since
 that proves mail reaches it. When you know the address works without changing it (the
 person's mailbox was full and they have emptied it, say), press **Clear bounce** under the
 address. It asks first; press **Yes, clear bounce** to confirm, or **Cancel**. The message
@@ -123,12 +121,11 @@ Rules the site enforces
   status** card says so and offers no action.
 - **Only a system administrator may grant or remove System administrator.** You can change
   every other role on a system administrator's account.
-- **The email address and the account's status are guarded.** You can change the address,
-  deactivate, reactivate, or block an account only when you hold every role it holds, since
-  moving somebody's address is enough to take their account over. As a user administrator you can move an ordinary member's address, or
-  another user administrator's, and nobody else's with a role you lack. Because granting
-  roles is your job, you can lift this for any role except System administrator: check the
-  missing role on your own record, save, and make the change. Names are never guarded.
+- **The account's status is guarded.** You can deactivate, reactivate, or block an account
+  only when you hold every role it holds. As a user administrator you can act on an
+  ordinary member, or another user administrator, and nobody else with a role you lack.
+  Because granting roles is your job, you can lift this for any role except System
+  administrator: check the missing role on your own record, save, and make the change.
 
 Some accounts, typically the one the site was installed with, hold full system access
 without the System administrator role checked. They count as a system administrator here, so
@@ -210,12 +207,10 @@ If something looks wrong
 
 *Only a system administrator can grant or take away the System administrator role.* means
 you changed a box on an account with full system access; put the boxes back and save, or
-ask a system administrator. *You cannot change the email address of
-an account that holds roles you do not hold.*, *You cannot activate or deactivate an
-account that holds roles you do not hold.*, and *You cannot block or unblock an account that
+ask a system administrator. *You cannot activate or deactivate an
+account that holds roles you do not hold.* and *You cannot block or unblock an account that
 holds roles you do not hold.* mean the account holds a role you lack; check it on your own
-record, save, and try again. If the address will not save, another account
-already uses it, and you have probably found a duplicate. *That account is deactivated, so
+record, save, and try again. *That account is deactivated, so
 no reset email was sent.* means the account was deactivated while the page was open; reload
 and reactivate it first. *That account is already deactivated.* and *That account is
 already active.* mean somebody changed it while the page was open; reload the page. *The mail

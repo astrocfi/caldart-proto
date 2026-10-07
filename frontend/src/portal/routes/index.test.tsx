@@ -61,7 +61,7 @@ vi.mock('../features/admin-members/MemberDetailPage', () => ({
   MemberDetailPage: pageStub('Member record'),
 }));
 vi.mock('../features/admin-aircraft/AircraftRegisterPage', () => ({
-  AircraftRegisterPage: pageStub('Aircraft register'),
+  AircraftRegisterPage: pageStub('Aircraft'),
 }));
 vi.mock('../features/admin-aircraft/AircraftRecordPage', () => ({
   AircraftRecordPage: pageStub('Aircraft record'),
@@ -100,7 +100,7 @@ vi.mock('../features/admin-reports/AdminReportsPage', () => ({
   AdminReportsPage: pageStub('Subscriptions'),
 }));
 vi.mock('../features/admin-notifications/AdminNotificationsPage', () => ({
-  AdminNotificationsPage: pageStub('Notifications'),
+  AdminNotificationsPage: pageStub('Notification emails'),
 }));
 vi.mock('../features/bulk-email/ComposeStart', () => ({
   ComposeStart: pageStub('Compose'),
@@ -127,7 +127,7 @@ vi.mock('../features/bulk-email/GroupDetailPage', () => ({
 vi.mock('../features/email-types/EmailTypesPage', () => ({
   EmailTypesPage: pageStub('Email types'),
 }));
-vi.mock('../features/messages/MessagesPage', () => ({ MessagesPage: pageStub('Messages') }));
+vi.mock('../features/messages/MessagesPage', () => ({ MessagesPage: pageStub('Email to me') }));
 vi.mock('../features/messages/MessagePage', () => ({ MessagePage: pageStub('Message') }));
 vi.mock('../features/email-preferences/EmailPreferencesPage', () => ({
   EmailPreferencesPage: pageStub('Email preferences'),
@@ -139,11 +139,8 @@ vi.mock('../features/callouts/CalloutsPage', () => ({
 vi.mock('../features/callouts/CalloutDetailPage', () => ({
   CalloutDetailPage: pageStub('Callout'),
 }));
-vi.mock('../features/mail-delivery/MailDeliveryPage', () => ({
-  MailDeliveryPage: pageStub('Mail delivery'),
-}));
 vi.mock('../features/admin-users/UsersListPage', () => ({
-  UsersListPage: pageStub('Users and roles'),
+  UsersListPage: pageStub('Roles and status'),
 }));
 vi.mock('../features/admin-users/UserDetailPage', () => ({
   UserDetailPage: pageStub('User record'),
@@ -152,7 +149,7 @@ vi.mock('../features/system/HealthDatabasePage', () => ({
   HealthDatabasePage: pageStub('Health and database'),
 }));
 vi.mock('../features/system/SentEmailsPage', () => ({ SentEmailsPage: pageStub('Sent emails') }));
-vi.mock('../features/system/ScheduledPage', () => ({ ScheduledPage: pageStub('Scheduled') }));
+vi.mock('../features/system/ScheduledPage', () => ({ ScheduledPage: pageStub('Scheduled tasks') }));
 
 /** The 403 page's headline, from `auth/guards.tsx`. */
 const FORBIDDEN = /^You do not have access to this page\./;
@@ -238,7 +235,7 @@ const GUARDED_PATHS: GuardedPath[] = [
   },
   {
     path: '/admin/aircraft',
-    heading: 'Aircraft register',
+    heading: 'Aircraft',
     allowed: ['account_admin', 'system_admin'],
   },
   {
@@ -299,7 +296,7 @@ const GUARDED_PATHS: GuardedPath[] = [
   },
   {
     path: '/admin/notifications',
-    heading: 'Notifications',
+    heading: 'Notification emails',
     allowed: ['account_admin', 'system_admin'],
   },
   {
@@ -352,21 +349,21 @@ const GUARDED_PATHS: GuardedPath[] = [
     heading: 'Recipient group',
     allowed: ['management', 'system_admin'],
   },
-  {
-    path: '/bulk-email/mail-delivery',
-    heading: 'Mail delivery',
-    allowed: ['management', 'system_admin'],
-  },
   { path: '/bulk-email/types', heading: 'Email types', allowed: ['system_admin'] },
-  { path: '/messages', heading: 'Messages', allowed: ANY_SIGNED_IN },
+  { path: '/messages', heading: 'Email to me', allowed: ANY_SIGNED_IN },
   { path: '/messages/1', heading: 'Message', allowed: ANY_SIGNED_IN },
   { path: '/email-preferences', heading: 'Email preferences', allowed: ANY_SIGNED_IN },
-  { path: '/admin/users', heading: 'Users and roles', allowed: ['user_admin', 'system_admin'] },
+  { path: '/admin/users', heading: 'Roles and status', allowed: ['user_admin', 'system_admin'] },
   { path: '/admin/users/1', heading: 'User record', allowed: ['user_admin', 'system_admin'] },
   { path: '/system', heading: 'Health and database', allowed: ['system_admin'] },
+  {
+    path: '/bulk-email/mail-delivery',
+    heading: 'Health and database',
+    allowed: ['system_admin'],
+  },
   { path: '/system/health', heading: 'Health and database', allowed: ['system_admin'] },
   { path: '/system/emails', heading: 'Sent emails', allowed: ['system_admin'] },
-  { path: '/system/scheduled', heading: 'Scheduled', allowed: ['system_admin'] },
+  { path: '/system/scheduled', heading: 'Scheduled tasks', allowed: ['system_admin'] },
 ];
 
 interface RouteCase {

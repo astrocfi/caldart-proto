@@ -1,13 +1,12 @@
-========
-Messages
-========
+===========
+Email to me
+===========
 
-**Messages** is where you read again the bulk emails CalDART has sent you. Bulk email is the
+**Email to me** is where you read again the bulk emails CalDART has sent you. Bulk email is the
 news CalDART writes to many members and friends at once, such as meeting announcements,
 appeals for donations, and requests for pilots. If you deleted one, joined after it went
-out, or your mail program shows it badly, you can read it here. Open it from **Your email**
-in the menu. The screen says it in one line: *Copies of the emails CalDART sent to members
-and friends.*
+out, or your mail program shows it badly, you can read it here. Open it from **My account**
+in the menu. The screen says it in one line: *Copies of emails sent to me by CalDART.*
 
 
 What you see

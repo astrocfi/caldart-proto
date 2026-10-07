@@ -73,12 +73,12 @@ describe('the rail and the router', () => {
       'Dashboard',
       'My profile',
       'My aircraft',
-      'Payments',
+      'My payments',
       'Donate',
       'Renew',
       'Change password',
       'Change email',
-      'Messages',
+      'Email to me',
       'Email preferences',
       'Compose',
       'Drafts and scheduled',
@@ -87,7 +87,6 @@ describe('the rail and the router', () => {
       'Recipient groups',
       'Callouts',
       'Email types',
-      'Mail delivery',
     ]);
   });
 

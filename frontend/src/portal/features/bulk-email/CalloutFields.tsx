@@ -131,7 +131,8 @@ function ClosesAtFields({
     <fieldset className="bulk-email__fieldset stack-tight">
       <legend className="field__label">Answers close</legend>
       <p className="field__hint">
-        After this, the buttons in the email record nothing. The time is {SITE_TIME_ZONE_NAME}.
+        After this, the buttons in the email don&apos;t record anything. The time is{' '}
+        {SITE_TIME_ZONE_NAME}.
       </p>
       <div className="cluster bulk-email__schedule">
         <Field label="Date">

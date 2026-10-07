@@ -1,7 +1,7 @@
 /**
  * Bulk email as CalDART management sends it: a batch built from two filter sets,
  * downloaded, sent behind a confirmation, and sent by the background sender, which
- * the system administrator runs from the Scheduled page; then a scheduled send
+ * the system administrator runs from the Scheduled tasks page; then a scheduled send
  * canceled back to a draft.
  *
  * `make e2e` sets `BULK_EMAIL_UNDO_SECONDS=0`, so a send is ready for the sender's
@@ -78,7 +78,7 @@ test('CalDART management builds a batch from two filter sets and sends it', asyn
   await page.getByRole('button', { name: /^Send to \d+ (person|people)$/ }).click();
   const confirm = page.getByRole('region', { name: 'Confirm sending' });
   await expect(confirm).toContainText(subject);
-  await confirm.getByRole('button', { name: 'Send now' }).click();
+  await confirm.getByRole('button', { name: 'Send', exact: true }).click();
   await expect(
     page.getByRole('region', { name: 'Waiting to send' }).getByText(/^Starting to send/),
   ).toBeVisible();

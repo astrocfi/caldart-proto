@@ -4,11 +4,12 @@
  * The search half is `<AircraftPicker/>` from `@/portal/features/aircraft`;
  * this page attaches and detaches what it hands back, opens `<AircraftEditor/>`
  * on an attached aircraft the member added (any aircraft, for an account
- * administrator), and shows the insurance a DART leader will check, in the words every
+ * administrator) directly under that aircraft's line, and shows the insurance a DART leader will check, in the words every
  * aircraft list uses (`InsuranceDot`, dated), with each liability limit labeled, and
  * whether an authority has verified the policy (no mark while no policy is on file,
  * since there is nothing to verify).  A plane somebody else added offers no **Edit**:
- * the line says who to write to instead, at the site's contact address.  The coverage
+ * the line says who to write to instead, at the site's contact address.  While a
+ * plane's trashcan asks to confirm, its line shows that confirmation alone.  The coverage
  * policy's note to members stands above the list, and an aircraft the policy
  * excludes is marked with the reason.
  */
@@ -54,6 +55,8 @@ export function MyAircraftPage(): JSX.Element {
   const [editing, setEditing] = useState<number | null>(null);
   const handleCloseEditor = useCallback(() => setEditing(null), []);
   const editorRef = usePanelFocus(editing === null ? null : `edit-${editing}`, handleCloseEditor);
+  // The plane whose trashcan is asking to confirm, which sets its other action aside.
+  const [confirmingId, setConfirmingId] = useState<number | null>(null);
   // The plane just added, whose line takes the focus once the list shows it.
   const [addedId, setAddedId] = useState<number | null>(null);
   const itemRefs = useRef(new Map<number, HTMLLIElement | null>());
@@ -116,7 +119,7 @@ export function MyAircraftPage(): JSX.Element {
                 {plane.coverage.excluded ? <StatusDot tone="expired" label="Not covered" /> : null}
                 <AircraftMeta plane={plane} />
                 <span className="aircraft-list__actions">
-                  {canEdit(plane) ? (
+                  {confirmingId === plane.id ? null : canEdit(plane) ? (
                     <Button
                       variant="quiet"
                       small
@@ -141,6 +144,11 @@ export function MyAircraftPage(): JSX.Element {
                     label={`Remove ${plane.n_number}`}
                     confirmLabel="Remove"
                     disabled={busy}
+                    onConfirmingChange={(isConfirming) =>
+                      setConfirmingId((current) =>
+                        isConfirming ? plane.id : current === plane.id ? null : current,
+                      )
+                    }
                     onDelete={() =>
                       detach.mutateAsync(plane.id).then(
                         () => toast.show(`${plane.n_number} removed.`, 'success'),
@@ -149,21 +157,20 @@ export function MyAircraftPage(): JSX.Element {
                     }
                   />
                 </span>
+                {editing === plane.id ? (
+                  <div ref={editorRef} className="aircraft-list__editor">
+                    <AircraftEditor
+                      aircraftId={plane.id}
+                      onClose={handleCloseEditor}
+                      onSaved={handleCloseEditor}
+                    />
+                  </div>
+                ) : null}
               </li>
             ))}
           </ul>
         )}
       </Card>
-
-      {editing !== null ? (
-        <div ref={editorRef}>
-          <AircraftEditor
-            aircraftId={editing}
-            onClose={handleCloseEditor}
-            onSaved={handleCloseEditor}
-          />
-        </div>
-      ) : null}
 
       <AircraftPicker
         excludeIds={aircraft.map((plane) => plane.id)}

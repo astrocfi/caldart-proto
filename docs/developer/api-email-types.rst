@@ -92,7 +92,10 @@ Field                  Rule
                        *Another email type already has this name.*  A name with no
                        letter or digit is refused with *Use at least one letter or
                        digit in the name.*  On a ``PUT`` the type's own name is never
-                       counted against it.
+                       counted against it.  The Mission type (slug ``mission``) keeps
+                       its name, since a mission callout finds it by that slug: a
+                       new name is refused with *Mission is the type every mission
+                       callout goes as, so its name cannot change.*
 ``description``        Required: the sentence a member reads beside the switch that
                        turns the type off.
 ``allow_opt_out``      Required.  Whether a recipient may turn the type off.  A type
@@ -118,7 +121,9 @@ A refusal is a **400** keyed by the field.  An unknown ``{id}`` is a **404**.
 foreign key: the answer is **400** ``{"detail": "<name> has been used for a bulk
 email, so it cannot be deleted. To keep DART leaders and CalDART management from
 sending it, take their roles off it instead."}`` and nothing changes or is audited.
-A system administrator can still send such a type.  An unknown ``{id}`` is a **404**.
+A system administrator can still send such a type.  The Mission type is never
+deleted, used or not: **400** ``{"detail": "Mission is the type every mission callout
+goes as, so it cannot be deleted."}``.  An unknown ``{id}`` is a **404**.
 
 
 ``GET /email-types/sendable``
@@ -126,7 +131,9 @@ A system administrator can still send such a type.  An unknown ``{id}`` is a **4
 
 The types the caller may send: those whose ``sender_roles`` name one of the
 caller's roles, or every type for a system administrator; an empty list for anybody
-else.  Each row is ``{id, name, description, allow_opt_out}``, in the same order.
+else.  Each row is ``{id, name, description, allow_opt_out, is_mission}``, in the same
+order; ``is_mission`` is true for the Mission type alone (slug ``mission``), the only
+type a mission callout may go as.
 
 .. code-block:: json
 
@@ -135,7 +142,8 @@ else.  Each row is ``{id, name, description, allow_opt_out}``, in the same order
        "id": 3,
        "name": "Mission",
        "description": "Requests for pilots and aircraft when a disaster or an exercise needs them.",
-       "allow_opt_out": true
+       "allow_opt_out": true,
+       "is_mission": true
      }
    ]
 

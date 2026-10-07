@@ -16,8 +16,8 @@ What you see
 
 One line per email, the most recently changed first:
 
-- **Subject**: the subject so far, or *(no subject yet)*. Press it to open the email in
-  :doc:`compose`.
+- **Subject**: the subject so far, a field in it shown as a chip as on :doc:`compose`, or
+  *(no subject yet)*. Press it to open the email in :doc:`compose`.
 - **Type**: the type of email chosen, or a dash before one is.
 - **From** and **DART**, for CalDART management only: who is writing it, and the DART a DART
   leader's email goes to, or a dash for an email that may go to anybody.
@@ -71,4 +71,4 @@ If something looks wrong
 A draft that has gone missing has either been deleted or has started sending; look under
 :doc:`sent`. An email waiting to send that still reads *Starting now* a few minutes after its
 two minutes ended is waiting for the server's sender, which a system administrator can start
-by hand from the Scheduled page.
+by hand from the Scheduled tasks page.

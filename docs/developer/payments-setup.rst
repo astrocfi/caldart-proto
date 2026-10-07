@@ -639,14 +639,20 @@ provider off the endpoint answers 404, not 403: a production deployment should
 not even advertise that a way to grant yourself a membership exists.
 
 The end-to-end tests use this provider, which is why the five headline flows
-run with no payment keys at all.  ``seed_demo`` does not: its two years of
-history is dealt out between ``stripe`` and ``paypal`` in a 70 / 30 split with
-plausible wallets, so the payment reports have something realistic to group
-by.  Only its pinned renewals (two due the day it runs and one overdue), its
-paused renewal, and its recurring donations use the mock provider's test card,
-and only while the provider is on.  With it off, as on a server, ``seed_demo``
+run with no payment keys at all.  ``seed_demo`` follows the switch.  While the
+provider is on, every card payment in its two years of history is a ``mock``
+payment with the mock provider's fee, so a demonstration site shows them all
+under **Test** and a treasurer can refund any of them: the refund goes to the
+mock provider, which gives the money back without calling anything.  Its pinned
+renewals (two due the day it runs and one overdue), its paused renewal, and its
+recurring donations use the mock provider's test card the same way.  With the
+provider off, as on a server, the history is dealt out between ``stripe`` and
+``paypal`` in a 70 / 30 split with plausible wallets and made-up references, so
+the payment reports have something realistic to group by, and ``seed_demo``
 leaves out the pinned renewals and the recurring donations and gives the paused
-renewal a Stripe Visa card instead (:ref:`deploy-database`).
+renewal a Stripe Visa card instead (:ref:`deploy-database`).  A refund against
+one of those Stripe or PayPal rows fails, since neither provider ever took the
+money.
 
 
 Testing against the sandboxes

@@ -16,14 +16,14 @@ Sending a callout
 =================
 
 A callout is a bulk email. Write it on :doc:`compose` as any other, and switch on **This is
-a mission callout** under **What it says**. The type becomes **Mission** when you may send
-Mission email, and **Answers close** shows the date and the time the buttons stop working,
+a mission callout** under **What it says**. The type becomes **Mission**, the only type a
+callout can go as, so somebody who may not send Mission email cannot send one. **Answers close** shows the date and the time the buttons stop working,
 two days ahead. Change either if you need to. The callout cannot be sent if its answers
 would close before it goes out.
 
-Every copy carries three buttons above its footer: **Available**, **Available with
-limits**, and **Not available**. Each person's buttons are their own, so nobody can answer
-for anybody else. A test copy and the preview show the buttons, but they record nothing.
+Every copy asks *Can you participate? Choose your answer.* and carries three buttons above
+its footer: **Available**, **Available with limits**, and **Not available**. Each person's buttons are their own, so nobody can answer
+for anybody else. A test copy and the preview show the buttons, but they don't record anything.
 How the email looks to the people it goes to is on :doc:`../member/callouts`.
 
 
@@ -32,17 +32,19 @@ The list
 
 One line per callout, the most recently sent first, which the arrow on **Sent** shows:
 
-- **Subject**: what it said. It opens the callout's own page, below.
+- **Subject**: what it said, as you wrote it, with a field such as **First name** shown as a
+  chip, as on :doc:`compose`. It opens the callout's own page, below.
 - **Sent**: the day it went out.
 - **Answers**: a dot and *Taking answers until* the date and time they close, or *Closed*
   and when.
 - **From** and **DART**: who sent it, and the DART a DART leader's callout went to, or a
   dash for one that went to anybody.
-- **Available**, **With limits**, **Not available**, and **No answer**: how many people gave
-  each answer, and how many have not answered.
+- **Yes**, **Limits**, **No**, and **No answer**: how many people answered *Available*,
+  *Available with limits*, and *Not available*, and how many have not answered.
 
-On a screen too narrow for every column, **DART**, then **From**, are left out; on a phone
-the table scrolls sideways, says so above it, and keeps **Subject** pinned at the left. Before
+On a screen too narrow for every column, **DART**, then **From**, are left out, and then
+**Subject** narrows, so the counts stay whole and in sight; on a phone the table scrolls
+sideways, says so above it, and keeps **Subject** pinned at the left. Before
 the first callout the table reads *No callout has been sent*, with a **New email**
 button that opens Compose, where **This is a mission callout** makes the email a callout.
 A DART leader whose profile names no DART sees, above the table, the box saying to set
@@ -58,9 +60,12 @@ closed. Under it the answers are counted by kind, then come the actions, then on
 every person the callout reached:
 
 - **Name** and **Answer**: a dot and *Available*, *Available with limits*, *Not available*,
-  or *No answer yet*.
+  or *No answer yet*. For a DART leader or an account administrator, the name opens the
+  person's record on :doc:`../admin/member-record`.
 - **Go/no-go**: *GO* or *NO-GO*, as the member check reads them now: a current membership,
-  a current medical, and a verified certificate, medical, and photo ID.
+  a current medical, and a verified certificate, medical, and photo ID. For a DART leader,
+  an account administrator, a user administrator, or a verifier, it opens the person's card
+  on :doc:`../admin/member-check`, where each item is verified.
 - **Note**: what the person added, such as *can fly Saturday only*, in full.
 - **Answered**: when they last answered, such as *10/03/2026 at 5:34 PM*.
 - **DART**, **Home airport**, and **Aircraft**: from their profile as it is now. On a screen

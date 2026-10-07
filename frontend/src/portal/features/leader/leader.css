@@ -227,18 +227,26 @@
   font-size: var(--text-sm);
 }
 
-/* The member check's row: the name, then the DART and email that tell namesakes apart. */
+/* The member check's row: the name, then the DART that tells namesakes apart, in a
+   column of its own so the DARTs line up down the list.  A phone has no room for two
+   columns of names, so there the DART sits under the name, still lined up. */
 .leader-search__who {
-  display: flex;
+  display: grid;
   flex: 1 1 auto;
-  flex-wrap: wrap;
+  grid-template-columns: minmax(0, 1fr);
   align-items: baseline;
   gap: 0 var(--space-3);
   min-width: 0;
 }
 
-.leader-search__who .leader-search__meta {
+.leader-search__who > * {
   overflow-wrap: anywhere;
+}
+
+@media (min-width: 34rem) {
+  .leader-search__who {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
 }
 
 /* The verdict never wraps or shrinks: on a phone the name and its DART wrap instead, so
@@ -249,6 +257,12 @@
   align-items: baseline;
   gap: var(--space-2);
   white-space: nowrap;
+}
+
+/* Every result's verdict takes one width, GO or NO-GO, so the columns before it line up. */
+.leader-search__button .leader-search__readiness {
+  min-width: 5.5rem;
+  justify-content: flex-end;
 }
 
 .leader-search__verdict {

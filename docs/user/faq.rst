@@ -95,7 +95,7 @@ Can my membership renew itself?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Yes. Check **Renew automatically each year** when you pay, or press **Turn on** on
-the **Automatic renewal** card of **Payments**. You get an email 14 days
+the **Automatic renewal** card of **My payments**. You get an email 14 days
 before every charge, and you can turn it off at any time. See
 :doc:`member/payments`.
 
@@ -108,14 +108,14 @@ See :doc:`member/donate`.
 How do I change the card on file?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Turn the automatic renewal or recurring donation off on **Payments** and set it up
+Turn the automatic renewal or recurring donation off on **My payments** and set it up
 again with the new card. CalDART keeps a card only for those two. See
 :doc:`member/payments`.
 
 How do I stop being charged automatically?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-On **Payments**, press **Turn off** on the **Automatic renewal** or **Recurring
+On **My payments**, press **Turn off** on the **Automatic renewal** or **Recurring
 donation** card, then **Turn it off**. Nothing further is charged, and your
 membership runs to the end of the term you paid for. See :doc:`member/payments`.
 
@@ -123,12 +123,12 @@ Do I get a receipt?
 ~~~~~~~~~~~~~~~~~~~
 
 Yes. CalDART emails one, with a PDF attached, the moment a payment clears, and every
-receipt can be downloaded again from **Payments**. See :doc:`member/payments`.
+receipt can be downloaded again from **My payments**. See :doc:`member/payments`.
 
 Can I get a statement of my contributions for my taxes?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Yes. CalDART emails one each January for the year before, and **Payments** offers a
+Yes. CalDART emails one each January for the year before, and **My payments** offers a
 button for each year you gave in. A year of dues alone has none. See
 :doc:`member/payments`.
 

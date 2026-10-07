@@ -29,7 +29,7 @@ is set (see :doc:`../bulk-email/dart-leaders`).
   * **Current**: a term covers today.
   * **Expiring soon**: current, with 30 days or fewer to run.
   * **Expired**: your last term has run out.
-  * **No membership yet**: you joined as a member and have not paid your dues.
+  * **Not yet paid**: you joined as a member and have not paid your dues.
   * **Friend**: you are a friend of CalDART, so nothing expires.
 
   The card's heading says the same in words, such as **Your membership is
@@ -47,11 +47,9 @@ is set (see :doc:`../bulk-email/dart-leaders`).
   CalDART**. It reads *No dues and no expiry. Become a member any time.* and offers
   **Make me a member** (see :doc:`become-a-member`). It never takes the colored edge.
 
-  If the office made your account and you have not paid yet, the card is headed **You
-  have no membership yet**, reads *Pay your dues to become a member of CalDART.*, and
-  offers **Pay dues**, which opens the checkout (see :doc:`become-a-member`). If the office
-  granted you a membership that starts later, the card is headed **Your membership starts**
-  with the day, says members-only pages open to you then, and asks for nothing.
+  If the office made your account and you have not paid yet, the card is headed **Your
+  membership is not yet paid**, reads *Pay your dues to become a member of CalDART.*, and
+  offers **Pay dues**, which opens the checkout (see :doc:`become-a-member`).
 
 **Member content**
   The members-only pages you may read, straight from the public site (see
@@ -75,30 +73,26 @@ is set (see :doc:`../bulk-email/dart-leaders`).
 
 **Quick links**
   A few next steps; the menu has everything else. Everybody gets **Renew** (or **Donate**, for
-  a friend or a life member), **My profile**, **My aircraft**, and **Messages**. A
+  a friend or a life member), **My profile**, **My aircraft**, and **Email to me**. A
   DART leader, a verifier, or an administrator also gets **Member check**; a
-  treasurer or an account administrator, **Finance**; an account administrator,
-  **Members**. The list stops at five: your role's own screens stay, and **Messages**
+  treasurer or an account administrator, **Accounting**; an account administrator,
+  **Members**. The list stops at five: your role's own screens stay, and **Email to me**
   and then **My aircraft** give way to them.
 
 
 Finding your way around
 =======================
 
-The menu down the left of every portal screen is grouped under **Membership**, **Your
-email**, **Operations**, **Bulk email**, **Administration**, and **System**, and shows
+The menu down the left of every portal screen is grouped under **My account**,
+**Operations**, **Bulk email**, **Finance**, **Administration**, and **System**, and shows
 only the screens your roles open. Each screen's small heading above its title names
 the group it sits under.
 
-Every signed-in person has two groups:
-
-* **Membership**: **Dashboard**, **My profile**, **My aircraft**, **Payments**,
-  **Donate**, **Renew**, **Change password**, and **Change email**. A friend and a life
-  member have no **Renew** entry, since neither has a term to renew; a life member gives
-  through **Donate**.
-* **Your email**: **Messages** (:doc:`messages`) and **Email preferences**
-  (:doc:`email-preferences`), the bulk email CalDART has sent you and the kinds it
-  sends.
+Every signed-in person has **My account**: **Dashboard**, **My profile**, **My
+aircraft**, **My payments**, **Donate**, **Renew**, **Change password**, **Change
+email**, **Email to me** (:doc:`messages`), and **Email preferences**
+(:doc:`email-preferences`). A friend and a life member have no **Renew** entry, since
+neither has a term to renew; a life member gives through **Donate**.
 
 The other groups belong to DART leaders, CalDART management, and administrators (see
 :doc:`../roles`). When the menu is longer than the window it scrolls on its own, a
@@ -141,7 +135,7 @@ When a screen will not open
 If something looks wrong
 ========================
 
-If you paid and the card still says **Expired**, **No membership yet**, or **Friend**,
+If you paid and the card still says **Expired**, **Not yet paid**, or **Friend**,
 reload the page
 first. Then look at **Recent payments**: a payment marked **Failed** moved no
 money, so try again from :doc:`renew`. A payment marked **Paid** with no

@@ -25,7 +25,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import datetime
 from typing import TypedDict
 
 from django.db import transaction
@@ -34,12 +34,6 @@ from django.utils import timezone
 from apps.accounts.models import User
 from apps.members.models import MedicalType, MemberProfile, PhotoIdType, PilotCertificateType
 from caldart import audit, events
-
-#: What the member check and the profile form answer for a medical with no expiration.
-MEDICAL_EXPIRATION_MESSAGE = "Enter the medical's expiration date."
-
-#: What they answer for a pilot certificate with no number.
-CERTIFICATE_NUMBER_MESSAGE = "Enter the pilot certificate number."
 
 
 @dataclass(frozen=True)
@@ -141,31 +135,6 @@ def is_fully_verified(profile: MemberProfile | None) -> bool:
         return False
     verified = verified_items(profile)
     return all(item.slug in verified and is_held(profile, item.slug) for item in ITEMS)
-
-
-def document_errors(
-    *,
-    certificate_type: str | None,
-    certificate_number: str,
-    medical_type: str | None,
-    medical_expiration: date | None,
-) -> dict[str, str]:
-    """The field errors the two document rules find in a profile's merged values.
-
-    A medical class other than ``none`` needs an expiration date, refused against
-    ``medical_expiration`` with :data:`MEDICAL_EXPIRATION_MESSAGE`; a pilot
-    certificate other than ``none`` needs a number (blank after stripping is none),
-    refused against ``certificate_number`` with :data:`CERTIFICATE_NUMBER_MESSAGE`.
-    The values are the ones the write would leave in place, and an empty answer
-    means both rules hold.  A missing type (``None`` or blank) needs nothing.
-    """
-    errors: dict[str, str] = {}
-    if medical_type and medical_type != MedicalType.NONE and medical_expiration is None:
-        errors["medical_expiration"] = MEDICAL_EXPIRATION_MESSAGE
-    is_certified = certificate_type and certificate_type != PilotCertificateType.NONE
-    if is_certified and len(certificate_number.strip()) == 0:
-        errors["certificate_number"] = CERTIFICATE_NUMBER_MESSAGE
-    return errors
 
 
 def clear_stale(profile: MemberProfile, changes: Mapping[str, object]) -> list[str]:

@@ -11,7 +11,7 @@ to answer.
 What you see
 ============
 
-Under the message the email asks *Can you fly? Choose your answer.* with three buttons:
+Under the message the email asks *Can you participate? Choose your answer.* with three buttons:
 **Available**, **Available with limits**, and **Not available**. It also says until when you
 can change your answer. A mail program that shows plain text lists the same three choices,
 each with its own link. The buttons are yours alone: do not forward the email for somebody
@@ -23,8 +23,9 @@ Answering
 
 Press the button that fits. A page opens with the callout's subject, your answer chosen,
 and a **Note (optional)** box for anything the people organizing the mission should know,
-such as *can fly Saturday only* or *aircraft at KSQL*, and it names the email address you are
-answering for. Press **Send answer**. The page
+such as *can fly Saturday only* or *aircraft at KSQL*. It asks *Can you participate? Choose
+your answer and press "Send answer".*, and names the email address you are answering for,
+whoever is signed in to the site on that computer. Press **Send answer**. The page
 then reads *Thank you. Your answer is* and your answer. Nothing is recorded until you press
 **Send answer**.
 

@@ -4,18 +4,19 @@ import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
 import { answerBulkEmail, makeBatch, makeBulkEmail } from '@test/fixtures/bulkEmail';
-import { API } from '@test/handlers';
+import { API, SENDABLE_TYPES } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
-import { EmailTypeChoice, NO_TYPE_HINT } from './EmailTypeChoice';
+import { EmailTypeChoice, NO_MISSION_TYPE, NO_TYPE_HINT } from './EmailTypeChoice';
 
 /** Render the choice for email 7, with `emailType` chosen. */
-function renderChoice(emailType: number | null, isEditable = true) {
+function renderChoice(emailType: number | null, isEditable = true, isCallout = false) {
   renderWithProviders(
     <EmailTypeChoice
       emailId={7}
       emailType={emailType}
       emailTypeName={emailType === null ? '' : 'Operational'}
+      isCallout={isCallout}
       isEditable={isEditable}
     />,
   );
@@ -28,6 +29,24 @@ describe('EmailTypeChoice', () => {
     const mission = await screen.findByRole('radio', { name: 'Mission' });
     expect(mission).toHaveAccessibleDescription('Requests for pilots and aircraft.');
     expect(screen.getByRole('radio', { name: 'Operational' })).not.toBeChecked();
+  });
+
+  it('offers a mission callout the Mission type alone', async () => {
+    renderChoice(3, true, true);
+
+    await screen.findByRole('radio', { name: 'Mission' });
+    expect(screen.getAllByRole('radio').map((radio) => radio.getAttribute('value'))).toEqual(['3']);
+  });
+
+  it('says so when a callout has no Mission type the sender may send', async () => {
+    server.use(
+      http.get(`${API}/email-types/sendable`, () =>
+        HttpResponse.json([{ ...SENDABLE_TYPES[0], is_mission: false }]),
+      ),
+    );
+    renderChoice(null, true, true);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(NO_MISSION_TYPE);
   });
 
   it('asks for a type while none is chosen', async () => {

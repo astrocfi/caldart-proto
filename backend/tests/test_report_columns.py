@@ -21,6 +21,10 @@ from reportlab.pdfbase.pdfmetrics import stringWidth
 from rest_framework.test import APIClient
 
 from apps.aircraft.reports import AIRCRAFT_REPORT, AIRCRAFT_REPORT_COLUMNS
+from apps.aircraft.verification_report import (
+    VERIFICATION_REPORT,
+    VERIFICATION_SECTION_COLUMNS,
+)
 from apps.members.reports import MEMBER_REPORT, MEMBER_REPORT_COLUMNS
 from apps.members.roles_report import ROLES_REPORT, ROLES_REPORT_COLUMNS
 from caldart.reports import (
@@ -70,7 +74,7 @@ AIRCRAFT_DEFAULTS = (
     "liability_per_occurrence",
     "hull",
     "insurance_expiration",
-    "insurance_current",
+    "covered",
 )
 
 
@@ -180,6 +184,42 @@ def test_no_default_aircraft_cell_wraps_in_the_pdf(seeded: None) -> None:
         for row in rows
         for column, cell in zip(columns, row, strict=True)
         if not fits(cell, column.width, total)
+    ]
+    assert too_wide == []
+
+
+@pytest.mark.slow
+def test_no_default_verification_header_wraps_in_the_pdf(seeded: None) -> None:
+    """Each section's own header row fits on one line at that section's widths."""
+    table = VERIFICATION_REPORT.table({"status": "all"}, fmt="pdf", today=timezone.localdate())
+    wrapped = [
+        (section.title, label)
+        for section in table.sections
+        for label, width in zip(section.header or [], section.widths or [], strict=True)
+        if not fits(label, width, sum(section.widths or []), style=HEADER_CELL_STYLE)
+    ]
+    assert wrapped == []
+
+
+@pytest.mark.slow
+def test_no_default_verification_cell_but_the_details_wraps_in_the_pdf(seeded: None) -> None:
+    """Every seeded row's checks, dates, name, and DART or owner fit on one line.
+
+    Each section is measured at its own widths, as the PDF draws it.  Details, which
+    joins a person's photo ID, certificate, and medical, is the one column a row may wrap
+    in; an aircraft's carrier sits in the same column.
+    """
+    table = VERIFICATION_REPORT.table({"status": "all"}, fmt="pdf", today=timezone.localdate())
+    # Each section heads its Details column in its own words; find it by key, not label.
+    details = {
+        own.title: own.labels.get("details", "Details") for own in VERIFICATION_SECTION_COLUMNS
+    }
+    too_wide = [
+        (section.title, label, cell)
+        for section in table.sections
+        for row in section.rows
+        for label, width, cell in zip(section.header or [], section.widths or [], row, strict=True)
+        if label != details[section.title] and not fits(cell, width, sum(section.widths or []))
     ]
     assert too_wide == []
 

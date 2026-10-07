@@ -388,7 +388,7 @@ Statuses: **200**; **401** when anonymous; **403** for every other role.
 ``GET /system/bounces``
 -----------------------
 
-Whether bounce checking is set up, so the Scheduled screen can say so before anyone
+Whether bounce checking is set up, so the Scheduled tasks screen can say so before anyone
 presses **Run now**: ``{"enabled": true}`` when ``BOUNCE_IMAP_URL`` is set, ``false``
 when it is empty (``bounce_checking_enabled()`` in ``apps/mail/bounces.py``).  Nothing
 is read from the mailbox; one that is set up but cannot be read is found by a run.
@@ -458,9 +458,10 @@ not be read; **401** when anonymous; **403** for any other role.
 
 Checks the DNS records that make receiving servers trust and deliver the site's
 mail: the SPF list of approved senders, the DKIM signing key, the DMARC policy, and
-whether ``BOUNCE_ADDRESS`` is on the From address's domain.  Open to ``management``
-(and, like every endpoint, ``system_admin``); the portal's **Mail delivery** screen
-and ``manage.py check_mail_dns`` show the same report (:ref:`deploy-mail-dns`).
+whether ``BOUNCE_ADDRESS`` is on the From address's domain.  ``system_admin`` only:
+setting up the mail server is the system administrator's job.  The **Mail delivery**
+card on the portal's Health and database page and ``manage.py check_mail_dns`` show
+the same report (:ref:`deploy-mail-dns`).
 
 .. code-block:: json
 

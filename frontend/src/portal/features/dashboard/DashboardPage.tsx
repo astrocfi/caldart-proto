@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 
 import { useDonation, useRenewal, useSiteConfig } from '@/portal/api/queries';
 import type {
-  IsoDate,
   MembershipStatus,
   PaymentSummary,
   RenewalMandate,
@@ -25,7 +24,6 @@ import { purchaseLabel } from '@/portal/features/payments/PaymentsTable';
 import { useMembership, useMyPayments } from '@/portal/features/profile/api';
 import { hasAnyRole, visibleNavItems } from '@/portal/nav';
 import type { NavItem, NavReader } from '@/portal/nav';
-import { upcomingTermStart } from './firstTerm';
 import { KindSwitch } from './KindSwitch';
 import './dashboard.css';
 
@@ -51,8 +49,8 @@ const ROLE_LINKS: { to: string; roles: RoleSlug[] }[] = [
  *
  * Every reader gets the way to pay, which is **Renew** for a member with a term to
  * renew and **Donate** for a friend or a life member, then **My profile**, **My
- * aircraft**, and **Messages**.  A role adds its own task: **Member check** for a DART
- * leader, a verifier, or an administrator; **Finance** for a treasurer or an account
+ * aircraft**, and **Email to me**.  A role adds its own task: **Member check** for a DART
+ * leader, a verifier, or an administrator; **Accounting** for a treasurer or an account
  * administrator; **Members** for an account administrator.  The role's tasks are kept
  * and the member's own links give way from the end, so the list never runs past five.
  * Each link takes its label from the menu.
@@ -88,7 +86,7 @@ const RECENT_PAYMENT_COLUMNS: Column<PaymentSummary>[] = [
     // while the fixed columns beside it have room to spare.
     minWidth: '12.5rem',
     dropOrder: 1,
-    // Named as Payments names it: Annual, Annual and contribution, or Donation.
+    // Named as My payments names it: Annual, Annual and contribution, or Donation.
     render: (payment) => purchaseLabel(payment),
   },
   {
@@ -116,7 +114,7 @@ const RECENT_PAYMENT_COLUMNS: Column<PaymentSummary>[] = [
  * read, what have I paid.  Nobody reaches it before the join wizard is finished (an
  * unverified address, an incomplete profile, and an unpaid joiner are all held
  * there), so it never asks for any of those.  An account an administrator created
- * reaches it before paying, and its card reads *You have no membership yet* with **Pay
+ * reaches it before paying, and its card reads *Your membership is not yet paid* with **Pay
  * dues**.  The renewal call to action takes an accent edge inside 30 days.  A friend's
  * membership card says what being a friend means and offers membership instead
  * of a renewal.  A member's card leads with **Renew**; becoming a friend is offered on
@@ -142,8 +140,6 @@ export function DashboardPage(): JSX.Element {
   const isFriend = status?.status === 'friend';
   const isAwaitingDues = status?.status === 'none';
   const isWithoutRenewal = isFriend || isAwaitingDues;
-  // A member whose first term is granted but still to start has nothing to pay.
-  const startsOn = isAwaitingDues ? upcomingTermStart(membership.data?.history) : null;
   const urgent = !isWithoutRenewal && (tone === 'expiring' || tone === 'expired');
   // The members-only pages answer anybody without a membership with the wall unless a
   // staff role lets them read, so the card is not offered to somebody who would be refused.
@@ -171,12 +167,12 @@ export function DashboardPage(): JSX.Element {
           <Card
             className={urgent ? 'dashboard__card--urgent' : undefined}
             eyebrow={isFriend ? 'Friend of CalDART' : undefined}
-            title={<MembershipHeadline status={status} startsOn={startsOn} />}
+            title={<MembershipHeadline status={status} />}
           >
             {isFriend ? (
               <FriendStatus />
             ) : isAwaitingDues ? (
-              <AwaitingDuesStatus startsOn={startsOn} />
+              <AwaitingDuesStatus />
             ) : status ? (
               <div className="dashboard__status">
                 <MembershipDot membership={status} />
@@ -333,23 +329,8 @@ function FriendStatus() {
   );
 }
 
-/**
- * A member with no membership yet: when a granted term is coming, the day it starts and
- * nothing to pay; otherwise what is missing, and the way to pay.
- */
-function AwaitingDuesStatus({ startsOn }: { startsOn: IsoDate | null }) {
-  if (startsOn !== null) {
-    return (
-      <>
-        <div className="dashboard__status">
-          <p>Members-only pages open to you on that day.</p>
-        </div>
-        <div className="cluster card__footer">
-          <Link to="/profile">Update your details</Link>
-        </div>
-      </>
-    );
-  }
+/** A member who has not paid: what is missing, and the way to pay. */
+function AwaitingDuesStatus() {
   return (
     <>
       <div className="dashboard__status">
@@ -363,29 +344,17 @@ function AwaitingDuesStatus({ startsOn }: { startsOn: IsoDate | null }) {
   );
 }
 
-/**
- * The membership card's title: current, expired, starting on a day to come, none yet, or
- * a friend of CalDART.
- */
+/** The membership card's title: current, expired, not yet paid, or a friend of CalDART. */
 function MembershipHeadline({
   status,
-  startsOn,
 }: {
   status: Pick<MembershipStatus, 'status' | 'is_lifetime'> | null;
-  startsOn: IsoDate | null;
 }) {
   if (!status) return <>Your membership</>;
   if (status.status === 'current') {
     return <>{status.is_lifetime ? 'Lifetime member' : 'Your membership is current'}</>;
   }
   if (status.status === 'expired') return <>Your membership has expired</>;
-  if (status.status === 'none' && startsOn !== null) {
-    return (
-      <>
-        Your membership starts <DateText value={startsOn} />
-      </>
-    );
-  }
-  if (status.status === 'none') return <>You have no membership yet</>;
+  if (status.status === 'none') return <>Your membership is not yet paid</>;
   return <>You are a friend of CalDART</>;
 }

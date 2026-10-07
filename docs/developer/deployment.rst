@@ -938,15 +938,20 @@ so::
 
   payments: the mock payment provider is off, so no renewal due today, no catch-up renewal, and no recurring donation was seeded
 
-The seed's other renewals carry made-up Stripe and PayPal references.  With no
-payment keys configured, ``caldart-renewals`` puts their charges off and runs
-cleanly against the seeded data; with real or sandbox keys, the provider can
-refuse a seeded charge, and the job then exits with an error counting the
-refusals.  A mock-provider renewal left from a seed run while that provider was
-on is put off too, never refused (:ref:`renewals-scanner`).  Leave the mock
-provider off: turning it on shows every visitor a **Test payment** tab with
-*Succeed* and *Fail* buttons, a way for anyone to grant themselves a membership
-with no money changing hands, as :doc:`payments-setup` describes.
+With the mock provider off, the seed's payment history is dealt out between
+Stripe and PayPal in a 70 / 30 split, and its other renewals carry made-up
+Stripe and PayPal references.  With no payment keys configured,
+``caldart-renewals`` puts their charges off and runs cleanly against the seeded
+data; with real or sandbox keys, the provider can refuse a seeded charge, and
+the job then exits with an error counting the refusals.  A mock-provider
+renewal left from a seed run while that provider was on is put off too, never
+refused (:ref:`renewals-scanner`).  Leave the mock provider off: turning it on
+shows every visitor a **Test payment** tab with *Succeed* and *Fail* buttons, a
+way for anyone to grant themselves a membership with no money changing hands,
+as :doc:`payments-setup` describes.  A demonstration site that keeps it on seeds
+its card payments through that Test provider instead, so a treasurer can refund
+them; a Stripe or PayPal row from a seed run with the provider off cannot be
+refunded, since neither provider ever took the money.
 
 With ``--admin-email`` the step creates the first real administrator::
 
@@ -1601,7 +1606,7 @@ no second run while it works.  A run with nothing due exits at once.  A missed
 minute is not caught up (``Persistent=false``); the next minute's run sends
 whatever is due by then.  It needs the database and the SMTP server, from the
 same ``/etc/caldart/caldart.env``.  Run it by hand with ``sudo deploy/manage.sh
-send_bulk_emails``, or with **Run now** on the Scheduled page's **Bulk email sender**
+send_bulk_emails``, or with **Run now** on the Scheduled tasks page's **Bulk email sender**
 panel, which works for at most 45 seconds and leaves the rest to the timer.  See
 :doc:`bulk-email` for the states, the pacing, and the retries.
 
@@ -1716,7 +1721,10 @@ sending bulk email:
        local mail server (``opendkim``, for instance) chose, and goes in
        ``DKIM_SELECTOR`` (:doc:`configuration`)
    * - DMARC
-     - ``TXT`` at ``_dmarc.<domain>``
+     - ``TXT`` at ``_dmarc.<domain>``, or, when there is none, at
+       ``_dmarc.<organizational domain>`` (``_dmarc.example.org`` for
+       ``caldart.example.org``), whose ``sp=`` (or ``p=``) then applies to the
+       subdomain
      - what a receiver does with a message that fails both: ``v=DMARC1;
        p=none`` to watch, ``p=quarantine`` or ``p=reject`` to act, and an
        ``rua=mailto:`` address for the reports
@@ -1739,12 +1747,17 @@ domain or a subdomain of it, then prints one line per finding: ``[PASS]``,
 ``[WARN]``, or ``[FAIL]``, what it found, and what to ask for.  It always queries
 afresh, never reads the cache, and exits non-zero when any line is ``[FAIL]``, so
 it can sit in a script; a ``[WARN]`` leaves the exit status at zero.  The same
-report is on the portal's **Mail delivery** screen, for CalDART management and
-system administrators, which reads a copy cached for five minutes
+report is in the **Mail delivery** card of the portal's Health and database page,
+for system administrators only, which reads a copy cached for five minutes
 (``GET /mail/delivery-check``, :ref:`api-mail-delivery`).
 
-Four limits to know.  The DKIM and DMARC records are looked up at the From address's
-domain exactly, not at a parent domain.  The whole check gives up after about 15
+The DMARC record follows RFC 7489: with no policy at ``_dmarc.<From domain>``, the
+check reads the organizational domain's record, found with the public suffix list
+bundled with ``tldextract`` (never fetched at check time), so ``caldart.example.co.uk``
+falls back to ``example.co.uk``.  The finding then says where the policy was found,
+and judges its ``sp=`` when it has one.  The DKIM record has no such fallback.
+
+Three limits to know.  The whole check gives up after about 15
 seconds, and a lookup it did not reach is a ``[FAIL]`` that says the check took
 too long.  A mail server on the same machine
 (``--email local``) is reported as a warning rather than judged, because the
@@ -1969,7 +1982,7 @@ Action                        Fields beyond actor and target
                               has been tried
 ``bulk_email.run``            ``busy``, ``emails``, ``sent``, ``failed``,
                               ``skipped``; one line per **Run now** on the
-                              Scheduled page, which works for at most 45
+                              Scheduled tasks page, which works for at most 45
                               seconds and leaves the rest to the timer
 ``bulk_email.refused``        -- (WARNING; the target is the ``BulkEmail``, the
                               actor ``command``): the sender returned a due

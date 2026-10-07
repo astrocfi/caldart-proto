@@ -1,8 +1,8 @@
-"""The Messages page: the bulk emails a person received, each as their own copy.
+"""The Email to me page: the bulk emails a person received, each as their own copy.
 
 A person reads only the bulk emails sent to them, each filled in with the values stored
 on their own recipient row when it went.  CalDART management can hide an email from
-Messages without changing its history.  Every copy links to its page here, under the
+Email to me without changing its history.  Every copy links to its page here, under the
 site's own address.  See ``docs/developer/api-bulk-email.rst``.
 """
 
@@ -128,7 +128,7 @@ def test_someone_not_sent_the_email_cannot_open_it(ann_client: APIClient, bea: U
 def test_the_sender_does_not_see_an_email_they_did_not_receive(
     management_client: APIClient, bea: User
 ) -> None:
-    """Sending an email does not put it in the sender's own Messages."""
+    """Sending an email does not put it in the sender's own Email to me."""
     sent_to(bea)
     assert management_client.get(MESSAGES_URL).json() == []
 
@@ -210,7 +210,7 @@ def test_a_reader_never_sees_another_recipient_s_values(
 def test_the_reader_s_own_copy_keeps_their_unsubscribe_link(
     ann_client: APIClient, ann: User
 ) -> None:
-    """Ann's own copy on Messages carries her live unsubscribe link, as her email did."""
+    """Ann's copy on Email to me carries her live unsubscribe link, as her email did."""
     body = ann_client.get(message_url(sent_to(ann))).json()
     assert "/mail/unsubscribe/" in body["html"]
 
@@ -219,7 +219,7 @@ def test_the_reader_s_own_copy_keeps_their_unsubscribe_link(
 # Hiding
 # --------------------------------------------------------------------------
 def hide(client: APIClient, bulk: BulkEmail, *, hidden: bool = True) -> dict[str, object]:
-    """Press **Hide from Messages** (or **Show in Messages**) on ``bulk``'s Sent page."""
+    """Press **Hide from Email to me** or **Show in Email to me** on ``bulk``'s page."""
     response = client.post(f"/api/v1/bulk-email/{bulk.pk}/hide", {"hidden": hidden}, format="json")
     assert response.status_code == 200
     body: dict[str, object] = response.json()
@@ -255,7 +255,7 @@ def test_hiding_keeps_the_history(management_client: APIClient, ann: User) -> No
 
 
 def test_a_hidden_message_can_be_shown_again(management_client: APIClient, ann: User) -> None:
-    """**Show in Messages** puts it back in Ann's list."""
+    """**Show in Email to me** puts it back in Ann's list."""
     bulk = sent_to(ann)
     hide(management_client, bulk)
     hide(management_client, bulk, hidden=False)
@@ -342,7 +342,7 @@ def test_a_test_copy_carries_no_link_to_messages(management: User, settings: Set
 def test_every_signed_in_person_reads_their_messages(
     api_client: APIClient, all_role_users: dict[str, User], role: str, allowed: bool
 ) -> None:
-    """Messages is every signed-in person's, whatever their roles."""
+    """Email to me is every signed-in person's, whatever their roles."""
     api_client.force_login(all_role_users[role])
     assert api_client.get(MESSAGES_URL).status_code == (200 if allowed else 403)
 
@@ -371,7 +371,7 @@ def test_only_management_hides_a_message(
     role: str,
     allowed: bool,
 ) -> None:
-    """Hiding a message from everybody's Messages is CalDART management's."""
+    """Hiding a message from everybody's Email to me is CalDART management's."""
     bulk = sent_to(ann)
     api_client.force_login(all_role_users[role])
     response = api_client.post(

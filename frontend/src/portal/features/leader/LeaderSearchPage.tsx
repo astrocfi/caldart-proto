@@ -47,7 +47,7 @@ export function LeaderSearchPage(): JSX.Element {
           <>
             <span className="leader-search__who">
               <span className="leader-search__name">{result.name}</span>
-              <span className="leader-search__meta">{resultMeta(result)}</span>
+              <span className="leader-search__meta leader-search__dart">{dartLabel(result)}</span>
             </span>
             <GoMark go={ready} label={ready ? 'Cleared to fly' : 'Not cleared to fly'} />
           </>
@@ -61,19 +61,18 @@ export function LeaderSearchPage(): JSX.Element {
 
 /**
  * What tells two people of one name apart in the results: their DART, named as one,
- * and their email address, such as *Monterey DART · marta@example.org*.
+ * such as *Monterey DART*, or *No DART*.
  */
-function resultMeta(result: LeaderSearchResult): string {
-  const dart = result.dart === null ? 'No DART' : `${result.dart} DART`;
-  return `${dart} · ${result.email}`;
+function dartLabel(result: LeaderSearchResult): string {
+  return result.dart === null ? 'No DART' : `${result.dart} DART`;
 }
 
 /** The caption of the verification report's downloads, which names the group. */
-const REPORT_CAPTION = 'Everything nobody has checked yet:';
+const REPORT_CAPTION = 'Everything requiring validation:';
 
 /**
- * The verification report, downloaded with its default filter: every item nobody has
- * verified yet.
+ * The verification report, downloaded with its default filter: every person with an item
+ * nobody has verified yet, and every aircraft whose insurance nobody has.
  */
 function VerificationReportLinks(): JSX.Element {
   return (

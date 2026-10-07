@@ -73,11 +73,16 @@ class EmailTypeSerializer(serializers.ModelSerializer[EmailType]):
 
 
 class SendableEmailTypeSerializer(serializers.ModelSerializer[EmailType]):
-    """One type the caller may send: what the compose screen's choice shows."""
+    """One type the caller may send: what the compose screen's choice shows.
+
+    ``is_mission`` is true for the Mission type, the only one a mission callout offers.
+    """
+
+    is_mission = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = EmailType
-        fields = ["id", "name", "description", "allow_opt_out"]
+        fields = ["id", "name", "description", "allow_opt_out", "is_mission"]
         read_only_fields = fields
 
 

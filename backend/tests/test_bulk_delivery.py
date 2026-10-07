@@ -724,7 +724,7 @@ def test_a_leader_reads_a_copy_of_their_own_email(
 def test_a_leader_cannot_hide_their_own_email(
     api_client: APIClient, leader: User, leader_sent: BulkEmail
 ) -> None:
-    """Hiding an email from Messages stays CalDART management's."""
+    """Hiding an email from Email to me stays CalDART management's."""
     api_client.force_login(leader)
     response = api_client.post(
         f"/api/v1/bulk-email/{leader_sent.pk}/hide", {"hidden": True}, format="json"

@@ -1,7 +1,7 @@
 /**
  * Words shared by every scheduled run's report: the sentence naming what a
  * run sent or would send, and the reason breakdown underneath it. The
- * reminders, renewals and scheduled-reports panels of the Scheduled page
+ * reminders, renewals and scheduled-reports panels of the Scheduled tasks page
  * (`/portal/system/scheduled`), and the DART rosters card of `/admin/reports`,
  * all read a run this way.
  */

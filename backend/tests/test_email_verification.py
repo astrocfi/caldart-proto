@@ -434,24 +434,6 @@ def test_creating_a_member_without_a_password_sends_no_verification(
     assert verification_mails() == []
 
 
-def test_a_user_administrator_changing_an_address_unverifies_it(
-    user_admin: User,
-    verified: User,
-    signed_in: Callable[[User], APIClient],
-    site_settings: SiteSettings,
-    django_capture_on_commit_callbacks: OnCommit,
-) -> None:
-    """``PATCH /admin/users/{id}`` with a new address marks it unverified and mails it."""
-    client = signed_in(user_admin)
-    with django_capture_on_commit_callbacks(execute=True):
-        response = client.patch(
-            f"{USERS_URL}/{verified.pk}", {"email": "fresh@example.test"}, format="json"
-        )
-
-    assert response.json()["email_verified_at"] is None
-    assert [m.to for m in verification_mails()] == [["fresh@example.test"]]
-
-
 def test_an_account_administrator_changing_an_address_unverifies_it(
     account_admin: User,
     verified: User,

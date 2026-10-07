@@ -248,15 +248,18 @@
       "city",
       "county",
       "dart",
+      "email",
       "email_bounce_detail",
       "email_bounced_at",
       "email_verified",
       "email_verified_at",
+      "first_name",
       "friend_on",
       "home_airport",
       "id",
       "is_active",
       "kind",
+      "last_name",
       "membership",
       "phone",
       "profile_complete",
@@ -284,7 +287,6 @@
       "kind": "ref:AccountKindEnum",
       "last_name": "string",
       "membership": "ref:MembershipStatus",
-      "next_term_starts_on": "string(date)|null",
       "phone": "string",
       "profile_complete": "boolean",
       "reactivation_blocked": "boolean",
@@ -295,10 +297,12 @@
       "city",
       "county",
       "dart",
+      "email",
       "email_bounce_detail",
       "email_bounced_at",
       "email_verified",
       "email_verified_at",
+      "first_name",
       "friend_on",
       "has_suspended_term",
       "has_terms",
@@ -306,8 +310,8 @@
       "id",
       "is_active",
       "kind",
+      "last_name",
       "membership",
-      "next_term_starts_on",
       "phone",
       "profile_complete",
       "reactivation_blocked"
@@ -910,6 +914,40 @@
     },
     "required": [
       "image"
+    ]
+  },
+  "BulkEmailMatch": {
+    "properties": {
+      "dart_name": "string",
+      "email": "string",
+      "kind": "string",
+      "name": "string",
+      "reason": "string",
+      "user_id": "integer",
+      "will_receive": "boolean"
+    },
+    "required": [
+      "dart_name",
+      "email",
+      "kind",
+      "name",
+      "reason",
+      "user_id",
+      "will_receive"
+    ]
+  },
+  "BulkEmailMatchPage": {
+    "properties": {
+      "count": "integer",
+      "next": "string(uri)|null",
+      "previous": "string(uri)|null",
+      "results": "array<ref:BulkEmailMatch>"
+    },
+    "required": [
+      "count",
+      "next",
+      "previous",
+      "results"
     ]
   },
   "BulkEmailMessage": {
@@ -2142,7 +2180,6 @@
   "LeaderSearchResult": {
     "properties": {
       "dart": "string|null",
-      "email": "string(email)",
       "go_no_go": "ref:LeaderGoNoGo",
       "membership_status": "ref:MembershipStateEnum",
       "name": "string",
@@ -2150,7 +2187,6 @@
     },
     "required": [
       "dart",
-      "email",
       "go_no_go",
       "membership_status",
       "name",
@@ -2875,9 +2911,6 @@
   },
   "PatchedAdminUserDetailRequest": {
     "properties": {
-      "email": "string(email)",
-      "first_name": "string",
-      "last_name": "string",
       "roles": "array<ref:RolesEnum>"
     },
     "required": []
@@ -4099,6 +4132,7 @@
   },
   "SaveGroupRequest": {
     "properties": {
+      "filters": "map<string>",
       "kind": "ref:RecipientGroupKindEnum",
       "name": "string"
     },
@@ -4142,12 +4176,14 @@
       "allow_opt_out": "boolean",
       "description": "string",
       "id": "integer",
+      "is_mission": "boolean",
       "name": "string"
     },
     "required": [
       "allow_opt_out",
       "description",
       "id",
+      "is_mission",
       "name"
     ]
   },

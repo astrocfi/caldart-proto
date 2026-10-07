@@ -22,8 +22,7 @@ import type { ConfirmChoice } from '@/portal/components/ConfirmButton';
 import { formatDate, todayIso } from '@/portal/components/DateText';
 import { formatCents } from '@/portal/components/Money';
 import { FormAlert } from '@/portal/features/auth/form';
-import { useBecomeFriend, useMembership, useUndoBecomeFriend } from '@/portal/features/profile/api';
-import { upcomingTermStart } from './firstTerm';
+import { useBecomeFriend, useUndoBecomeFriend } from '@/portal/features/profile/api';
 
 /** Where a friend goes to pay dues and become a member. */
 export const JOIN_AS_MEMBER_PATH = '/membership/join';
@@ -100,18 +99,7 @@ export function KindSwitch(): JSX.Element | null {
 /** The `Your kind of account` card on the profile page. */
 export function KindCard(): JSX.Element | null {
   const state = useKindState();
-  // Only somebody with no membership yet may have a granted term still to come.
-  const membership = useMembership(state?.kind === 'none');
   if (state === null) return null;
-  // A granted first term still to come needs no dues: the card says when it starts.
-  const startsOn = state.kind === 'none' ? upcomingTermStart(membership.data?.history) : null;
-  if (startsOn !== null) {
-    return (
-      <Card title="Your kind of account">
-        <p>Your membership of CalDART starts on {formatDate(startsOn)}.</p>
-      </Card>
-    );
-  }
   return (
     <Card title="Your kind of account">
       <div className="stack">
@@ -127,7 +115,7 @@ export function KindCard(): JSX.Element | null {
 /** The sentence the profile card opens with for each state. */
 const KIND_SENTENCES: Record<KindState['kind'], string> = {
   friend: 'You are a friend of CalDART: no dues, no expiry. Become a member any time.',
-  none: 'You have no membership yet. Pay your dues to become a member of CalDART.',
+  none: 'Your membership is not yet paid. Pay your dues to become a member of CalDART.',
   lifetime: 'You are a life member of CalDART.',
   pending: 'You are a member of CalDART.',
   member: 'You are a member of CalDART.',

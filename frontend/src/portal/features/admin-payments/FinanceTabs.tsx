@@ -55,7 +55,7 @@ export function FinanceTabs({ current }: FinanceTabsProps): JSX.Element {
   const bar = useTabBar<HTMLElement>(path);
 
   return (
-    <nav ref={bar.ref} className="tab-bar" aria-label="Finance sections" {...bar.attributes}>
+    <nav ref={bar.ref} className="tab-bar" aria-label="Accounting sections" {...bar.attributes}>
       {tabs.map((tab) => (
         <Link
           key={tab.to}

@@ -12,8 +12,11 @@ from rest_framework.exceptions import ValidationError
 
 from caldart.reports import (
     FIXED_COLUMNS_MESSAGE,
+    PDF_MARK_NO,
+    PDF_MARK_YES,
     PDF_MEDIA_TYPE,
     PERIODS,
+    Marked,
     Money,
     Params,
     ReportColumn,
@@ -311,6 +314,9 @@ def test_pdf_rejects_widths_that_do_not_match_the_header() -> None:
         (Money(100000000, drop_zero_cents=True), "csv", "1000000.00"),
         (Money(100000000, drop_zero_cents=True), "pdf", "$1,000,000"),
         (Money(100000050, drop_zero_cents=True), "pdf", "$1,000,000.50"),
+        (Marked("2026-10-05", ok=True), "pdf", f"2026-10-05 {PDF_MARK_YES}"),
+        (Marked("2026-10-05", ok=False), "pdf", f"2026-10-05 {PDF_MARK_NO}"),
+        (Marked("2026-10-05", ok=False), "csv", "2026-10-05"),
         ("Marta Reyes", "pdf", "Marta Reyes"),
         (7, "csv", "7"),
         (None, "csv", ""),
@@ -321,6 +327,9 @@ def test_pdf_rejects_widths_that_do_not_match_the_header() -> None:
         "whole-dollars-csv",
         "whole-dollars-pdf",
         "odd-cents-keep-them",
+        "marked-ok-pdf",
+        "marked-lapsed-pdf",
+        "marked-csv",
         "text",
         "number",
         "nothing",
@@ -329,7 +338,7 @@ def test_pdf_rejects_widths_that_do_not_match_the_header() -> None:
 def test_cell_text_renders_a_value_for_the_format(
     value: object, fmt: ReportFormat, expected: str
 ) -> None:
-    """Money is a plain number in a CSV and dollars in a PDF; anything else is text."""
+    """Money is a number in a CSV and dollars in a PDF; a mark is in the PDF alone."""
     assert cell_text(value, fmt) == expected
 
 

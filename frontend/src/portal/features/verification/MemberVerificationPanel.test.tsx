@@ -107,7 +107,7 @@ describe('MemberVerificationPanel', () => {
     const user = userEvent.setup();
     renderPanel();
 
-    await user.type(screen.getByLabelText('Certificate number'), '9');
+    await user.type(screen.getByLabelText('Certificate number'), '{Backspace}');
 
     expect(screen.getByLabelText('Pilot certificate verified')).not.toBeChecked();
   });
@@ -134,20 +134,21 @@ describe('MemberVerificationPanel', () => {
     server.use(
       http.put(`${API}/leader/members/7/verification`, () =>
         HttpResponse.json(
-          { medical_expiration: ["Enter the medical's expiration date."] },
+          { certificate_number: ['Enter the 7 digits of the pilot certificate number.'] },
           { status: 400 },
         ),
       ),
     );
     renderPanel();
 
-    await user.clear(screen.getByLabelText('Medical expires'));
+    await user.clear(screen.getByLabelText('Certificate number'));
+    await user.type(screen.getByLabelText('Certificate number'), '12345');
     await user.click(screen.getByRole('button', { name: 'Save verification' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      "Enter the medical's expiration date.",
+      'Enter the 7 digits of the pilot certificate number.',
     );
-    expect(screen.getByLabelText('Medical expires')).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByLabelText('Certificate number')).toHaveAttribute('aria-invalid', 'true');
   });
 
   it('shows a refused item above the fields', async () => {

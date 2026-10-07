@@ -1,15 +1,15 @@
 :roles: account_admin
 
-=================
-Aircraft register
-=================
+========
+Aircraft
+========
 
-The **Aircraft register** is CalDART's one list of the airplanes its members fly, with the
+The **Aircraft** screen is CalDART's one list of the airplanes its members fly, with the
 insurance a DART leader checks before a mission. Members add the airplanes they fly from
 **My aircraft**; you keep the register tidy, the insurance details current, and the
 downloads ready for an insurance review.
 
-Only an account administrator finds it, as **Aircraft register** under **Administration**
+Only an account administrator finds it, as **Aircraft** under **Administration**
 in the menu. A system administrator can open it too, and also keeps the :ref:`coverage-policy`
 there.
 
@@ -57,12 +57,16 @@ The table shows the same columns as the register you download, and **Columns** c
    *Expiring 10/31/2026* in its last 30 days (amber), *Expired 03/02/2026* once it has
    lapsed (red), or *No insurance on file* (gray).
 
-**Current**
-   Yes while the insurance runs, No once it has lapsed or with none on file.
+**Covered**
+   Whether CalDART's insurance policy covers an airplane of its category and airworthiness
+   at all, as the :ref:`coverage-policy` states it: **Yes**, or **No** for an excluded
+   kind, such as a helicopter, however current its own insurance. An airplane with no
+   category recorded reads **Yes**. Whether its own insurance is in force is the
+   **Expires** dot.
 
 Each row stays on one line, and anything too long for its column ends in an ellipsis. On a
 narrower screen the table leaves columns out until the rest fit, the insurance figures
-first, then **Owner**, **Model**, and **Make**; the N-number, **Expires**, and any column
+first, then **Covered**, **Owner**, **Model**, and **Make**; the N-number, **Expires**, and any column
 you checked beyond the defaults always stay. When the table is still wider than the screen, a line over it says
 so, and the N-numbers stay pinned at the left while you scroll.
 
@@ -186,9 +190,11 @@ Downloading the register
 **Export CSV** and **Export PDF** download exactly the airplanes the filters have chosen, in
 the table's order. Set the filters first, then download. Both carry nine columns unless you
 choose others: **N-number**, **Make**, **Model**, **Owner**, **Carrier**, **Liability /
-occurrence**, **Hull**, **Expires**, and **Current**. The CSV gives money as plain dollars
+occurrence**, **Hull**, **Expires**, and **Covered**. The CSV gives money as plain dollars
 for a spreadsheet. The PDF is a landscape letter table with the filters printed under the
-title.
+title, and it prints a check mark (✓) after each expiry date still in force and an X (✗)
+after each one that has lapsed, so a printed copy reads without color. The CSV carries the
+date alone.
 
 **Columns**, at the right of the bar beside the export buttons, chooses the columns of the
 table on screen and of the downloads together. Five more are on offer: **Category**,

@@ -1,9 +1,9 @@
 """The background sender: it starts each queued bulk email and sends its copies.
 
 :func:`run_sender` is what ``manage.py send_bulk_emails`` runs every minute, from
-``caldart-bulk-email.timer``, and what **Run now** on the Scheduled page runs once.  A
-run first finishes any email still ``sending`` from an earlier run that stopped part way
-(a crash, or a machine that went down), then claims each ``queued`` email whose
+``caldart-bulk-email.timer``, and what **Run now** on the Scheduled tasks page runs
+once.  A run first finishes any email still ``sending`` from an earlier run that stopped
+part way (a crash, or a machine that went down), then claims each ``queued`` email whose
 ``start_at`` has arrived, one at a time.
 
 Claiming an email takes its row with ``select_for_update(skip_locked=True)`` in one

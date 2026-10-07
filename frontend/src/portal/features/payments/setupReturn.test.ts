@@ -5,7 +5,7 @@ import { clearUrlPrefix, stampUrlPrefix } from '@test/render';
 describe('setupReturnUrl', () => {
   afterEach(clearUrlPrefix);
 
-  it('brings the bank back to the Payments screen, naming the authority', async () => {
+  it('brings the bank back to the My payments screen, naming the authority', async () => {
     clearUrlPrefix();
     const { setupReturnUrl } = await import('./setupReturn');
     expect(setupReturnUrl('donation')).toBe(

@@ -301,7 +301,7 @@ Flow D — an account administrator reviews payments by month and year
 *Goal: "what did we take in March, and how does this year compare?"*
 
 1. Sign out and sign in as ``accountadmin@example.org`` / ``caldart-demo``.
-2. Follow **Payments** in the Administration group (``/portal/admin/payments``).
+2. Follow **Accounting** in the Finance group (``/portal/admin/payments``).
 3. Three tiles across the top give **This month**, **Year to date** and **Last
    12 months**.  The mock payment you made in flow A is in all three.
 4. Below them, switch the table between **Month** and **Year**.  Each row is a
@@ -381,7 +381,7 @@ After the walkthrough
 
 Four more screens are worth a look, none of them one of the five flows:
 
-**Aircraft register** — sign in as ``accountadmin@example.org`` and open
+**Aircraft** — sign in as ``accountadmin@example.org`` and open
 ``/portal/admin/aircraft``.  The header says the day the FAA registry is *as
 of*.  Press **New aircraft** and type a type the FAA has never registered,
 such as ``quillfeather zq``, into **Aircraft type**: nothing matches, and an
@@ -389,15 +389,15 @@ account administrator is offered **New aircraft type**.  Keep digits out of the
 example: a search holding digits also lists every type whose model contains
 them, so ``zq1`` would list every model with a 1 in it.  Give the type a make
 and a model, such as ``Quillfeather`` and ``ZQ``, and press **Add aircraft type**; the
-type is picked at once, and from then on every aircraft form lists it.  See :doc:`user/admin/aircraft-register` and
+type is picked at once, and from then on every aircraft form lists it.  See :doc:`user/admin/aircraft` and
 :doc:`developer/aircraft-registry`.
 
-**Users and roles** — sign in as ``useradmin@example.org`` and open
+**Roles** — sign in as ``useradmin@example.org`` and open
 ``/portal/admin/users``.  Search for a member, open them, and add or remove
 roles; press *Send password reset* and watch the email arrive in Mailpit.  See
 :doc:`user/admin/users`.
 
-**Notifications** — sign in as ``accountadmin@example.org`` and open
+**Notification emails** — sign in as ``accountadmin@example.org`` and open
 ``/portal/admin/notifications``.  The seed has already subscribed this
 administrator to every Membership and Accounts event and the treasurer to every
 Money event.  Press **New subscription**, type an address no account holds,
@@ -407,7 +407,7 @@ private window, join as a friend through ``/portal/join`` and pick a DART on
 the profile step.  Saving that step is the sign-up, and Mailpit shows the
 *signed up as a friend* email at your address, at the account administrator's,
 and at every person that DART has checked to receive its roster.  Back on the
-Notifications screen, **Edit** the subscription and clear **Sign-up**; from
+Notification emails screen, **Edit** the subscription and clear **Sign-up**; from
 then on the address hears only of a friend becoming a member.  The Sent
 Emails page's log files each of these messages under its event, as
 *Notification: Sign-up*.  See :doc:`user/admin/notifications` and

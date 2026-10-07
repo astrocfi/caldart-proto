@@ -2,7 +2,7 @@
 
 ``POST /bulk-email/{id}/retry`` and ``GET /bulk-email/{id}/recipients/{rid}/copy`` are
 the bulk email senders' like the rest of the Sent page.  ``POST /bulk-email/{id}/hide``,
-which keeps an email off the recipients' **Messages** page, is CalDART management's.
+which keeps an email off the recipients' **Email to me** page, is CalDART management's.
 A refusal that comes from the email's state is a 409 ``{"detail": <sentence>}``.
 """
 
@@ -101,7 +101,7 @@ class RecipientCopyView(APIView):
 
 
 class HideView(APIView):
-    """``POST /bulk-email/{id}/hide`` -- keep an email off Messages, or show it again."""
+    """``POST /bulk-email/{id}/hide`` -- hide an email from Email to me, or show it."""
 
     # Choosing what every recipient may read again is CalDART management's alone,
     # whoever sent the email.

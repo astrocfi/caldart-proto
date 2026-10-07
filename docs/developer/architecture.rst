@@ -358,7 +358,7 @@ report, a domain module, can read it.
     ``NotificationSubscription`` rows that subscribe an address to some of them,
     and the handler that emails each subscribed address when a lower app raises
     an event through ``caldart.events.emit``.  Endpoints under
-    ``/notifications/``; the portal's *Notifications* screen at
+    ``/notifications/``; the portal's *Notification emails* screen at
     ``/admin/notifications`` is the account administrator's.  It reads the apps
     below it, so it sits beside ``reports``.
 ``bulk_email``
@@ -373,7 +373,7 @@ report, a domain module, can read it.
     fields a message can fill in, and ``images.py`` stores the images put into
     one as ``BulkEmailImage`` rows.  ``delivery.py`` ties a later bounce back to
     its copy (a ``post_save`` receiver on ``mail.EmailLog``) and retries the failed
-    copies, each retry a ``BulkEmailRetry``; ``archive.py`` is the **Messages**
+    copies, each retry a ``BulkEmailRetry``; ``archive.py`` is the **Email to me**
     page every signed-in person reads, ``/messages``.  It reads ``members``, so it
     sits beside ``reports``.
 ``cms``
@@ -720,7 +720,8 @@ the files they test, and an ``index.ts`` of what the route files use:
 ``admin-*``             the members, aircraft, DARTs, payments, reminder-log,
                         reports, notifications, and users screens
 ``system``              the three System pages: Health and database (health,
-                        backups, and the FAA registry import), Sent emails
+                        the mail delivery check, backups, and the FAA
+                        registry import), Sent emails
                         (the email log), and Scheduled (the reminder emails,
                         the renewal charges, the scheduled reports, and the
                         year-end statements)
@@ -929,8 +930,8 @@ order.
 
 **Navigation.**  ``nav.ts`` declares every entry in ``NAV_ITEMS`` with the
 roles that may see it (an empty list means any signed-in user) and a group:
-*Membership*, *Your email* (a person's own messages and email preferences),
-*Operations*, *Bulk email* (the sending tools), *Administration*, or *System*.
+*My account* (a person's own screens, their email and email preferences among them),
+*Operations*, *Bulk email* (the sending tools), *Finance*, *Administration*, or *System*.
 Labels are sentence case, use "and" rather than "&", and match the title of the
 page they open; an entry marked ``hideForFriend`` is left out for an effective friend,
 and one marked ``hideForLifetime`` for a lifetime member (Renew is both: a life member
@@ -946,15 +947,14 @@ the ``RequireRole`` on its route.
 ``components/Page.tsx``: an eyebrow, the title with the page's actions on its line, an
 optional lede, and a rule.  The eyebrow is never passed in: ``navEyebrow`` in
 ``nav.ts`` reads it from the menu group of the entry the route sits under (the deepest
-matching entry, whatever the reader's roles), or the entry's ``area`` where it heads an
-area of its own (*Finance* across ``/admin/payments``); a screen outside the menu has
-none, and an error page asks for none with ``noEyebrow``.  ``Page`` also sets the
+matching entry, whatever the reader's roles; *Finance* across ``/admin/payments``); a
+screen outside the menu has none, and an error page asks for none with ``noEyebrow``.  ``Page`` also sets the
 document title to the page's title and the organization's name (``Member check ·
 CalDART``, through ``documentTitle.ts``, which reads the name Django stamps on
 ``<html>`` as ``data-org-name``).  A page whose heading is not the screen's name passes
 ``tabTitle`` instead: the dashboard's greeting reads ``Dashboard``, a record reads its
 name and kind (``Marta Reyes · Member record``), and the finance payment list reads
-``Payments · Finance`` apart from a member's own **Payments**.  Every page keeps to one width,
+``Payments · Accounting`` apart from a member's own **My payments**.  Every page keeps to one width,
 ``--portal-page-max`` (100rem, in ``portal.css``), cards and tables alike, with the
 header's actions aligned to it.  A card's eyebrow appears only where it adds to the
 card's title, never repeating the page's, and a table's caption is always a count
@@ -1065,7 +1065,7 @@ so a second run sends nothing twice, and it marks lapsed terms expired;
 lifetime members are skipped.  ``deploy/systemd/caldart-reminders.timer``
 runs it daily at 07:00 in production, ``make reminders`` in development
 (``TODAY=YYYY-MM-DD`` scans as of another date, ``DRY_RUN=1`` rehearses),
-and a system administrator can run it from the portal's Scheduled page
+and a system administrator can run it from the portal's Scheduled tasks page
 (:doc:`reminders`).
 
 **Backups.**  ``db_backup`` writes a gzipped ``pg_dump`` into ``BACKUP_DIR``

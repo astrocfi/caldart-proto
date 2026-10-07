@@ -159,6 +159,46 @@ describe('PanelButton', () => {
   });
 });
 
+/**
+ * A form panel inside a focusable page region, as the portal's `<main tabIndex={-1}>`
+ * is: a press on plain words inside the panel moves the focus to that region.
+ */
+function renderFormInRegion() {
+  return render(
+    <main tabIndex={-1}>
+      <PanelButton label="Save" legend="Save as a group" isForm>
+        {() => (
+          <>
+            <p>Plain words</p>
+            <input type="radio" id="kind-live" name="kind" value="live" />
+            <label htmlFor="kind-live">Live</label>
+          </>
+        )}
+      </PanelButton>
+    </main>,
+  );
+}
+
+describe('PanelButton inside a focusable region', () => {
+  it('stays open on a press on plain words inside it', async () => {
+    renderFormInRegion();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await userEvent.click(screen.getByText('Plain words'));
+
+    expect(screen.getByRole('group', { name: 'Save as a group' })).toBeInTheDocument();
+  });
+
+  it('checks a radio button when its label is pressed', async () => {
+    renderFormInRegion();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await userEvent.click(screen.getByText('Live'));
+
+    expect(screen.getByRole('radio', { name: 'Live' })).toBeChecked();
+  });
+});
+
 describe('panelShift', () => {
   it('leaves a panel that fits the screen where it is', () => {
     expect(panelShift(40, 300, 390)).toBe(0);

@@ -38,12 +38,12 @@ describe('PaymentsListPage', () => {
     expect(headers).toEqual(['Date', 'Name', 'Total', 'Fee', 'Net', 'Refunded', 'Status']);
   });
 
-  it("names the browser tab apart from a member's own Payments", async () => {
+  it("names the browser tab apart from a member's own My payments", async () => {
     serveList();
     renderWithProviders(<PaymentsListPage />);
 
     await screen.findByRole('table', { name: /1 payment/ });
-    expect(document.title).toBe('Payments · Finance · CalDART');
+    expect(document.title).toBe('Payments · Accounting · CalDART');
   });
 
   it('links a row to its payment detail', async () => {

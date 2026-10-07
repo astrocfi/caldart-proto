@@ -1,10 +1,10 @@
 """The five membership states, and who counts as a friend.
 
-A membership is Current, Expired, Friend, No membership yet, or Donor.  The stored
+A membership is Current, Expired, Friend, Not yet paid, or Donor.  The stored
 ``kind`` is what the person asked for; the effective kind is what they are: an account
 that chose to be a member but holds no term that has started and was ever paid for,
 granted, or set aside by a deactivation is a friend until one covers it, and its
-membership reads *No membership yet* rather than *Friend*.  These tests pin that rule
+membership reads *Not yet paid* rather than *Friend*.  These tests pin that rule
 in both of its statements (``account_kind`` in Python and ``kind_annotation`` in SQL),
 the five answers ``membership_status`` and ``membership_payload`` agree on, the member
 list's status filter, and what the join wizard reads off ``/auth/me``.
@@ -172,7 +172,7 @@ def test_the_membership_states_are_current_expired_friend_none_and_donor() -> No
         ("current", "Current"),
         ("expired", "Expired"),
         ("friend", "Friend"),
-        ("none", "No membership yet"),
+        ("none", "Not yet paid"),
         ("donor", "Donor"),
     ]
 

@@ -60,10 +60,7 @@ export function DonatePage(): JSX.Element {
   }
 
   return (
-    <Page
-      title="Donate"
-      lede="Give once, or on a schedule. Every donation pays for training, fuel, and equipment."
-    >
+    <Page title="Donate" lede="Give once or on a schedule.">
       {held?.status === 'active' ? <HeldDonation mandate={held} /> : null}
       <Card>
         <Checkout mode="contribute" onSuccess={handleSuccess} onScheduled={handleScheduled} />

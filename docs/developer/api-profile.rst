@@ -191,10 +191,9 @@ Changes only the fields the body names and leaves the rest of the row alone.
 
    {"medical_type": "basicmed", "medical_expiration": "2030-04-30"}
 
-The two cross-field rules are evaluated against the row as it *would be* after
-the write, so a ``PATCH`` that sets only ``medical_type`` is rejected unless an
-expiration date is already stored.  The response is the stored profile in the
-``GET`` shape above.
+Each field is judged on its own, so a ``PATCH`` that sets only ``medical_type``
+is accepted with or without an expiration date stored.  The response is the
+stored profile in the ``GET`` shape above.
 
 A write that moves a field a verified item covers clears that item: a new
 ``pilot_certificate_type`` or ``certificate_number`` clears the certificate, a
@@ -283,20 +282,16 @@ Field                        Rule
                              instrument, cfi, cfii, mei``; repeats are dropped and the
                              order is kept.
 ``photo_id_type``            One of the six kinds above.
-``medical_expiration``       Required once ``medical_type`` is anything but ``none``.
-``certificate_number``       Required once ``pilot_certificate_type`` is anything but
-                             ``none``.
+``medical_expiration``       Optional, whatever ``medical_type`` is.
+``certificate_number``       Optional, whatever ``pilot_certificate_type`` is; seven
+                             digits and nothing else if given.
 ===========================  ===========================================================
 
-A rejection is a normal DRF 400, keyed on the field it belongs to, and both
-cross-field complaints are raised together when both apply:
+A rejection is a normal DRF 400, keyed on the field it belongs to:
 
 .. code-block:: json
 
-   {
-     "medical_expiration": ["Enter the medical's expiration date."],
-     "certificate_number": ["Enter the pilot certificate number."]
-   }
+   {"certificate_number": ["Enter the 7 digits of the pilot certificate number."]}
 
 The field-level sentences are "Use a ten-digit number like 415-555-0100." for
 each of the three phone fields, "An extension is digits only, for example

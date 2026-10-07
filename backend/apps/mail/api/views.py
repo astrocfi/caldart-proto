@@ -5,8 +5,8 @@
 log carries every address the installation has written to, which is operations work
 rather than membership work.
 The filters live in ``apps.mail.filters``, which the ``emails`` report shares.
-``GET /mail/delivery-check`` is the DNS check CalDART management reads before a bulk
-send; it is open to ``management`` and ``system_admin``.
+``GET /mail/delivery-check`` is the DNS check behind the mail card of Health and
+database; it is ``system_admin`` only, since setting up the mail server is theirs.
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ from rest_framework.serializers import BaseSerializer
 from rest_framework.views import APIView
 
 from apps.accounts.api.views import signed_in_user
-from apps.accounts.permissions import IsManagement, IsSystemAdmin
+from apps.accounts.permissions import IsSystemAdmin
 from apps.mail.api.serializers import (
     BounceRunRequestSerializer,
     BounceRunResultSerializer,
@@ -180,7 +180,7 @@ class BounceRunView(APIView):
 class MailDeliveryCheckView(APIView):
     """``GET /mail/delivery-check`` -- do the DNS records mail receivers trust exist?"""
 
-    permission_classes = [IsManagement]
+    permission_classes = [IsSystemAdmin]
 
     @extend_schema(
         parameters=[

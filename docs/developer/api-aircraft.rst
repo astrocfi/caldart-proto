@@ -305,7 +305,9 @@ verifying role (``verifier``, ``dart_leader``, ``user_admin``, or
 sorted by surname then forename.  ``membership_status`` is ``friend`` for a friend of
 CalDART and ``none`` for a member who has never paid, and ``go_no_go`` is the member check's own verdict for the person, the same
 three booleans its search row and status card carry (below), so the two checks never
-disagree.  ``aircraft_pilots()`` fetches them in one query, with
+disagree.  The Aircraft check draws each pilot's name and ``go_no_go`` alone; the
+aircraft record's own pilot list adds the email address and the membership state.
+``aircraft_pilots()`` fetches them in one query, with
 the membership annotations aboard (see :ref:`membership-status-sql`), so a
 popular airplane costs no more than a rarely-flown one.
 
@@ -729,7 +731,6 @@ normalizes to ``NATE`` and matches every US registration on file.
      {
        "user_id": 11,
        "name": "Ana Bracco",
-       "email": "ana@example.org",
        "dart": "Palo Alto",
        "membership_status": "current",
        "go_no_go": {"membership": true, "medical": true, "verified": true}
@@ -901,11 +902,11 @@ stamps it again under the caller.  Self-verification is allowed; nothing
 compares the caller with the member.  The profile is created if the account has
 none.
 
-The profile form's two rules hold, judged on the record the write would leave:
-``certificate_number`` is required once the certificate is not ``none`` and
-``medical_expiration`` once the medical is not ``none``, with the same
-sentences :ref:`profile-validation` gives.  A slug outside the three is refused
-under ``verified``:
+``certificate_number`` and ``medical_expiration`` are optional whatever the
+certificate and the medical, as on the profile.  A ``certificate_number`` that is
+not blank must be seven digits, refused otherwise with the sentence
+:ref:`profile-validation` gives.  A slug outside the three is refused under
+``verified``:
 
 .. code-block:: json
 
@@ -915,7 +916,7 @@ Statuses:
 
 * **200** — the status card, in the ``GET .../status`` shape above.
 * **400** — ``verified`` missing, an unknown item, a choice outside its list, or
-  a profile rule refused.  Nothing is written.
+  a certificate number that is not seven digits.  Nothing is written.
 * **404** — no account has that ``user_id``, or it is a donor or deactivated.
 
 ``PUT /leader/members/{user_id}/verifier``

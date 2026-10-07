@@ -45,7 +45,7 @@ The band across the top gives one of four verdicts:
 
 - **NOT COVERED**, with the reason, such as *helicopters are excluded by CalDART's
   policy*: the coverage policy a system administrator keeps on the
-  :doc:`aircraft-register` leaves out the airplane's category or its airworthiness
+  :doc:`aircraft` leaves out the airplane's category or its airworthiness
   category. This is a no-go whatever its insurance.
 
 - **INSURED**, with *Coverage is current* or *Coverage expires soon*: a current policy
@@ -92,16 +92,14 @@ the airplane out of service, and the make, model, year, and seats. Then come fiv
 their profile. Each line gives:
 
 - the person's name, a link to their card on the :doc:`member-check`;
-- **Member current**, **Member expired**, or **Friend** for a friend of CalDART, who pays
-  no dues;
 - **GO** or **NO-GO**, the same verdict the :doc:`member-check` gives that person: a
   current membership, a current medical, and a verified pilot certificate, medical, and
-  photo ID. Open their card to read why a pilot is a NO-GO.
+  photo ID. Open their card to read their membership and why a pilot is a NO-GO.
 
 With nobody listed the card says *No member lists this aircraft on their profile.*
 
 The policy number is kept on the record and left off this card. An account administrator
-can read it in the aircraft register.
+can read it on the **Aircraft** screen.
 
 
 Verifying the insurance
@@ -130,7 +128,7 @@ A link that names a registration the register has never seen shows a card saying
 airplane *is not in the register*, with *Ask the pilot to add it on My aircraft, or ask an
 account administrator.* **Back to search** above it goes back. A pilot adds an airplane
 from **My aircraft** on their own portal, and an account administrator can add it from the
-aircraft register.
+**Aircraft** screen.
 
 
 If something looks wrong

@@ -5,7 +5,7 @@
  * The **View this email in your browser** link in every bulk email opens this page.
  * The email is drawn in a sandboxed frame, so nothing in it can run or reach the
  * portal, and its links open in a new tab. An email the person did not receive, or one CalDART management has taken
- * off Messages, reads as not available.
+ * off Email to me, reads as not available.
  */
 import type { JSX } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -21,7 +21,7 @@ import { useMessage } from './api';
 
 /** What the page says for an email that is not the reader's to read. */
 export const NOT_AVAILABLE_MESSAGE =
-  'This message is not available. It may not have been sent to you, or it has been taken off Messages.';
+  'This message is not available. It may not have been sent to you, or it has been taken off Email to me.';
 
 /** What the page says when the message could not be loaded for another reason. */
 const FALLBACK_ERROR = "This message didn't load. Try again in a moment.";

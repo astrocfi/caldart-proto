@@ -603,7 +603,7 @@ member check, so no status dot for it is drawn anywhere.
    * - ``friend``
      - Friend
    * - ``none``
-     - No membership yet
+     - Not yet paid
    * - ``donor``
      - Donor
 
@@ -1527,7 +1527,7 @@ and ``PermissionsMixin`` classes it builds on.
    * - ``last_name``
      - ``CharField(150)``
      - not null; default ``""``
-     - may be blank; stored through ``caldart.casing.person_name`` (below)
+     - may be blank; stored through ``caldart.casing.person_last_name`` (below)
    * - ``created_at``
      - ``DateTimeField``
      - not null; default ``timezone.now``
@@ -1579,8 +1579,9 @@ and ``PermissionsMixin`` classes it builds on.
 - Index ``accounts_user_name_idx`` on (``last_name``, ``first_name``).
 - Ordering: ``last_name``, ``first_name``, ``email``.
 
-**Names.**  ``save()`` strips ``email`` and passes ``first_name`` and ``last_name``
-through ``caldart.casing.person_name``, so registration, the member's profile, the
+**Names.**  ``save()`` strips ``email`` and passes ``first_name`` through
+``caldart.casing.person_name`` and ``last_name`` through
+``caldart.casing.person_last_name``, so registration, the member's profile, the
 administrator's editor, a settled donation, and the seed all store the same
 spelling.  Leading and trailing spaces are dropped and runs of spaces collapse to
 one.  A name typed with letters in both cases (``DeAnna``, ``MacArthur``, ``van
@@ -1594,7 +1595,9 @@ capitalized (``A.J.``), and the letter after a leading ``Mc`` capitalized
 taken for initials and upper-cased whole (``tj`` and ``TJ`` are both stored ``TJ``).  After the first word, the particles ``van``, ``von``, ``der``,
 ``den``, ``de``, ``del``, ``della``, ``da``, ``di``, ``du``, ``la``, and ``le`` stay
 lower case (``VAN DER BERG`` is stored ``Van der Berg``) and the suffixes ``II``,
-``III``, and ``IV`` upper case.  ``manage.py normalize_casing`` applies the same rule
+``III``, and ``IV`` upper case.  A last name keeps a particle lower case as its
+first word too, when another word follows (``van dyke`` is stored ``van Dyke``),
+while a particle that is the whole last name is capitalized (``Van``).  ``manage.py normalize_casing`` applies the same rule
 to the rows already stored (:doc:`setup`).
 
 **Relationships.**
@@ -1673,7 +1676,7 @@ nobody is a member until they have paid or been granted a term.
 Otherwise it is ``member``.  So a member who registered and never paid, one
 whose only term was canceled, and one whose only term starts in the future all
 count as ``friend`` until a term covers them, though their membership reads
-``none`` (*No membership yet*) rather than ``friend`` (see
+``none`` (*Not yet paid*) rather than ``friend`` (see
 :ref:`membership-status`).  A deactivated account whose
 started terms are all suspended keeps the effective kind ``member``, since a
 suspended term still makes somebody a member: it is listed under
@@ -2141,7 +2144,7 @@ administrators see.  Deleting the account deletes the profile.
    * - ``certificate_number``
      - ``CharField(40)``
      - not null; default ``""``
-     - required by the serializer when a certificate is held
+     - optional; seven digits when given (``CERTIFICATE_NUMBER_RE``)
    * - ``ratings``
      - ``JSONField``
      - not null; default ``[]``
@@ -2305,14 +2308,12 @@ that the message a person reads can be specific:
 
 - Every phone number is optional, and every one given is ten digits; an extension
   is up to six digits.
-- A ``medical_type`` other than ``none`` requires a ``medical_expiration``.
-- A ``pilot_certificate_type`` other than ``none`` requires a
-  ``certificate_number``.
+- ``medical_expiration`` and ``certificate_number`` are optional whatever the
+  medical and the certificate; a ``certificate_number`` given is seven digits,
+  checked by the model field's validator, which the serializers run.
 - ``postal_code`` is five digits; ``home_airport_identifier`` and
   ``secondary_airport_identifier`` are each three letters or digits, the ICAO
   ``K`` trimmed, or blank.
-- Cross-field rules are evaluated against the row **as it would be after the
-  write**, so a one-field ``PATCH`` is judged on the whole profile.
 
 **Derived properties.**
 
@@ -2528,14 +2529,14 @@ The service
     its ``friend_on`` has not come, and no term with ``starts_on <= on_date`` is
     active, expired, or suspended.  That is an account an administrator created
     that has not paid, a joiner still at the pay step, and a member whose only
-    term was canceled or is still to start.  Its effective kind is ``friend``, so it counts as a friend for the
+    term was canceled.  Its effective kind is ``friend``, so it counts as a friend for the
     renewal and reminder scans, the members-only wall, and the member check, but as a
     member, the kind it chose, for the member list, the member and roles reports, and
-    bulk email's adds (``listed_kind``); it reads *No membership
-    yet* rather than *Friend*.  ``expires_on`` and ``plan`` are ``None`` and
-    ``is_lifetime`` is ``False``.  When such an account holds a granted term still to
-    start, ``members.services.upcoming_term_start`` gives its first day, and the
-    dashboard and the members-only wall name that day instead of asking for dues.
+    bulk email's adds (``listed_kind``); it reads *Not yet
+    paid* rather than *Friend*.  ``expires_on`` and ``plan`` are ``None`` and
+    ``is_lifetime`` is ``False``.  A term granted by hand never starts after the day
+    it is granted (:doc:`api-members`), so no such account is waiting for a term
+    already granted.
 ``donor``
     The account is a donor's.  ``expires_on`` and ``plan`` are ``None`` and
     ``is_lifetime`` is ``False``.
@@ -3964,7 +3965,7 @@ early renewal being nagged about the term it replaced.  See :doc:`reminders`.
 When each reminder stage falls.  There is only ever one row, primary key 1:
 ``save()`` forces the key, and ``load()`` reads the row, answering an unsaved
 default schedule (60, 30, 7, 30) before one is stored; reading never writes.  A
-system administrator writes it from the Scheduled page's **Reminder schedule**
+system administrator writes it from the Scheduled tasks page's **Reminder schedule**
 card through ``PUT /admin/reminders/schedule`` (:ref:`api-reminder-schedule`).
 The ``expired`` stage spans the expiry day and the six days after it, so it has
 no field.
@@ -4617,7 +4618,7 @@ it.
    * - ``hidden_from_archive``
      - ``BooleanField``
      - not null; default ``False``
-     - true while CalDART management keeps the email off its recipients' **Messages** page; changes nothing else
+     - true while CalDART management keeps the email off its recipients' **Email to me** page; changes nothing else
    * - ``is_callout``
      - ``BooleanField``
      - not null; default ``False``

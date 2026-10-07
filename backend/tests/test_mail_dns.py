@@ -2,8 +2,8 @@
 
 ``apps.mail.dns_check.check_mail_dns`` reads the records over DNS; these tests replace
 ``dns.resolver.Resolver`` with a fake that answers from a dictionary, so the suite
-never makes a real query.  ``GET /mail/delivery-check`` serves the report to CalDART
-management and system administrators, and ``manage.py check_mail_dns`` prints it.  See
+never makes a real query.  ``GET /mail/delivery-check`` serves the report to system
+administrators, and ``manage.py check_mail_dns`` prints it.  See
 ``docs/developer/api-system.rst`` and ``docs/developer/deployment.rst``.
 """
 
@@ -24,7 +24,7 @@ from pytest_django import Settings
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
-from apps.accounts.roles import MANAGEMENT, SYSTEM_ADMIN
+from apps.accounts.roles import SYSTEM_ADMIN
 from apps.mail import dns_check
 from apps.mail.dns_check import (
     ALIGNMENT_NAME,
@@ -102,13 +102,6 @@ def dns_zone(monkeypatch: pytest.MonkeyPatch) -> Zone:
     monkeypatch.setattr(dns.resolver, "Resolver", FakeResolver)
     cache.clear()
     return zone
-
-
-@pytest.fixture
-def management_client(api_client: APIClient, management: User) -> APIClient:
-    """``api_client`` signed in as a member of CalDART management."""
-    api_client.force_login(management)
-    return api_client
 
 
 @pytest.fixture(autouse=True)
@@ -354,12 +347,12 @@ def test_an_out_of_range_prefix_length_is_a_malformed_record_not_an_error(
 
 
 def test_the_endpoint_answers_200_for_an_out_of_range_prefix_length(
-    management_client: APIClient, dns_zone: Zone
+    system_admin_client: APIClient, dns_zone: Zone
 ) -> None:
     """A bad prefix length in the domain's record is a finding, never a 500."""
     dns_zone[("example.org", "TXT")] = ["v=spf1 a/33 -all"]
 
-    response = management_client.get(URL)
+    response = system_admin_client.get(URL)
 
     assert response.status_code == 200
     assert response.json()["findings"][0]["status"] == "fail"
@@ -739,6 +732,104 @@ def test_a_malformed_dmarc_policy_fails(dns_zone: Zone, record: str) -> None:
     assert "is malformed" in result.detail
 
 
+@pytest.fixture
+def subdomain_sender(settings: Settings) -> None:
+    """Send from ``caldart.example.org``, a subdomain with no DMARC record of its own."""
+    settings.DEFAULT_FROM_EMAIL = "CalDART <noreply@caldart.example.org>"
+
+
+def test_a_subdomain_without_a_policy_passes_on_the_organizational_domains_reject(
+    dns_zone: Zone, subdomain_sender: None
+) -> None:
+    """The organizational domain's ``p=reject`` covers the subdomain, and says where."""
+    result = finding(run(), DMARC_NAME)
+
+    assert result.status == DnsStatus.PASS
+    assert (
+        "The policy for caldart.example.org is published at _dmarc.example.org. "
+        "The policy is reject, so forged mail is refused."
+    ) in result.detail
+
+
+def test_the_organizational_records_sp_none_warns_for_the_subdomain_despite_p_reject(
+    dns_zone: Zone, subdomain_sender: None
+) -> None:
+    """``sp=`` is the policy a subdomain gets, so ``sp=none`` warns whatever p= says."""
+    dns_zone[("_dmarc.example.org", "TXT")] = ["v=DMARC1; p=reject; sp=none"]
+
+    result = finding(run(), DMARC_NAME)
+
+    assert result.status == DnsStatus.WARN
+    assert result.fix == (
+        "Once the reports show real CalDART mail passing, ask whoever manages the DNS for "
+        "example.org to change sp=none to sp=quarantine in the record at _dmarc.example.org."
+    )
+
+
+def test_a_multi_label_public_suffix_falls_back_to_the_registrable_domain(
+    dns_zone: Zone, settings: Settings
+) -> None:
+    """``caldart.example.co.uk`` falls back to ``example.co.uk``, never to ``co.uk``."""
+    settings.DEFAULT_FROM_EMAIL = "CalDART <noreply@caldart.example.co.uk>"
+    dns_zone[("_dmarc.example.co.uk", "TXT")] = ["v=DMARC1; p=quarantine"]
+    dns_zone[("_dmarc.co.uk", "TXT")] = ["v=DMARC1; p=none"]
+
+    result = finding(run(), DMARC_NAME)
+
+    assert "published at _dmarc.example.co.uk. The policy is quarantine" in result.detail
+
+
+def test_a_record_at_the_subdomain_itself_wins_over_the_organizational_one(
+    dns_zone: Zone, subdomain_sender: None
+) -> None:
+    """The organizational record is not even looked up when the subdomain has its own."""
+    dns_zone[("_dmarc.caldart.example.org", "TXT")] = ["v=DMARC1; p=none"]
+
+    result = finding(run(), DMARC_NAME)
+
+    assert result.status == DnsStatus.WARN
+    assert ("_dmarc.example.org", "TXT") not in FakeResolver.queries
+
+
+def test_a_subdomain_with_neither_record_fails_with_a_record_for_itself(
+    dns_zone: Zone, subdomain_sender: None
+) -> None:
+    """With no policy at either name, the fix is still the subdomain's own record."""
+    del dns_zone[("_dmarc.example.org", "TXT")]
+
+    result = finding(run(), DMARC_NAME)
+
+    assert result.status == DnsStatus.FAIL
+    assert result.fix == (
+        "Ask whoever manages the DNS for caldart.example.org to add a TXT record named "
+        "_dmarc.caldart.example.org that reads: v=DMARC1; p=quarantine; "
+        "rua=mailto:dmarc-reports@caldart.example.org"
+    )
+
+
+def test_the_organizational_lookup_counts_against_the_checks_time_budget(
+    dns_zone: Zone, subdomain_sender: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A fallback lookup begun after the budget is spent fails like any other lookup."""
+    real_query = dns_check._Resolver.query
+
+    def spend_budget_at_the_subdomain(
+        self: dns_check._Resolver, name: str, rdtype: str
+    ) -> list[dns.rdata.Rdata]:
+        """Answer as usual, then spend the budget once the subdomain's policy is read."""
+        answer = real_query(self, name, rdtype)
+        if name == "_dmarc.caldart.example.org":
+            monkeypatch.setattr(self, "_deadline", 0.0)
+        return answer
+
+    monkeypatch.setattr(dns_check._Resolver, "query", spend_budget_at_the_subdomain)
+
+    result = finding(run(), DMARC_NAME)
+
+    assert result.status == DnsStatus.FAIL
+    assert ("_dmarc.example.org", "TXT") not in FakeResolver.queries
+
+
 # --------------------------------------------------------------------------
 # Envelope alignment
 # --------------------------------------------------------------------------
@@ -813,15 +904,15 @@ def test_changing_a_setting_the_check_reads_is_not_answered_from_the_cache(
 # --------------------------------------------------------------------------
 # GET /mail/delivery-check
 # --------------------------------------------------------------------------
-@pytest.mark.parametrize(("role", "allowed"), role_matrix(MANAGEMENT, SYSTEM_ADMIN))
-def test_management_and_system_administrators_read_the_delivery_check(
+@pytest.mark.parametrize(("role", "allowed"), role_matrix(SYSTEM_ADMIN))
+def test_only_a_system_administrator_reads_the_delivery_check(
     api_client: APIClient,
     all_role_users: dict[str, User],
     dns_zone: Zone,
     role: str,
     allowed: bool,
 ) -> None:
-    """Every other role is refused."""
+    """Every other role, CalDART management included, is refused."""
     api_client.force_login(all_role_users[role])
 
     response = api_client.get(URL)
@@ -834,10 +925,10 @@ def test_an_anonymous_visitor_is_refused(api_client: APIClient, dns_zone: Zone) 
     assert api_client.get(URL).status_code == 401
 
 
-def test_the_endpoint_answers_the_report(management_client: APIClient, dns_zone: Zone) -> None:
+def test_the_endpoint_answers_the_report(system_admin_client: APIClient, dns_zone: Zone) -> None:
     """The body is ``{domain, checked_at, findings}`` with every finding's four fields."""
     with freeze_time(NOW):
-        body = management_client.get(URL).json()
+        body = system_admin_client.get(URL).json()
 
     assert body["domain"] == "example.org"
     assert body["checked_at"] == "2026-10-03T08:00:00-07:00"
@@ -851,14 +942,14 @@ def test_the_endpoint_answers_the_report(management_client: APIClient, dns_zone:
 
 
 def test_the_endpoint_serves_the_cache_until_refresh_is_asked_for(
-    management_client: APIClient, dns_zone: Zone
+    system_admin_client: APIClient, dns_zone: Zone
 ) -> None:
     """``?refresh=true`` looks again; a plain request does not."""
-    management_client.get(URL)
+    system_admin_client.get(URL)
     dns_zone[("_dmarc.example.org", "TXT")] = ["v=DMARC1; p=none"]
 
-    cached = management_client.get(URL).json()["findings"][2]["status"]
-    fresh = management_client.get(URL, {"refresh": "true"}).json()["findings"][2]["status"]
+    cached = system_admin_client.get(URL).json()["findings"][2]["status"]
+    fresh = system_admin_client.get(URL, {"refresh": "true"}).json()["findings"][2]["status"]
 
     assert (cached, fresh) == ("pass", "warn")
 

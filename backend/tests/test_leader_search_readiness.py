@@ -186,11 +186,10 @@ def test_the_list_and_the_card_give_the_same_verdict(leader_client: APIClient, g
 
 
 def test_a_search_result_carries_exactly_these_fields(leader_client: APIClient, go: User) -> None:
-    """The row holds the six fields the list draws and nothing else."""
+    """The row holds the five fields the list draws and nothing else, so no email."""
     assert set(search_row(leader_client, go)) == {
         "user_id",
         "name",
-        "email",
         "dart",
         "membership_status",
         "go_no_go",

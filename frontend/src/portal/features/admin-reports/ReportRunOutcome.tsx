@@ -2,7 +2,7 @@
  * What one run of the report sender did, or would do: the counts in a
  * sentence, the reasons anything was skipped, the refusals, and the table of
  * every email behind them.  The DART rosters card of `/admin/reports` and the
- * scheduled-reports panel of the Scheduled page (`/portal/system/scheduled`)
+ * scheduled-reports panel of the Scheduled tasks page (`/portal/system/scheduled`)
  * both show a run this way.
  */
 import type { JSX } from 'react';

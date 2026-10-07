@@ -496,7 +496,7 @@ def test_the_statements_endpoint_refuses_a_year_above_the_range(
 
 
 def test_a_treasurer_may_not_run_the_statements_endpoint(treasurer_client: APIClient) -> None:
-    """Running a job by hand from the Scheduled page is the system administrator's own."""
+    """Running a job by hand from Scheduled tasks is the system administrator's own."""
     response = treasurer_client.post("/api/v1/system/statements/run", {}, format="json")
     assert response.status_code == 403
 

@@ -23,6 +23,7 @@ import { DeleteButton } from '@/portal/components/DeleteButton';
 import { Page } from '@/portal/components/Page';
 import { usePanelFocus } from '@/portal/components/focus';
 import { DROP_ORDER } from './dropOrder';
+import { FieldText } from './FieldChips';
 import './bulk-email.css';
 import { useCreateTemplate, useDeleteTemplate, useTemplates, useUpdateTemplate } from './reuseApi';
 import { TemplateForm } from './TemplateForm';
@@ -154,7 +155,7 @@ export function TemplatesPage(): JSX.Element {
       header: 'Subject',
       minWidth: '12rem',
       dropOrder: DROP_ORDER.subject,
-      render: (template) => template.subject || '—',
+      render: (template) => (template.subject === '' ? '—' : <FieldText text={template.subject} />),
     },
     {
       key: 'email_type_name',
@@ -178,7 +179,7 @@ export function TemplatesPage(): JSX.Element {
   return (
     <Page
       title="Templates"
-      lede="Messages you send again and again, such as the monthly newsletter. Start a draft from one on the compose screen; changing the draft leaves the template as it is."
+      lede="Messages you send again and again, such as reminders about an exercise. Start a draft from one on the compose screen; changing the draft leaves the template as it is."
       actions={
         openForm === null ? (
           <Button ref={newRef} onClick={handleNew}>

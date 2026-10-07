@@ -285,7 +285,7 @@ ADMIN_PAGE_ROLES: dict[str, frozenset[str]] = {
     "admin/members": frozenset({ACCOUNT_ADMIN, DART_LEADER}),
     "admin/new-member": frozenset({ACCOUNT_ADMIN, DART_LEADER}),
     "admin/member-record": frozenset({ACCOUNT_ADMIN, DART_LEADER}),
-    "admin/aircraft-register": frozenset({ACCOUNT_ADMIN}),
+    "admin/aircraft": frozenset({ACCOUNT_ADMIN}),
     "admin/aircraft-record": frozenset({ACCOUNT_ADMIN}),
     "admin/darts": frozenset({ACCOUNT_ADMIN}),
     "admin/reminders": frozenset({ACCOUNT_ADMIN}),
@@ -303,7 +303,6 @@ ADMIN_PAGE_ROLES: dict[str, frozenset[str]] = {
     "bulk-email/dart-leaders": frozenset({DART_LEADER}),
     "bulk-email/templates": frozenset({MANAGEMENT}),
     "bulk-email/groups": frozenset({MANAGEMENT}),
-    "bulk-email/mail-delivery": frozenset({MANAGEMENT}),
     "bulk-email/email-types": frozenset({SYSTEM_ADMIN}),
 }
 

@@ -289,8 +289,8 @@ BOUNCE_ADDRESS = env("BOUNCE_ADDRESS", default="")
 # ``imaps://user:password@host[:port]/MAILBOX``.  Blank turns bounce checking off.
 BOUNCE_IMAP_URL = env("BOUNCE_IMAP_URL", default="")
 # The DKIM selector the mail server signs messages with.  ``manage.py check_mail_dns`` and
-# the Mail delivery screen look for its public key at ``<selector>._domainkey.<domain>``.
-# Blank skips that check with a warning.
+# the Mail delivery card on Health and database look for its public key at
+# ``<selector>._domainkey.<domain>``.  Blank skips that check with a warning.
 DKIM_SELECTOR = env("DKIM_SELECTOR", default="")
 # Error reports mask the password in any URL a setting holds, ``BOUNCE_IMAP_URL``
 # among them, as well as the settings whose names Django already treats as secret.

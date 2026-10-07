@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -41,7 +41,9 @@ describe('<RouteError/>', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     renderRoutes(BROKEN);
 
-    await screen.findByRole('heading', { name: 'This page did not load' });
-    expect(logged).toHaveBeenCalledWith(new Error('Failed to fetch dynamically imported module'));
+    // The log is written from an effect, which can run after the heading first appears.
+    await waitFor(() => {
+      expect(logged).toHaveBeenCalledWith(new Error('Failed to fetch dynamically imported module'));
+    });
   });
 });

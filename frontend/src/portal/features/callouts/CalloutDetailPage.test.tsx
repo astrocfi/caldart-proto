@@ -4,10 +4,13 @@ import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
 import type { CalloutDetail } from '@/portal/api/types';
+import { AUTH_ME_KEY } from '@/portal/auth/useAuth';
 import { formatDateTime } from '@/portal/components/DateText';
+import type { QueryClient } from '@tanstack/react-query';
+
 import { answerCallout, makeCallout } from '@test/fixtures/callouts';
 import { API } from '@test/handlers';
-import { renderRoutes } from '@test/render';
+import { renderRoutes, signedInClient } from '@test/render';
 import { server } from '@test/server';
 import {
   CalloutDetailPage,
@@ -16,13 +19,33 @@ import {
   remindBlocked,
 } from './CalloutDetailPage';
 
-/** Render callout 7's page, answering as `callout`. */
-function renderCallout(callout: CalloutDetail = makeCallout()) {
+/** Render callout 7's page, answering as `callout`, for the reader `client` holds. */
+function renderCallout(callout: CalloutDetail = makeCallout(), client?: QueryClient) {
   const calls = answerCallout(callout);
   renderRoutes([{ path: '/bulk-email/callouts/:id', element: <CalloutDetailPage /> }], {
     route: '/bulk-email/callouts/7',
+    client,
   });
   return calls;
+}
+
+/**
+ * The links in Ann Able's row, as `[text, href]` pairs, once `client` has read the
+ * reader's roles. The test client keeps nothing nobody is watching, so the seeded user
+ * is gone before the page mounts and the roles arrive from `/auth/me` a moment after
+ * the table; the read waits for that answer, so an empty list means no link.
+ */
+async function annsLinks(client: QueryClient): Promise<[string | null, string | null][]> {
+  const table = await answersTable();
+  await waitFor(() => {
+    const state = client.getQueryState(AUTH_ME_KEY);
+    expect([state?.status, state?.fetchStatus]).toEqual(['success', 'idle']);
+  });
+  const ann = within(table).getByText('Ann Able').closest('tr');
+  if (ann === null) throw new Error('no row for Ann Able');
+  return within(ann)
+    .queryAllByRole('link')
+    .map((link) => [link.textContent, link.getAttribute('href')]);
 }
 
 /** The answers table, once it has loaded. */
@@ -69,6 +92,30 @@ describe('CalloutDetailPage', () => {
       .getByText('Bea Bell')
       .closest('tr');
     expect(bea).toHaveTextContent('NO-GO');
+  });
+
+  it('links the name to the member record and the verdict to Member check for a leader', async () => {
+    const client = signedInClient('dart_leader');
+    renderCallout(makeCallout(), client);
+
+    expect(await annsLinks(client)).toEqual([
+      ['Ann Able', '/admin/members/1'],
+      ['Cleared to flyGO', '/leader?member=1'],
+    ]);
+  });
+
+  it('links the verdict alone for a verifier, who cannot open the member record', async () => {
+    const client = signedInClient('management', 'verifier');
+    renderCallout(makeCallout(), client);
+
+    expect(await annsLinks(client)).toEqual([['Cleared to flyGO', '/leader?member=1']]);
+  });
+
+  it('shows the name and the verdict as plain text to CalDART management alone', async () => {
+    const client = signedInClient('management');
+    renderCallout(makeCallout(), client);
+
+    expect(await annsLinks(client)).toEqual([]);
   });
 
   it('narrows the table to the people who have not answered', async () => {

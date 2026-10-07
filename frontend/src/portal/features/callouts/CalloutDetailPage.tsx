@@ -6,9 +6,11 @@
  * now** (which stops the answers, after asking), and **Download answers**. Then one
  * line per person the callout reached, narrowed by answer or by a name, with their
  * answer and GO or NO-GO as the member check reads them now, then their note, when
- * they answered, their DART, home airport, and aircraft. A narrowed table's caption
- * says how many of everybody it shows. The page is read again every half minute while
- * the callout takes answers.
+ * they answered, their DART, home airport, and aircraft. For a reader who may open
+ * them, the name links to the person's member record and the GO or NO-GO to their
+ * card on Member check, where the verifying is done. A narrowed table's caption says
+ * how many of everybody it shows. The page is read again every half minute while the
+ * callout takes answers.
  */
 import { useMemo, useState } from 'react';
 import type { JSX } from 'react';
@@ -20,7 +22,9 @@ import type {
   CalloutDetail,
   CalloutRecipient,
   LeaderGoNoGo,
+  RoleSlug,
 } from '@/portal/api/types';
+import { useMe } from '@/portal/auth/useAuth';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { ConfirmButton } from '@/portal/components/ConfirmButton';
@@ -33,11 +37,13 @@ import { Page } from '@/portal/components/Page';
 import { StatusDot } from '@/portal/components/StatusDot';
 import { useToast } from '@/portal/components/Toast';
 import { DROP_ORDER } from '@/portal/features/bulk-email/dropOrder';
+import { FieldText } from '@/portal/features/bulk-email/FieldChips';
 import { scheduledWords } from '@/portal/features/bulk-email/schedule';
 import { actionError } from '@/portal/features/bulk-email/SendStatus';
 import { resultsCaption } from '@/portal/features/bulk-email/DeliveryReport';
 import { people } from '@/portal/features/bulk-email/status';
 import { GoMark, isReady } from '@/portal/features/leader/LeaderLookup';
+import { hasAnyRole } from '@/portal/nav';
 import type { FilterField, FilterValues } from '@/portal/reports/types';
 import { answersCsvUrl, useCallout, useCalloutAction } from './api';
 import './callouts.css';
@@ -47,7 +53,8 @@ import { ANSWER_LABELS, answerLabel, answerTone } from './labels';
 export const REMINDING_MESSAGE = 'The reminders will be sent within a minute.';
 
 /** What the screen says once the callout is closed. */
-export const CLOSED_MESSAGE = 'The callout is closed. Its buttons record nothing from now on.';
+export const CLOSED_MESSAGE =
+  "The callout is closed. Its buttons don't record anything from now on.";
 
 /** The answers a reader can narrow the table to, then no answer. */
 const ANSWER_CHOICES: readonly CalloutAnswerKind[] = ['available', 'limited', 'unavailable'];
@@ -98,6 +105,7 @@ export function CalloutDetailPage(): JSX.Element {
   return (
     <Page
       title={shown.subject || 'Callout'}
+      heading={shown.subject === '' ? undefined : <FieldText text={shown.subject} />}
       lede={calloutLede(shown)}
       actions={<Link to="/bulk-email/callouts">Back to callouts</Link>}
     >
@@ -233,11 +241,24 @@ function CalloutActions({ callout }: { callout: CalloutDetail }): JSX.Element {
   );
 }
 
+/** The roles that open a member record, as the rail's Members entry has them. */
+const RECORD_ROLES: readonly RoleSlug[] = ['account_admin', 'dart_leader'];
+
+/** The roles that open Member check, as the rail's entry has them. */
+const CHECK_ROLES: readonly RoleSlug[] = ['dart_leader', 'account_admin', 'user_admin', 'verifier'];
+
 /** The answer menu, a search box, and one line per person with their answer. */
 function Answers({ rows }: { rows: CalloutRecipient[] }): JSX.Element {
   const [filters, setFilters] = useState<FilterValues>(NO_FILTERS);
   const answer = filters.answer ?? '';
   const search = filters.search ?? '';
+  const roles = useMe().data?.roles ?? [];
+  const canOpenRecord = hasAnyRole(roles, RECORD_ROLES);
+  const canOpenCheck = hasAnyRole(roles, CHECK_ROLES);
+  const columns = useMemo(
+    () => answerColumns({ canOpenRecord, canOpenCheck }),
+    [canOpenRecord, canOpenCheck],
+  );
   const shown = useMemo(() => {
     const needle = search.trim().toLowerCase();
     return rows.filter(
@@ -257,7 +278,7 @@ function Answers({ rows }: { rows: CalloutRecipient[] }): JSX.Element {
   return (
     <DataTable
       singleLine
-      columns={ANSWER_COLUMNS}
+      columns={columns}
       rows={shown}
       rowKey={(row) => row.user_id}
       caption={resultsCaption(shown.length, rows.length, 'Answers')}
@@ -285,39 +306,69 @@ function Answers({ rows }: { rows: CalloutRecipient[] }): JSX.Element {
   );
 }
 
+/** Which of the two screens behind a row the reader may open. */
+interface AnswerLinks {
+  /** The member record, behind the name. */
+  canOpenRecord: boolean;
+  /** The person's card on Member check, behind GO or NO-GO. */
+  canOpenCheck: boolean;
+}
+
 /**
  * The answers table's columns: the person, their answer, and the member check's GO or
  * NO-GO, so all three stay in sight on a phone; then their note, which wraps, and when
  * they answered. Their DART, home airport, and aircraft give way first when the table
- * would not fit its card.
+ * would not fit its card. The name and the verdict link to the member record and the
+ * member check for a reader who may open them, and are plain text for anybody else.
+ *
+ * @param links which of the two screens the reader may open.
+ * @returns the columns, in table order.
  */
-export const ANSWER_COLUMNS: Column<CalloutRecipient>[] = [
-  {
-    key: 'name',
-    header: 'Name',
-    minWidth: '10rem',
-    isIdentity: true,
-    render: (row) => row.name,
-    sortValue: (row) => row.name,
-  },
-  {
-    key: 'answer',
-    header: 'Answer',
-    width: '11rem',
-    render: (row) => (
-      <span className="callouts__state">
-        <StatusDot tone={answerTone(row.answer)} label={answerLabel(row.answer)} />
-      </span>
-    ),
-    sortValue: (row) => (row.answer === null ? '' : ANSWER_LABELS[row.answer]),
-  },
-  {
-    key: 'go_no_go',
-    header: 'Go/no-go',
-    width: '7.5rem',
-    render: (row) => <GoCell goNoGo={row.go_no_go} />,
-    sortValue: (row) => (isReady(row.go_no_go) ? 1 : 0),
-  },
+export function answerColumns({
+  canOpenRecord,
+  canOpenCheck,
+}: AnswerLinks): Column<CalloutRecipient>[] {
+  return [
+    {
+      key: 'name',
+      header: 'Name',
+      minWidth: '10rem',
+      isIdentity: true,
+      render: (row) =>
+        canOpenRecord ? <Link to={`/admin/members/${row.user_id}`}>{row.name}</Link> : row.name,
+      sortValue: (row) => row.name,
+    },
+    {
+      key: 'answer',
+      header: 'Answer',
+      width: '11rem',
+      render: (row) => (
+        <span className="callouts__state">
+          <StatusDot tone={answerTone(row.answer)} label={answerLabel(row.answer)} />
+        </span>
+      ),
+      sortValue: (row) => (row.answer === null ? '' : ANSWER_LABELS[row.answer]),
+    },
+    {
+      key: 'go_no_go',
+      header: 'Go/no-go',
+      width: '7.5rem',
+      render: (row) =>
+        canOpenCheck ? (
+          <Link className="callouts__go-link" to={`/leader?member=${row.user_id}`}>
+            <GoCell goNoGo={row.go_no_go} />
+          </Link>
+        ) : (
+          <GoCell goNoGo={row.go_no_go} />
+        ),
+      sortValue: (row) => (isReady(row.go_no_go) ? 1 : 0),
+    },
+    ...DETAIL_COLUMNS,
+  ];
+}
+
+/** The columns after the verdict, the same for every reader. */
+const DETAIL_COLUMNS: Column<CalloutRecipient>[] = [
   {
     key: 'note',
     header: 'Note',

@@ -22,7 +22,7 @@ Member
 ======
 
 Every member and every friend of CalDART holds the member role. It opens the
-**Membership** group of the menu:
+**My account** group of the menu:
 
 * **Dashboard** (:doc:`member/dashboard`): your membership, your profile's state,
   members-only pages, and recent payments.
@@ -30,17 +30,16 @@ Every member and every friend of CalDART holds the member role. It opens the
   whether you are a member or a friend, and deactivating your account.
 * **My aircraft** (:doc:`member/my-aircraft`): the airplanes you fly, from the
   shared register.
-* **Payments** (:doc:`member/payments`): automatic renewal, recurring donations,
+* **My payments** (:doc:`member/payments`): automatic renewal, recurring donations,
   every payment with its receipt, and contribution statements.
 * **Donate** (:doc:`member/donate`): a gift, once or on a schedule.
 * **Renew** (:doc:`member/renew`): your next term. A friend and a life member have no
   **Renew** entry; a life member gives through **Donate**.
 * **Change password** (:doc:`member/change-password`) and **Change email**
   (:doc:`member/change-email`).
-
-Every signed-in person also has **Messages** (:doc:`member/messages`) and **Email
-preferences** (:doc:`member/email-preferences`), under **Your email** in the menu: the bulk
-emails CalDART has sent them, to read again, and which types of bulk email it sends them.
+* **Email to me** (:doc:`member/messages`) and **Email preferences**
+  (:doc:`member/email-preferences`): the bulk emails CalDART has sent you, to read again,
+  and which types of bulk email it sends you.
 
 A friend also reaches **Become a member** (:doc:`member/become-a-member`). While
 your membership is current, the members-only pages of the public site open to you
@@ -104,7 +103,7 @@ User administrator
 
 A user administrator looks after accounts. The role adds:
 
-* **Users and roles** (:doc:`admin/users`): every account, with filters, and the
+* **Roles and status** (:doc:`admin/users`): every account, with filters, and the
   **User record** (:doc:`admin/user-record`) behind each: the roles it holds,
   deactivating and reactivating it, blocking it from reactivating, correcting its
   email address, and sending a password reset link or a verification message. The screen also downloads the
@@ -124,7 +123,7 @@ Treasurer
 
 The treasurer looks after the money. The role adds:
 
-* **Finance**, the finance area (:doc:`finance/index`), with its tabs:
+* **Accounting**, under **Finance** in the menu (:doc:`finance/index`), with its tabs:
   **Money overview** (the headline figures for a period; :doc:`finance/overview`),
   **Payments** (every payment, and **Record a payment** for a check or cash;
   :doc:`finance/payment-list`, :doc:`finance/record-payment`), **Renewals**
@@ -148,17 +147,17 @@ An account administrator looks after the membership records. The role adds:
   and each member's record (:doc:`admin/member-record`): the profile, the
   membership terms, granting a term by hand, making a member a friend,
   deactivating and reactivating an account, and deleting a member.
-* **Aircraft register** (:doc:`admin/aircraft-register`) and
+* **Aircraft** (:doc:`admin/aircraft`) and
   each aircraft's record (:doc:`admin/aircraft-record`), and **New aircraft type** on any
   aircraft form, for an aircraft type the FAA has never registered.
 * **DARTs** (:doc:`admin/darts`): the teams, their airports, and their leaders.
-* **Finance**: the finance area as the treasurer sees it, without **Donors**
+* **Accounting**: the finance area as the treasurer sees it, without **Donors**
   (:doc:`finance/index`).
 * **Reminders** (:doc:`admin/reminders`): every renewal reminder CalDART has sent, and the
   reminder schedule that dates them.
 * **Emailed reports** (:doc:`admin/subscriptions`): reports by email, the CalDART roles report
   among them, and sending each DART its roster.
-* **Notifications** (:doc:`admin/notifications`): who hears about what by email,
+* **Notification emails** (:doc:`admin/notifications`): who hears about what by email,
   from a sign-up to a refund.
 * **Member check** and **Aircraft check** (:doc:`admin/member-check`,
   :doc:`admin/aircraft-check`), with verifying, as a verifier has them. An account
@@ -178,16 +177,14 @@ group of the menu:
   cancel, or delete.
 * **Sent** (:doc:`bulk-email/sent`): every email sent, with what became of each person's
   copy, to stop or finish a send, retry the failed copies, view one person's copy, hide it
-  from **Messages**, download the results, and start a new draft from an email with
+  from **Email to me**, download the results, and start a new draft from an email with
   **Duplicate**.
 * **Templates** (:doc:`bulk-email/templates`): the messages kept to start an email from,
-  such as the monthly newsletter.
+  such as reminders about an exercise.
 * **Recipient groups** (:doc:`bulk-email/groups`): the people kept to add to a recipient list in one
   step, either a fixed list or filters run again each time.
 * **Callouts** (:doc:`bulk-email/callouts`): the answers to every mission callout, who can
   fly and who has not answered, to remind the rest or close the answers.
-* **Mail delivery** (:doc:`bulk-email/mail-delivery`): check that other mail systems will
-  trust and deliver the email CalDART sends, and what to ask for when they will not.
 
 CalDART management writes to anybody, and sees every bulk email, its sender, and, for a DART
 leader's email, its DART. The role opens no member record and no payment. A user
@@ -212,16 +209,16 @@ System administrator
 A system administrator holds every role above and can do everything they can. The
 role adds:
 
-* **Health and database** (:doc:`admin/health-database`): the site's health, database
-  backups, and the FAA aircraft data, with a way to load
-  it now.
+* **Health and database** (:doc:`admin/health-database`): the site's health, whether other
+  mail systems will trust its email, database backups, and the FAA aircraft data, with a way
+  to load it now.
 * **Sent emails** (:doc:`admin/sent-emails`): the log of every email CalDART has sent.
 * **Email types** (:doc:`bulk-email/email-types`), under **Bulk email**: the types of
   bulk email, who may send each, and whether members may turn each off.
-* **Coverage policy** on the **Aircraft register** (:doc:`admin/aircraft-register`):
+* **Coverage policy** on the **Aircraft** screen (:doc:`admin/aircraft`):
   which aircraft categories and airworthiness categories CalDART's insurance does not
   cover, and the note members read on **My aircraft**.
-* **Scheduled** (:doc:`admin/scheduled`): the six jobs that run on a schedule (the
+* **Scheduled tasks** (:doc:`admin/scheduled`): the six jobs that run on a schedule (the
   renewal reminder emails, the automatic renewal charges, the scheduled reports, the
   year-end contribution statements, the bounce check, and the bulk email sender), with a
   way to run each now, and the reminder schedule, which only a system administrator

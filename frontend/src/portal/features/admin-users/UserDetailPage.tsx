@@ -1,8 +1,10 @@
 /**
- * `/admin/users/:id` — edit one account's names, email, and roles, and change its
- * status: deactivate or reactivate it, and block it from reactivating or lift the block.
- * An address the bounce check found bouncing carries a **Bounced** chip beside it and a
- * **Clear bounce** action that asks first.  Only a system administrator may give or take
+ * `/admin/users/:id` — edit one account's roles and change its status: deactivate or
+ * reactivate it, and block it from reactivating or lift the block. The person's name heads
+ * the page and their address is the line under it; neither is changed here, but on the
+ * member record or by the person. The Roles card opens with whether the address is
+ * verified. An address the bounce check found bouncing carries a **Bounced** chip there and
+ * a **Clear bounce** action that asks first.  Only a system administrator may give or take
  * away the System administrator role, so its box is grayed out for anybody else, with
  * the reason under it.  The **History** card lists who changed the account's roles or
  * status, and when.
@@ -20,8 +22,6 @@ import { Card } from '@/portal/components/Card';
 import { ConfirmButton } from '@/portal/components/ConfirmButton';
 import { EmailVerifiedText } from '@/portal/components/EmailVerifiedText';
 import { EmptyState } from '@/portal/components/EmptyState';
-import { Field } from '@/portal/components/Field';
-import { MaskedInput } from '@/portal/components/MaskedInput';
 import { MemberRecordLink } from '@/portal/components/MemberRecordLink';
 import { MembershipSummary } from '@/portal/features/admin-members/MembershipSummary';
 import type { MembershipFacts } from '@/portal/features/admin-members/MembershipSummary';
@@ -34,8 +34,6 @@ import {
 import { ResendVerificationButton } from '@/portal/components/ResendVerificationButton';
 import { useToast } from '@/portal/components/Toast';
 import { useFocusAfterSave } from '@/portal/components/focus';
-import { maskEmail } from '@/portal/masks';
-import { emailProblem } from '@/portal/features/admin-members/MemberFormFields';
 import { FormAlert, fieldError } from '@/portal/features/auth/form';
 import { AccountHistoryCard } from './AccountHistoryCard';
 import { AccountStatusCard } from './AccountStatusCard';
@@ -49,30 +47,11 @@ import {
 } from './api';
 
 interface FormState {
-  first_name: string;
-  last_name: string;
-  email: string;
   roles: RoleSlug[];
 }
 
 function formFor(user: AdminUser): FormState {
-  return {
-    first_name: user.first_name,
-    last_name: user.last_name,
-    email: user.email,
-    roles: user.roles,
-  };
-}
-
-/** The names a save would leave blank, each with what the server refuses it with. */
-type NameErrors = Partial<Record<'first_name' | 'last_name', string>>;
-
-/** The complaints about `form`'s names: each left blank, as the server would refuse it. */
-function blankNames(form: FormState): NameErrors {
-  const errors: NameErrors = {};
-  if (form.first_name.trim() === '') errors.first_name = 'Enter a first name.';
-  if (form.last_name.trim() === '') errors.last_name = 'Enter a last name.';
-  return errors;
+  return { roles: user.roles };
 }
 
 /** Why the System administrator box is grayed out for anybody who is not one. */
@@ -87,7 +66,6 @@ function membershipFacts(user: AdminUserDetail): MembershipFacts {
     friendOn: user.friend_on,
     hasTerms: user.has_terms,
     hasSetAside: user.has_suspended_term,
-    nextStartsOn: user.next_term_starts_on,
   };
 }
 
@@ -95,7 +73,7 @@ function displayName(user: AdminUser): string {
   return `${user.first_name} ${user.last_name}`.trim() || user.email;
 }
 
-/** `/admin/users/:id` page: edit one account's names, email, and roles, and its status. */
+/** `/admin/users/:id` page: one account's names and email, its roles, and its status. */
 export function UserDetailPage(): JSX.Element {
   const { id = '' } = useParams();
   const query = useAdminUser(id);
@@ -108,17 +86,12 @@ export function UserDetailPage(): JSX.Element {
   const { user: me } = useAuth();
 
   const [form, setForm] = useState<FormState | null>(null);
-  const [emailError, setEmailError] = useState<string | null>(null);
-  const [nameErrors, setNameErrors] = useState<NameErrors>({});
   const user = query.data;
   const formRef = useRef<HTMLFormElement>(null);
   const refusal = useRefusedSubmit(formRef, update.error);
   useFocusAfterSave(formRef, update.isPending);
   // The server's complaint about a field goes once the field is edited.
   const serverErrors = useFreshErrors(update.error, form ?? {}, {
-    first_name: fieldError(update.error, 'first_name'),
-    last_name: fieldError(update.error, 'last_name'),
-    email: fieldError(update.error, 'email'),
     roles: fieldError(update.error, 'roles'),
   });
 
@@ -144,7 +117,7 @@ export function UserDetailPage(): JSX.Element {
         <EmptyState
           title="That account didn't load"
           description="It may have been deleted. Go back to the list and search again."
-          action={<Link to="/admin/users">Back to users</Link>}
+          action={<Link to="/admin/users">Back to Roles and status</Link>}
         />
       </Page>
     );
@@ -175,7 +148,7 @@ export function UserDetailPage(): JSX.Element {
       title={displayName(user)}
       tabTitle={`${displayName(user)} · User record`}
       lede={user.email}
-      actions={<Link to="/admin/users">Back to users</Link>}
+      actions={<Link to="/admin/users">Back to Roles and status</Link>}
     >
       <Card title="Membership">
         <div className="cluster">
@@ -188,126 +161,62 @@ export function UserDetailPage(): JSX.Element {
         </div>
         {isDonor ? (
           <p className="muted">
-            A donor gave through the public site and cannot sign in. Fix the email address here if a
-            receipt went astray.
+            A donor gave through the public site and cannot sign in. If a receipt went astray, an
+            account administrator corrects the email address on the member record.
           </p>
         ) : null}
       </Card>
 
-      <Card title="Account">
+      <Card title="Roles">
+        <p className="user-record__email">
+          <span className="muted">Email address: </span>
+          <EmailVerifiedText verifiedAt={user.email_verified_at} />{' '}
+          <BouncedDot bouncedAt={user.email_bounced_at} detail={user.email_bounce_detail} />
+        </p>
+        {user.email_verified || isDonor ? null : (
+          <div className="cluster user-record__resend">
+            <ResendVerificationButton
+              variant="secondary"
+              disabled={!user.is_active}
+              mutation={sendVerification}
+            />
+          </div>
+        )}
+        {user.email_bounced_at === null ? null : (
+          <div className="stack">
+            <div className="cluster">
+              <ConfirmButton
+                label="Clear bounce"
+                choices={[
+                  {
+                    label: 'Clear bounce',
+                    onChoose: () =>
+                      clearBounce
+                        .mutateAsync()
+                        .then(() => toast.show('Bounce cleared.', 'success')),
+                  },
+                ]}
+              >
+                <p>
+                  Clear this only once you know the address works, for instance after confirming it
+                  with them. The flag comes back if the next email to it bounces too.
+                </p>
+              </ConfirmButton>
+            </div>
+            <FormAlert error={clearBounce.error} />
+          </div>
+        )}
+
         <form
           ref={formRef}
           noValidate
           onSubmit={(event) => {
             event.preventDefault();
-            const missing = blankNames(form);
-            setNameErrors(missing);
-            const problem = emailProblem(form.email);
-            const isEmailBad = problem !== null;
-            setEmailError(problem);
-            if (isEmailBad || Object.keys(missing).length > 0) {
-              refusal.refuse();
-              return;
-            }
             update.mutate(form, {
               onSuccess: () => toast.show('Account saved.', 'success'),
             });
           }}
         >
-          <Field
-            label="First name"
-            required
-            error={nameErrors.first_name ?? serverErrors.first_name}
-          >
-            {(props) => (
-              <input
-                {...props}
-                type="text"
-                name="first_name"
-                autoComplete="given-name"
-                value={form.first_name}
-                onChange={(event) => {
-                  setForm({ ...form, first_name: event.target.value });
-                  setNameErrors(({ first_name: _cleared, ...rest }) => rest);
-                }}
-              />
-            )}
-          </Field>
-          <Field label="Last name" required error={nameErrors.last_name ?? serverErrors.last_name}>
-            {(props) => (
-              <input
-                {...props}
-                type="text"
-                name="last_name"
-                autoComplete="family-name"
-                value={form.last_name}
-                onChange={(event) => {
-                  setForm({ ...form, last_name: event.target.value });
-                  setNameErrors(({ last_name: _cleared, ...rest }) => rest);
-                }}
-              />
-            )}
-          </Field>
-          <Field
-            label="Email address"
-            error={emailError ?? serverErrors.email}
-            hint="This is also how they sign in."
-            status={
-              <>
-                <EmailVerifiedText verifiedAt={user.email_verified_at} />{' '}
-                <BouncedDot bouncedAt={user.email_bounced_at} detail={user.email_bounce_detail} />
-              </>
-            }
-          >
-            {(props) => (
-              <MaskedInput
-                {...props}
-                type="email"
-                name="email"
-                autoComplete="email"
-                mask={maskEmail}
-                value={form.email}
-                onValueChange={(next) => {
-                  setForm({ ...form, email: next });
-                  setEmailError(null);
-                }}
-              />
-            )}
-          </Field>
-          {user.email_verified || isDonor ? null : (
-            <div className="cluster user-record__resend">
-              <ResendVerificationButton
-                variant="secondary"
-                disabled={!user.is_active}
-                mutation={sendVerification}
-              />
-            </div>
-          )}
-          {user.email_bounced_at === null ? null : (
-            <div className="stack">
-              <div className="cluster">
-                <ConfirmButton
-                  label="Clear bounce"
-                  choices={[
-                    {
-                      label: 'Clear bounce',
-                      onChoose: () =>
-                        clearBounce
-                          .mutateAsync()
-                          .then(() => toast.show('Bounce cleared.', 'success')),
-                    },
-                  ]}
-                >
-                  <p>
-                    Clear this only once you know the address works, for instance after confirming
-                    it with them. The flag comes back if the next email to it bounces too.
-                  </p>
-                </ConfirmButton>
-              </div>
-              <FormAlert error={clearBounce.error} />
-            </div>
-          )}
-
           <fieldset>
             <legend>Roles</legend>
             {roles.isPending ? <p className="muted">Loading roles…</p> : null}
@@ -343,7 +252,7 @@ export function UserDetailPage(): JSX.Element {
             ) : null}
           </fieldset>
 
-          <FormAlert error={update.error} handled={['first_name', 'last_name', 'email', 'roles']} />
+          <FormAlert error={update.error} handled={['roles']} />
 
           <div className="cluster">
             <Button type="submit" disabled={update.isPending}>
@@ -355,7 +264,6 @@ export function UserDetailPage(): JSX.Element {
                 // Starting again from the stored account drops what the server said
                 // about the edits being thrown away.
                 setForm(formFor(user));
-                setEmailError(null);
                 update.reset();
               }}
             >

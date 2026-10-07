@@ -88,6 +88,11 @@ urlpatterns = [
     path("bulk-email/<int:pk>/batch", batch.BatchView.as_view(), name="batch"),
     path("bulk-email/<int:pk>/batch.csv", batch.BatchCsvView.as_view(), name="batch-csv"),
     path("bulk-email/<int:pk>/batch/add", batch.BatchAddView.as_view(), name="batch-add"),
+    path(
+        "bulk-email/<int:pk>/batch/matches",
+        batch.BatchMatchesView.as_view(),
+        name="batch-matches",
+    ),
     path("bulk-email/<int:pk>/batch/<int:rid>", batch.BatchRowView.as_view(), name="batch-row"),
     path(
         "bulk-email/<int:pk>/batch/add-group", groups.AddGroupView.as_view(), name="batch-add-group"

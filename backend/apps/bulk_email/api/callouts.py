@@ -89,8 +89,8 @@ class CalloutRecipientSerializer(serializers.Serializer[CalloutRow]):
 class CalloutSummarySerializer(serializers.ModelSerializer[BulkEmail]):
     """One callout as the Callouts list shows it.
 
-    ``subject`` reads as the sender's own copy would, its recipient fields filled in
-    with the sender's values (``apps.bulk_email.callouts.display_subject``).
+    ``subject`` is the subject as written, its recipient field tokens such as
+    ``{first_name}`` left in, since the list is about the callout rather than one copy.
     ``sender`` is the sender's display name, blank once the account is gone, and
     ``dart_name`` the DART a DART leader's callout went to, blank for CalDART
     management's.  ``closes_at`` is when answers close, ``closed_at`` when **Close now**
@@ -98,7 +98,6 @@ class CalloutSummarySerializer(serializers.ModelSerializer[BulkEmail]):
     ``counts`` counts the people it reached by answer.
     """
 
-    subject = serializers.SerializerMethodField()
     sender = serializers.SerializerMethodField()
     dart_name = serializers.SerializerMethodField()
     closes_at = serializers.SerializerMethodField()
@@ -122,10 +121,6 @@ class CalloutSummarySerializer(serializers.ModelSerializer[BulkEmail]):
             "counts",
         ]
         read_only_fields = fields
-
-    def get_subject(self, bulk: BulkEmail) -> str:
-        """The subject with the sender's own values filled in."""
-        return callouts.display_subject(bulk)
 
     def get_sender(self, bulk: BulkEmail) -> str:
         """The sender's display name, or ``""`` once the account is gone."""

@@ -232,7 +232,7 @@ export const MEMBERSHIP_STATUS_LABELS: Record<MembershipState, string> = {
   current: 'Current',
   expired: 'Expired',
   friend: 'Friend',
-  none: 'No membership yet',
+  none: 'Not yet paid',
   donor: 'Donor',
 };
 

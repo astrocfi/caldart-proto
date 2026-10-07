@@ -25,8 +25,7 @@ from apps.accounts.roles import (
     USER_ADMIN,
     VERIFIER,
 )
-from apps.aircraft.models import Aircraft
-from apps.aircraft.reports import AIRCRAFT_REPORT
+from apps.aircraft.reports import AIRCRAFT_REPORT, RegisterRow
 from apps.darts.models import Dart
 from apps.members.models import MembershipPlan
 from apps.members.reports import MEMBER_REPORT, RowContext
@@ -257,9 +256,9 @@ def test_the_members_report_names_the_filters_it_applied(roster: list[User]) -> 
     assert query.filters == {"dart": "Napa", "ordering": "-name"}
 
 
-def n_numbers(rows: list[Aircraft]) -> list[str]:
+def n_numbers(rows: list[RegisterRow]) -> list[str]:
     """The registrations of ``rows``, in order."""
-    return [aircraft.n_number for aircraft in rows]
+    return [row.aircraft.n_number for row in rows]
 
 
 @pytest.mark.parametrize(

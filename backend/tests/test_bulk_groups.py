@@ -1,4 +1,4 @@
-"""Saved recipient groups: fixed and live, added to a batch, and saved from a batch.
+"""Saved recipient groups: fixed and live, added to a batch, and saved from a search.
 
 A fixed group holds its accounts unchanged until somebody adds or removes one; a live
 group holds filter sets that run afresh on each use.  Adding a group to a batch merges
@@ -25,8 +25,7 @@ from apps.bulk_email.models import (
     RecipientGroup,
     RecipientStatus,
 )
-from apps.bulk_email.templates import duplicate
-from caldart.exceptions import DomainError, DomainValidationError
+from caldart.exceptions import DomainError
 from tests.conftest import audit_messages, read_csv, role_matrix
 from tests.factories import (
     BulkEmailFactory,
@@ -271,96 +270,96 @@ def test_renaming_a_group_leaves_the_name_its_adds_were_made_under(
 
 
 # --------------------------------------------------------------------------
-# Saving a batch as a group
+# Saving a search as a group
 # --------------------------------------------------------------------------
-def test_saving_a_batch_as_a_fixed_group_keeps_its_accounts(
+def save_url(bulk: BulkEmail) -> str:
+    """``/api/v1/bulk-email/{id}/save-group`` for ``bulk``."""
+    return f"/api/v1/bulk-email/{bulk.pk}/save-group"
+
+
+def test_saving_a_search_as_a_fixed_group_keeps_the_people_it_matches(
     management_client: APIClient, bulk: BulkEmail, ann: User, bob: User
 ) -> None:
-    """A fixed group holds everybody in the batch, skipped or not."""
+    """A fixed group holds everybody the filters match, skipped or not."""
     bob.is_active = False
     bob.save()
-    add_to_batch(bulk, ann, bob)
     response = management_client.post(
-        f"/api/v1/bulk-email/{bulk.pk}/save-group",
-        {"name": "Hangar crew", "kind": "fixed"},
+        save_url(bulk),
+        {"name": "Hangar crew", "kind": "fixed", "filters": FRIENDS_IN_MARIN},
         format="json",
     )
     assert response.status_code == 201
     assert (response.json()["kind"], response.json()["count"]) == ("fixed", 2)
 
 
-def test_saving_a_batch_as_a_live_group_keeps_its_filters(
-    bulk: BulkEmail, management: User, ann: User
-) -> None:
-    """A live group holds each add's filters once, in the order they were added."""
-    batch.add_filters(bulk, FRIENDS_IN_MARIN, actor=management)
-    batch.add_filters(bulk, NAPA, actor=management)
-    batch.add_filters(bulk, FRIENDS_IN_MARIN, actor=management)
-    group = groups.save_group(bulk, name="Mixed", kind=GroupKind.LIVE, actor=management)
-    assert [filter_set.filters for filter_set in group.filter_sets.all()] == [
-        FRIENDS_IN_MARIN,
-        NAPA,
-    ]
-
-
-def test_saving_a_live_group_takes_in_the_filters_of_a_live_group_added(
-    bulk: BulkEmail, management: User, ann: User, marin_friends: RecipientGroup
-) -> None:
-    """A live group added to the batch contributes its own filter sets."""
-    groups.add_group(bulk, marin_friends, actor=management)
-    batch.add_filters(bulk, NAPA, actor=management)
-    group = groups.save_group(bulk, name="Mixed", kind=GroupKind.LIVE, actor=management)
-    assert [filter_set.filters for filter_set in group.filter_sets.all()] == [
-        FRIENDS_IN_MARIN,
-        NAPA,
-    ]
-
-
-def test_a_batch_with_a_fixed_group_cannot_be_saved_as_a_live_group(
-    management_client: APIClient, bulk: BulkEmail, management: User, board: RecipientGroup
-) -> None:
-    """A fixed group's people have no filters to keep: 400 keyed ``batch``."""
-    groups.add_group(bulk, board, actor=management)
-    response = management_client.post(
-        f"/api/v1/bulk-email/{bulk.pk}/save-group",
-        {"name": "Mixed", "kind": "live"},
-        format="json",
-    )
-    assert response.status_code == 400
-    assert response.json() == {"batch": [groups.NO_FILTERS_MESSAGE]}
-
-
-def test_a_batch_copied_from_another_email_cannot_be_saved_as_a_live_group(
-    management: User, ann: User
-) -> None:
-    """People copied by **Duplicate** have no filters behind them."""
-    original = BulkEmailFactory(sender=management)
-    add_to_batch(original, ann)
-    copy = duplicate(original, actor=management, copy_recipients=True)
-    with pytest.raises(DomainValidationError, match="no filters to save"):
-        groups.save_group(copy, name="Copy", kind=GroupKind.LIVE, actor=management)
-
-
-def test_an_empty_batch_cannot_be_saved_as_a_group(
+def test_saving_a_search_as_a_live_group_keeps_its_filters(
     management_client: APIClient, bulk: BulkEmail
 ) -> None:
-    """There is nobody to save: 400 keyed ``batch``."""
+    """A live group holds the search's filters, blank ones dropped, as one filter set."""
     response = management_client.post(
-        f"/api/v1/bulk-email/{bulk.pk}/save-group",
-        {"name": "Nobody", "kind": "fixed"},
+        save_url(bulk),
+        {"name": "Marin", "kind": "live", "filters": {**FRIENDS_IN_MARIN, "search": ""}},
+        format="json",
+    )
+    group = RecipientGroup.objects.get(pk=response.json()["id"])
+    assert [filter_set.filters for filter_set in group.filter_sets.all()] == [FRIENDS_IN_MARIN]
+
+
+def test_saving_a_search_leaves_the_batch_out(
+    bulk: BulkEmail, management: User, ann: User, board: RecipientGroup
+) -> None:
+    """A batch built from a fixed group still saves a live group from the search."""
+    groups.add_group(bulk, board, actor=management)
+    group = groups.save_group(
+        bulk, name="Napa", kind=GroupKind.LIVE, filters=NAPA, actor=management
+    )
+    assert [filter_set.filters for filter_set in group.filter_sets.all()] == [NAPA]
+
+
+def test_a_fixed_group_from_a_search_ignores_who_is_in_the_batch(
+    bulk: BulkEmail, management: User, ann: User, bob: User
+) -> None:
+    """Only the people the search matches are kept, not the batch's."""
+    add_to_batch(bulk, bob)
+    group = groups.save_group(
+        bulk,
+        name="Ann",
+        kind=GroupKind.FIXED,
+        filters={"search": "ann@example.test"},
+        actor=management,
+    )
+    assert emails(groups.group_accounts(group)) == ["ann@example.test"]
+
+
+def test_a_search_matching_nobody_still_saves(
+    management_client: APIClient, bulk: BulkEmail
+) -> None:
+    """Saving is always possible: an empty search saves an empty group."""
+    response = management_client.post(
+        save_url(bulk), {"name": "Nobody", "kind": "fixed", "filters": NAPA}, format="json"
+    )
+    assert (response.status_code, response.json()["count"]) == (201, 0)
+
+
+def test_a_search_the_member_list_refuses_is_not_saved(
+    management_client: APIClient, bulk: BulkEmail
+) -> None:
+    """A filter the list does not know is a 400 keyed ``filters``; no group is made."""
+    response = management_client.post(
+        save_url(bulk),
+        {"name": "Odd", "kind": "live", "filters": {"county": "Atlantis"}},
         format="json",
     )
     assert response.status_code == 400
-    assert response.json() == {"batch": [groups.EMPTY_BATCH_MESSAGE]}
+    assert list(response.json()["filters"]) == ["county"]
 
 
 def test_a_group_name_is_unique_ignoring_case(
     management_client: APIClient, bulk: BulkEmail, ann: User, board: RecipientGroup
 ) -> None:
     """Saving under a name another group has is refused."""
-    add_to_batch(bulk, ann)
     response = management_client.post(
-        f"/api/v1/bulk-email/{bulk.pk}/save-group",
+        save_url(bulk),
         {"name": "board", "kind": "fixed"},
         format="json",
     )
@@ -688,20 +687,6 @@ def test_a_live_group_refuses_a_filter_set_it_has_already(
     assert response.json() == {"filters": [groups.SAME_FILTERS_MESSAGE]}
 
 
-def test_a_batch_from_a_deleted_group_cannot_be_saved_as_a_live_group(
-    bulk: BulkEmail, management: User, ann: User, marin_friends: RecipientGroup
-) -> None:
-    """The refusal says the group was deleted, so its filters are gone."""
-    groups.add_group(bulk, marin_friends, actor=management)
-    marin_friends.delete()
-    with pytest.raises(DomainValidationError) as refused:
-        groups.save_group(bulk, name="Again", kind=GroupKind.LIVE, actor=management)
-    assert refused.value.message == (
-        'The group "Marin friends" was deleted, so its filters are gone. '
-        "Save this recipient list as a fixed group instead."
-    )
-
-
 # --------------------------------------------------------------------------
 # Who may
 # --------------------------------------------------------------------------
@@ -829,20 +814,19 @@ def test_making_a_group_writes_one_audit_line(
     ]
 
 
-def test_saving_a_batch_as_a_group_writes_one_audit_line(
+def test_saving_a_search_as_a_group_writes_one_audit_line(
     management_client: APIClient,
     management: User,
     bulk: BulkEmail,
     ann: User,
     audit_log: pytest.LogCaptureFixture,
 ) -> None:
-    """A group saved from a batch is audited as made, like one made empty."""
-    add_to_batch(bulk, ann)
+    """A group saved from a search is audited as made, like one made empty."""
     audit_log.clear()
 
     response = management_client.post(
-        f"/api/v1/bulk-email/{bulk.pk}/save-group",
-        {"name": "Hangar crew", "kind": "fixed"},
+        save_url(bulk),
+        {"name": "Hangar crew", "kind": "fixed", "filters": FRIENDS_IN_MARIN},
         format="json",
     )
 

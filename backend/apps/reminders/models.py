@@ -102,8 +102,8 @@ class ReminderSchedule(models.Model):
     ``second_days_before`` and ``final_days_before`` whole days ahead of a term's
     ``ends_on``, the ``expired`` stage on the day itself, and the ``lapsed`` stage
     ``lapsed_days_after`` days after it.  A system administrator edits the row on the
-    Scheduled page; :func:`schedule_errors` states the rules a schedule keeps.  There
-    is only ever one row, with primary key 1: :meth:`load` reads it.
+    Scheduled tasks page; :func:`schedule_errors` states the rules a schedule keeps.
+    There is only ever one row, with primary key 1: :meth:`load` reads it.
     """
 
     first_days_before = models.PositiveSmallIntegerField(default=DEFAULT_FIRST_DAYS_BEFORE)

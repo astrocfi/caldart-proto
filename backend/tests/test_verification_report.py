@@ -1,11 +1,11 @@
-"""The CalDART verification report: what a verifier still has to check, item by item.
+"""The CalDART verification report: what a verifier still has to check.
 
-The report has four sections, pilot certificates, medicals, photo IDs, and aircraft
-insurance, each present even when it has no rows.  A person is listed once in each of
-the first three for an item they hold, an aircraft in the fourth once when it has a
-policy on file, and ``?status=`` chooses whether the unverified items (the default),
-the verified ones, or all of them are listed.  Every verifying role reads it, and a
-subscription can send it to any of them.
+The report has two sections, People and Aircraft insurance, each present even when it
+has no rows.  A person is listed once under People, with a check column for each of
+their photo ID, certificate, and medical, and an aircraft once under Aircraft insurance
+when it has a policy on file.  ``?status=`` chooses whether the rows with something
+unverified (the default), the fully verified ones, or all of them are listed.  Every
+verifying role reads it, and a subscription can send it to any of them.
 """
 
 from __future__ import annotations
@@ -53,8 +53,8 @@ CSV_URL = "/api/v1/reports/verification/export.csv"
 PDF_URL = "/api/v1/reports/verification/export.pdf"
 SUBSCRIPTIONS_URL = "/api/v1/reports/subscriptions"
 
-#: The four sections, in the order the report draws them.
-SECTION_TITLES = ["Pilot certificates", "Medicals", "Photo IDs", "Aircraft insurance"]
+#: The two sections, in the order the report draws them.
+SECTION_TITLES = ["People", "Aircraft insurance"]
 
 #: The day the report is built on in the table tests.
 TODAY = date(2026, 9, 26)
@@ -140,12 +140,16 @@ def test_an_empty_section_says_there_is_nothing_to_show() -> None:
 
 
 def test_every_column_is_registered_in_export_order() -> None:
-    """The eight columns, Section first."""
+    """Twelve columns, Section first; the checks run Photo ID, Certificate, Medical."""
     assert [(column.key, column.label) for column in VERIFICATION_REPORT_COLUMNS] == [
         ("section", "Section"),
         ("name", "Name"),
         ("dart", "DART or owner"),
+        ("photo_id", "Photo ID"),
+        ("certificate", "Certificate"),
+        ("medical", "Medical"),
         ("details", "Details"),
+        ("expires", "Expires"),
         ("updated", "Updated"),
         ("verified", "Verified"),
         ("verified_by", "Verified by"),
@@ -154,27 +158,95 @@ def test_every_column_is_registered_in_export_order() -> None:
 
 
 def test_the_default_columns_leave_out_the_stamp() -> None:
-    """Choosing no columns prints Section, Name, DART or owner, Details, and Updated.
+    """Choosing no columns prints everything but the three verification stamp columns.
 
-    The verified columns are always *No* and blank in the default list of items nobody
-    has checked.
+    The check columns already say which items are verified, and the stamp columns are
+    always *No* and blank in the default list of what requires validation.
     """
     chosen = select_columns(VERIFICATION_REPORT_COLUMNS, None)
-    assert [column.key for column in chosen] == ["section", "name", "dart", "details", "updated"]
+    assert [column.key for column in chosen] == [
+        "section",
+        "name",
+        "dart",
+        "photo_id",
+        "certificate",
+        "medical",
+        "details",
+        "expires",
+        "updated",
+    ]
 
 
 def test_the_default_csv_keeps_each_row_s_section() -> None:
     """A flat CSV has no headings, so its first column says which section a row is in."""
     person()
     table = VERIFICATION_REPORT.table({}, fmt="csv", today=TODAY)
-    assert table.header == ["Section", "Name", "DART or owner", "Details", "Updated"]
+    assert table.header[0] == "Section"
 
 
 def test_the_default_pdf_leaves_the_section_to_its_headings() -> None:
     """Each PDF section is headed by its title, so the column would only repeat it."""
     person()
     table = VERIFICATION_REPORT.table({}, fmt="pdf", today=TODAY)
-    assert table.header == ["Name", "DART or owner", "Details", "Updated"]
+    assert table.header == [
+        "Name",
+        "DART or owner",
+        "Photo ID",
+        "Certificate",
+        "Medical",
+        "Details",
+        "Expires",
+        "Updated",
+    ]
+
+
+#: The People section's PDF header row for the default columns.
+PEOPLE_PDF_HEADER = [
+    "Name",
+    "DART",
+    "Photo ID",
+    "Certificate",
+    "Medical",
+    "Details",
+    "Expires",
+    "Updated",
+]
+
+#: The Aircraft insurance section's PDF header row for the default columns.
+INSURANCE_PDF_HEADER = ["N-number", "Owner", "Carrier", "Expires", "Updated"]
+
+
+def pdf_section_headers(params: Params | None = None) -> list[list[str] | None]:
+    """Each section's own PDF header row for ``params``, in section order."""
+    table = VERIFICATION_REPORT.table(params or {}, fmt="pdf", today=TODAY)
+    return [section.header for section in table.sections]
+
+
+def test_the_pdf_heads_people_with_the_three_checks() -> None:
+    """People draws its checks, and calls its DART column DART."""
+    assert pdf_section_headers()[0] == PEOPLE_PDF_HEADER
+
+
+def test_the_pdf_heads_aircraft_insurance_without_check_columns() -> None:
+    """Aircraft insurance draws the owner and carrier, and no check column."""
+    assert pdf_section_headers()[1] == INSURANCE_PDF_HEADER
+
+
+def test_a_column_the_chooser_hides_is_hidden_in_both_sections() -> None:
+    """Leaving Expires out of the columns leaves it out of each section's header."""
+    columns = "name,dart,photo_id,details,updated"
+    assert pdf_section_headers({"columns": columns}) == [
+        ["Name", "DART", "Photo ID", "Details", "Updated"],
+        ["N-number", "Owner", "Carrier", "Updated"],
+    ]
+
+
+def test_a_chosen_stamp_column_is_drawn_in_both_sections() -> None:
+    """Verified on applies to a person and to an aircraft alike."""
+    assert pdf_section_headers({"columns": "name,verified_on"}) == [
+        ["Name", "Verified on"],
+        ["N-number", "Verified on"],
+    ]
 
 
 def test_a_pdf_that_asks_for_the_section_column_prints_it() -> None:
@@ -199,18 +271,20 @@ def test_the_registry_lists_the_report_right_after_the_roles_report() -> None:
 # Rows and sections
 # --------------------------------------------------------------------------
 def test_every_section_is_drawn_even_with_nothing_in_it() -> None:
-    """The four sections, in order, with no rows at all."""
+    """The two sections, in order, with no rows at all."""
     assert section_titles() == SECTION_TITLES
 
 
-def test_an_unverified_person_is_listed_once_in_each_person_section() -> None:
-    """A member with nothing verified is under certificates, medicals, and photo IDs."""
+def test_an_unverified_person_is_listed_once_under_people() -> None:
+    """A member with nothing verified has one row, under People."""
     person("Pat", "Doe")
-    assert pairs(rows_for()) == [
-        ("Pilot certificates", "Pat Doe"),
-        ("Medicals", "Pat Doe"),
-        ("Photo IDs", "Pat Doe"),
-    ]
+    assert pairs(rows_for()) == [("People", "Pat Doe")]
+
+
+def test_a_person_s_check_columns_say_each_item_needs_validating() -> None:
+    """Photo ID, Certificate, and Medical, in that order, each read *Not verified*."""
+    person("Pat", "Doe")
+    assert cells("People", "Pat Doe")[1:4] == ["Not verified"] * 3
 
 
 def test_an_aircraft_with_unverified_insurance_is_listed_by_n_number() -> None:
@@ -219,34 +293,47 @@ def test_an_aircraft_with_unverified_insurance_is_listed_by_n_number() -> None:
     assert pairs(rows_for()) == [("Aircraft insurance", "N123AB")]
 
 
-def test_a_verified_item_is_left_out_by_default(dart_leader: User) -> None:
-    """With no ``status``, only the items still to verify are listed."""
+def test_a_partly_verified_person_is_listed_by_default(dart_leader: User) -> None:
+    """With no ``status``, a person with one item still to verify is listed."""
     profile = person("Pat", "Doe")
     profile.medical_verified_at = STAMP
     profile.medical_verified_by = dart_leader
     profile.save()
-    assert pairs(rows_for()) == [("Pilot certificates", "Pat Doe"), ("Photo IDs", "Pat Doe")]
+    assert pairs(rows_for()) == [("People", "Pat Doe")]
 
 
-def test_status_verified_lists_the_verified_items_alone() -> None:
-    """``?status=verified`` keeps the verified medical and nothing else."""
+def test_a_partly_verified_person_s_checks_say_which_item_is_verified() -> None:
+    """The verified medical reads *Verified*, the other two *Not verified*."""
     profile = person("Pat", "Doe")
     profile.medical_verified_at = STAMP
     profile.save()
+    assert cells("People", "Pat Doe")[1:4] == ["Not verified", "Not verified", "Verified"]
+
+
+def test_a_fully_verified_person_is_left_out_by_default(dart_leader: User) -> None:
+    """Nothing of theirs requires validation, so the default list leaves them out."""
+    verify_all(person("Pat", "Doe"), dart_leader)
+    assert rows_for() == []
+
+
+def test_status_verified_lists_the_fully_verified_alone(dart_leader: User) -> None:
+    """``?status=verified`` keeps a person with every item verified, and nobody else."""
+    verify_all(person("Ann", "Abe"), dart_leader)
+    partly = person("Bea", "Abe")
+    partly.medical_verified_at = STAMP
+    partly.save()
     AircraftFactory(n_number="N123AB")
-    assert pairs(rows_for({"status": "verified"})) == [("Medicals", "Pat Doe")]
+    assert pairs(rows_for({"status": "verified"})) == [("People", "Ann Abe")]
 
 
-def test_status_all_lists_every_item() -> None:
-    """``?status=all`` lists verified and unverified items alike."""
+def test_status_all_lists_every_row() -> None:
+    """``?status=all`` lists verified and unverified rows alike."""
     profile = person("Pat", "Doe")
     profile.medical_verified_at = STAMP
     profile.save()
     AircraftFactory(n_number="N123AB", insurance_verified_at=STAMP)
     assert pairs(rows_for({"status": "all"})) == [
-        ("Pilot certificates", "Pat Doe"),
-        ("Medicals", "Pat Doe"),
-        ("Photo IDs", "Pat Doe"),
+        ("People", "Pat Doe"),
         ("Aircraft insurance", "N123AB"),
     ]
 
@@ -263,7 +350,7 @@ def test_a_friend_is_listed() -> None:
         email="fr@example.test", first_name="Fay", last_name="Ng", kind=AccountKind.FRIEND
     )
     MemberProfileFactory(user=friend)
-    assert [name for _section, name in pairs(rows_for())] == ["Fay Ng"] * 3
+    assert pairs(rows_for()) == [("People", "Fay Ng")]
 
 
 @pytest.mark.parametrize(
@@ -290,11 +377,11 @@ def test_an_aircraft_out_of_service_is_not_listed() -> None:
 
 
 def test_people_are_ordered_by_last_name_first_name_then_email() -> None:
-    """Within a section, surname, then forename, then address settles the order."""
+    """Under People, surname, then forename, then address settles the order."""
     person("Ann", "Zed")
     person("Bea", "Abe")
     person("Ann", "Abe")
-    names = [row.name for row in rows_for() if row.section == "Medicals"]
+    names = [row.name for row in rows_for()]
     assert names == ["Ann Abe", "Bea Abe", "Ann Zed"]
 
 
@@ -308,15 +395,28 @@ def test_aircraft_are_ordered_by_n_number() -> None:
 # --------------------------------------------------------------------------
 # Cells
 # --------------------------------------------------------------------------
-def test_a_certificate_reads_its_type_and_number() -> None:
-    """DART, *Private \u00b7 1234567*, the day the profile was made, and not verified."""
+def test_a_person_s_row_reads_the_checks_the_details_and_the_expiry() -> None:
+    """DART, the three checks, the details, the medical's expiry, and the day it changed.
+
+    The details name the photo ID, the certificate and its number, and the medical,
+    in the order of the check columns; the expiry is a column of its own.
+    """
     profile = person(
-        pilot_certificate_type=PilotCertificateType.PRIVATE, certificate_number="1234567"
+        photo_id_type=PhotoIdType.PASSPORT,
+        pilot_certificate_type=PilotCertificateType.PRIVATE,
+        certificate_number="1234567",
+        medical_type=MedicalType.THIRD,
+        medical_expiration=date(2027, 3, 1),
+        profile_updated_at=None,
     )
     MemberProfile.objects.filter(pk=profile.pk).update(created_at=STAMP)
-    assert cells("Pilot certificates", "Pat Doe") == [
+    assert cells("People", "Pat Doe") == [
         "Palo Alto",
-        "Private \u00b7 1234567",
+        "Not verified",
+        "Not verified",
+        "Not verified",
+        "Passport \u00b7 Private \u00b7 1234567 \u00b7 Third class",
+        "03/01/2027",
         "09/20/2026",
         "No",
         "",
@@ -325,59 +425,77 @@ def test_a_certificate_reads_its_type_and_number() -> None:
 
 
 def test_a_certificate_with_no_number_reads_its_type_alone() -> None:
-    """An empty certificate number leaves the type on its own."""
+    """An empty certificate number leaves the type on its own in the details."""
     person(pilot_certificate_type=PilotCertificateType.PRIVATE, certificate_number="")
-    assert cells("Pilot certificates", "Pat Doe")[1] == "Private"
-
-
-def test_a_medical_reads_its_class_and_expiration() -> None:
-    """*Third class \u00b7 expires 03/01/2027*."""
-    person(medical_type=MedicalType.THIRD, medical_expiration=date(2027, 3, 1))
-    assert cells("Medicals", "Pat Doe")[1] == "Third class \u00b7 expires 03/01/2027"
+    assert cells("People", "Pat Doe")[4] == "Driver's license \u00b7 Private \u00b7 Third class"
 
 
 @pytest.mark.parametrize("status", ["unverified", "all"])
-def test_a_person_without_a_medical_is_not_listed_under_medicals(status: str) -> None:
-    """With no medical there is nothing to verify, whatever the status asked for."""
+def test_a_person_without_a_medical_reads_not_provided_in_the_medical_check(
+    status: str,
+) -> None:
+    """With no medical there is nothing to verify: the Medical check says so."""
     person(medical_type=MedicalType.NONE, medical_expiration=None)
-    assert pairs(rows_for({"status": status})) == [
-        ("Pilot certificates", "Pat Doe"),
-        ("Photo IDs", "Pat Doe"),
+    assert cells("People", "Pat Doe", {"status": status})[1:4] == [
+        "Not verified",
+        "Not verified",
+        "Not provided",
     ]
 
 
-def test_a_non_pilot_is_not_listed_under_pilot_certificates() -> None:
+def test_a_person_without_a_medical_has_no_expiry() -> None:
+    """The Expires cell is the medical's, so it is blank without one."""
+    person(medical_type=MedicalType.NONE, medical_expiration=None)
+    assert cells("People", "Pat Doe")[5] == ""
+
+
+def test_a_non_pilot_reads_not_provided_in_the_certificate_check() -> None:
     """*Not a pilot* holds no certificate to verify."""
     person(pilot_certificate_type=PilotCertificateType.NONE, certificate_number="")
-    assert [section for section, _name in pairs(rows_for())] == ["Medicals", "Photo IDs"]
+    assert cells("People", "Pat Doe")[1:4] == ["Not verified", "Not provided", "Not verified"]
 
 
-def test_a_person_without_a_photo_id_is_not_listed_under_photo_ids() -> None:
+def test_a_person_without_a_photo_id_reads_not_provided_in_the_photo_id_check() -> None:
     """A photo ID of *Not provided* is no document a verifier could check."""
     person(photo_id_type=PhotoIdType.NOT_PROVIDED)
-    assert [section for section, _name in pairs(rows_for())] == [
-        "Pilot certificates",
-        "Medicals",
-    ]
+    assert cells("People", "Pat Doe")[1:4] == ["Not provided", "Not verified", "Not verified"]
 
 
-def test_a_photo_id_reads_its_kind() -> None:
-    """Only the kind of document is recorded, and only it is printed."""
-    person(photo_id_type=PhotoIdType.PASSPORT)
-    assert cells("Photo IDs", "Pat Doe")[1] == "Passport"
+def test_a_person_who_holds_nothing_is_not_listed() -> None:
+    """No certificate, no medical, and no photo ID leave nothing to verify."""
+    person(
+        pilot_certificate_type=PilotCertificateType.NONE,
+        certificate_number="",
+        medical_type=MedicalType.NONE,
+        medical_expiration=None,
+        photo_id_type=PhotoIdType.NOT_PROVIDED,
+    )
+    assert rows_for({"status": "all"}) == []
 
 
-def test_insurance_reads_the_owner_the_carrier_and_the_expiration() -> None:
-    """The DART column carries the owner; the details the carrier and the expiration."""
+def test_an_unheld_item_s_stamp_does_not_make_a_person_verified() -> None:
+    """A stamp on a medical of *None* counts for nothing, as on the member check."""
+    profile = person(medical_type=MedicalType.NONE, medical_expiration=None)
+    profile.medical_verified_at = STAMP
+    profile.save()
+    assert pairs(rows_for()) == [("People", "Pat Doe")]
+
+
+def test_insurance_reads_the_owner_the_carrier_and_the_expiry() -> None:
+    """The DART column carries the owner, the checks are blank, then carrier, expiry."""
     AircraftFactory(
         n_number="N123AB",
         owner_name="Sky Club",
         insurance_carrier="Avemco",
         insurance_expiration=date(2027, 3, 1),
     )
-    assert cells("Aircraft insurance", "N123AB")[:2] == [
+    assert cells("Aircraft insurance", "N123AB")[:6] == [
         "Sky Club",
-        "Avemco \u00b7 expires 03/01/2027",
+        "",
+        "",
+        "",
+        "Avemco",
+        "03/01/2027",
     ]
 
 
@@ -390,28 +508,41 @@ def test_an_aircraft_with_no_policy_on_file_is_not_listed() -> None:
 def test_a_person_s_updated_cell_is_when_the_profile_was_last_written() -> None:
     """``profile_updated_at`` printed as ``MM/DD/YYYY``."""
     person(profile_updated_at=STAMP)
-    assert cells("Photo IDs", "Pat Doe")[2] == "09/20/2026"
+    assert cells("People", "Pat Doe")[6] == "09/20/2026"
 
 
 def test_a_person_nobody_has_edited_is_updated_when_the_profile_was_made() -> None:
     """A profile with no ``profile_updated_at`` dates its items from its creation."""
     profile = person(profile_updated_at=None)
     MemberProfile.objects.filter(pk=profile.pk).update(created_at=STAMP)
-    assert cells("Photo IDs", "Pat Doe")[2] == "09/20/2026"
+    assert cells("People", "Pat Doe")[6] == "09/20/2026"
 
 
 def test_an_aircraft_s_updated_cell_is_when_the_record_was_last_written() -> None:
     """The aircraft's ``updated_at`` printed as ``MM/DD/YYYY``."""
     aircraft = AircraftFactory(n_number="N123AB")
     Aircraft.objects.filter(pk=aircraft.pk).update(updated_at=STAMP)
-    assert cells("Aircraft insurance", "N123AB")[2] == "09/20/2026"
+    assert cells("Aircraft insurance", "N123AB")[6] == "09/20/2026"
 
 
-def test_a_verified_item_names_who_verified_it_and_when(dart_leader: User) -> None:
+def test_a_verified_person_names_who_verified_them_and_when(dart_leader: User) -> None:
     """Verified *Yes*, the verifier's name, and the local day of the stamp."""
     verify_all(person(), dart_leader)
-    row = cells("Medicals", "Pat Doe", {"status": "verified"})
-    assert row[3:] == ["Yes", "Jordan Keel", "09/20/2026"]
+    row = cells("People", "Pat Doe", {"status": "verified"})
+    assert row[7:] == ["Yes", "Jordan Keel", "09/20/2026"]
+
+
+def test_a_partly_verified_person_names_the_latest_verification(
+    dart_leader: User, verifier: User
+) -> None:
+    """Verified *No*, with the verifier and the day of the most recent item verified."""
+    profile = person()
+    profile.photo_id_verified_at = datetime(2026, 9, 1, 19, 0, tzinfo=UTC)
+    profile.photo_id_verified_by = verifier
+    profile.medical_verified_at = STAMP
+    profile.medical_verified_by = dart_leader
+    profile.save()
+    assert cells("People", "Pat Doe")[7:] == ["No", "Jordan Keel", "09/20/2026"]
 
 
 def test_verified_insurance_names_who_verified_it_and_when(dart_leader: User) -> None:
@@ -420,22 +551,24 @@ def test_verified_insurance_names_who_verified_it_and_when(dart_leader: User) ->
         n_number="N123AB", insurance_verified_at=STAMP, insurance_verified_by=dart_leader
     )
     row = cells("Aircraft insurance", "N123AB", {"status": "verified"})
-    assert row[3:] == ["Yes", "Jordan Keel", "09/20/2026"]
+    assert row[7:] == ["Yes", "Jordan Keel", "09/20/2026"]
 
 
-def test_an_item_whose_verifier_is_gone_still_reads_verified() -> None:
+def test_a_person_whose_verifier_is_gone_still_reads_verified() -> None:
     """A deleted verifier's account leaves the stamp and a blank name."""
     profile = person()
-    profile.photo_id_verified_at = STAMP
+    for slug in ("certificate", "medical", "photo_id"):
+        setattr(profile, f"{slug}_verified_at", STAMP)
     profile.save()
-    assert cells("Photo IDs", "Pat Doe", {"status": "verified"})[3:] == ["Yes", "", "09/20/2026"]
+    assert cells("People", "Pat Doe", {"status": "verified"})[7:] == ["Yes", "", "09/20/2026"]
 
 
 def test_the_section_cell_carries_the_section() -> None:
     """The flat CSV keeps each row's section in its first cell."""
     person()
+    AircraftFactory(n_number="N123AB")
     table = VERIFICATION_REPORT.table({"columns": ALL_COLUMNS}, fmt="csv", today=TODAY)
-    assert [row[0] for row in table.rows] == SECTION_TITLES[:3]
+    assert [row[0] for row in table.rows] == SECTION_TITLES
 
 
 # --------------------------------------------------------------------------
@@ -459,9 +592,7 @@ def test_dart_by_id_keeps_its_people_and_the_aircraft_they_fly(
     """``?dart=<id>`` lists that DART's member and the airplane the member flies."""
     north, _south = two_darts
     assert pairs(rows_for({"dart": str(north.pk)})) == [
-        ("Pilot certificates", "Nia Pilot"),
-        ("Medicals", "Nia Pilot"),
-        ("Photo IDs", "Nia Pilot"),
+        ("People", "Nia Pilot"),
         ("Aircraft insurance", "N1NB"),
     ]
 
@@ -556,19 +687,17 @@ def test_the_csv_download_is_named_for_the_day(account_admin_client: APIClient) 
     )
 
 
-def test_the_csv_lists_every_unverified_item_under_its_section(
+def test_the_csv_lists_everything_requiring_validation_under_its_section(
     api_client: APIClient, dart_leader: User
 ) -> None:
-    """A DART leader's download lists the member's three items and the aircraft's."""
+    """A DART leader's download lists the member once and the aircraft once."""
     person("Pat", "Doe")
     AircraftFactory(n_number="N123AB")
     api_client.force_login(dart_leader)
     table = read_csv(api_client.get(CSV_URL, {"columns": "section,name,verified"}))
     assert table == [
         ["Section", "Name", "Verified"],
-        ["Pilot certificates", "Pat Doe", "No"],
-        ["Medicals", "Pat Doe", "No"],
-        ["Photo IDs", "Pat Doe", "No"],
+        ["People", "Pat Doe", "No"],
         ["Aircraft insurance", "N123AB", "No"],
     ]
 
@@ -591,12 +720,56 @@ def test_the_pdf_heads_each_section(account_admin_client: APIClient, pdf_text: P
     assert [text for text in strings if text in SECTION_TITLES] == SECTION_TITLES
 
 
+def test_the_pdf_draws_the_aircraft_rows_under_their_own_header_row(
+    account_admin_client: APIClient, pdf_text: PdfText
+) -> None:
+    """Under Aircraft insurance come its own header cells, then the aircraft's row."""
+    person()
+    AircraftFactory(
+        n_number="N123AB",
+        owner_name="Sky Club",
+        insurance_carrier="Avemco",
+        insurance_expiration=date(2027, 3, 1),
+    )
+    strings = pdf_text(account_admin_client.get(PDF_URL).content)[0]
+    start = strings.index("Aircraft insurance")
+    assert strings[start + 1 : start + 10] == [
+        *INSURANCE_PDF_HEADER,
+        "N123AB",
+        "Sky Club",
+        "Avemco",
+        "03/01/2027",
+    ]
+
+
+def test_the_csv_keeps_one_header_with_blank_checks_on_an_aircraft_row(
+    account_admin_client: APIClient,
+) -> None:
+    """One header row for both sections; an aircraft's three check cells are blank."""
+    AircraftFactory(n_number="N123AB", owner_name="Sky Club", insurance_carrier="Avemco")
+    table = read_csv(account_admin_client.get(CSV_URL))
+    assert [table[0], table[1][:7]] == [
+        [
+            "Section",
+            "Name",
+            "DART or owner",
+            "Photo ID",
+            "Certificate",
+            "Medical",
+            "Details",
+            "Expires",
+            "Updated",
+        ],
+        ["Aircraft insurance", "N123AB", "Sky Club", "", "", "", "Avemco"],
+    ]
+
+
 def test_the_pdf_says_so_under_an_empty_section(
     account_admin_client: APIClient, pdf_text: PdfText
 ) -> None:
     """With nothing on file, the first section reads ``Nothing to show.``."""
     strings = pdf_text(account_admin_client.get(PDF_URL).content)[0]
-    assert strings[2:4] == ["Pilot certificates", "Nothing to show."]
+    assert strings[2:4] == ["People", "Nothing to show."]
 
 
 def subscribe(client: APIClient, recipient: User) -> ApiResponse:
