@@ -32,7 +32,16 @@ with severe impact), P1 high (exploitable with a realistic precondition and sign
 impact, or a missing standard control such as MFA for administrators), P2 medium
 (defense-in-depth gap or limited impact), P3 low (hardening), Info (observation, no action
 needed). Propose a priority; the orchestrator assigns the final one.
+
+Write your full answer, in the "Reviewer output" format, to <scratch dir>/findings/<your
+id>.md. Return to the orchestrator only a short summary: that path, your files line, the
+count of findings per priority, and one line per P0, P1, or P2 finding
+(`P1 | title | path:line`).
 ```
+
+Writing the answer to a file keeps dozens of full reports out of the orchestrator's context
+and lets the audit survive a compaction. Put the preamble itself in a scratch file and have
+each prompt point at it, so a prompt carries only the assignment.
 
 ## Slice reviewer
 
@@ -105,8 +114,10 @@ read in full.
 
 ```markdown
 ## Files
-- Read in full: <count> files. Not fully read: <path and reason, one per line, or "none">.
-  (Cross-cutting and prose reviewers: list each file and mark it `read` or `scanned`.)
+- Read in full: <count> of <slice size> files. Not fully read: <path and reason, one per
+  line, or "none">.
+- <every path you read, one per line; prose and cross-cutting reviewers mark each `read`
+  or `scanned`>
 
 ## Findings
 ### <short title>

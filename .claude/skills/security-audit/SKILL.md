@@ -104,18 +104,25 @@ Launch the reviewers with the prompts in [prompts.md](prompts.md):
   and resilience, platform and supply chain).
 
 Run them in waves of at most eight concurrent subagents, cross-cutting reviewers in the
-first wave. Save each answer to `<scratch>/findings/` as it arrives.
+first wave, and start the next reviewer as each one finishes. Reviewers write their own
+answers to `<scratch>/findings/` and return a short summary. Scanners that finish after the
+platform reviewer starts get a separate scanner-triage reviewer. Give later reviewers the
+list of issues already reported, so they confirm or extend rather than repeat.
 
 ### 6. Coverage check
 
 Compare the reviewers' file lists with the ledger. Every `code` and `test` file must be
 read in full by some reviewer, every `prose` file read or scanned, and every `lock`,
 `vendored`, and `binary` file covered by the platform reviewer. Send any gap to a new slice
-reviewer. A file that still could not be read goes into the report's Coverage section with
-the reason.
+reviewer. A count that differs from the slice size, or a file no reviewer names, is a gap
+too: send those files to a gap reviewer. A file that still could not be read goes into the
+report's Coverage section with the reason.
 
 ### 7. Consolidate and verify
 
+- With more than a dozen reviewer files, delegate the merge to a consolidator subagent
+  that writes `<scratch>/merged.md` (deduplicated findings with every location and source,
+  disagreements resolved, chains, leads, controls, coverage notes), then work from that.
 - Merge duplicates: one root cause is one finding listing every location.
 - Verify every P0 and P1 yourself by reading the cited code (for many, delegate to
   verifier subagents with the finding and the instruction to refute it). Drop what does not

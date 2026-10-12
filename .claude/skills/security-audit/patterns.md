@@ -1,6 +1,7 @@
 # Search patterns and scanners
 
-Use these to find candidate locations quickly. A match is a lead, never a finding: read the
+Use these to find candidate locations quickly (they are ripgrep syntax, as the Grep tool takes;
+convert `(?i)` to a `-i` flag for `grep -E` or `git log -G`). A match is a lead, never a finding: read the
 code around it, trace the data, and confirm the issue before reporting. Use the sections for
 the stacks the inventory found; skip the rest.
 
@@ -19,16 +20,18 @@ report's Coverage section rather than silently dropping it.
 | Python dependencies | the project's own audit target if it has one, else `uvx pip-audit` (or `uv audit` with a `uv.lock`) |
 | npm dependencies | `npm audit --json` in each directory with a `package-lock.json` (also with `--omit=dev` to separate runtime risk) |
 | Other ecosystems | `osv-scanner -r .`, `govulncheck ./...`, `cargo audit`, `bundle audit` when installed |
-| Secrets in the tree and history | `gitleaks git --report-path <scratch>/gitleaks.json` (`gitleaks detect` on versions before 8.19) when installed; otherwise `uvx detect-secrets scan --all-files` for the tree and the history greps below |
+| Secrets in the tree and history | `gitleaks git --report-path <scratch>/gitleaks.json` (`gitleaks detect` on versions before 8.19) when installed; otherwise `uvx detect-secrets scan` (without `--all-files`, which also scans ignored directories such as `.venv` and `node_modules`) for the tree and the history greps below |
 | GitHub Actions | `uvx zizmor .github/workflows` |
 | Shell scripts | `shellcheck` over every `*.sh` when installed |
 | Containers | `hadolint Dockerfile` when installed |
 | Framework self-checks | e.g. Django `manage.py check --deploy` against the production settings module, with throwaway values for required secrets |
 
-Secrets in history without a dedicated tool:
+Secrets in history without a dedicated tool (git's `-G` takes a POSIX regular expression, so
+case-insensitivity comes from `-i`, not `(?i)`; write the whole output to a file rather than
+truncating it, and read it in parts):
 
 ```bash
-git log --all -p -G '(?i)(api[_-]?key|secret|passw(or)?d|token|private[_-]?key|BEGIN [A-Z ]*PRIVATE KEY)' --format='%H %an %ad %s' | head -400
+git log --all -p -i -G '(api[_-]?key|secret|passw(or)?d|token|private[_-]?key|BEGIN [A-Z ]*PRIVATE KEY)' --format='COMMIT %h %ad %s' > <scratch>/scans/history-secrets.txt
 git log --all --diff-filter=D --name-only --format='%H' | grep -Ei '\.(env|pem|key|p12|pfx|sqlite3?|db|dump)$'
 ```
 
