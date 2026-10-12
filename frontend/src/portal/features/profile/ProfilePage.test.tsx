@@ -65,6 +65,17 @@ describe('<ProfilePage/>', () => {
     expect(screen.queryByText(/The planes you commonly fly are kept/)).not.toBeInTheDocument();
   });
 
+  it('offers no My aircraft link to somebody who may not use aircraft', async () => {
+    server.use(
+      signedInAs(makeUser({ can_use_aircraft: false })),
+      http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile())),
+    );
+    renderWithProviders(<ProfilePage />, { route: '/profile' });
+
+    await screen.findByLabelText(label('City'));
+    expect(screen.queryByRole('link', { name: 'My aircraft' })).not.toBeInTheDocument();
+  });
+
   it('reaches My aircraft by a plain link, as My aircraft reaches back', async () => {
     server.use(http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile())));
     renderWithProviders(<ProfilePage />, { route: '/profile' });

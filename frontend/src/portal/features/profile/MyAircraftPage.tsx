@@ -37,8 +37,31 @@ import { AircraftEditor } from './AircraftEditor';
 import { useAttachAircraft, useDetachAircraft, useProfile } from './api';
 import './profile.css';
 
-/** Renders, attaches, and detaches the planes on the signed-in member's profile. */
+/**
+ * The signed-in member's planes, or, for somebody who may not use aircraft (a friend,
+ * or a member whose membership has expired), a notice in their place: the server
+ * refuses every aircraft request from them, and keeps an expired member's planes for
+ * when they renew.
+ */
 export function MyAircraftPage(): JSX.Element {
+  const { user } = useAuth();
+  if (user?.can_use_aircraft !== true) {
+    return (
+      <Page title="My aircraft">
+        <Card>
+          <EmptyState
+            title="Aircraft are for members with a current membership."
+            description="A member whose membership has expired keeps their planes here, ready for when they renew."
+          />
+        </Card>
+      </Page>
+    );
+  }
+  return <MyAircraftList />;
+}
+
+/** Renders, attaches, and detaches the planes on the signed-in member's profile. */
+function MyAircraftList(): JSX.Element {
   const profile = useProfile();
   const attach = useAttachAircraft();
   const detach = useDetachAircraft();

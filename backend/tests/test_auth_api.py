@@ -53,6 +53,7 @@ def test_login_returns_the_user_payload(
         "kind",
         "friend_on",
         "admin_created",
+        "can_use_aircraft",
     }
 
 

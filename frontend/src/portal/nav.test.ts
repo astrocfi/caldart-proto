@@ -228,6 +228,14 @@ describe('visibleNavItems', () => {
     ]);
   });
 
+  it('hides My aircraft from somebody who may not use aircraft', () => {
+    expect(labels(['member'], { canUseAircraft: false })).not.toContain('My aircraft');
+  });
+
+  it('keeps My aircraft for somebody who may use aircraft', () => {
+    expect(labels(['member'], { canUseAircraft: true })).toContain('My aircraft');
+  });
+
   it('keeps Renew for a member who is not an effective friend', () => {
     expect(labels(['member'], { isEffectiveFriend: false })).toContain('Renew');
   });

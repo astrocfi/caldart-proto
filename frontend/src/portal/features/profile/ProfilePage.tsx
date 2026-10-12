@@ -7,6 +7,7 @@ import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
 import { ApiError } from '@/portal/api/client';
+import { useAuth } from '@/portal/auth/useAuth';
 import { Card } from '@/portal/components/Card';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Page } from '@/portal/components/Page';
@@ -19,6 +20,7 @@ import { profileToForm, saveErrorMessage } from './form';
 
 /** Renders and saves the signed-in member's own profile. */
 export function ProfilePage(): JSX.Element {
+  const { user } = useAuth();
   const profile = useProfile();
   const save = useSaveProfile();
   const toast = useToast();
@@ -62,7 +64,12 @@ export function ProfilePage(): JSX.Element {
   const { verification } = profile.data;
 
   return (
-    <Page title="My profile" actions={<Link to="/profile/aircraft">My aircraft</Link>}>
+    <Page
+      title="My profile"
+      actions={
+        user?.can_use_aircraft === true ? <Link to="/profile/aircraft">My aircraft</Link> : null
+      }
+    >
       <div ref={formCardRef}>
         <Card>
           <ProfileForm

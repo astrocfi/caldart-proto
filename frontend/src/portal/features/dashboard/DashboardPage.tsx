@@ -49,7 +49,7 @@ const ROLE_LINKS: { to: string; roles: RoleSlug[] }[] = [
  *
  * Every reader gets the way to pay, which is **Renew** for a member with a term to
  * renew and **Donate** for a friend or a life member, then **My profile**, **My
- * aircraft**, and **Email to me**.  A role adds its own task: **Member check** for a DART
+ * aircraft** (for somebody who may use aircraft), and **Email to me**.  A role adds its own task: **Member check** for a DART
  * leader, a verifier, or an administrator; **Accounting** for a treasurer or an account
  * administrator; **Members** for an account administrator.  The role's tasks are kept
  * and the member's own links give way from the end, so the list never runs past five.
@@ -149,6 +149,7 @@ export function DashboardPage(): JSX.Element {
   const links = quickLinks(roles, {
     isEffectiveFriend: isWithoutRenewal,
     isLifetime: status?.is_lifetime === true,
+    canUseAircraft: user?.can_use_aircraft === true,
   });
   // A friend and a life member renew nothing, so the authority their line states is
   // their recurring donation.

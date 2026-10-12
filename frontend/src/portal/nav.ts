@@ -36,6 +36,11 @@ export interface NavItem {
    */
   hideForFriend?: boolean;
   /**
+   * Hide this entry from somebody who may not use aircraft: a friend, or a member
+   * whose membership has expired (the user payload's `can_use_aircraft`).
+   */
+  needsAircraft?: boolean;
+  /**
    * Hide this entry from a lifetime member, who has no term to renew and gives through
    * Donate like everyone else.
    */
@@ -45,7 +50,13 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { to: '/', label: 'Dashboard', roles: [], group: 'My account', end: true },
   { to: '/profile', label: 'My profile', roles: [], group: 'My account', end: true },
-  { to: '/profile/aircraft', label: 'My aircraft', roles: [], group: 'My account' },
+  {
+    to: '/profile/aircraft',
+    label: 'My aircraft',
+    roles: [],
+    group: 'My account',
+    needsAircraft: true,
+  },
   { to: '/payments', label: 'My payments', roles: [], group: 'My account' },
   { to: '/donate', label: 'Donate', roles: [], group: 'My account' },
   {
@@ -214,23 +225,27 @@ export interface NavReader {
   isEffectiveFriend?: boolean;
   /** A lifetime member, who has no term to renew. */
   isLifetime?: boolean;
+  /** False for somebody who may not use aircraft, who loses the aircraft entries. */
+  canUseAircraft?: boolean;
 }
 
 /**
  * The nav entries a user with `userRoles` may see, in declaration order.
  *
  * An effective friend loses an entry marked `hideForFriend`, and a lifetime member one
- * marked `hideForLifetime`: Renew is both.
+ * marked `hideForLifetime`: Renew is both.  Somebody who may not use aircraft loses
+ * an entry marked `needsAircraft`: My aircraft.
  */
 export function visibleNavItems(
   userRoles: readonly RoleSlug[],
-  { isEffectiveFriend = false, isLifetime = false }: NavReader = {},
+  { isEffectiveFriend = false, isLifetime = false, canUseAircraft = true }: NavReader = {},
 ): NavItem[] {
   return NAV_ITEMS.filter(
     (item) =>
       hasAnyRole(userRoles, item.roles) &&
       !(item.hideForFriend === true && isEffectiveFriend) &&
-      !(item.hideForLifetime === true && isLifetime),
+      !(item.hideForLifetime === true && isLifetime) &&
+      !(item.needsAircraft === true && !canUseAircraft),
   );
 }
 

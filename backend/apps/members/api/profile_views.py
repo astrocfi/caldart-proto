@@ -21,6 +21,7 @@ from rest_framework.views import APIView
 
 from apps.accounts.api.serializers import UserSerializer
 from apps.accounts.models import User
+from apps.aircraft.access import CanUseAircraft
 from apps.aircraft.api.serializers import AircraftSummarySerializer
 from apps.aircraft.models import Aircraft
 from apps.members.api.actors import acting_user
@@ -108,7 +109,7 @@ class MyPaymentsView(APIView):
 class MyProfileAircraftView(APIView):
     """``POST /me/profile/aircraft`` -- attach an aircraft to the caller."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [CanUseAircraft]
 
     @extend_schema(request=AircraftAttachSerializer, responses={200: AttachedAircraftSerializer})
     def post(self, request: Request) -> Response:
@@ -133,7 +134,7 @@ class MyProfileAircraftView(APIView):
 class MyProfileAircraftDetailView(APIView):
     """``DELETE /me/profile/aircraft/{aircraft_id}`` -- detach it again."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [CanUseAircraft]
 
     @extend_schema(
         request=None,

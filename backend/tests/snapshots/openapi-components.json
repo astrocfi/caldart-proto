@@ -222,6 +222,7 @@
   "AdminUser": {
     "properties": {
       "admin_created": "boolean",
+      "can_use_aircraft": "boolean",
       "city": "string",
       "county": "string",
       "dart": "string|null",
@@ -245,6 +246,7 @@
     },
     "required": [
       "admin_created",
+      "can_use_aircraft",
       "city",
       "county",
       "dart",
@@ -269,6 +271,7 @@
   "AdminUserDetail": {
     "properties": {
       "admin_created": "boolean",
+      "can_use_aircraft": "boolean",
       "city": "string",
       "county": "string",
       "dart": "string|null",
@@ -294,6 +297,7 @@
     },
     "required": [
       "admin_created",
+      "can_use_aircraft",
       "city",
       "county",
       "dart",
@@ -4400,6 +4404,7 @@
   "User": {
     "properties": {
       "admin_created": "boolean",
+      "can_use_aircraft": "boolean",
       "email": "string(email)",
       "email_verified": "boolean",
       "first_name": "string",
@@ -4414,6 +4419,7 @@
     },
     "required": [
       "admin_created",
+      "can_use_aircraft",
       "email",
       "email_verified",
       "first_name",

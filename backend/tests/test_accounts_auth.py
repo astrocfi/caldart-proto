@@ -74,6 +74,7 @@ def test_register_creates_a_member_and_signs_them_in(api_client: APIClient) -> N
         "kind",
         "friend_on",
         "admin_created",
+        "can_use_aircraft",
     }
 
     user = User.objects.get(email="new.member@example.test")

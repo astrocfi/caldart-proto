@@ -13,6 +13,30 @@ before it, signed in or not.  Those two answers are the same on every endpoint
 below and are not repeated in the status lists.
 
 
+.. _api-aircraft-access:
+
+Who may use aircraft
+====================
+
+Aircraft are for members.  Every register endpoint below that is not limited to a
+role, and attaching and detaching aircraft on the profile (:doc:`api-profile`),
+admits a caller ``apps.aircraft.access.may_use_aircraft`` admits:
+
+* a member whose membership is current, or who has joined and not yet paid;
+* any holder of a verifying role (``verifier``, ``dart_leader``, ``user_admin``,
+  ``account_admin``) and ``system_admin``, whatever their own membership.
+
+A friend of CalDART, and a member whose membership has expired, are refused with::
+
+    403 {"detail": "Aircraft are for members with a current membership."}
+
+An expired member's aircraft stay attached to their profile: ``/me/profile`` lists
+none while the membership is expired, and lists them again once it is renewed; an
+administrator's member record shows them throughout.  The ``user`` payload's
+``can_use_aircraft`` carries the same answer, so the portal hides the aircraft
+screens the server would refuse.
+
+
 N-number normalization
 ======================
 
@@ -53,7 +77,7 @@ Aircraft register
 ``GET /aircraft``
 -----------------
 
-The register, open to any authenticated user, paginated with ``?page=`` and
+The register, open to anyone who may use aircraft (:ref:`who may use aircraft <api-aircraft-access>`), paginated with ``?page=`` and
 ``?page_size=`` (25 rows by default, 200 maximum).
 
 .. code-block:: json
@@ -199,7 +223,7 @@ Statuses:
 ``POST /aircraft``
 ------------------
 
-Adds an airframe to the register.  Any authenticated user may do so — the
+Adds an airframe to the register.  Anyone who may use aircraft may do so — the
 register is filled in by the members who fly the airplanes.
 
 .. code-block:: json
@@ -243,7 +267,7 @@ Statuses:
 ``GET /aircraft/{id}``
 ----------------------
 
-One register record, open to any authenticated user.  For a holder of a
+One register record, open to anyone who may use aircraft.  For a holder of a
 verifying role (``verifier``, ``dart_leader``, ``user_admin``, or
 ``account_admin``) or a ``system_admin`` the response also carries ``pilots``:
 
@@ -337,7 +361,7 @@ Object rules
 ============  ============================================================
 Method        Allowed
 ============  ============================================================
-``GET``       Any authenticated user
+``GET``       Anyone who may use aircraft
 ``PUT``       ``created_by == request.user``, or ``account_admin``
 ``PATCH``     ``created_by == request.user``, or ``account_admin``
 ``DELETE``    ``account_admin`` only
@@ -470,8 +494,8 @@ Statuses:
 ``GET /aircraft/lookup?n_number=``
 ----------------------------------
 
-Exact match *after* normalization — not a prefix search — open to any
-authenticated user.  This is what makes the picker's search-as-you-type land
+Exact match *after* normalization — not a prefix search — open to anyone who
+may use aircraft.  This is what makes the picker's search-as-you-type land
 on one record.  The response is the ``GET /aircraft/{id}`` shape, ``pilots``
 included on the same terms.
 
@@ -485,8 +509,8 @@ Statuses:
 ``GET /aircraft/types?q=``
 --------------------------
 
-The aircraft types matching ``q``, best first, at most ten, open to any
-authenticated user.  This is what the aircraft forms search to pick a type.
+The aircraft types matching ``q``, best first, at most ten, open to anyone who
+may use aircraft.  This is what the aircraft forms search to pick a type.
 
 .. code-block:: json
 
@@ -558,8 +582,8 @@ The FAA registry
 
 The FAA's Releasable Aircraft Database, imported nightly, answers a lookup by
 N-number and a search by the start of one; :doc:`aircraft-registry` describes
-the data and the import.  All three endpoints are open to any authenticated
-user.  Starting an import by hand is
+the data and the import.  All three endpoints are open to anyone who may use
+aircraft.  Starting an import by hand is
 ``POST /admin/system/registry-import`` (:doc:`api-system`).
 
 The aircraft forms prefill the category from the registration's type, or from
@@ -1006,7 +1030,7 @@ Coverage policy
 ---------------------------------
 
 The one policy saying which aircraft CalDART's insurance does not cover, open to
-any authenticated user; My aircraft reads its ``note``.
+anyone who may use aircraft; My aircraft reads its ``note``.
 
 .. code-block:: json
 

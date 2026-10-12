@@ -84,6 +84,24 @@ describe('<MyAircraftPage/>', () => {
     );
   });
 
+  it('shows somebody who may not use aircraft a notice and asks for no aircraft', async () => {
+    let asked = false;
+    server.use(
+      signedInAs(makeUser({ can_use_aircraft: false })),
+      http.get(`${API}/me/profile`, () => {
+        asked = true;
+        return HttpResponse.json(makeProfile());
+      }),
+    );
+
+    renderWithProviders(<MyAircraftPage />, { route: '/profile/aircraft' });
+
+    expect(
+      await screen.findByText('Aircraft are for members with a current membership.'),
+    ).toBeInTheDocument();
+    expect(asked).toBe(false);
+  });
+
   it('heads the list Your aircraft', async () => {
     server.use(http.get(`${API}/me/profile`, () => HttpResponse.json(makeProfile())));
 
