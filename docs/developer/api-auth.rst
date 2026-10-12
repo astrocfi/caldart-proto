@@ -1234,6 +1234,14 @@ races a shared counter; the throttling tests turn one back on with
 
 An exceeded throttle is DRF's usual **429** with a ``Retry-After`` header.
 
+The Wagtail admin (``/admin/login/``) and the Django admin (``/django-admin/login/``)
+serve login forms of their own.  ``caldart/urls.py`` routes both through
+``apps.accounts.throttling.throttle_login_form``, so every ``POST`` to either counts
+against the same ``auth_login`` budget as ``POST /auth/login``, by client address.
+Past the budget the form is not shown: the answer is a plain-text **429**, "Too many
+sign-in attempts. Wait a minute and try again.", with ``Retry-After`` in whole
+seconds.  Opening either form is not counted.
+
 
 How the portal uses this
 ========================

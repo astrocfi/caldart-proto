@@ -2,9 +2,9 @@
 
 Order matters: the Wagtail page serving view is a catch-all and must come
 last, and the closed Wagtail account screens must come before the Wagtail admin
-they shadow.  ``/portal/`` is itself a catch-all for the SPA's client-side routes, and
-``/docs/`` serves the built user guide to signed-in users, and its signed-out pages to
-anybody.
+they shadow, as must the two throttled admin login forms.  ``/portal/`` is itself
+a catch-all for the SPA's client-side routes, and ``/docs/`` serves the built user
+guide to signed-in users, and its signed-out pages to anybody.
 """
 
 from django.conf import settings
@@ -13,8 +13,10 @@ from django.contrib import admin as django_admin
 from django.urls import include, path, re_path
 from wagtail import urls as wagtail_urls
 from wagtail.admin import urls as wagtailadmin_urls
+from wagtail.admin.views.account import LoginView as WagtailLoginView
 from wagtail.documents import urls as wagtaildocs_urls
 
+from apps.accounts.throttling import throttle_login_form
 from apps.cms.views import find_dart
 from apps.payments.views import apple_pay_domain_association
 from caldart.views import (
@@ -32,7 +34,11 @@ urlpatterns = [
         wagtail_account_screen_closed,
     ),
     path("admin/account/", wagtail_account_page),
+    # The two admin login forms count against the portal's sign-in rate limit; they
+    # come before the admin URLs whose login route they shadow.
+    path("admin/login/", throttle_login_form(WagtailLoginView.as_view())),
     path("admin/", include(wagtailadmin_urls)),
+    path("django-admin/login/", throttle_login_form(django_admin.site.login)),
     path("django-admin/", django_admin.site.urls),
     path("documents/", include(wagtaildocs_urls)),
     path("api/v1/", include("caldart.api_urls")),

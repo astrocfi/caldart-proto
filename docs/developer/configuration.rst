@@ -190,7 +190,8 @@ rate is a **429**.
 ``None`` in Python, so no test races a shared counter.
 
 ``AUTH_THROTTLE_LOGIN``
-   ``POST /auth/login``.
+   ``POST /auth/login``, ``POST /auth/reactivate``, and the Wagtail and Django admin
+   login forms, all drawing on one budget per client address.
 
    :Development: ``20/min``
    :Production: ``20/min``.  Generous enough for a household behind one
