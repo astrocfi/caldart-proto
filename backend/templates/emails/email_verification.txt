@@ -2,7 +2,16 @@
 
 Hello{% if first_name %} {{ first_name }}{% endif %},
 
-Please confirm that {{ email }} is your email address by opening this link:
+{% if upgrade %}Somebody, perhaps you, asked to open a portal account for {{ email }}, the address
+{{ org_name }} has on file for your gifts. To open it, follow this link and choose the
+password you will sign in with:
+
+{{ verify_url }}
+
+The link expires in {{ expiry_days }} day{{ expiry_days|pluralize }}. Nothing changes until you follow it.
+
+If you did not ask for this, ignore this message: your gifts and details stay as they
+are.{% else %}Please confirm that {{ email }} is your email address by opening this link:
 
 {{ verify_url }}
 
@@ -11,7 +20,7 @@ marked unverified and nothing else in the portal is open to you. If the link has
 expired, sign in and press Resend verification message on the screen you land on to
 get a new one.
 
-If you were not expecting this you can ignore this message.{% if contact_email %} Anything that looks wrong, write to {{ contact_email }}.{% endif %}
+If you were not expecting this you can ignore this message.{% endif %}{% if contact_email %} Anything that looks wrong, write to {{ contact_email }}.{% endif %}
 
 — {{ org_name }}
 {{ site_url }}

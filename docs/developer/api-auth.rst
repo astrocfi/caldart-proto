@@ -215,19 +215,21 @@ payload's ``email_verified`` is false.
 **A donor's address upgrades the donor, once the address is proved.**  When the
 address belongs to an active donor (:ref:`kinds of account <account-kinds>`), no
 second account is made and nobody is signed in: the gifts on that account are
-not shown to anyone who has not proved the address is theirs.  The donor's
-account takes the password at once (a donor cannot sign in with it) and gets a
-profile, and the address is mailed a verification link that carries the names
-and the ``kind`` posted.  The answer is a 202 naming the address:
+not shown to anyone who has not proved the address is theirs.  The posted
+``password`` is not used: the donor's account keeps no usable password and gets a
+profile, and the address is mailed a link, worded as a request to open a portal
+account, that carries the names and the ``kind`` posted.  The answer is a 202
+naming the address:
 
 .. code-block:: json
 
    {"detail": "Verification message sent to giver@example.org."}
 
-Following the link (`POST /auth/email/verify`_) completes the upgrade: the
-account takes the names and the ``kind``, gains the ``member`` role, and is
-verified, so the password chosen at registration then signs in.  Until then the
-account is still a donor, and login answers it with the generic refusal.  The
+Following the link (`POST /auth/email/verify`_) asks for a password and completes
+the upgrade: the account takes that password, the names and the ``kind``, gains the
+``member`` role, and is verified.  The password is chosen by whoever follows the
+link, so only the person who holds the mailbox can open the account.  Until then
+the account is still a donor, and no login form or session signs it in.  The
 donations already on the account stay on it, and the change of kind is audited
 as ``account.kind``.  Registering again with the address mails a fresh link.
 
@@ -300,8 +302,11 @@ case-insensitive (``UserManager.get_by_natural_key`` uses ``email__iexact``).
   organization's name comes from the site settings.
 
 A donor cannot sign in at all.  A donor's account holds no usable password, and
-even one that somehow does is answered with the same 400 as wrong
-credentials.
+even one that somehow does is answered with the same 400 as wrong credentials.
+The refusal is made by the authentication backend
+(``apps.accounts.backends.AccountBackend``), so it holds for every login form —
+this one, the Wagtail admin's and the Django admin's — and a session that names a
+donor reads as signed out.
 
 An account whose address is unverified signs in like any other and gets its
 session, but that session reaches only the endpoints listed under `Unverified
@@ -486,9 +491,10 @@ sign in to it, and reactivating restores the term the same way.
 * **400** ``{"detail": "A system administrator cannot deactivate their own
   account."}`` — the ``system_admin`` role or a Django superuser.  Recorded at
   WARNING as ``action=account.deactivate ... reason=system_admin_target``.
-* **400** ``{"detail": "A donor has no portal account to deactivate."}``, recorded
-  with ``reason=donor_account``.  A donor cannot sign in, so this is a guard
-  rather than a path anybody takes.
+* A donor cannot sign in and no session names one, so a donor reaches this endpoint
+  only as an anonymous caller, answered 401.  The service behind it still refuses a
+  donor, with "A donor has no portal account to deactivate." recorded with
+  ``reason=donor_account``, as a guard rather than a path anybody takes.
 
 Statuses: **204**; **400** for any refusal above, which changes nothing;
 **401** when anonymous.
@@ -598,8 +604,24 @@ The account the token names is stamped verified and an
 ``account.email_verified`` audit line is written; any bounce recorded against the
 address is cleared, since mail to it has just arrived.  A link mailed when somebody
 registered with a donor's address first upgrades the donor to the member or
-friend that registration asked for (see `POST /auth/register`_); a donor's
-link that carries no upgrade is refused like a forged one.  A link mailed after a
+friend that registration asked for (see `POST /auth/register`_), and needs a
+``password``, the one the account will sign in with, chosen by whoever follows the
+link:
+
+.. code-block:: json
+
+   {"token": "eyJ1c2VyIjo0MSwiZW1haWwiOiJnaXZlckBleGFtcGxlLm9yZyJ9:1xAG4w:...",
+    "password": "..."}
+
+Without it the answer asks for one and nothing changes, so the portal shows a
+password form and posts again::
+
+    400 {"password": ["Choose a password to finish opening your account."],
+         "code": "password_required"}
+
+A password Django's validators reject is a ``400 {"password": [...]}``, and nothing
+changes either.  ``password`` is ignored for every other link, and nobody is signed
+in.  A donor's link that carries no upgrade is refused like a forged one.  A link mailed after a
 change of address carries the address it replaced, and the visit that stamps the
 account verified raises the ``email_changed`` event with that old address
 (:doc:`notification-events`).  Following a link a second
@@ -608,8 +630,9 @@ a forged or mangled token, one older than the timeout, a deactivated or deleted
 account, an address the account no longer holds — returns the same
 ``400 {"token": ["That verification link is invalid or has expired."]}``.
 
-Statuses: **200**; **400** for an unusable token or a missing field; **429**
-when the ``auth_verify`` throttle is exhausted.
+Statuses: **200**; **400** for an unusable token, a missing field, or a donor's
+link with no password or a rejected one; **429** when the ``auth_verify`` throttle
+is exhausted.
 
 ``POST /auth/email/resend``
 ---------------------------

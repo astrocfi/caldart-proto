@@ -288,9 +288,14 @@ class PasswordResetConfirmSerializer(serializers.Serializer[None]):
 
 
 class EmailVerifySerializer(serializers.Serializer[None]):
-    """``POST /auth/email/verify``: the token from a verification link."""
+    """``POST /auth/email/verify``: the token from a verification link.
+
+    ``password`` is optional: only a link that opens a donor's account needs one, and
+    the person following it chooses it then.
+    """
 
     token = serializers.CharField()
+    password = PasswordField(required=False, allow_blank=True, default="")
 
 
 class EmailVerifiedSerializer(serializers.Serializer[dict[str, str]]):

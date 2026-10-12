@@ -38,7 +38,6 @@ FRIEND_URL = "/api/v1/me/kind/friend"
 LIFETIME_REFUSED = {"detail": "A lifetime member stays a member."}
 NO_PENDING_CHANGE = {"detail": "You have no pending change."}
 ALREADY_FRIEND = {"detail": "You are already a friend of CalDART."}
-DONOR_REFUSED = {"detail": "A donor becomes a member or a friend only by registering."}
 KEEP_REQUIRED = {"keep_contribution": ["This field is required."]}
 DONATION_HELD = {
     "keep_contribution": ["You already have a recurring donation. Change it on the Donate screen."]
@@ -122,11 +121,11 @@ def test_a_friend_is_told_they_already_are_one(api_client: APIClient, friend: Us
     assert become_friend(api_client) == (400, ALREADY_FRIEND)
 
 
-def test_a_donor_is_refused(api_client: APIClient) -> None:
-    """A donor never switches kinds by hand, even with a session."""
+def test_a_donor_session_cannot_switch_kinds(api_client: APIClient) -> None:
+    """A donor cannot authenticate, so a session naming one is answered as signed out."""
     donor = UserFactory(kind=AccountKind.DONOR, roles=[])
     api_client.force_login(donor)
-    assert become_friend(api_client) == (400, DONOR_REFUSED)
+    assert become_friend(api_client)[0] == 401
 
 
 # --------------------------------------------------------------------------

@@ -198,6 +198,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Auth
 # --------------------------------------------------------------------------
 AUTH_USER_MODEL = "accounts.User"
+# One backend for every login surface (portal, Wagtail admin, Django admin) and for
+# reloading a session: Django's, refusing donors as well as deactivated accounts.
+AUTHENTICATION_BACKENDS = ["apps.accounts.backends.AccountBackend"]
 LOGIN_URL = f"{URL_PREFIX}/portal/login"
 LOGIN_REDIRECT_URL = f"{URL_PREFIX}/portal/"
 LOGOUT_REDIRECT_URL = f"{URL_PREFIX}/"

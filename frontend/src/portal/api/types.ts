@@ -119,9 +119,13 @@ export interface PasswordResetConfirmPayload {
   new_password: string;
 }
 
-/** `POST /auth/email/verify`: the token from a verification link. */
+/**
+ * `POST /auth/email/verify`: the token from a verification link, and, for a link that
+ * opens a donor's account, the password the account will sign in with.
+ */
 export interface EmailVerifyPayload {
   token: string;
+  password?: string;
 }
 
 /** `POST /auth/email/verify`: the address the link verified. */

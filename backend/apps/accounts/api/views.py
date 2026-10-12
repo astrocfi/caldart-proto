@@ -7,6 +7,7 @@ from typing import Any
 
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.models import AnonymousUser
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.db.models import QuerySet
 from django.middleware.csrf import get_token
@@ -51,6 +52,7 @@ from apps.accounts.models import AccountChange, AccountKind, User
 from apps.accounts.permissions import IsUserAdmin
 from apps.accounts.roles import ROLE_DESCRIPTIONS
 from apps.accounts.services import (
+    DonorPasswordRequiredError,
     change_own_email,
     clear_email_bounce,
     confirm_email_address,
@@ -95,6 +97,10 @@ DEACTIVATED_MESSAGE = "This account is deactivated. You can reactivate it."
 #: The ``code`` a refused sign-in carries for a deactivated account, which tells the
 #: portal to offer reactivation.
 DEACTIVATED_CODE = "deactivated"
+
+#: The ``code`` a verification answers with when the link opens a donor's account and
+#: no password came with it, which tells the portal to ask for one.
+DONOR_UPGRADE_CODE = "password_required"
 
 #: What the user administrator is told when asking to mail a donor a password or
 #: verification link: a donor cannot sign in, so neither link would lead anywhere.
@@ -162,12 +168,12 @@ class RegisterView(APIView):
         address is mailed a verification link.  Open to anonymous callers and throttled
         under the ``auth_register`` scope.
 
-        An active donor's address signs nobody in: the answer is a 202 ``{"detail":
-        "Verification message sent to <address>."}``, and following the link mailed
-        there upgrades the donor in place, keeping its gifts, after which the password
-        given here signs in.  A deactivated account's address is a 400 ``{"email":
-        [...], "code": "deactivated"}``; any other taken address, or a password
-        Django's validators reject, is a 400 naming the field.
+        An active donor's address signs nobody in and writes nothing: the answer is a
+        202 ``{"detail": "Verification message sent to <address>."}``, and following the
+        link mailed there asks for a password and upgrades the donor in place, keeping
+        its gifts.  The password given here is not used.  A deactivated account's address
+        is a 400 ``{"email": [...], "code": "deactivated"}``; any other taken address, or
+        a password Django's validators reject, is a 400 naming the field.
         """
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -216,14 +222,10 @@ class LoginView(APIView):
         email = serializer.validated_data["email"]
         password = serializer.validated_data["password"]
         user = authenticate(request, username=email, password=password)
-        if user is not None and is_donor(user):
-            return Response(
-                {"detail": WRONG_CREDENTIALS_MESSAGE},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
         if user is None:
-            # `authenticate` also returns None for a deactivated account, so look
-            # one up; its password still has to match before we say so.
+            # `authenticate` also returns None for a deactivated account and for a
+            # donor (`apps.accounts.backends`), so look up a deactivated account;
+            # its password still has to match before we say so.
             deactivated = deactivated_account(email, password)
             if deactivated is not None and deactivated.reactivation_blocked:
                 return _closed()
@@ -536,10 +538,28 @@ class EmailVerifyView(APIView):
         is forged, expired, for a deactivated or deleted account, or for an address the
         account no longer holds is a 400 ``{"token": ["That verification link is invalid
         or has expired."]}``.
+
+        A link that opens a donor's account also needs ``password``, the one the account
+        will sign in with, chosen by whoever follows the link.  Without it the answer is
+        400 ``{"password": ["Choose a password to finish opening your account."], "code":
+        "password_required"}`` and nothing changes; a password Django's validators
+        reject is a 400 ``{"password": [...]}``.  ``password`` is ignored for every other
+        link.  Nobody is signed in either way.
         """
         serializer = EmailVerifySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = verify_email(serializer.validated_data["token"])
+        try:
+            user = verify_email(
+                serializer.validated_data["token"],
+                password=serializer.validated_data["password"],
+            )
+        except DonorPasswordRequiredError as error:
+            return Response(
+                {"password": [str(error)], "code": DONOR_UPGRADE_CODE},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except DjangoValidationError as error:
+            return Response({"password": list(error.messages)}, status=status.HTTP_400_BAD_REQUEST)
         return Response({"email": user.email})
 
 

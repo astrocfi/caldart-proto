@@ -148,6 +148,91 @@ describe('<VerifyEmailPage/>', () => {
     expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login');
   });
 
+  describe("a link that opens a donor's account", () => {
+    const PROMPT = 'Choose a password to finish opening your account.';
+
+    /**
+     * Answer the verify endpoint as for a donor's link: a request for a password until
+     * one comes, then `answer` for the body that carries it. Records every body posted.
+     */
+    function donorLink(
+      answer: () => Response = () => HttpResponse.json({ email: 'giver@example.org' }),
+    ): { posted: unknown[] } {
+      const record: { posted: unknown[] } = { posted: [] };
+      server.use(
+        http.post(`${API}/auth/email/verify`, async ({ request }) => {
+          const body = (await request.json()) as Record<string, unknown>;
+          record.posted.push(body);
+          if (body.password === undefined) {
+            return HttpResponse.json(
+              { password: [PROMPT], code: 'password_required' },
+              { status: 400 },
+            );
+          }
+          return answer();
+        }),
+      );
+      return record;
+    }
+
+    async function choose(password: string, repeat: string = password): Promise<void> {
+      await userEvent.type(await screen.findByLabelText(/^Password/), password);
+      await userEvent.type(screen.getByLabelText(/^Repeat password/), repeat);
+      await userEvent.click(screen.getByRole('button', { name: 'Open my account' }));
+    }
+
+    it('asks the person who followed it to choose a password', async () => {
+      donorLink();
+      renderPage();
+
+      expect(
+        await screen.findByRole('heading', { name: 'Choose your password' }),
+      ).toBeInTheDocument();
+    });
+
+    it('shows no complaint before a password is chosen', async () => {
+      donorLink();
+      renderPage();
+
+      await screen.findByRole('heading', { name: 'Choose your password' });
+      expect(screen.queryByText(PROMPT)).not.toBeInTheDocument();
+    });
+
+    it('posts the token again with the chosen password', async () => {
+      const record = donorLink();
+      renderPage();
+
+      await choose('Mailbox-Holder-Chooses-31');
+
+      await screen.findByRole('heading', { name: 'Email verified' });
+      expect(record.posted).toEqual([
+        { token: 'signed-token' },
+        { token: 'signed-token', password: 'Mailbox-Holder-Chooses-31' },
+      ]);
+    });
+
+    it("shows the server's refusal of the password under the field", async () => {
+      donorLink(() =>
+        HttpResponse.json({ password: ['This password is too common.'] }, { status: 400 }),
+      );
+      renderPage();
+
+      await choose('password');
+
+      expect(await screen.findByText('This password is too common.')).toBeInTheDocument();
+    });
+
+    it('refuses two passwords that differ without asking the server', async () => {
+      const record = donorLink();
+      renderPage();
+
+      await choose('Mailbox-Holder-Chooses-31', 'Something-Else-31');
+
+      expect(await screen.findByText('The two passwords do not match.')).toBeInTheDocument();
+      expect(record.posted).toHaveLength(1);
+    });
+  });
+
   it('refuses a link with no token without asking the server', async () => {
     let asked = false;
     server.use(

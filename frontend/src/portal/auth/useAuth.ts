@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import { ApiError, api } from '../api/client';
 import type {
   EmailChangePayload,
+  EmailVerifyPayload,
   EmailVerifyResult,
   LoginPayload,
   PasswordChangePayload,
@@ -231,10 +232,11 @@ export function usePasswordResetConfirm(): UseMutationResult<
  * `/auth/me` again before the mutation settles, so a signed-in visitor's own
  * payload already says verified when the page shows the result.
  */
-export function useEmailVerify(): UseMutationResult<EmailVerifyResult, Error, string> {
+export function useEmailVerify(): UseMutationResult<EmailVerifyResult, Error, EmailVerifyPayload> {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (token: string) => api.post<EmailVerifyResult>('/auth/email/verify', { token }),
+    mutationFn: (payload: EmailVerifyPayload) =>
+      api.post<EmailVerifyResult>('/auth/email/verify', payload),
     onSuccess: async () => {
       // The page opens with its first `/auth/me` in flight, and the server may
       // have read the account before the verification committed.  Invalidating

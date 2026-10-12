@@ -21,6 +21,7 @@ from apps.accounts.api.views import deactivate as deactivate_account
 from apps.accounts.api.views import reactivate as reactivate_account
 from apps.accounts.models import AccountKind, User
 from apps.accounts.services import make_reset_token
+from apps.accounts.status import deactivate_own_account
 from apps.members.models import (
     Membership,
     MembershipPlan,
@@ -29,6 +30,7 @@ from apps.members.models import (
 )
 from apps.members.services import membership_status, with_membership
 from apps.payments.models import MandateStatus, RenewalMandate
+from caldart.exceptions import DomainError
 from tests.conftest import GOOD_PASSWORD, LOGIN_URL, ME_URL, RESET_CONFIRM_URL, audit_messages
 from tests.factories import MembershipFactory, RenewalMandateFactory, UserFactory
 
@@ -39,7 +41,6 @@ REACTIVATE_URL = "/api/v1/auth/reactivate"
 
 WRONG_CREDENTIALS = {"detail": "Incorrect email address or password."}
 SYSTEM_ADMIN_REFUSED = {"detail": "A system administrator cannot deactivate their own account."}
-DONOR_REFUSED = {"detail": "A donor has no portal account to deactivate."}
 
 type OnCommit = DjangoCaptureOnCommitCallbacks
 
@@ -172,30 +173,38 @@ def test_a_refused_system_administrator_stays_active(
 
 @pytest.fixture
 def donor(api_client: APIClient) -> User:
-    """A donor, somehow holding the usual password, signed in on ``api_client``."""
+    """A donor, somehow holding the usual password, with a session on ``api_client``."""
     giver: User = UserFactory(email="giver@example.test", kind=AccountKind.DONOR)
     api_client.force_login(giver)
     return giver
 
 
-def test_a_donor_cannot_deactivate(api_client: APIClient, donor: User, password: str) -> None:
-    """A donor has no portal account, so is refused with a sentence."""
+def test_a_donor_session_cannot_reach_deactivate(
+    api_client: APIClient, donor: User, password: str
+) -> None:
+    """A donor cannot authenticate, so a session naming one is answered as signed out."""
     response = api_client.post(DEACTIVATE_URL, {"current_password": password}, format="json")
-    assert (response.status_code, response.json()) == (400, DONOR_REFUSED)
+    assert response.status_code == 401
 
 
-def test_a_refused_donor_stays_active(api_client: APIClient, donor: User, password: str) -> None:
+def test_deactivating_a_donor_is_refused_with_a_sentence(donor: User) -> None:
+    """The service refuses a donor too, naming why."""
+    with pytest.raises(DomainError, match=r"^A donor has no portal account to deactivate\.$"):
+        deactivate_own_account(donor)
+
+
+def test_a_refused_donor_stays_active(donor: User) -> None:
     """The refusal leaves the donor's account as it was."""
-    deactivate(api_client, password)
+    with pytest.raises(DomainError):
+        deactivate_own_account(donor)
     donor.refresh_from_db()
     assert donor.is_active is True
 
 
-def test_a_refused_donor_is_recorded(
-    api_client: APIClient, donor: User, password: str, audit_log: pytest.LogCaptureFixture
-) -> None:
+def test_a_refused_donor_is_recorded(donor: User, audit_log: pytest.LogCaptureFixture) -> None:
     """The refusal is written to the audit log with the ``donor_account`` reason."""
-    deactivate(api_client, password)
+    with pytest.raises(DomainError):
+        deactivate_own_account(donor)
     assert audit_messages(audit_log) == [
         f"action=account.deactivate actor={donor.pk} target={donor.pk} reason=donor_account"
     ]
