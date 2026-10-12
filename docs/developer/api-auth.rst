@@ -104,7 +104,8 @@ Every endpoint that returns an account returns the same object:
      "email_verified": true,
      "kind": "member",
      "friend_on": null,
-     "admin_created": false
+     "admin_created": false,
+     "can_use_aircraft": true
    }
 
 ``roles``
@@ -164,6 +165,13 @@ Every endpoint that returns an account returns the same object:
    opens the dashboard rather than the profile or pay step.  An unverified one is
    held at the verify step like anybody else, since the API refuses an unverified
    session (see `Unverified sessions`_).  False for an account made any other way.  Read-only everywhere.
+
+``can_use_aircraft``
+   True when the account may use the aircraft register and its own aircraft: a member
+   whose membership is current or not yet paid, or a holder of a verifying role or
+   ``system_admin``.  False for a friend and for a member whose membership has
+   expired; the portal hides My aircraft and its links then, and the server refuses
+   the requests (:ref:`api-aircraft-access`).  Read-only everywhere.
 
 The payload is read-only everywhere except ``PATCH /admin/users/{id}``, whose
 answer also carries ``email_verified_at`` (below).

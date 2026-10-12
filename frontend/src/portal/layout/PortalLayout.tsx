@@ -152,6 +152,7 @@ export function PortalLayout(): JSX.Element {
     ? groupedNavItems(roles, {
         isEffectiveFriend: user ? isWithoutTerm(user.membership.status) : false,
         isLifetime: user?.membership.is_lifetime === true,
+        canUseAircraft: user?.can_use_aircraft === true,
       })
     : [];
   const hasRail = groups.length > 0;

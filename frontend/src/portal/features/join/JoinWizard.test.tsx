@@ -715,6 +715,14 @@ describe('<JoinWizard/> for a friend', () => {
     expect(screen.queryByRole('link', { name: 'Ops manual' })).not.toBeInTheDocument();
   });
 
+  it('offers a friend no planes to add on the done step', async () => {
+    stubFriendApi(makeFriend());
+    renderWizard('/join/done');
+
+    await screen.findByRole('heading', { name: 'Welcome to CalDART' });
+    expect(screen.queryByRole('link', { name: 'Add the planes I fly' })).not.toBeInTheDocument();
+  });
+
   it('says a friend is joining as one in the lede', async () => {
     stubFriendApi(makeFriend());
     renderWizard('/join/done');

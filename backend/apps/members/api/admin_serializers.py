@@ -19,6 +19,7 @@ from rest_framework import serializers
 from apps.accounts.models import PERSON_KIND_CHOICES, AccountKind, User
 from apps.accounts.roles import ROLE_SLUGS
 from apps.accounts.services import AccountChanges
+from apps.aircraft.api.serializers import AircraftSummarySerializer
 from apps.members.api.profile_serializers import (
     FIRST_NAME_MESSAGE,
     LAST_NAME_MESSAGE,
@@ -86,6 +87,13 @@ class AdminProfileSerializer(ProfileSerializer):
             "notes",
             "how_heard",
         ]
+
+    @extend_schema_field(AircraftSummarySerializer(many=True))
+    def get_aircraft(self, obj: MemberProfile) -> list[dict[str, Any]]:
+        """Every aircraft on ``obj``, including those a lapsed member cannot see."""
+        return cast(
+            "list[dict[str, Any]]", AircraftSummarySerializer(obj.aircraft.all(), many=True).data
+        )
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Build the serializer, then make every field optional."""

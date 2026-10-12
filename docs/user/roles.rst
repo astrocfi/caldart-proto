@@ -29,7 +29,8 @@ Every member and every friend of CalDART holds the member role. It opens the
 * **My profile** (:doc:`member/profile`): your contact and aviation details,
   whether you are a member or a friend, and deactivating your account.
 * **My aircraft** (:doc:`member/my-aircraft`): the airplanes you fly, from the
-  shared register.
+  shared register, while your membership is current or not yet paid. A friend has
+  no **My aircraft**.
 * **My payments** (:doc:`member/payments`): automatic renewal, recurring donations,
   every payment with its receipt, and contribution statements.
 * **Donate** (:doc:`member/donate`): a gift, once or on a schedule.

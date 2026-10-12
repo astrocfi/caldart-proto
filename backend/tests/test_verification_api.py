@@ -48,8 +48,9 @@ STAMPED_AT = datetime(2026, 1, 15, 17, 0, tzinfo=timezone.get_current_timezone()
 LEADER_SEARCH_QUERIES = 4
 
 #: The queries one page of the register costs, however many rows are verified: the
-#: coverage policy is read once for the page.
-AIRCRAFT_LIST_QUERIES = 5
+#: coverage policy is read once for the page, and the access check reads a plain
+#: member's roles and membership once (``apps.aircraft.access``).
+AIRCRAFT_LIST_QUERIES = 8
 
 
 def member_verification_url(user: User) -> str:

@@ -24,8 +24,8 @@ Summary
 Endpoint                                     Methods                  Who
 ===========================================  =======================  ===============
 ``/api/v1/me/profile``                       ``GET PUT PATCH``        any signed-in user
-``/api/v1/me/profile/aircraft``              ``POST``                 any signed-in user
-``/api/v1/me/profile/aircraft/{id}``         ``DELETE``               any signed-in user
+``/api/v1/me/profile/aircraft``              ``POST``                 who may use aircraft
+``/api/v1/me/profile/aircraft/{id}``         ``DELETE``               who may use aircraft
 ``/api/v1/me/membership``                    ``GET``                  any signed-in user
 ``/api/v1/me/kind/friend``                   ``POST DELETE``          any signed-in user
 ``/api/v1/me/payments``                      ``GET``                  any signed-in user
@@ -121,7 +121,9 @@ row first if the account has none.
 Read-only fields
   ``dart`` (a ``{id, name}`` stub — write ``dart_id`` instead),
   ``aircraft`` (maintained through the attach/detach endpoints; each row's
-  ``insurance_verified`` says whether that airplane's insurance is verified),
+  ``insurance_verified`` says whether that airplane's insurance is verified; empty
+  for a friend and for a member whose membership has expired, whose attached
+  aircraft are kept but not shown, see :ref:`api-aircraft-access`),
   ``medical_is_current`` (a property: the expiration date is on or after
   today, for BasicMed and class medicals alike; ``medical_type: "none"``
   is always ``false``) and ``verification``.
@@ -337,6 +339,8 @@ One list serves every reader of it:
 ``POST /me/profile/aircraft``
 =============================
 
+Open to anyone who may use aircraft (:ref:`api-aircraft-access`); a friend, or a
+member whose membership has expired, is answered 403, as is the ``DELETE`` below.
 Attaches an aircraft to the caller's "planes commonly flown" and answers with
 the whole list, so the client never has to re-read the profile.
 

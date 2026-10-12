@@ -27,6 +27,7 @@ from apps.accounts.services import (
     user_from_uid,
 )
 from apps.accounts.status import closed_account_message
+from apps.aircraft.access import may_use_aircraft
 from apps.members.api.serializers import MembershipStatusSerializer
 from apps.members.models import MembershipStatusChoices
 from apps.members.services import membership_of
@@ -38,13 +39,16 @@ class UserSerializer(serializers.ModelSerializer[User]):
 
     ``admin_created`` is true for an account an account administrator created on New
     member: its owner has joined already, so once the address is verified the portal
-    opens without the profile and pay steps.
+    opens without the profile and pay steps.  ``can_use_aircraft`` is
+    :func:`apps.aircraft.access.may_use_aircraft`, so the portal hides the aircraft
+    screens the server would refuse.
     """
 
     roles = serializers.SerializerMethodField()
     membership = serializers.SerializerMethodField()
     profile_complete = serializers.SerializerMethodField()
     email_verified = serializers.BooleanField(read_only=True)
+    can_use_aircraft = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -61,6 +65,7 @@ class UserSerializer(serializers.ModelSerializer[User]):
             "kind",
             "friend_on",
             "admin_created",
+            "can_use_aircraft",
         ]
         read_only_fields = fields
 
@@ -78,6 +83,10 @@ class UserSerializer(serializers.ModelSerializer[User]):
         """
         membership: dict[str, Any] = MembershipStatusSerializer(membership_of(obj)).data
         return membership
+
+    def get_can_use_aircraft(self, obj: User) -> bool:
+        """True when the account may use the aircraft register and its own aircraft."""
+        return may_use_aircraft(obj)
 
     def get_profile_complete(self, obj: User) -> bool:
         """True when the account has a member profile and that profile is complete.

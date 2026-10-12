@@ -86,6 +86,7 @@ export function makeUser(overrides: Partial<User> = {}): User {
     kind: 'member',
     friend_on: null,
     admin_created: false,
+    can_use_aircraft: true,
     ...overrides,
   };
 }

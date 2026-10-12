@@ -14,6 +14,7 @@ from django.db import models, transaction
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from apps.aircraft.access import may_use_aircraft
 from apps.aircraft.api.serializers import AircraftSummarySerializer, VerificationSerializer
 from apps.darts.api.serializers import DartRefSerializer
 from apps.darts.models import (
@@ -157,8 +158,10 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
     alone), never blank, and stored through :func:`caldart.casing.person_name` and
     :func:`caldart.casing.person_last_name`.
     ``dart`` reads as ``{id, name}`` and is written as ``dart_id``; ``aircraft``
-    is read-only here and maintained through ``/me/profile/aircraft``.  The
-    admin-only ``notes`` and ``how_heard`` fields are deliberately absent.
+    is read-only here and maintained through ``/me/profile/aircraft``, and is empty for
+    an account :func:`apps.aircraft.access.may_use_aircraft` refuses (a friend, or a
+    member whose membership has expired), whose attached aircraft are kept but hidden.
+    The admin-only ``notes`` and ``how_heard`` fields are deliberately absent.
     ``verification`` is read-only: only the member check's verification endpoint
     verifies an item.
     """
@@ -187,7 +190,7 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
         allow_null=True,
         write_only=True,
     )
-    aircraft = AircraftSummarySerializer(many=True, read_only=True)
+    aircraft = serializers.SerializerMethodField()
     medical_is_current = serializers.BooleanField(read_only=True)
     # Stamped when the first term is created and never moved, so it is reported
     # rather than edited here; an administrator corrects it on the member record.
@@ -277,6 +280,15 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
             "vol_social_media",
             "vol_newsletter",
         ]
+
+    @extend_schema_field(AircraftSummarySerializer(many=True))
+    def get_aircraft(self, obj: MemberProfile) -> list[dict[str, Any]]:
+        """The aircraft on ``obj``, or none while its owner may not use aircraft."""
+        if not may_use_aircraft(obj.user):
+            return []
+        return cast(
+            "list[dict[str, Any]]", AircraftSummarySerializer(obj.aircraft.all(), many=True).data
+        )
 
     @extend_schema_field(ProfileVerificationSerializer)
     def get_verification(self, obj: MemberProfile) -> dict[str, VerificationState]:

@@ -58,8 +58,10 @@ HISTORIES: tuple[str, ...] = ("current", "expired", "lifetime", "unpaid")
 ADMIN_USERS_QUERIES = 6
 ADMIN_MEMBERS_QUERIES = 6
 LEADER_SEARCH_QUERIES = 4
-AIRCRAFT_DETAIL_QUERIES = 6
-AIRCRAFT_LOOKUP_QUERIES = 6
+#: The aircraft endpoints add one query for the access check, which finds the leader's
+#: role (``apps.aircraft.access``).
+AIRCRAFT_DETAIL_QUERIES = 7
+AIRCRAFT_LOOKUP_QUERIES = 7
 LEADER_AIRCRAFT_QUERIES = 6
 
 

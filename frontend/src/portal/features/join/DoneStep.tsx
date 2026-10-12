@@ -52,9 +52,11 @@ export function DoneStep({ joiningAs, hasPaid }: DoneStepProps): JSX.Element {
         footer={
           <>
             <ButtonLink to="/">Go to my dashboard</ButtonLink>
-            <ButtonLink to="/profile/aircraft" variant="secondary">
-              Add the planes I fly
-            </ButtonLink>
+            {isFriend ? null : (
+              <ButtonLink to="/profile/aircraft" variant="secondary">
+                Add the planes I fly
+              </ButtonLink>
+            )}
           </>
         }
       >

@@ -11,7 +11,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import generics, status
 from rest_framework.exceptions import NotFound
-from rest_framework.permissions import BasePermission, IsAuthenticated
+from rest_framework.permissions import BasePermission
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -30,6 +30,7 @@ from apps.accounts.permissions import (
 from apps.accounts.roles import DART_LEADER, USER_ADMIN, VERIFY_ROLES
 from apps.accounts.services import set_verifier
 from apps.aircraft import registry, services
+from apps.aircraft.access import CanUseAircraft
 from apps.aircraft.api.permissions import AircraftPermission
 from apps.aircraft.api.serializers import (
     AircraftChangeSerializer,
@@ -113,10 +114,10 @@ class AircraftQuerysetMixin(generics.GenericAPIView[Aircraft]):
 
 
 class AircraftListCreateView(AircraftQuerysetMixin, generics.ListCreateAPIView[Aircraft]):
-    """``GET /aircraft`` (any member) and ``POST /aircraft`` (any member)."""
+    """``GET /aircraft`` and ``POST /aircraft``, for anyone who may use aircraft."""
 
     serializer_class = AircraftSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [CanUseAircraft]
 
     @transaction.atomic
     def perform_create(self, serializer: BaseSerializer[Aircraft]) -> None:
@@ -135,7 +136,7 @@ class AircraftDetailView(generics.RetrieveUpdateDestroyAPIView[Aircraft]):
     """``GET/PATCH/DELETE /aircraft/{id}`` with the register's object rules."""
 
     queryset = Aircraft.objects.select_related("type")
-    permission_classes = [AircraftPermission]
+    permission_classes = [CanUseAircraft, AircraftPermission]
 
     def get_serializer_class(self) -> type[AircraftSerializer]:
         """Return the serializer ``aircraft_serializer_for`` picks for this request.
@@ -191,7 +192,7 @@ class AircraftChangesView(generics.ListAPIView[AircraftChange]):
 class AircraftLookupView(APIView):
     """``GET /aircraft/lookup?n_number=`` -- exact match after normalization."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [CanUseAircraft]
 
     @extend_schema(responses={200: AircraftDetailSerializer})
     def get(self, request: Request) -> Response:
@@ -209,17 +210,17 @@ class AircraftLookupView(APIView):
 
 
 class AircraftTypeSearchView(APIView):
-    """``GET /aircraft/types?q=`` (any member) and ``POST /aircraft/types`` (admin).
+    """``GET /aircraft/types?q=`` (aircraft users) and ``POST /aircraft/types`` (admin).
 
     ``GET`` answers the aircraft types matching ``q``, best first; ``POST`` adds a type
     the FAA has never registered.
     """
 
     def get_permissions(self) -> list[BasePermission]:
-        """Any signed-in user may search; only an account administrator may add."""
+        """Anyone who may use aircraft searches; only an account administrator adds."""
         if self.request.method == "POST":
             return [IsAccountAdmin()]
-        return [IsAuthenticated()]
+        return [CanUseAircraft()]
 
     @extend_schema(
         parameters=[
@@ -249,17 +250,17 @@ class AircraftTypeSearchView(APIView):
 
 
 class CoveragePolicyView(APIView):
-    """``GET /aircraft/coverage-policy`` (any member) and ``PUT`` (system administrator).
+    """``GET /aircraft/coverage-policy`` (aircraft users) and ``PUT`` (system admin).
 
     The one policy saying which aircraft categories and airworthiness classifications
     CalDART's insurance does not cover, and the note members read on My aircraft.
     """
 
     def get_permissions(self) -> list[BasePermission]:
-        """Any signed-in user reads the policy; only a system administrator writes."""
+        """Anyone who may use aircraft reads the policy; a system administrator writes."""
         if self.request.method == "PUT":
             return [IsSystemAdmin()]
-        return [IsAuthenticated()]
+        return [CanUseAircraft()]
 
     @extend_schema(responses={200: CoveragePolicySerializer})
     def get(self, request: Request) -> Response:
@@ -281,7 +282,7 @@ class CoveragePolicyView(APIView):
 class RegistryStatusView(APIView):
     """``GET /aircraft/registry`` -- the date the registry is as of, and the last run."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [CanUseAircraft]
 
     @extend_schema(responses={200: RegistryStatusSerializer})
     def get(self, request: Request) -> Response:
@@ -297,7 +298,7 @@ class RegistryStatusView(APIView):
 class RegistrationLookupView(APIView):
     """``GET /aircraft/registry/{n_number}`` -- one N-number in the FAA registry."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [CanUseAircraft]
 
     @extend_schema(responses={200: RegistrationSerializer})
     def get(self, request: Request, n_number: str) -> Response:
@@ -319,7 +320,7 @@ class RegistrationLookupView(APIView):
 class RegistrationSearchView(APIView):
     """``GET /aircraft/registrations?q=`` -- the registrations starting with ``q``."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [CanUseAircraft]
 
     @extend_schema(
         parameters=[

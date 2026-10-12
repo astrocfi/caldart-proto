@@ -1,8 +1,8 @@
 """Object-level rules for the aircraft register.
 
-Anyone signed in may read the register and add an airframe they fly.  The
-member who created a record may keep it up to date; only an account
-administrator may edit someone else's record or delete one.
+Anyone who may use aircraft (:mod:`apps.aircraft.access`) may read the register
+and add an airframe they fly.  The member who created a record may keep it up to
+date; only an account administrator may edit someone else's record or delete one.
 ``system_admin`` passes every check, as everywhere else.
 """
 
