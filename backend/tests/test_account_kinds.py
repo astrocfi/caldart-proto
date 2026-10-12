@@ -77,6 +77,14 @@ MEMBERS_URL = "/api/v1/admin/members"
 MEMBERSHIP_URL = "/api/v1/me/membership"
 MY_PAYMENTS_URL = "/api/v1/me/payments"
 VERIFY_URL = "/api/v1/auth/email/verify"
+WAGTAIL_LOGIN_URL = "/admin/login/"
+DJANGO_ADMIN_LOGIN_URL = "/django-admin/login/"
+
+#: The password whoever follows a donor's upgrade link chooses, unlike the
+#: registration's ``GOOD_PASSWORD``.
+LINK_PASSWORD = "Mailbox-Holder-Chooses-31"  # noqa: S105 - test fixture
+WEAK_PASSWORD = "password"  # noqa: S105 - a password the validators reject
+DONOR_UPGRADE_PROMPT = "Choose a password to finish opening your account."
 
 TAKEN = "An account already uses that email address. Sign in, or reset your password."
 DEACTIVATED_AT_REGISTER = "This email belongs to a deactivated account. Sign in to reactivate it."
@@ -491,10 +499,17 @@ def donor_registration(
         return api_client.post(REGISTER_URL, payload, format="json")
 
 
+def _follow_link(**body: str) -> ApiResponse:
+    """Post the outbox's verification link, with ``body`` added, from a fresh browser."""
+    return Client().post(  # type: ignore[return-value]  # Django's test client response
+        VERIFY_URL, {"token": _verification_token(), **body}, content_type="application/json"
+    )
+
+
 @pytest.fixture
 def upgraded_donor(donor: User, donor_registration: ApiResponse) -> User:
-    """The donor, once the verification link mailed at registration is followed."""
-    Client().post(VERIFY_URL, {"token": _verification_token()}, content_type="application/json")
+    """The donor, once the link mailed at registration is followed with a password."""
+    _follow_link(password=LINK_PASSWORD)
     donor.refresh_from_db()
     return donor
 
@@ -544,6 +559,50 @@ def test_registering_a_donors_address_leaves_the_donor_as_it_was(
     assert getattr(donor, field) == expected
 
 
+def test_registering_a_donors_address_writes_no_password(
+    donor: User, donor_registration: ApiResponse
+) -> None:
+    """The registration's password is never written to the donor's account."""
+    donor.refresh_from_db()
+    assert donor.has_usable_password() is False
+
+
+def test_following_a_donors_link_without_a_password_asks_for_one(
+    donor_registration: ApiResponse,
+) -> None:
+    """The link alone opens nothing: the answer asks for the password to sign in with."""
+    response = _follow_link()
+    assert response.status_code == 400
+    assert response.json() == {"password": [DONOR_UPGRADE_PROMPT], "code": "password_required"}
+
+
+def test_following_a_donors_link_without_a_password_changes_nothing(
+    donor: User, donor_registration: ApiResponse
+) -> None:
+    """A link followed with no password leaves the donor a donor, unverified."""
+    _follow_link()
+    donor.refresh_from_db()
+    assert (donor.kind, donor.email_verified) == (AccountKind.DONOR, False)
+
+
+def test_a_donors_link_refuses_a_password_the_validators_reject(
+    donor: User, donor_registration: ApiResponse
+) -> None:
+    """A weak password chosen at the link is refused under ``password``."""
+    response = _follow_link(password=WEAK_PASSWORD)
+    assert response.status_code == 400
+    assert response.json() == {"password": ["This password is too common."]}
+
+
+def test_a_refused_password_leaves_the_donor_a_donor(
+    donor: User, donor_registration: ApiResponse
+) -> None:
+    """A rejected password writes nothing: no password, no upgrade."""
+    _follow_link(password=WEAK_PASSWORD)
+    donor.refresh_from_db()
+    assert (donor.kind, donor.has_usable_password()) == (AccountKind.DONOR, False)
+
+
 def test_the_upgraded_donor_keeps_the_gifts(upgraded_donor: User) -> None:
     """Following the link upgrades the donor in place, keeping the gifts made so far."""
     assert upgraded_donor.payments.count() == 1
@@ -566,14 +625,33 @@ def test_the_upgraded_donor_takes_what_the_form_gave(
     assert getattr(upgraded_donor, field) == expected
 
 
-def test_the_upgraded_donor_signs_in_with_the_new_password(
+def test_the_upgraded_donor_signs_in_with_the_password_chosen_at_the_link(
     api_client: APIClient, upgraded_donor: User
 ) -> None:
-    """Once the address is proved, the password chosen at registration signs in."""
+    """Once the link is followed, the password chosen there signs in."""
+    response = api_client.post(
+        LOGIN_URL, {"email": upgraded_donor.email, "password": LINK_PASSWORD}, format="json"
+    )
+    assert response.status_code == 200
+
+
+def test_the_registrations_password_never_signs_the_upgraded_donor_in(
+    api_client: APIClient, upgraded_donor: User
+) -> None:
+    """The password typed when registering opens nothing, even after the upgrade."""
     response = api_client.post(
         LOGIN_URL, {"email": upgraded_donor.email, "password": GOOD_PASSWORD}, format="json"
     )
-    assert response.status_code == 200
+    assert response.status_code == 400
+    assert response.json() == {"detail": WRONG_CREDENTIALS}
+
+
+def test_the_donor_upgrade_message_says_an_account_was_asked_for(
+    donor_registration: ApiResponse,
+) -> None:
+    """The upgrade link's message tells the donor somebody asked to open an account."""
+    [message] = mail.outbox
+    assert "asked to open a portal account" in str(message.body)
 
 
 def test_the_donor_upgrade_is_mailed_to_the_donors_address(
@@ -617,15 +695,40 @@ def test_register_member_with_a_kind_creates_that_kind(db: None) -> None:
 # --------------------------------------------------------------------------
 # Donors cannot sign in or set a password
 # --------------------------------------------------------------------------
-def test_a_donor_cannot_sign_in(api_client: APIClient, donor: User) -> None:
-    """Login answers a donor with the generic refusal, even with a password set."""
+@pytest.fixture
+def donor_with_password(donor: User) -> User:
+    """A donor whose account somehow holds a password, which must still open nothing."""
     donor.set_password(DEFAULT_PASSWORD)
     donor.save(update_fields=["password"])
+    return donor
+
+
+def test_a_donor_cannot_sign_in(api_client: APIClient, donor_with_password: User) -> None:
+    """Login answers a donor with the generic refusal, even with a password set."""
     response = api_client.post(
-        LOGIN_URL, {"email": donor.email, "password": DEFAULT_PASSWORD}, format="json"
+        LOGIN_URL,
+        {"email": donor_with_password.email, "password": DEFAULT_PASSWORD},
+        format="json",
     )
     assert response.status_code == 400
     assert response.json() == {"detail": WRONG_CREDENTIALS}
+
+
+@pytest.mark.parametrize("login_url", [WAGTAIL_LOGIN_URL, DJANGO_ADMIN_LOGIN_URL])
+def test_a_donor_cannot_sign_in_at_an_admin_login(
+    donor_with_password: User, login_url: str
+) -> None:
+    """The Wagtail and Django admin login forms start no session for a donor either."""
+    client = Client()
+    client.post(login_url, {"username": donor_with_password.email, "password": DEFAULT_PASSWORD})
+    assert client.get(ME_URL).status_code == 401
+
+
+def test_a_session_naming_a_donor_reads_as_signed_out(donor: User) -> None:
+    """A session already holding a donor is anonymous on the next request."""
+    client = Client()
+    client.force_login(donor)
+    assert client.get(ME_URL).status_code == 401
 
 
 def test_a_donor_is_sent_no_password_reset(donor: User) -> None:

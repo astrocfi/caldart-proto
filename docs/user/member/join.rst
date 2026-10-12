@@ -86,9 +86,9 @@ Two addresses are handled differently:
 
 * **An address you gave from before, as a donor.** Creating the account does not
   sign you in. The step shows **Check your email** for that address, and your past
-  gifts stay with the account. Open the link in the message, press **Continue**,
-  and sign in with the password you just chose. The wizard carries on at your
-  profile.
+  gifts stay with the account. Open the link in the message, choose the password
+  you will sign in with, and press **Open my account**, then **Continue**, and sign
+  in with that password. The wizard carries on at your profile.
 * **The address of a deactivated account.** The step says *This email belongs to a
   deactivated account. Sign in to reactivate it.* and offers **Sign in to
   reactivate**, which opens the sign-in screen with the address filled in.

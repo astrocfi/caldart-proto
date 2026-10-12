@@ -66,6 +66,7 @@ from apps.payments.renewals.scan import RETRY_OFFSETS, run_auto_renewals
 from apps.payments.services import mark_succeeded
 from apps.reminders.services import send_renewal_reminders
 from caldart import events
+from tests.conftest import GOOD_PASSWORD
 from tests.factories import (
     DEFAULT_PASSWORD,
     AircraftFactory,
@@ -232,7 +233,7 @@ def test_a_donor_verifying_their_registration_raises_no_signed_up_yet(
         donor, upgrade={"first_name": "Gil", "last_name": "Ives", "kind": "member"}
     )
 
-    verify_email(token)
+    verify_email(token, password=GOOD_PASSWORD)
 
     assert raised(recorded, "signed_up") == []
 

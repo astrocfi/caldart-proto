@@ -20,6 +20,7 @@ from __future__ import annotations
 from typing import TypedDict
 
 from django.conf import settings
+from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
 from django.core import signing
 from django.db import transaction
@@ -48,6 +49,8 @@ EMAIL_VERIFICATION_SALT = "accounts.email-verification"
 #: What every unusable verification link is told, so a caller cannot tell an
 #: expired link from a forged one or from one for an address since replaced.
 EMAIL_VERIFICATION_INVALID = "That verification link is invalid or has expired."
+#: The complaint, against ``password``, when a donor's link is followed without one.
+DONOR_UPGRADE_PROMPT = "Choose a password to finish opening your account."
 
 #: The name the password emails use before a website administrator has filled
 #: in the organization name in Wagtail's site settings.
@@ -84,6 +87,18 @@ class EmailVerificationError(DomainValidationError):
     def __init__(self, message: str) -> None:
         """Store ``message`` as the complaint about the ``token`` field."""
         super().__init__("token", message)
+
+
+class DonorPasswordRequiredError(DomainValidationError):
+    """A donor's upgrade link followed without the password the account will sign in with.
+
+    Reported against the ``password`` field with :data:`DONOR_UPGRADE_PROMPT`.  Nothing
+    is written: the person following the link is asked for a password and posts again.
+    """
+
+    def __init__(self) -> None:
+        """Store :data:`DONOR_UPGRADE_PROMPT` as the complaint about ``password``."""
+        super().__init__("password", DONOR_UPGRADE_PROMPT)
 
 
 class AuditFields(TypedDict, total=False):
@@ -633,7 +648,9 @@ class DonorUpgrade(TypedDict):
 
     ``kind`` is ``member`` or ``friend``; the names are the ones the form gave,
     stripped.  It travels inside the verification link, so nothing is written to the
-    donor's account until whoever registered proves the address is theirs.
+    donor's account until somebody proves the address is theirs by following the link.
+    The registration's password does not travel with it: whoever follows the link
+    chooses the password then (:func:`verify_email`).
     """
 
     first_name: str
@@ -685,9 +702,11 @@ def send_email_verification(
     send under the purpose ``email_verification``.  The context carries ``user``,
     ``first_name`` (the display name when there is no first name), ``email``,
     ``verify_url``, ``expiry_days`` (``EMAIL_VERIFICATION_TIMEOUT`` in whole days,
-    never less than one), ``site_url``, ``org_name`` and ``contact_email``.  A donor,
-    who cannot sign in, is sent nothing -- unless ``upgrade`` is given, when the link
-    carries the registration that asked for it (:func:`verify_email` applies it).
+    never less than one), ``site_url``, ``org_name``, ``contact_email`` and ``upgrade``
+    (true when the link opens a donor's account).  A donor, who cannot sign in, is sent
+    nothing -- unless ``upgrade`` is given, when the link carries the registration that
+    asked for it (:func:`verify_email` applies it) and the message says that following it
+    opens a portal account for the address, choosing its password on the way.
     ``previous_email``, given after a change of address, is signed into the link so
     that following it raises ``email_changed``.
     """
@@ -705,6 +724,7 @@ def send_email_verification(
         "site_url": settings.SITE_URL.rstrip("/"),
         "org_name": name,
         "contact_email": contact_email(),
+        "upgrade": upgrade is not None,
     }
     send_templated(
         to=user.email,
@@ -716,7 +736,7 @@ def send_email_verification(
 
 
 @transaction.atomic
-def verify_email(token: str) -> User:
+def verify_email(token: str, *, password: str = "") -> User:
     """Mark the account ``token`` names as verified, and return it.
 
     Raises ``EmailVerificationError`` with ``EMAIL_VERIFICATION_INVALID`` when the
@@ -729,10 +749,16 @@ def verify_email(token: str) -> User:
     (:func:`_verification_target`), so the second caller waits for the first to
     finish and then sees what it left, rather than upgrading a donor twice.
 
-    A token for a donor completes the registration that mailed it: the account takes
-    the names and the kind the form gave and the ``member`` role (see
-    :func:`upgrade_donor`), then is verified, so it can sign in with the password
-    chosen then.  A donor's token that carries no upgrade is refused as invalid.
+    A token for a donor completes the registration that mailed it, and the person
+    following it chooses the password: with no ``password`` it raises
+    :class:`DonorPasswordRequiredError` and changes nothing, and a ``password`` Django's
+    validators reject raises ``django.core.exceptions.ValidationError`` and changes
+    nothing.  An accepted ``password`` becomes the account's, the account takes the names
+    and the kind the form gave and the ``member`` role (see :func:`upgrade_donor`), and it
+    is verified, so it can sign in with that password.  The password typed when
+    registering is never used, so the account opens only for whoever holds the mailbox.
+    A donor's token that carries no upgrade is refused as invalid.  ``password`` is
+    ignored for every other account.
 
     A token mailed after a change of address carries the address it replaced; the
     visit that stamps the account verified raises the ``email_changed`` event with
@@ -752,6 +778,11 @@ def verify_email(token: str) -> User:
         upgrade = _donor_upgrade(payload)
         if upgrade is None:
             raise EmailVerificationError(EMAIL_VERIFICATION_INVALID)
+        if password == "":
+            raise DonorPasswordRequiredError
+        validate_password(password, user=user)
+        user.set_password(password)
+        user.save(update_fields=["password", "updated_at"])
         upgrade_donor(user, upgrade)
     if confirm_email_address(user):
         previous_email = payload.get("previous_email")
@@ -771,8 +802,8 @@ def upgrade_donor(donor: User, upgrade: DonorUpgrade) -> None:
 
     The names are replaced by the upgrade's, the account gains the ``member`` role,
     and the kind is set through :func:`set_kind` with the account as its own actor,
-    which records ``account.kind``.  The password was written when the person
-    registered; the caller proves the address.  The donor has not signed up yet:
+    which records ``account.kind``.  The caller has proved the address and set the
+    password chosen by whoever proved it.  The donor has not signed up yet:
     like anybody who registers, they do when the join wizard's profile step
     completes the profile, which raises ``signed_up``.
     """

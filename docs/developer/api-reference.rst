@@ -624,7 +624,7 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - ✓
-     - asks for the current password; a system administrator or a donor is refused with 400; ends the session
+     - asks for the current password; a system administrator is refused with 400; ends the session
    * - ``POST /auth/reactivate``
      - ✓
      - ✓

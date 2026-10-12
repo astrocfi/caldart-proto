@@ -293,9 +293,7 @@ function VerificationSent({ email }: VerificationSentProps): JSX.Element {
         We sent a verification message to {email}. Click the link in it to continue setting up your
         account.
       </p>
-      <p className="muted">
-        Once the address is verified, sign in with the password you just chose.
-      </p>
+      <p className="muted">The link asks you to choose the password you will sign in with.</p>
     </Card>
   );
 }

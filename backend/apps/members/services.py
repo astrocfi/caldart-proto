@@ -196,16 +196,14 @@ def register_member(
     (:meth:`apps.members.api.profile_serializers.ProfileSerializer.update`).
 
     An address that belongs to a donor is not a new account, and the donor is
-    returned still a donor: only the password is written, which a donor cannot sign
-    in with.  The verification link mailed to the donor's address carries the names
-    and the kind, and following it upgrades the donor in place
-    (:func:`apps.accounts.services.verify_email`), so the gifts already made stay on
-    the account and nobody reaches them without proving the address.
+    returned unchanged: ``password`` is not written, since the person registering has
+    not shown the address is theirs.  The verification link mailed to the donor's
+    address carries the names and the kind, and following it asks for a password and
+    upgrades the donor in place (:func:`apps.accounts.services.verify_email`), so the
+    gifts already made stay on the account and only whoever holds the mailbox opens it.
     """
     donor = User.objects.filter(email__iexact=email.strip(), kind=AccountKind.DONOR).first()
     if donor is not None:
-        donor.set_password(password)
-        donor.save(update_fields=["password", "updated_at"])
         upgrade: DonorUpgrade = {
             "first_name": first_name.strip(),
             "last_name": last_name.strip(),

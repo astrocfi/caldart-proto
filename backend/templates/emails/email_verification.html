@@ -32,7 +32,7 @@ written out literally — CSS custom properties do not survive here.
                   style="margin: 0; font-family: Fraunces, Georgia, 'Times New Roman', serif;
                          font-size: 26px; font-weight: 600; line-height: 1.2; color: #1d2530;"
                 >
-                  Verify your email address
+                  {% if upgrade %}Open your portal account{% else %}Verify your email address{% endif %}
                 </h1>
               </td>
             </tr>
@@ -40,7 +40,11 @@ written out literally — CSS custom properties do not survive here.
               <td style="padding: 24px 32px 8px;">
                 <p style="margin: 0 0 16px;">Hello{% if first_name %} {{ first_name }}{% endif %},</p>
                 <p style="margin: 0 0 16px;">
-                  Please confirm that <strong>{{ email }}</strong> is your email address:
+                  {% if upgrade %}Somebody, perhaps you, asked to open a portal account for
+                  <strong>{{ email }}</strong>, the address {{ org_name }} has on file for your
+                  gifts. To open it, follow this link and choose the password you will sign in
+                  with:{% else %}Please confirm that <strong>{{ email }}</strong> is your email
+                  address:{% endif %}
                 </p>
                 <p style="margin: 0 0 20px;">
                   <a
@@ -48,14 +52,15 @@ written out literally — CSS custom properties do not survive here.
                     style="display: inline-block; padding: 10px 20px; background: #1f4e79; color: #ffffff;
                            border: 1px solid #1f4e79; border-radius: 2px; font-size: 14px;
                            font-weight: 500; text-decoration: none;"
-                    >Verify my address</a
+                    >{% if upgrade %}Open my account{% else %}Verify my address{% endif %}</a
                   >
                 </p>
                 <p style="margin: 0 0 16px; font-size: 14px; color: #55606d;">
-                  The link expires in {{ expiry_days }} day{{ expiry_days|pluralize }}. Until you open it, your
+                  The link expires in {{ expiry_days }} day{{ expiry_days|pluralize }}.{% if upgrade %} Nothing changes
+                  until you follow it.{% else %} Until you open it, your
                   address is marked unverified and nothing else in the portal is open to you. If
                   the link has expired, sign in and press Resend verification message on the
-                  screen you land on to get a new one. If the button does not
+                  screen you land on to get a new one.{% endif %} If the button does not
                   work, paste this address into your browser:
                 </p>
                 <p
@@ -65,7 +70,9 @@ written out literally — CSS custom properties do not survive here.
                   <a href="{{ verify_url }}" style="color: #1f4e79;">{{ verify_url }}</a>
                 </p>
                 <p style="margin: 0 0 8px; font-size: 14px; color: #55606d;">
-                  If you were not expecting this you can ignore this message.{% if contact_email %}
+                  {% if upgrade %}If you did not ask for this, ignore this message: your gifts and
+                  details stay as they are.{% else %}If you were not expecting this you can ignore
+                  this message.{% endif %}{% if contact_email %}
                   Anything that looks wrong, write to
                   <a href="mailto:{{ contact_email }}" style="color: #1f4e79;">{{ contact_email }}</a>.{% endif %}
                 </p>

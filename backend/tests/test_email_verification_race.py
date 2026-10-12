@@ -20,7 +20,7 @@ from apps.accounts import services as account_services
 from apps.accounts.models import AccountKind, User
 from apps.accounts.services import DonorUpgrade, make_email_verification_token, verify_email
 from caldart import audit
-from tests.conftest import audit_messages
+from tests.conftest import GOOD_PASSWORD, audit_messages
 from tests.factories import UserFactory
 
 # The threads must see each other's committed rows, so this module runs against
@@ -61,7 +61,7 @@ def verify_in_thread(token: str, start: threading.Barrier, failures: list[str]) 
     """Follow ``token`` as soon as the other thread is ready, recording any error."""
     try:
         start.wait(timeout=JOIN_TIMEOUT_SECONDS)
-        verify_email(token)
+        verify_email(token, password=GOOD_PASSWORD)
     # A thread's exception would otherwise be printed and lost; the test asserts
     # on what it caught instead.
     except Exception as exc:

@@ -1866,6 +1866,7 @@
   },
   "EmailVerifyRequest": {
     "properties": {
+      "password": "string",
       "token": "string"
     },
     "required": [
