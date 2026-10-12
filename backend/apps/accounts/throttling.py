@@ -15,7 +15,13 @@ shared counter.
 
 from __future__ import annotations
 
+import math
+from collections.abc import Callable
+from functools import wraps
+from typing import Any
+
 from django.conf import settings
+from django.http import HttpRequest, HttpResponse, HttpResponseBase
 from rest_framework.request import Request
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
@@ -27,6 +33,10 @@ PASSWORD_RESET_SCOPE = "auth_password_reset"  # noqa: S105 - a throttle scope na
 VERIFY_SCOPE = "auth_verify"
 VERIFY_RESEND_SCOPE = "auth_verify_resend"
 DONATE_SCOPE = "donate"
+
+#: What a login form that is not the portal's answers once the ``auth_login`` budget
+#: is spent, as plain text: the form's own page cannot show an API error.
+LOGIN_FORM_THROTTLED = "Too many sign-in attempts. Wait a minute and try again."
 
 
 class AuthScopedThrottle(AnonRateThrottle):
@@ -93,3 +103,35 @@ class DonateThrottle(AuthScopedThrottle):
     """
 
     scope = DONATE_SCOPE
+
+
+def throttle_login_form(
+    view: Callable[..., HttpResponseBase],
+) -> Callable[..., HttpResponseBase]:
+    """Wrap a login view that is not the portal's in the ``auth_login`` rate limit.
+
+    The Wagtail admin and the Django admin each serve their own login form, which would
+    otherwise take unlimited guesses.  Each ``POST`` to the wrapped view counts against
+    the same ``auth_login`` budget, by client address, as ``POST /auth/login``; once it
+    is spent the answer is a plain-text 429 carrying :data:`LOGIN_FORM_THROTTLED` and a
+    ``Retry-After`` header in whole seconds, and the view is not called.  Other methods
+    pass through uncounted, and a switched-off scope leaves the view alone.
+    """
+
+    @wraps(view)
+    def throttled(request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponseBase:
+        """Refuse a ``POST`` past the budget, otherwise call the view."""
+        if request.method != "POST":
+            return view(request, *args, **kwargs)
+        throttle = LoginThrottle()
+        if throttle.allow_request(Request(request), APIView()):
+            return view(request, *args, **kwargs)
+        response = HttpResponse(
+            LOGIN_FORM_THROTTLED, status=429, content_type="text/plain; charset=utf-8"
+        )
+        wait = throttle.wait()
+        if wait is not None:
+            response["Retry-After"] = str(math.ceil(wait))
+        return response
+
+    return throttled

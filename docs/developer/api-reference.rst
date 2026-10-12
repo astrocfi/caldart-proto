@@ -367,6 +367,9 @@ links and spending them draw on the same budget:
    * - ``POST /auth/reactivate``
      - ``auth_login``
      - ``AUTH_THROTTLE_LOGIN`` (``20/min``), shared with sign-in
+   * - ``POST /admin/login/`` and ``POST /django-admin/login/``
+     - ``auth_login``
+     - ``AUTH_THROTTLE_LOGIN`` (``20/min``), shared with sign-in; a plain-text 429
    * - ``POST /auth/register``
      - ``auth_register``
      - ``AUTH_THROTTLE_REGISTER`` (``10/hour``)
