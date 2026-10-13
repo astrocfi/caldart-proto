@@ -86,8 +86,6 @@ LINK_PASSWORD = "Mailbox-Holder-Chooses-31"  # noqa: S105 - test fixture
 WEAK_PASSWORD = "password"  # noqa: S105 - a password the validators reject
 DONOR_UPGRADE_PROMPT = "Choose a password to finish opening your account."
 
-TAKEN = "An account already uses that email address. Sign in, or reset your password."
-DEACTIVATED_AT_REGISTER = "This email belongs to a deactivated account. Sign in to reactivate it."
 WRONG_CREDENTIALS = "Incorrect email address or password."
 INVALID_RESET_LINK = "That password reset link is invalid or has expired. Request a new one."
 
@@ -463,15 +461,14 @@ def test_register_stores_the_chosen_kind(
     api_client: APIClient, posted: dict[str, str], stored: str
 ) -> None:
     """``POST /auth/register`` takes ``kind``, a member unless it says friend."""
-    response = api_client.post(REGISTER_URL, register_payload(**posted), format="json")
-    assert response.status_code == 201
-    assert response.json()["kind"] == stored
+    api_client.post(REGISTER_URL, register_payload(**posted), format="json")
+    assert User.objects.get(email=register_payload()["email"]).kind == stored
 
 
 def test_a_friend_who_registers_holds_the_member_role(api_client: APIClient) -> None:
     """A friend is given the same ``member`` role a member is."""
-    response = api_client.post(REGISTER_URL, register_payload(kind="friend"), format="json")
-    assert response.json()["roles"] == ["member"]
+    api_client.post(REGISTER_URL, register_payload(kind="friend"), format="json")
+    assert User.objects.get(email=register_payload()["email"]).roles == ["member"]
 
 
 def test_register_refuses_to_make_a_donor(api_client: APIClient) -> None:
@@ -517,11 +514,11 @@ def upgraded_donor(donor: User, donor_registration: ApiResponse) -> User:
 def test_registering_a_donors_address_asks_for_the_address_to_be_proved(
     donor: User, donor_registration: ApiResponse
 ) -> None:
-    """The answer is a 202 naming the address the link went to, not a signed-in user."""
-    assert donor_registration.status_code == 202
-    assert donor_registration.json() == {
-        "detail": "Verification message sent to giver@example.test."
-    }
+    """The answer is the 202 every registration gets, not a signed-in user."""
+    assert (donor_registration.status_code, donor_registration.json()) == (
+        202,
+        {"detail": "We sent a message to GIVER@example.test. Follow the link in it to continue."},
+    )
 
 
 def test_registering_a_donors_address_signs_nobody_in(
@@ -666,30 +663,12 @@ def test_the_upgraded_donor_gets_a_profile(donor: User, donor_registration: ApiR
     assert MemberProfile.objects.filter(user=donor).exists()
 
 
-def test_register_still_refuses_a_members_address(api_client: APIClient, member: User) -> None:
-    """An address that belongs to an active member or friend is taken."""
-    response = api_client.post(REGISTER_URL, register_payload(email=member.email), format="json")
-    assert response.status_code == 400
-    assert response.json() == {"email": [TAKEN]}
-
-
-def test_register_refuses_a_deactivated_address_with_a_code(
-    api_client: APIClient, member: User
-) -> None:
-    """A deactivated account's address is refused with the ``deactivated`` code."""
-    member.is_active = False
-    member.save(update_fields=["is_active"])
-    response = api_client.post(
-        REGISTER_URL, register_payload(email=member.email.upper()), format="json"
-    )
-    assert response.status_code == 400
-    assert response.json() == {"email": [DEACTIVATED_AT_REGISTER], "code": "deactivated"}
-
-
 def test_register_member_with_a_kind_creates_that_kind(db: None) -> None:
     """``register_member`` stores the kind it is given."""
-    user = register_member(email="f@example.test", password=GOOD_PASSWORD, kind=AccountKind.FRIEND)
-    assert user.kind == AccountKind.FRIEND
+    registration = register_member(
+        email="f@example.test", password=GOOD_PASSWORD, kind=AccountKind.FRIEND
+    )
+    assert registration.user.kind == AccountKind.FRIEND
 
 
 # --------------------------------------------------------------------------

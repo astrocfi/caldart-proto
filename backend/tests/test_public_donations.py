@@ -34,11 +34,9 @@ from apps.members.models import CALIFORNIA_COUNTIES, US_STATE_CHOICES, MemberPro
 from apps.payments.donations import (
     DONATION_TOKEN_MAX_AGE,
     DONATION_TOKEN_SALT,
-    HAS_ACCOUNT_MESSAGE,
     NO_SUCH_PAYMENT,
     DonationTokenError,
     DonorFields,
-    HasAccountError,
     donation_token,
     donor_for,
     payment_for_token,
@@ -217,14 +215,23 @@ def test_donor_for_does_not_touch_an_existing_donors_stored_details() -> None:
 
 @pytest.mark.parametrize("kind", [AccountKind.MEMBER, AccountKind.FRIEND])
 @pytest.mark.parametrize("is_active", [True, False], ids=["active", "deactivated"])
-def test_donor_for_refuses_the_address_of_a_member_or_a_friend(
+def test_donor_for_finds_the_account_of_a_member_or_a_friend(
     kind: AccountKind, is_active: bool
 ) -> None:
-    """An address that already signs in to the portal, active or not, is refused."""
-    UserFactory(email=DONOR_EMAIL, kind=kind, is_active=is_active)
+    """An address that signs in to the portal, active or not, is that account's."""
+    account = UserFactory(email=DONOR_EMAIL, kind=kind, is_active=is_active)
 
-    with pytest.raises(HasAccountError, match=re.escape(HAS_ACCOUNT_MESSAGE)):
-        donor_for(donor_fields(email=DONOR_EMAIL.upper()))
+    assert donor_for(donor_fields(email=DONOR_EMAIL.upper())) == account
+
+
+@pytest.mark.parametrize("kind", [AccountKind.MEMBER, AccountKind.FRIEND])
+def test_donor_for_leaves_a_member_or_a_friend_as_they_are(kind: AccountKind) -> None:
+    """Finding a member's or a friend's account for a gift changes nothing about it."""
+    UserFactory(email=DONOR_EMAIL, kind=kind)
+
+    donor_for(donor_fields())
+
+    assert User.objects.get(email=DONOR_EMAIL).kind == kind
 
 
 # ------------------------------------------------------------------- tokens
@@ -361,22 +368,75 @@ def test_a_second_gift_from_the_same_address_reuses_the_donor(
     assert (User.objects.count(), Payment.objects.count()) == (1, 2)
 
 
-def test_a_gift_from_a_members_address_is_refused(api_client: APIClient, member: User) -> None:
-    """An address that belongs to a member answers 400 with the ``has_account`` code."""
-    response = api_client.post(CHECKOUT_URL, gift(email=member.email), format="json")
+@pytest.mark.parametrize("holder", ["nobody", "donor", "member", "friend", "deactivated"], ids=str)
+def test_a_gift_is_answered_the_same_whoever_holds_the_address(
+    api_client: APIClient, holder: str
+) -> None:
+    """The checkout answers 201 with the same keys, never saying who has an account."""
+    if holder == "donor":
+        UserFactory(email=DONOR_EMAIL, kind=AccountKind.DONOR, roles=[])
+    elif holder == "deactivated":
+        UserFactory(email=DONOR_EMAIL, kind=AccountKind.MEMBER, is_active=False)
+    elif holder != "nobody":
+        UserFactory(email=DONOR_EMAIL, kind=AccountKind(holder))
 
-    assert (response.status_code, response.json()) == (
-        400,
-        {
-            "email": ["An account already uses that email address. Sign in to donate."],
-            "code": "has_account",
-        },
+    response = api_client.post(CHECKOUT_URL, gift(), format="json")
+
+    assert (response.status_code, sorted(response.json())) == (
+        201,
+        ["client", "payment_id", "provider", "token"],
     )
 
 
-def test_a_refused_gift_writes_nothing(api_client: APIClient, friend: User) -> None:
-    """A gift refused for a friend's address leaves no payment behind."""
-    api_client.post(CHECKOUT_URL, gift(email=friend.email), format="json")
+def test_a_gift_from_a_members_address_goes_to_the_member(
+    api_client: APIClient, member: User, give: Callable[..., dict[str, Any]]
+) -> None:
+    """A member's address gives to the member's own account."""
+    body = give(email=member.email)
+
+    assert Payment.objects.get(pk=body["payment_id"]).user == member
+
+
+def test_a_gift_from_a_members_address_reads_donor(
+    api_client: APIClient, member: User, give: Callable[..., dict[str, Any]]
+) -> None:
+    """The completed gift's answer says nothing about the member's membership."""
+    body = give(email=member.email)
+
+    response = api_client.post(
+        MOCK_COMPLETE_URL, {"payment_id": body["payment_id"], "token": body["token"]}, format="json"
+    )
+
+    assert response.json()["membership"] == {
+        "status": "donor",
+        "expires_on": None,
+        "plan": None,
+        "is_lifetime": False,
+    }
+
+
+def test_a_gift_from_a_members_address_keeps_the_members_details(
+    api_client: APIClient, member: User, give: Callable[..., dict[str, Any]]
+) -> None:
+    """What the giver typed is never written onto an account that signs in."""
+    complete(api_client, give(email=member.email, first_name="Someone", last_name="Else"))
+
+    member.refresh_from_db()
+    assert (member.first_name, member.last_name) != ("Someone", "Else")
+
+
+def test_a_gift_from_a_friends_address_makes_no_donor(
+    api_client: APIClient, friend: User, give: Callable[..., dict[str, Any]]
+) -> None:
+    """A friend's address makes no second account."""
+    give(email=friend.email)
+
+    assert User.objects.filter(email__iexact=friend.email).count() == 1
+
+
+def test_a_refused_gift_writes_nothing(api_client: APIClient) -> None:
+    """A gift the checkout refuses leaves no payment behind."""
+    api_client.post(CHECKOUT_URL, gift(contribution_cents=0), format="json")
 
     assert Payment.objects.count() == 0
 

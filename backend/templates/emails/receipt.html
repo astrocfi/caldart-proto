@@ -65,6 +65,13 @@ system sans for IBM Plex Sans, since webfonts do not load in most mail clients.
                   provided in exchange for this contribution.
                 </p>
                 {% endif %}
+                {% if public_gift %}
+                <p style="margin:0 0 14px 0; font-size:14px; color:#55606D;">
+                  This gift was made on the public donation page with your email address. If
+                  it wasn't you, contact {{ org_name }}{% if contact_email %} at
+                  <a href="mailto:{{ contact_email }}" style="color:#1F4E79;">{{ contact_email }}</a>{% endif %}.
+                </p>
+                {% endif %}
               </td>
             </tr>
 

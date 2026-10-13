@@ -136,7 +136,7 @@ def test_an_unverified_session_may_register_another_account(unverified_client: A
             "last_name": "Other",
         },
     )
-    assert response.status_code == 201
+    assert response.status_code == 202
 
 
 def test_an_unverified_session_may_ask_for_a_password_reset(

@@ -51,39 +51,23 @@ def reset_link_from_outbox() -> tuple[str, str]:
 # --------------------------------------------------------------------------
 # Registration
 # --------------------------------------------------------------------------
-def test_register_creates_a_member_and_signs_them_in(api_client: APIClient) -> None:
-    """Registering creates the account, signs it in, and returns the payload."""
-    response = api_client.post(REGISTER_URL, register_payload())
-
-    assert response.status_code == 201
-    body = response.json()
-    assert body["email"] == "new.member@example.test"
-    assert body["roles"] == [MEMBER]
-    assert body["membership"]["status"] == "none"
-    assert body["profile_complete"] is False
-    assert set(body) == {
-        "id",
-        "email",
-        "first_name",
-        "last_name",
-        "roles",
-        "is_active",
-        "membership",
-        "profile_complete",
-        "email_verified",
-        "kind",
-        "friend_on",
-        "admin_created",
-        "can_use_aircraft",
-    }
+def test_register_creates_a_member(api_client: APIClient) -> None:
+    """Registering a new address creates the account, its role, and its profile."""
+    api_client.post(REGISTER_URL, register_payload())
 
     user = User.objects.get(email="new.member@example.test")
-    assert user.check_password(GOOD_PASSWORD)
-    assert user.roles == [MEMBER]
-    assert MemberProfile.objects.filter(user=user).exists()
+    assert (user.check_password(GOOD_PASSWORD), user.roles, user.profile is not None) == (
+        True,
+        [MEMBER],
+        True,
+    )
 
-    # The session is live straight away -- no second login round trip.
-    assert api_client.get(ME_URL).json()["email"] == user.email
+
+def test_register_answers_202_and_signs_nobody_in(api_client: APIClient) -> None:
+    """The answer is the 202 every address gets, and no session comes with it."""
+    response = api_client.post(REGISTER_URL, register_payload())
+
+    assert (response.status_code, api_client.get(ME_URL).status_code) == (202, 401)
 
 
 def test_register_never_echoes_the_password(api_client: APIClient) -> None:
@@ -92,21 +76,13 @@ def test_register_never_echoes_the_password(api_client: APIClient) -> None:
     assert "password" not in response.json()
 
 
-def test_register_rejects_a_duplicate_email(api_client: APIClient, member: User) -> None:
-    """A registration reusing an existing email is refused, and no row is duplicated."""
-    response = api_client.post(REGISTER_URL, register_payload(email=member.email))
-    assert response.status_code == 400
-    assert "email" in response.json()
-    assert User.objects.filter(email__iexact=member.email).count() == 1
-
-
-def test_register_rejects_a_duplicate_email_in_another_case(
+def test_register_makes_no_second_account_for_a_taken_address(
     api_client: APIClient, member: User
 ) -> None:
-    """The duplicate-email check is case-insensitive."""
-    response = api_client.post(REGISTER_URL, register_payload(email=member.email.upper()))
-    assert response.status_code == 400
-    assert "email" in response.json()
+    """A registration reusing an existing address, in any case, duplicates no row."""
+    api_client.post(REGISTER_URL, register_payload(email=member.email.upper()))
+
+    assert User.objects.filter(email__iexact=member.email).count() == 1
 
 
 @pytest.mark.parametrize(
@@ -466,7 +442,7 @@ def test_registration_is_throttled_when_a_rate_is_configured(
     settings.AUTH_THROTTLE_RATES = {"auth_register": "2/hour"}
     for index in range(2):
         response = api_client.post(REGISTER_URL, register_payload(email=f"n{index}@example.test"))
-        assert response.status_code == 201
+        assert response.status_code == 202
     assert (
         api_client.post(REGISTER_URL, register_payload(email="n9@example.test")).status_code == 429
     )

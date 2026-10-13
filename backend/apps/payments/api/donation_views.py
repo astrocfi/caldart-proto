@@ -30,6 +30,7 @@ from rest_framework.views import APIView
 from apps.accounts.throttling import DonateThrottle
 from apps.darts.models import Dart
 from apps.members.models import CALIFORNIA_COUNTIES, US_STATE_CHOICES
+from apps.members.services import donor_membership
 from apps.payments.api.donation_serializers import (
     DonationCheckoutResponseSerializer,
     DonationCheckoutSerializer,
@@ -40,13 +41,10 @@ from apps.payments.api.donation_serializers import (
     DonationStripeConfirmSerializer,
 )
 from apps.payments.api.serializers import PaymentResultSerializer
-from apps.payments.api.views import confirmed, payment_result
+from apps.payments.api.views import confirm_payment
 from apps.payments.donations import (
-    HAS_ACCOUNT_CODE,
-    HAS_ACCOUNT_MESSAGE,
     DonationTokenError,
     DonorFields,
-    HasAccountError,
     donation_token,
     payment_for_token,
     start_donation,
@@ -62,6 +60,16 @@ from apps.payments.providers.base import PaymentError
 
 #: The body fields that are the giver's details rather than the payment's.
 PAYMENT_FIELDS = ("contribution_cents", "provider")
+
+
+def gift_result(payment: Payment) -> Response:
+    """200 with ``{status, membership}`` for a gift, ``membership`` always a donor's.
+
+    The giver may not be the account's owner, so the answer says nothing about the
+    account the gift went to: ``membership`` reads ``donor`` whoever holds the address.
+    """
+    result = {"status": payment.status, "membership": donor_membership()}
+    return Response(PaymentResultSerializer(result).data)
 
 
 def proven_payment(data: dict[str, Any], *, provider: str | None = None) -> Payment:
@@ -126,10 +134,11 @@ class DonationCheckoutView(APIView):
         checkout answers it; ``token`` proves the caller for the calls that finish the
         payment.
 
-        400 ``{"email": [...], "code": "has_account"}`` when the address belongs to a
-        member or a friend, active or not; 400 by field for a detail the profile's rules
-        refuse, for a gift of nothing, and for a provider that is not configured; 400
-        with ``detail`` when the provider refuses to start.  Any refusal writes nothing.
+        The answer is the same whoever holds the address: one that belongs to a member's
+        or a friend's account gives to that account, and the details sent are never
+        written onto it.  400 by field for a detail the profile's rules refuse, for a
+        gift of nothing, and for a provider that is not configured; 400 with ``detail``
+        when the provider refuses to start.  Any refusal writes nothing.
         """
         serializer = DonationCheckoutSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -142,17 +151,12 @@ class DonationCheckoutView(APIView):
         fields = cast(
             DonorFields, {key: value for key, value in data.items() if key not in PAYMENT_FIELDS}
         )
-        try:
-            with transaction.atomic():
-                payment = start_donation(fields, data["contribution_cents"], provider)
-                try:
-                    client = get_provider(provider).start(payment)
-                except PaymentError as exc:
-                    raise ValidationError({"detail": str(exc)}) from exc
-        except HasAccountError as exc:
-            raise ValidationError(
-                {"email": [HAS_ACCOUNT_MESSAGE], "code": HAS_ACCOUNT_CODE}
-            ) from exc
+        with transaction.atomic():
+            payment = start_donation(fields, data["contribution_cents"], provider)
+            try:
+                client = get_provider(provider).start(payment)
+            except PaymentError as exc:
+                raise ValidationError({"detail": str(exc)}) from exc
 
         return Response(
             {
@@ -183,11 +187,12 @@ class DonationStripeConfirmView(APIView):
         serializer = DonationStripeConfirmSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         payment = proven_payment(serializer.validated_data, provider=PaymentProvider.STRIPE)
-        return confirmed(
+        confirm_payment(
             payment,
             PaymentProvider.STRIPE,
             payment_intent_id=serializer.validated_data["payment_intent_id"],
         )
+        return gift_result(payment)
 
 
 class DonationPayPalCaptureView(APIView):
@@ -208,9 +213,10 @@ class DonationPayPalCaptureView(APIView):
         serializer = DonationPayPalCaptureSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         payment = proven_payment(serializer.validated_data, provider=PaymentProvider.PAYPAL)
-        return confirmed(
+        confirm_payment(
             payment, PaymentProvider.PAYPAL, order_id=serializer.validated_data["order_id"]
         )
+        return gift_result(payment)
 
 
 class DonationMockCompleteView(APIView):
@@ -234,9 +240,8 @@ class DonationMockCompleteView(APIView):
         serializer = DonationMockCompleteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         payment = proven_payment(serializer.validated_data, provider=PaymentProvider.MOCK)
-        return confirmed(
-            payment, PaymentProvider.MOCK, outcome=serializer.validated_data["outcome"]
-        )
+        confirm_payment(payment, PaymentProvider.MOCK, outcome=serializer.validated_data["outcome"])
+        return gift_result(payment)
 
 
 class DonationStatusView(APIView):
@@ -257,4 +262,4 @@ class DonationStatusView(APIView):
         query = DonationStatusQuerySerializer(data=request.query_params)
         query.is_valid(raise_exception=True)
         payment = proven_payment({"payment_id": pk, "token": query.validated_data["token"]})
-        return Response(PaymentResultSerializer(payment_result(payment)).data)
+        return gift_result(payment)

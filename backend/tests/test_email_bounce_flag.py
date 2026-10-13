@@ -16,6 +16,7 @@ from typing import Any
 import pytest
 from rest_framework.test import APIClient
 
+from apps.accounts.email_change import request_email_change
 from apps.accounts.models import User
 from apps.accounts.roles import ACCOUNT_ADMIN, DART_LEADER, SYSTEM_ADMIN, USER_ADMIN
 from apps.accounts.services import (
@@ -69,11 +70,14 @@ def _clear_url(user: User) -> str:
 # --------------------------------------------------------------------------
 # Clearing by itself
 # --------------------------------------------------------------------------
-def test_a_new_address_clears_the_bounce(bounced: User, user_admin: User) -> None:
-    """The bounce belonged to the old address, so a new one starts clean."""
-    update_account(user_admin, bounced, {"email": "dana@example.org"})
+def test_asking_for_a_new_address_keeps_the_bounce(bounced: User, user_admin: User) -> None:
+    """The account still mails the old address until the change completes.
 
-    assert _bounce(bounced) == (None, "")
+    Completing the change clears the bounce (``test_email_change.py``).
+    """
+    request_email_change(user_admin, bounced, "dana@example.org")
+
+    assert _bounce(bounced) == (BOUNCED_AT, DETAIL)
 
 
 def test_a_change_of_case_keeps_the_bounce(bounced: User, user_admin: User) -> None:

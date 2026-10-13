@@ -8,9 +8,9 @@ from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError as DjangoValidationError
 from drf_spectacular.utils import extend_schema_field
-from rest_framework import serializers, status
-from rest_framework.exceptions import APIException
+from rest_framework import serializers
 
+from apps.accounts.email_change import FollowedLink
 from apps.accounts.models import (
     PERSON_KIND_CHOICES,
     AccountChange,
@@ -41,7 +41,9 @@ class UserSerializer(serializers.ModelSerializer[User]):
     member: its owner has joined already, so once the address is verified the portal
     opens without the profile and pay steps.  ``can_use_aircraft`` is
     :func:`apps.aircraft.access.may_use_aircraft`, so the portal hides the aircraft
-    screens the server would refuse.
+    screens the server would refuse.  ``pending_email`` is the address a requested
+    change of address waits to move the account to, or ``""``; ``email`` stays the
+    address the account signs in with until the link mailed there is followed.
     """
 
     roles = serializers.SerializerMethodField()
@@ -55,6 +57,7 @@ class UserSerializer(serializers.ModelSerializer[User]):
         fields = [
             "id",
             "email",
+            "pending_email",
             "first_name",
             "last_name",
             "roles",
@@ -145,23 +148,12 @@ class LoginSerializer(serializers.Serializer[None]):
     )
 
 
-class DeactivatedAccountError(APIException):
-    """A registration for an address a deactivated account holds.
-
-    Rendered as 400 ``{"email": [<sentence>], "code": "deactivated"}``: the ``code``
-    tells the portal to offer a sign-in, where the account can be reactivated.
-    """
-
-    status_code = status.HTTP_400_BAD_REQUEST
-    MESSAGE = "This email belongs to a deactivated account. Sign in to reactivate it."
-
-    def __init__(self) -> None:
-        """Build the error with its fixed body."""
-        super().__init__({"email": [self.MESSAGE], "code": "deactivated"})
-
-
 class RegisterSerializer(serializers.Serializer[None]):
-    """``POST /auth/register``: the fields a self-service signup supplies."""
+    """``POST /auth/register``: the fields a self-service signup supplies.
+
+    Nothing here reads the database: whether the address already has an account is
+    never a reason to refuse, so the answer cannot say who has one.
+    """
 
     email = serializers.EmailField(error_messages=email_messages("Enter your email address."))
     password = PasswordField(error_messages=when_missing("Choose a password."))
@@ -176,29 +168,8 @@ class RegisterSerializer(serializers.Serializer[None]):
     )
 
     def validate_email(self, value: str) -> str:
-        """The address, stripped, provided no active member or friend already uses it.
-
-        An address belonging to an active donor passes: registering upgrades the
-        donor in place.  An address belonging to an account a user administrator has
-        blocked from reactivating is rejected with "This account has been closed.
-        Contact <organization name> to reopen it."; one belonging to any other
-        deactivated account, of any kind, raises ``DeactivatedAccountError``.  Any
-        other taken address, compared case-insensitively, is rejected with "An account
-        already uses that email address. Sign in, or reset your password."
-        """
-        value = value.strip()
-        existing = User.objects.filter(email__iexact=value).first()
-        if existing is None:
-            return value
-        if existing.reactivation_blocked:
-            raise serializers.ValidationError(closed_account_message())
-        if not existing.is_active:
-            raise DeactivatedAccountError
-        if is_donor(existing):
-            return value
-        raise serializers.ValidationError(
-            "An account already uses that email address. Sign in, or reset your password."
-        )
+        """The address, stripped."""
+        return value.strip()
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         """``attrs`` unchanged, once the password passes Django's validators.
@@ -307,10 +278,33 @@ class EmailVerifySerializer(serializers.Serializer[None]):
     password = PasswordField(required=False, allow_blank=True, default="")
 
 
-class EmailVerifiedSerializer(serializers.Serializer[dict[str, str]]):
-    """``POST /auth/email/verify``: the address the link verified."""
+class EmailVerifiedSerializer(serializers.Serializer[FollowedLink]):
+    """``POST /auth/email/verify``: the address the link proved, and whether it moved.
+
+    ``changed`` is true when the link completed a change of address, so the account
+    signs in with ``email`` from now on.
+    """
 
     email = serializers.EmailField()
+    changed = serializers.BooleanField()
+
+
+class EmailChangeUndoSerializer(serializers.Serializer[None]):
+    """``POST /auth/email/undo``: the token an undo link carries."""
+
+    token = serializers.CharField()
+
+
+class EmailChangeUndoneSerializer(serializers.Serializer[dict[str, object]]):
+    """``POST /auth/email/undo``: the address the account holds once the undo is done.
+
+    ``taken`` is true when the address the link was mailed to could not be put back
+    because another account holds it: the account was secured, and its owner is told
+    to contact the organization.
+    """
+
+    email = serializers.EmailField()
+    taken = serializers.BooleanField()
 
 
 class VerificationSentSerializer(serializers.Serializer[dict[str, str]]):
@@ -328,17 +322,17 @@ class EmailChangeSerializer(serializers.Serializer[None]):
     #: The address is the login, so moving it asks for the password first.
     WRONG_PASSWORD = "That is not your current password."  # noqa: S105 - an error message
     SAME_ADDRESS = "That is already your email address."
-    TAKEN_ADDRESS = "Another account already uses that email address."
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         """``attrs`` with the address stripped, once the change passes three checks.
 
         They run in this order and the first failure is the only one reported: the
         current password must be the signed-in user's (``current_password``: "That is
-        not your current password."); the address must differ from the account's own,
-        compared case-insensitively (``email``: "That is already your email
-        address."); and no other account may use it, compared the same way
-        (``email``: "Another account already uses that email address.").
+        not your current password."); and the address must differ from the account's
+        own, compared case-insensitively (``email``: "That is already your email
+        address.").  Whether another account uses the address is never a refusal here,
+        so the answer cannot say who has an account
+        (:func:`apps.accounts.email_change.request_email_change`).
         """
         user: User = self.context["request"].user
         if not user.check_password(attrs["current_password"]):
@@ -346,8 +340,6 @@ class EmailChangeSerializer(serializers.Serializer[None]):
         email = attrs["email"].strip()
         if normalized_email(email) == normalized_email(user.email):
             raise serializers.ValidationError({"email": [self.SAME_ADDRESS]})
-        if User.objects.filter(email__iexact=email).exclude(pk=user.pk).exists():
-            raise serializers.ValidationError({"email": [self.TAKEN_ADDRESS]})
         attrs["email"] = email
         return attrs
 
@@ -428,6 +420,7 @@ class AdminUserSerializer(UserSerializer):
         read_only_fields = [
             "id",
             *ROLES_ONLY_REFUSED_FIELDS,
+            "pending_email",
             "kind",
             "friend_on",
             "admin_created",

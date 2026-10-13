@@ -38,6 +38,7 @@ export const HELP_PAGES: readonly HelpPage[] = [
   { pattern: '/forgot-password', slug: 'member/forgot-password' },
   { pattern: '/reset-password', slug: 'member/reset-password' },
   { pattern: '/verify-email', slug: 'member/verify-email' },
+  { pattern: '/undo-email-change', slug: 'member/undo-email-change' },
   { pattern: '/join', slug: 'member/join' },
   { pattern: '/join/:step', slug: 'member/join' },
   { pattern: '/leader', slug: 'admin/member-check' },

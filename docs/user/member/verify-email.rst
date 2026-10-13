@@ -11,15 +11,18 @@ you. Following the link proves that the email address is yours.
 When CalDART sends a verification message
 =========================================
 
-CalDART sends one to an address in three cases:
+CalDART sends one to an address in two cases:
 
 * when you create an account in :doc:`join`;
-* when you move your account to another address on :doc:`change-email`;
 * when you reactivate an account whose address was never verified (see
   :doc:`sign-in`).
 
 The message has the subject *CalDART: verify your email address*. Its link is good
 for three days.
+
+When you move your account to another address on :doc:`change-email`, the new
+address gets *CalDART: confirm your new email address* instead. Its link opens this
+screen too, and following it is what moves the account.
 
 
 What you see
@@ -29,6 +32,10 @@ The screen opens with **Verifying your email address** and *Checking the link…
 while it asks CalDART. It then says **Email verified**, with the address, and a
 **Continue** button. It works in any browser, signed in or not, so it does not
 matter which device your email program opens it on.
+
+After a link that moved your account, the screen says **Email address changed**
+instead, with *marta@example.net is your sign-in address from now on.* Sign in with
+that address from then on.
 
 **Continue** takes you on to the right place:
 
@@ -44,12 +51,15 @@ If the link does not work
 
 The screen says **Email not verified** with the reason, usually *That verification
 link is invalid or has expired.* Sign in, and press **Resend verification
-message** on the screen you land on to get a new one.
+message** on the screen you land on to get a new one. A link to a new address also
+stops working once you ask for a different address or the change is undone. If it
+says *Another account already uses that email address.*, somebody took the address
+after you asked for it, and your account keeps the address it had.
 
 Until the address is verified, that **Check your email** screen is all of the
 portal you can use: every other screen brings you back to it, and there is no menu
-down the left. This holds for an address you have just changed, too (see
-:doc:`change-email`).
+down the left. A change of address does not hold you there: you keep signing in with
+the address you had until the new one is confirmed (see :doc:`change-email`).
 
 
 If something looks wrong

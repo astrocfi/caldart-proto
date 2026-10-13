@@ -69,13 +69,13 @@ plus:
   asked for at the end of their term is dropped. A donor's record has no such field. A donor
   becomes a member or a friend only by registering on the site with the same address.
 - Under **Email address**, **Verified** with the date the address was confirmed, or
-  **Unverified**. Nothing on this screen resends the message; a user administrator can, from
-  the :doc:`user-record`, and the member can from their own dashboard.
+  **Unverified**, and *Waiting for … to confirm.* while a new address waits for its link.
+  Nothing here resends a message; a user administrator can, from the :doc:`user-record`.
 
 **Save changes** saves the account and the profile together, and the message *Member saved.*
 confirms it. Saving a changed pilot certificate, medical, or photo ID clears that item's
-verification. Changing the email address marks it **Unverified** and sends the new address a
-message with the subject *CalDART: verify your email address*.
+verification. A new address takes effect once its owner follows the link sent to it (see
+:doc:`../member/change-email`); your own you change from **Change email**.
 
 The **Amateur radio** fieldset, under the emergency contact, holds the **Amateur radio
 callsign**: optional, a US callsign such as W6ABC, upper-cased as you type. Anything else is
@@ -86,10 +86,9 @@ whole rule.
 
 The email address is guarded, because it is where a password reset link goes and so is
 enough to take an account over. You can change it only on an account whose roles you hold
-yourself. As an account administrator you can change it on an ordinary member's record and
-on another account administrator's, and on nobody else's with a role you lack, such as a
-DART leader or a treasurer. Names, the DART, the phones, and every profile field stay
-editable on any record you can open. Deactivating the account is on the **Delete or deactivate** tab.
+yourself: an ordinary member's or another account administrator's, but nobody's with a role
+you lack, such as a DART leader or a treasurer. Names, the DART, the phones, and every
+profile field stay editable on any record you can open.
 
 Below the form, but not on a donor's record, **Email preferences** shows the person's
 :doc:`../member/email-preferences` switches; each saves at once as yours. A type turned off

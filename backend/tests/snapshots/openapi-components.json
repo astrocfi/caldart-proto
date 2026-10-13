@@ -37,7 +37,9 @@
       "reactivated",
       "blocked",
       "unblocked",
-      "new_password"
+      "new_password",
+      "email_changed",
+      "email_change_undone"
     ]
   },
   "AccountKindEnum": {
@@ -240,6 +242,7 @@
       "kind": "ref:AccountKindEnum",
       "last_name": "string",
       "membership": "ref:MembershipStatus",
+      "pending_email": "string(email)",
       "phone": "string",
       "profile_complete": "boolean",
       "reactivation_blocked": "boolean",
@@ -264,6 +267,7 @@
       "kind",
       "last_name",
       "membership",
+      "pending_email",
       "phone",
       "profile_complete",
       "reactivation_blocked"
@@ -291,6 +295,7 @@
       "kind": "ref:AccountKindEnum",
       "last_name": "string",
       "membership": "ref:MembershipStatus",
+      "pending_email": "string(email)",
       "phone": "string",
       "profile_complete": "boolean",
       "reactivation_blocked": "boolean",
@@ -317,6 +322,7 @@
       "kind",
       "last_name",
       "membership",
+      "pending_email",
       "phone",
       "profile_complete",
       "reactivation_blocked"
@@ -1714,6 +1720,24 @@
       "email"
     ]
   },
+  "EmailChangeUndoRequest": {
+    "properties": {
+      "token": "string"
+    },
+    "required": [
+      "token"
+    ]
+  },
+  "EmailChangeUndone": {
+    "properties": {
+      "email": "string(email)",
+      "taken": "boolean"
+    },
+    "required": [
+      "email",
+      "taken"
+    ]
+  },
   "EmailLog": {
     "properties": {
       "attachments": "string",
@@ -1863,9 +1887,11 @@
   },
   "EmailVerified": {
     "properties": {
+      "changed": "boolean",
       "email": "string(email)"
     },
     "required": [
+      "changed",
       "email"
     ]
   },
@@ -2390,6 +2416,7 @@
       "memberships": "array<ref:AdminMembership>",
       "name": "string",
       "payments": "array<ref:AdminPayment>",
+      "pending_email": "string",
       "profile": "ref:AdminProfile|null",
       "profile_updated_at": "string(date-time)|null",
       "reactivation_blocked": "boolean",
@@ -2413,6 +2440,7 @@
       "memberships",
       "name",
       "payments",
+      "pending_email",
       "profile",
       "profile_updated_at",
       "reactivation_blocked",
@@ -4414,6 +4442,7 @@
       "kind": "ref:AccountKindEnum",
       "last_name": "string",
       "membership": "ref:MembershipStatus",
+      "pending_email": "string(email)",
       "profile_complete": "boolean",
       "roles": "array<ref:RolesEnum>"
     },
@@ -4429,6 +4458,7 @@
       "kind",
       "last_name",
       "membership",
+      "pending_email",
       "profile_complete",
       "roles"
     ]

@@ -1,0 +1,35 @@
+{% extends "emails/account_base.html" %}
+{% comment %}
+The notice to the address an account had, when a change of sign-in address is asked
+for and again when it completes, with the link that undoes it.
+{% endcomment %}
+
+{% block heading %}{% if completed %}Your email address has changed{% else %}Your email address is changing{% endif %}{% endblock %}
+
+{% block body %}
+  <p style="margin: 0 0 16px;">
+    {% if completed %}Your {{ org_name }} account no longer signs in with
+    <strong>{{ previous_email }}</strong>. Its address is now <strong>{{ new_email }}</strong>,
+    and password reset links go there.{% else %}Somebody asked to move your {{ org_name }}
+    account from <strong>{{ previous_email }}</strong> to <strong>{{ new_email }}</strong>. The
+    account keeps signing in with {{ previous_email }} until somebody opens the link we sent
+    to {{ new_email }}.{% endif %}
+  </p>
+  <p style="margin: 0 0 16px;">If this was you, there is nothing to do.</p>
+  <p style="margin: 0 0 16px;">
+    If it was not you, {% if completed %}put {{ previous_email }} back{% else %}stop the
+    change{% endif %} here. This also signs everybody out of the account, stops its password
+    from working, and sends {{ previous_email }} a link to choose a new one.
+  </p>
+{% endblock %}
+
+{% block button %}
+  {% if completed %}
+    {% include "emails/account_button.html" with url=undo_url label="Put my address back" %}
+  {% else %}
+    {% include "emails/account_button.html" with url=undo_url label="This was not me" %}
+  {% endif %}
+  <p style="margin: 0 0 16px; font-size: 14px; color: #55606d;">
+    The link works once, for {{ undo_days }} day{{ undo_days|pluralize }}.
+  </p>
+{% endblock %}

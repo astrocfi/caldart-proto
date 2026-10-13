@@ -29,7 +29,12 @@ What happens next
 =================
 
 *Your password has been changed.* appears and the boxes empty. You stay signed in
-on this device. From then on you sign in with the new password.
+on this device, and every other device signed in to the account is signed out. From
+then on you sign in with the new password.
+
+CalDART emails your address *CalDART: your password was changed*, with the date and
+time. If you did not change it, somebody else knows your password: follow the link in
+the message to :doc:`forgot-password` and choose a new one at once.
 
 
 If the screen says something else

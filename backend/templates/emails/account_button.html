@@ -1,0 +1,21 @@
+{% comment %}
+The button and the pasteable link under it, for an account notice
+(`emails/account_base.html`).  Include it with `url` and `label`.
+{% endcomment %}<p style="margin: 0 0 20px;">
+  <a
+    href="{{ url }}"
+    style="display: inline-block; padding: 10px 20px; background: #1f4e79; color: #ffffff;
+           border: 1px solid #1f4e79; border-radius: 2px; font-size: 14px;
+           font-weight: 500; text-decoration: none;"
+    >{{ label }}</a
+  >
+</p>
+<p style="margin: 0 0 16px; font-size: 14px; color: #55606d;">
+  If the button does not work, paste this address into your browser:
+</p>
+<p
+  style="margin: 0 0 20px; font-family: 'IBM Plex Mono', Menlo, Consolas, monospace;
+         font-size: 13px; word-break: break-all;"
+>
+  <a href="{{ url }}" style="color: #1f4e79;">{{ url }}</a>
+</p>

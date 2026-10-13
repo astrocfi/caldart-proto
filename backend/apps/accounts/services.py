@@ -9,14 +9,16 @@ invitation an administrator-created account receives.  Both render a pair of
 templates from the same context, so the link, the organization name and the
 expiry wording can never drift apart.
 
-A third email proves an address: every new account and every change of address
-is mailed a signed link to ``/portal/verify-email``, and the account counts as
-verified once the link comes back.  A password link proves the address too, so
-following one marks an unverified account verified.
+A third email proves an address: every new account is mailed a signed link to
+``/portal/verify-email``, and the account counts as verified once the link comes back.
+A password link proves the address too, so following one marks an unverified account
+verified.  A change of address is proved the same way before it takes effect, by the
+link ``apps.accounts.email_change`` mails to the new address.
 """
 
 from __future__ import annotations
 
+import hashlib
 from typing import TypedDict
 
 from django.conf import settings
@@ -24,7 +26,7 @@ from django.contrib.auth.hashers import make_password
 from django.contrib.auth.password_validation import password_changed, validate_password
 from django.contrib.auth.tokens import default_token_generator
 from django.core import signing
-from django.db import transaction
+from django.db import connection, transaction
 from django.http import HttpRequest
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
@@ -35,7 +37,7 @@ from apps.accounts.models import PERSON_KINDS, AccountChangeKind, AccountKind, U
 from apps.accounts.roles import MEMBER, ROLE_SLUGS, SYSTEM_ADMIN, VERIFIER, WEBSITE_ADMIN
 from caldart import audit, events
 from caldart.exceptions import DomainValidationError
-from caldart.mail import contact_email, org_name, send_on_commit, send_templated
+from caldart.mail import contact_email, org_name, send_templated
 
 #: Where the SPA serves the reset form (``routes/auth.tsx``).
 RESET_PATH = "/portal/reset-password"
@@ -67,8 +69,9 @@ SECONDS_PER_DAY = 86_400
 PROTECTED_ACCOUNT_FIELDS: tuple[str, ...] = ("email",)
 
 #: The account columns :func:`update_account` writes, in the order it writes them.
-#: Anything else in the changes it is handed is ignored.
-ACCOUNT_FIELDS: tuple[str, ...] = ("email", "first_name", "last_name")
+#: Anything else in the changes it is handed is ignored, the address included: a change
+#: of address waits for its new owner (``apps.accounts.email_change``).
+ACCOUNT_FIELDS: tuple[str, ...] = ("first_name", "last_name")
 
 EMAIL_CHANGE_REFUSED = (
     "You cannot change the email address of an account that holds roles you do not hold."
@@ -118,8 +121,10 @@ class AccountChanges(TypedDict, total=False):
     """What :func:`update_account` may be asked to change.  Every key is optional.
 
     ``roles`` is the complete list the account should end up holding, in any
-    order; ``kind`` the kind of person the account should belong to; the other keys
-    are the account columns, written as given.
+    order; ``kind`` the kind of person the account should belong to; the names are
+    account columns, written as given.  ``email`` is the address an administrator's
+    edit asks for: :func:`update_account` ignores it, and the member record hands it to
+    ``apps.accounts.email_change.request_email_change``.
     """
 
     email: str
@@ -240,18 +245,16 @@ def update_account(actor: User | str, target: User, changes: AccountChanges) -> 
 
     #. only a system administrator may grant or revoke ``system_admin``;
     #. a donor's kind is never changed by hand ("A donor becomes a member or a
-       friend only by registering.", against ``kind``);
-    #. an account holding roles the actor does not hold has an untouchable email
-       address -- see :func:`check_account_edit`.
+       friend only by registering.", against ``kind``).
 
     The active flag is not an edit: ``apps.accounts.status`` deactivates and
     reactivates an account, and a change the caller hands in under ``is_active`` is
-    ignored like any other key that is not an account column.
+    ignored like any other key that is not an account column.  Nor is the address,
+    which changes only once its new owner follows a link
+    (``apps.accounts.email_change.request_email_change``): ``email`` is ignored here.
 
-    A value that would not really alter the account is not a change and so is
-    never a refusal; on a record whose protected fields the actor may not write
-    it is dropped rather than saved, so an address resent in another case cannot
-    rewrite the stored one.  A role list the account already holds is not written
+    A value that would not really alter the account is not a change.  A role list
+    the account already holds is not written
     at all: rebuilding the Django flags from it would strip a ``createsuperuser``
     account of its access on a save that meant to correct a name.  Roles are
     stored in privilege order however they arrive.
@@ -268,21 +271,11 @@ def update_account(actor: User | str, target: User, changes: AccountChanges) -> 
     change is recorded as ``account.kind`` under the actor.  A ``kind`` equal to the
     stored one is no change: a pending ``friend_on`` stays as it is.
 
-    An edit that really alters the email address -- compared as the unique
-    constraint compares it, so a change of case is not one -- clears
-    ``email_verified_at`` and any bounce recorded against the old address
-    (``email_bounced_at`` and ``email_bounce_detail``) and, once the transaction
-    commits, mails the new address a verification link through
-    :func:`send_email_verification`; a mail server that refuses it is logged
-    (``caldart.mail.send_on_commit``) and the edit stands.
-
     Each change the save really makes raises its notification event through
     :func:`caldart.events.emit`, after the save and inside the transaction:
     ``became_friend`` or ``became_member`` with ``how="administrator"`` for a new
     kind, and ``roles_changed`` with the slugs ``added`` and ``removed`` (in
-    privilege order) and ``actor``.  An edit that alters nothing raises nothing.  A
-    new address raises nothing yet: the verification link carries the address it
-    replaced, and :func:`verify_email` raises ``email_changed`` when it is followed.
+    privilege order) and ``actor``.  An edit that alters nothing raises nothing.
     """
     fields = _account_fields(changes)
     roles = changes.get("roles")
@@ -293,22 +286,11 @@ def update_account(actor: User | str, target: User, changes: AccountChanges) -> 
     if kind is not None and is_donor(target):
         audit.refuse(audit.ACCOUNT_KIND, actor=actor, target=target, reason=audit.REASON_DONOR_KIND)
         raise DomainValidationError("kind", DONOR_KIND_REFUSED)
-    check_account_edit(actor, target, fields)
-    if not may_edit_protected_fields(actor, target):
-        for field in PROTECTED_ACCOUNT_FIELDS:
-            fields.pop(field, None)
 
     records = _change_records(target, fields, roles)
-    is_new_address = len(_altered_fields(target, fields, ("email",))) > 0
-    old_email = target.email
     written = [field for field in ACCOUNT_FIELDS if field in fields]
     for field in written:
         setattr(target, field, fields[field])
-    if is_new_address:
-        target.email_verified_at = None
-        target.email_bounced_at = None
-        target.email_bounce_detail = ""
-        written += ["email_verified_at", "email_bounced_at", "email_bounce_detail"]
     if roles is not None and _writes_roles(target, set(roles)):
         target.set_roles(roles)
         sync_django_flags(target)
@@ -317,11 +299,6 @@ def update_account(actor: User | str, target: User, changes: AccountChanges) -> 
     if kind is not None and kind != target.kind and set_kind(target, kind, actor=actor):
         became = "became_friend" if kind == AccountKind.FRIEND else "became_member"
         events.emit(became, user=target, how="administrator")
-    if is_new_address:
-        send_on_commit(
-            lambda: send_email_verification(target, previous_email=old_email),
-            what=f"the email verification for account {target.pk}",
-        )
 
     for action, logged in records:
         audit.record(action, actor=actor, target=target, **logged)
@@ -371,13 +348,11 @@ def _raise_edit_event(action: str, logged: AuditFields, *, actor: User | str, ta
 def _account_fields(changes: AccountChanges) -> dict[str, AccountFieldValue]:
     """The account columns ``changes`` carries, in ``ACCOUNT_FIELDS`` order.
 
-    The role list is left out, and so is any key that is not an account column: only
-    these three are ever written.  A key ``changes`` does not carry is absent from the
-    result rather than present as ``None``.
+    The role list is left out, and so is any key that is not an account column, the
+    address included: only the two names are ever written.  A key ``changes`` does not
+    carry is absent from the result rather than present as ``None``.
     """
     fields: dict[str, AccountFieldValue] = {}
-    if "email" in changes:
-        fields["email"] = changes["email"]
     if "first_name" in changes:
         fields["first_name"] = changes["first_name"]
     if "last_name" in changes:
@@ -531,6 +506,61 @@ def normalized_email(value: AccountFieldValue | None) -> str:
     return str(value or "").strip().lower()
 
 
+def address_holder(address: str) -> User | None:
+    """The account ``address`` belongs to, or ``None`` when it is free.
+
+    An address belongs to the account that signs in with it, compared
+    case-insensitively, and also to the account keeping it as its ``recovery_email``
+    until ``recovery_until``: a change of address reserves the address it moved away
+    from for its owner's undo (``apps.accounts.email_change``), so nobody else may
+    register it, give from it, or move to it meanwhile.
+    """
+    address = address.strip()
+    holder = User.objects.filter(email__iexact=address).first()
+    if holder is not None:
+        return holder
+    return User.objects.filter(
+        recovery_email__iexact=address, recovery_until__gt=timezone.now()
+    ).first()
+
+
+def address_taken(address: str, *, by_other_than: User | None = None) -> bool:
+    """True when ``address`` belongs to an account other than ``by_other_than``.
+
+    Belonging is :func:`address_holder`'s: the address an account signs in with, or
+    one an account keeps as its recovery address.
+    """
+    address = address.strip()
+    others = User.objects.all()
+    if by_other_than is not None:
+        others = others.exclude(pk=by_other_than.pk)
+    if others.filter(email__iexact=address).exists():
+        return True
+    return others.filter(recovery_email__iexact=address, recovery_until__gt=timezone.now()).exists()
+
+
+#: What sets address locks apart from any other advisory lock taken on the database.
+ADDRESS_LOCK_PERSON = b"caldart-address"
+
+
+def lock_address(address: str) -> None:
+    """Hold a transaction-scoped advisory lock on ``address``, whatever its case.
+
+    ``User.email`` is unique only case-insensitively through a constraint, so two
+    requests that each find an address free could both try to take it: one then fails
+    on the constraint.  Taking this lock first makes the second wait until the first
+    commits, and then find the account the first made.  The caller must be inside a
+    transaction.
+    """
+    digest = hashlib.blake2b(
+        address.strip().lower().encode(), digest_size=8, person=ADDRESS_LOCK_PERSON
+    ).digest()
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT pg_advisory_xact_lock(%s)", [int.from_bytes(digest, "big", signed=True)]
+        )
+
+
 # --------------------------------------------------------------------------
 # Password reset
 # --------------------------------------------------------------------------
@@ -543,16 +573,19 @@ def replace_password(user: User, raw_password: str) -> bool:
     ``create_admin`` clearing the password, or a second change or reset -- nothing is
     written and the return is False; the caller refuses the request.  Otherwise the new
     hash and ``updated_at`` are written, copied onto ``user``, the password validators'
-    ``password_changed`` hooks run, and the return is True.
+    ``password_changed`` hooks run, and the return is True.  Any change of address
+    waiting for its link is dropped with it (``pending_email`` emptied): a new password
+    is the owner taking the account in hand, and the link was asked for under the old.
     """
     new_hash = make_password(raw_password)
     now = timezone.now()
     written = User.objects.filter(pk=user.pk, password=user.password).update(
-        password=new_hash, updated_at=now
+        password=new_hash, pending_email="", updated_at=now
     )
     if written == 0:
         return False
     user.password = new_hash
+    user.pending_email = ""
     user.updated_at = now
     password_changed(raw_password, user)
     return True
@@ -604,17 +637,22 @@ def _password_link_context(user: User, *, request: HttpRequest | None) -> dict[s
 
 
 def _send_password_link_email(
-    user: User, *, template: str, subject: str, context: dict[str, object]
+    user: User,
+    *,
+    template: str,
+    subject: str,
+    context: dict[str, object],
+    to: str | None = None,
 ) -> None:
-    """Mail ``user`` both bodies of ``emails/<template>.{txt,html}``.
+    """Mail ``user`` both bodies of ``emails/<template>.{txt,html}``, at ``to`` if given.
 
     The text body is the message proper and the HTML one an alternative, so a
     client that renders no markup still reads the whole thing.  The send goes
     through the shared mail funnel, so it is recorded in the email log under the
-    template's name.
+    template's name.  ``to`` defaults to the account's own address.
     """
     send_templated(
-        to=user.email,
+        to=to or user.email,
         subject=subject,
         template=template,
         context=context,
@@ -623,9 +661,17 @@ def _send_password_link_email(
 
 
 def send_password_reset_email(
-    user: User, *, request: HttpRequest | None = None, required: bool = False
+    user: User,
+    *,
+    request: HttpRequest | None = None,
+    required: bool = False,
+    to: str | None = None,
 ) -> bool:
     """Mail ``user`` a reset link.  Returns False when there is nobody to mail.
+
+    The link goes to ``to`` when given, and to the account's own address otherwise:
+    an undone change of address whose old address could not be put back mails the
+    link to that old address.
 
     The subject is ``"<organization name>: reset your password"`` and the two
     bodies are ``emails/password_reset.{txt,html}``.  With ``required`` -- the email
@@ -654,6 +700,7 @@ def send_password_reset_email(
         template="password_reset",
         subject=f"{context['org_name']}: {what}",
         context=context,
+        to=to,
     )
     return True
 
@@ -705,9 +752,7 @@ class DonorUpgrade(TypedDict):
     kind: str
 
 
-def make_email_verification_token(
-    user: User, *, upgrade: DonorUpgrade | None = None, previous_email: str | None = None
-) -> str:
+def make_email_verification_token(user: User, *, upgrade: DonorUpgrade | None = None) -> str:
     """A signed token naming ``user`` and the address they hold now.
 
     The address is signed stripped and lowercased, so a change of case keeps the
@@ -715,33 +760,24 @@ def make_email_verification_token(
     its own timestamp; :func:`verify_email` refuses it once
     ``EMAIL_VERIFICATION_TIMEOUT`` seconds have passed.  A donor's token also carries
     the ``upgrade`` its registration asked for, which :func:`verify_email` applies.
-    A token mailed after a change of address carries the ``previous_email`` it
-    replaced, which :func:`verify_email` reports in the ``email_changed`` event.
     """
     payload: dict[str, object] = {"user": user.pk, "email": normalized_email(user.email)}
     if upgrade is not None:
         payload["upgrade"] = dict(upgrade)
-    if previous_email is not None:
-        payload["previous_email"] = previous_email
     return signing.dumps(payload, salt=EMAIL_VERIFICATION_SALT)
 
 
-def build_email_verification_url(
-    user: User, *, upgrade: DonorUpgrade | None = None, previous_email: str | None = None
-) -> str:
+def build_email_verification_url(user: User, *, upgrade: DonorUpgrade | None = None) -> str:
     """The absolute ``/portal/verify-email?token=...`` link mailed to ``user``.
 
-    Built on ``SITE_URL`` with any trailing slash dropped; ``upgrade`` and
-    ``previous_email`` are signed into the token as
-    :func:`make_email_verification_token` describes.
+    Built on ``SITE_URL`` with any trailing slash dropped; ``upgrade`` is signed into
+    the token as :func:`make_email_verification_token` describes.
     """
-    token = make_email_verification_token(user, upgrade=upgrade, previous_email=previous_email)
+    token = make_email_verification_token(user, upgrade=upgrade)
     return f"{settings.SITE_URL.rstrip('/')}{VERIFY_PATH}?token={token}"
 
 
-def send_email_verification(
-    user: User, *, upgrade: DonorUpgrade | None = None, previous_email: str | None = None
-) -> None:
+def send_email_verification(user: User, *, upgrade: DonorUpgrade | None = None) -> None:
     """Mail ``user`` a link that proves the address they hold now is theirs.
 
     The subject is ``"<organization name>: verify your email address"`` and the two
@@ -754,8 +790,6 @@ def send_email_verification(
     nothing -- unless ``upgrade`` is given, when the link carries the registration that
     asked for it (:func:`verify_email` applies it) and the message says that following it
     opens a portal account for the address, choosing its password on the way.
-    ``previous_email``, given after a change of address, is signed into the link so
-    that following it raises ``email_changed``.
     """
     if is_donor(user) and upgrade is None:
         return
@@ -764,9 +798,7 @@ def send_email_verification(
         "user": user,
         "first_name": user.first_name or user.display_name,
         "email": user.email,
-        "verify_url": build_email_verification_url(
-            user, upgrade=upgrade, previous_email=previous_email
-        ),
+        "verify_url": build_email_verification_url(user, upgrade=upgrade),
         "expiry_days": max(1, settings.EMAIL_VERIFICATION_TIMEOUT // SECONDS_PER_DAY),
         "site_url": settings.SITE_URL.rstrip("/"),
         "org_name": name,
@@ -806,11 +838,6 @@ def verify_email(token: str, *, password: str = "") -> User:
     registering is never used, so the account opens only for whoever holds the mailbox.
     A donor's token that carries no upgrade is refused as invalid.  ``password`` is
     ignored for every other account.
-
-    A token mailed after a change of address carries the address it replaced; the
-    visit that stamps the account verified raises the ``email_changed`` event with
-    the account and that ``old_email``.  A second visit, and a token with no previous
-    address, raise nothing.
     """
     try:
         payload = signing.loads(
@@ -832,9 +859,6 @@ def verify_email(token: str, *, password: str = "") -> User:
         user.save(update_fields=["password", "updated_at"])
         upgrade_donor(user, upgrade)
     if confirm_email_address(user):
-        previous_email = payload.get("previous_email")
-        if isinstance(previous_email, str):
-            events.emit("email_changed", user=user, old_email=previous_email)
         return user
     # Nothing was stamped: the account was verified already, or its address changed
     # after it was read above.  Read it again to tell the two apart.
@@ -953,15 +977,3 @@ def clear_email_bounce(actor: User, target: User) -> User:
     target.save(update_fields=["email_bounced_at", "email_bounce_detail", "updated_at"])
     audit.record(audit.ACCOUNT_BOUNCE_CLEARED, actor=actor, target=target)
     return target
-
-
-def change_own_email(user: User, *, email: str) -> User:
-    """Change ``user``'s own address to ``email``, and return the account.
-
-    This is :func:`update_account` with the account as both actor and target, so the
-    change is audited as an ``account.update`` of ``email``, the address is marked
-    unverified, and the new address is mailed a verification link on commit;
-    following that link raises the ``email_changed`` event.  The caller has already
-    checked the current password and that the address is free.
-    """
-    return update_account(user, user, {"email": email})

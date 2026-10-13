@@ -449,6 +449,8 @@ AUTH_THROTTLE_RATES = {
     "auth_password_reset": _throttle_rate("AUTH_THROTTLE_PASSWORD_RESET", "10/hour"),
     "auth_verify": _throttle_rate("AUTH_THROTTLE_VERIFY", "30/hour"),
     "auth_verify_resend": _throttle_rate("AUTH_THROTTLE_VERIFY_RESEND", "5/hour"),
+    # Asking to change one's own sign-in address, which mails the address asked for.
+    "auth_email_change": _throttle_rate("AUTH_THROTTLE_EMAIL_CHANGE", "10/hour"),
     # Starting a gift on the public donation page, which may make a donor account.
     "donate": _throttle_rate("AUTH_THROTTLE_DONATE", "10/hour"),
 }

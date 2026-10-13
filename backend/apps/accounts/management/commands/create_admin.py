@@ -13,10 +13,12 @@ from apps.accounts.models import AccountKind, User
 from apps.accounts.roles import MEMBER, ROLE_SLUGS, SYSTEM_ADMIN, WEBSITE_ADMIN
 from apps.accounts.services import (
     AccountChanges,
+    address_holder,
     build_reset_url,
     confirm_email_address,
     create_account,
     is_donor,
+    lock_address,
     send_password_invitation,
     update_account,
 )
@@ -31,6 +33,12 @@ ADMIN_ROLES: tuple[str, ...] = (MEMBER, SYSTEM_ADMIN, WEBSITE_ADMIN)
 
 #: Raised when ``--email`` already names a donor, who holds no role and cannot sign in.
 DONOR_ADMIN_REFUSED = "'{email}' is a donor account, which holds no role and cannot sign in."
+
+#: Raised when ``--email`` is an address another account keeps for recovery.
+RESERVED_ADDRESS_REFUSED = (
+    "'{email}' was moved off another account in the last seven days and is kept for its "
+    "owner to undo the change. Use another address, or try again once it is released."
+)
 
 #: Written to standard error when ``--email`` names an account that already existed and
 #: the set-password link was mailed to it.
@@ -109,7 +117,10 @@ class Command(BaseCommand):
         """Create or promote the account named by ``--email``, and print its link.
 
         Raises ``CommandError`` naming the address when it is not a valid email
-        address, or when it already names a donor.
+        address, when it already names a donor, and when another account keeps it as
+        its recovery address after a change of address
+        (``apps.accounts.services.address_holder``): the address is reserved for that
+        account's owner to undo the change with.
         """
         email = options["email"].strip()
         try:
@@ -118,7 +129,10 @@ class Command(BaseCommand):
             raise CommandError(f"'{email}' is not a valid email address.") from exc
 
         with transaction.atomic():
+            lock_address(email)
             user = User.objects.select_for_update().filter(email__iexact=email).first()
+            if user is None and address_holder(email) is not None:
+                raise CommandError(RESERVED_ADDRESS_REFUSED.format(email=email))
             promoted = user is not None
             if user is None:
                 user = create_account(
@@ -157,7 +171,10 @@ class Command(BaseCommand):
 def _take_back(user: User) -> None:
     """Clear ``user``'s password and reactivation block, and end its sessions.
 
-    Runs inside the caller's transaction, on a row it has locked.
+    Any change of address waiting for its link is dropped with the password
+    (``clear_password_and_end_sessions``): whoever asked for it may be whoever set the
+    password being cleared.  Runs inside the caller's transaction, on a row it has
+    locked.
     """
     is_blocked = user.reactivation_blocked
     user.reactivation_blocked = False

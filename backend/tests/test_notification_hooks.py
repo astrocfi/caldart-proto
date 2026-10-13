@@ -18,6 +18,7 @@ from django.utils import timezone
 from pytest_django.fixtures import DjangoCaptureOnCommitCallbacks, Settings
 from rest_framework.test import APIClient
 
+from apps.accounts.email_change import follow_verification_link, request_email_change
 from apps.accounts.models import AccountKind, User
 from apps.accounts.roles import DART_LEADER, MEMBER
 from apps.accounts.services import (
@@ -138,7 +139,7 @@ def current_term(user: User, plan: MembershipPlan, today: date) -> Membership:
 # signed_up
 # --------------------------------------------------------------------------
 def register(api_client: APIClient, email: str = NEWCOMER) -> User:
-    """Register ``email`` as a friend through ``POST /auth/register``, signed in.
+    """Register ``email`` as a friend through ``POST /auth/register``, then sign in.
 
     The address is then marked verified, as following the link would, since the join
     wizard's profile step and the API behind it open only to a verified address.
@@ -153,9 +154,11 @@ def register(api_client: APIClient, email: str = NEWCOMER) -> User:
             "kind": "friend",
         },
     )
-    assert response.status_code == 201
+    assert response.status_code == 202
     User.objects.filter(email=email).update(email_verified_at=timezone.now())
-    return User.objects.get(email=email)
+    user = User.objects.get(email=email)
+    api_client.force_login(user)
+    return user
 
 
 def test_registering_raises_nothing_until_the_join_is_complete(
@@ -810,9 +813,10 @@ def test_resending_the_roles_an_account_holds_raises_nothing(
     assert recorded == []
 
 
-def mailed_token(mailoutbox: list[EmailMessage]) -> str:
-    """The verification token in the last message sent."""
-    found = TOKEN_RE.search(str(mailoutbox[-1].body))
+def mailed_token(mailoutbox: list[EmailMessage], to: str = "moved@example.test") -> str:
+    """The token of the link in the last message sent to ``to``."""
+    last = [message for message in mailoutbox if message.to == [to]][-1]
+    found = TOKEN_RE.search(str(last.body))
     assert found is not None
     return found.group(1)
 
@@ -821,7 +825,7 @@ def test_requesting_a_new_address_raises_nothing_until_it_is_confirmed(
     user_admin: User, member: User, recorded: Recorded
 ) -> None:
     """An address nobody has proved yet is not a change of address."""
-    update_account(user_admin, member, {"email": "moved@example.test"})
+    request_email_change(user_admin, member, "moved@example.test")
 
     assert recorded == []
 
@@ -835,9 +839,9 @@ def test_confirming_a_changed_address_raises_email_changed(
 ) -> None:
     """Following the link mailed to the new address raises it, with the old address."""
     with django_capture_on_commit_callbacks(execute=True):
-        update_account(user_admin, member, {"email": "moved@example.test"})
+        request_email_change(user_admin, member, "moved@example.test")
 
-    verify_email(mailed_token(mailoutbox))
+    follow_verification_link(mailed_token(mailoutbox))
 
     assert raised(recorded, "email_changed") == [
         {"user": member, "old_email": "member@example.test"}
@@ -853,11 +857,11 @@ def test_following_the_link_twice_raises_email_changed_once(
 ) -> None:
     """The second visit finds the address verified already."""
     with django_capture_on_commit_callbacks(execute=True):
-        update_account(user_admin, member, {"email": "moved@example.test"})
+        request_email_change(user_admin, member, "moved@example.test")
     token = mailed_token(mailoutbox)
 
-    verify_email(token)
-    verify_email(token)
+    follow_verification_link(token)
+    follow_verification_link(token)
 
     assert len(raised(recorded, "email_changed")) == 1
 
@@ -876,7 +880,7 @@ def test_changing_only_the_case_of_an_address_raises_nothing(
     user_admin: User, member: User, recorded: Recorded
 ) -> None:
     """The same address in capitals is the same address."""
-    update_account(user_admin, member, {"email": "MEMBER@example.test"})
+    request_email_change(user_admin, member, "MEMBER@example.test")
 
     assert recorded == []
 
@@ -897,7 +901,7 @@ def test_confirming_your_own_new_address_raises_email_changed(
         )
     assert response.status_code == 200
 
-    verify_email(mailed_token(mailoutbox))
+    follow_verification_link(mailed_token(mailoutbox))
 
     assert raised(recorded, "email_changed") == [
         {"user": member, "old_email": "member@example.test"}

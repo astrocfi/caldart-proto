@@ -52,8 +52,11 @@ from the stored reminder schedule, so the mail app never imports it:
    * - ``contribution_statement``
      - Contribution statement
      - the yearly statement run, with the PDF attached (:doc:`statements`)
-   * - ``member_invitation``, ``password_reset``, ``email_verification``
-     - Invitation, Password reset, Email verification
+   * - ``member_invitation``, ``password_reset``, ``email_verification``,
+       ``email_change_confirm``, ``email_change_notice``, ``password_changed``,
+       ``account_exists``
+     - Invitation, Password reset, Email verification, Email change link, Email change
+       notice, Password changed, Account already exists
      - the account flows (:doc:`api-auth`), and ``create_admin`` when it promotes
        an existing account: an invitation worded to say the account's earlier
        password was cleared and its sessions ended (:ref:`deploy-database`); the

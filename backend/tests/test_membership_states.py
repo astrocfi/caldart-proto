@@ -423,6 +423,7 @@ def test_a_new_account_keeps_its_intent_and_reads_as_unpaid(
 ) -> None:
     """A joiner's stored kind is what they chose; a member reads none until they pay."""
     api_client.post(REGISTER_URL, register_payload(kind=kind))
+    api_client.force_login(User.objects.get(email="new.member@example.test"))
     body = api_client.get(ME_URL).json()
     assert {"kind": body["kind"], "status": body["membership"]["status"]} == expected
 
@@ -432,7 +433,9 @@ def test_a_member_joiner_who_pays_reads_current(
 ) -> None:
     """The member-intent joiner's first payment makes the membership current."""
     api_client.post(REGISTER_URL, register_payload())
-    activate_term(User.objects.get(email="new.member@example.test"), annual_plan)
+    joiner = User.objects.get(email="new.member@example.test")
+    activate_term(joiner, annual_plan)
+    api_client.force_login(joiner)
     body = api_client.get(ME_URL).json()
     assert {"kind": body["kind"], "status": body["membership"]["status"]} == {
         "kind": "member",

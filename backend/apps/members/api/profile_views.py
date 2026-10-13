@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import status
@@ -38,6 +39,7 @@ from apps.members.api.serializers import PlanSerializer
 from apps.members.lifecycle import undo_become_friend
 from apps.members.models import MemberProfile, MembershipPlan
 from apps.members.services import membership_status, touch_profile
+from apps.payments.receipts import SETTLED_STATUSES
 from apps.payments.renewals.mandates import switch_to_friend
 from caldart.exceptions import DomainError, DomainValidationError
 
@@ -96,10 +98,16 @@ class MyPaymentsView(APIView):
 
     @extend_schema(responses={200: PaymentSummarySerializer(many=True)})
     def get(self, request: Request) -> Response:
-        """200 with the caller's own payments, newest first."""
+        """200 with the caller's own payments, newest first.
+
+        A gift from the public donation page that has not settled is left out: anybody
+        who knows the address can start one in the account's name, and until its money
+        arrives it is nothing the account holder did.
+        """
         payments = (
             acting_user(request)
-            .payments.select_related("plan", "membership")
+            .payments.exclude(~Q(donor_fields={}) & ~Q(status__in=SETTLED_STATUSES))
+            .select_related("plan", "membership")
             .prefetch_related("refunds")
             .order_by("-created_at", "-id")
         )

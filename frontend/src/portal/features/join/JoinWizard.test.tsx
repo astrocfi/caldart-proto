@@ -327,18 +327,16 @@ describe('<JoinWizard/> step progression', () => {
     );
   });
 
-  it('registers an account and asks for the address to be verified', async () => {
+  it('registers an account and asks for the email to be checked, signing nobody in', async () => {
     let registered: unknown = null;
-    let user: User | null = null;
     server.use(
-      http.get(`${API}/auth/me`, () =>
-        user ? HttpResponse.json(user) : HttpResponse.json({ detail: 'no' }, { status: 401 }),
-      ),
-      http.get(`${API}/me/profile`, () => HttpResponse.json(makeProfile({ phone: '' }))),
+      http.get(`${API}/auth/me`, () => HttpResponse.json({ detail: 'no' }, { status: 401 })),
       http.post(`${API}/auth/register`, async ({ request }) => {
         registered = await request.json();
-        user = makeUser({ email_verified: false, profile_complete: false, membership: UNPAID });
-        return HttpResponse.json(user, { status: 201 });
+        return HttpResponse.json(
+          { detail: 'We sent a message to marta@example.org. Follow the link in it to continue.' },
+          { status: 202 },
+        );
       }),
     );
 
@@ -352,7 +350,7 @@ describe('<JoinWizard/> step progression', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Create account' }));
 
     expect(await screen.findByRole('heading', { name: 'Check your email' })).toBeInTheDocument();
-    expect(path()).toBe('/join/verify');
+    expect(path()).toBe('/join/account');
     expect(registered).toEqual({
       first_name: 'Marta',
       last_name: 'Reyes',

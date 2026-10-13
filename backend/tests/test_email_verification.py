@@ -1,15 +1,15 @@
 """Email verification: the signed link, what sends it, and the endpoints around it.
 
-A new account, a member an administrator creates with a password, and every
-change of address are mailed a link to ``/portal/verify-email``.  The link signs
-the account and the address it was sent to, so a later change of address makes
-every earlier link useless.  ``docs/developer/api-auth.rst`` describes the
-endpoints and ``docs/user/member/verify-email.rst`` what a member sees.
+A new account and a member an administrator creates with a password are mailed a
+link to ``/portal/verify-email``.  The link signs the account and the address it was
+sent to, so a later change of address makes every earlier link useless.
+``docs/developer/api-auth.rst`` describes the endpoints and
+``docs/user/member/verify-email.rst`` what a member sees.  A change of address is
+proved by a link of its own, tested in ``test_email_change.py``.
 """
 
 from __future__ import annotations
 
-import logging
 import re
 from collections.abc import Callable
 from datetime import datetime, timedelta
@@ -31,7 +31,6 @@ from apps.accounts.services import (
     EMAIL_VERIFICATION_SALT,
     EmailVerificationError,
     build_email_verification_url,
-    change_own_email,
     confirm_email_address,
     make_email_verification_token,
     send_email_verification,
@@ -42,7 +41,7 @@ from apps.mail.models import EmailLog
 from apps.mail.purposes import purpose_label
 from apps.members.services import create_member
 from tests.conftest import ME_URL, REGISTER_URL, audit_messages, register_payload
-from tests.factories import DEFAULT_PASSWORD, UserFactory
+from tests.factories import UserFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -390,21 +389,18 @@ def test_the_purpose_reads_as_email_verification() -> None:
 # --------------------------------------------------------------------------
 # What sends it
 # --------------------------------------------------------------------------
-def test_registration_sends_the_message(
-    api_client: APIClient, site_settings: SiteSettings, django_capture_on_commit_callbacks: OnCommit
-) -> None:
-    """Registering mails a verification message to the new address once it commits."""
-    with django_capture_on_commit_callbacks(execute=True):
-        api_client.post(REGISTER_URL, register_payload())
+def test_registration_sends_the_message(api_client: APIClient, site_settings: SiteSettings) -> None:
+    """Registering a new address mails it a verification message."""
+    api_client.post(REGISTER_URL, register_payload())
 
     assert [m.to for m in verification_mails()] == [["new.member@example.test"]]
 
 
-def test_registration_answers_unverified(api_client: APIClient) -> None:
-    """The payload a new account receives says its address is unverified."""
-    response = api_client.post(REGISTER_URL, register_payload())
+def test_registration_opens_an_unverified_account(api_client: APIClient) -> None:
+    """The account a registration opens starts with its address unverified."""
+    api_client.post(REGISTER_URL, register_payload())
 
-    assert response.json()["email_verified"] is False
+    assert User.objects.get(email="new.member@example.test").email_verified is False
 
 
 def test_the_user_payload_says_verified(api_client: APIClient, verified: User) -> None:
@@ -422,38 +418,6 @@ def test_creating_a_member_sends_no_verification(
         create_member(account_admin, email="invitee@example.test")
 
     assert verification_mails() == []
-
-
-def test_an_account_administrator_changing_an_address_unverifies_it(
-    account_admin: User,
-    verified: User,
-    signed_in: Callable[[User], APIClient],
-    site_settings: SiteSettings,
-    django_capture_on_commit_callbacks: OnCommit,
-) -> None:
-    """An account administrator's change of address marks it unverified and mails it."""
-    client = signed_in(account_admin)
-    with django_capture_on_commit_callbacks(execute=True):
-        response = client.patch(
-            f"{MEMBERS_URL}/{verified.pk}", {"email": "fresh@example.test"}, format="json"
-        )
-
-    assert response.status_code == 200
-    verified.refresh_from_db()
-    assert verified.email_verified is False
-    assert [m.to for m in verification_mails()] == [["fresh@example.test"]]
-
-
-def test_changing_your_own_address_unverifies_it(
-    verified: User, site_settings: SiteSettings, django_capture_on_commit_callbacks: OnCommit
-) -> None:
-    """``change_own_email`` marks the new address unverified and mails it."""
-    with django_capture_on_commit_callbacks(execute=True):
-        change_own_email(verified, email="fresh@example.test")
-
-    verified.refresh_from_db()
-    assert verified.email_verified is False
-    assert [m.to for m in verification_mails()] == [["fresh@example.test"]]
 
 
 def test_a_change_of_case_only_keeps_the_address_verified(
@@ -502,7 +466,7 @@ def test_the_verify_endpoint_answers_the_verified_address(
     response = api_client.post(VERIFY_URL, {"token": token})
 
     assert response.status_code == 200
-    assert response.json() == {"email": "unverified@example.test"}
+    assert response.json() == {"email": "unverified@example.test", "changed": False}
 
 
 def test_the_verify_endpoint_refuses_a_bad_token(api_client: APIClient) -> None:
@@ -566,94 +530,6 @@ def test_resend_is_throttled_when_a_rate_is_configured(
     statuses = [client.post(RESEND_URL).status_code for _ in range(3)]
 
     assert statuses == [202, 202, 429]
-
-
-# --------------------------------------------------------------------------
-# POST /auth/email/change
-# --------------------------------------------------------------------------
-def test_change_answers_the_user_payload(
-    verified: User, signed_in: Callable[[User], APIClient]
-) -> None:
-    """A good change answers 200 with the payload carrying the new, unverified address."""
-    response = signed_in(verified).post(
-        CHANGE_EMAIL_URL,
-        {"email": "fresh@example.test", "current_password": DEFAULT_PASSWORD},
-    )
-
-    assert response.status_code == 200
-    body = response.json()
-    assert body["email"] == "fresh@example.test"
-    assert body["email_verified"] is False
-
-
-def test_change_keeps_the_session(verified: User, signed_in: Callable[[User], APIClient]) -> None:
-    """The member is still signed in after changing the address they sign in with."""
-    client = signed_in(verified)
-    client.post(
-        CHANGE_EMAIL_URL, {"email": "fresh@example.test", "current_password": DEFAULT_PASSWORD}
-    )
-
-    assert client.get(ME_URL).json()["email"] == "fresh@example.test"
-
-
-def test_change_refuses_a_wrong_password(
-    verified: User, signed_in: Callable[[User], APIClient]
-) -> None:
-    """A wrong current password is a 400 under ``current_password``, checked first."""
-    response = signed_in(verified).post(
-        CHANGE_EMAIL_URL, {"email": verified.email, "current_password": "wrong"}
-    )
-
-    assert response.status_code == 400
-    assert response.json() == {"current_password": ["That is not your current password."]}
-
-
-def test_change_refuses_the_current_address(
-    verified: User, signed_in: Callable[[User], APIClient]
-) -> None:
-    """The address the account already has, in any case, is a 400 under ``email``."""
-    response = signed_in(verified).post(
-        CHANGE_EMAIL_URL,
-        {"email": "Verified@Example.test", "current_password": DEFAULT_PASSWORD},
-    )
-
-    assert response.status_code == 400
-    assert response.json() == {"email": ["That is already your email address."]}
-
-
-def test_change_refuses_an_address_another_account_uses(
-    verified: User, unverified: User, signed_in: Callable[[User], APIClient]
-) -> None:
-    """Another account's address, in any case, is a 400 under ``email``."""
-    response = signed_in(verified).post(
-        CHANGE_EMAIL_URL,
-        {"email": "UNVERIFIED@example.test", "current_password": DEFAULT_PASSWORD},
-    )
-
-    assert response.status_code == 400
-    assert response.json() == {"email": ["Another account already uses that email address."]}
-
-
-def test_change_records_the_audit_line(
-    verified: User, signed_in: Callable[[User], APIClient], audit_log: pytest.LogCaptureFixture
-) -> None:
-    """The change is recorded as the member's own ``account.update`` of ``email``."""
-    signed_in(verified).post(
-        CHANGE_EMAIL_URL, {"email": "fresh@example.test", "current_password": DEFAULT_PASSWORD}
-    )
-
-    assert audit_messages(audit_log, logging.INFO) == [
-        f"action=account.update actor={verified.pk} target={verified.pk} fields=email"
-    ]
-
-
-def test_change_needs_a_session(api_client: APIClient) -> None:
-    """An anonymous caller is answered 401."""
-    response = api_client.post(
-        CHANGE_EMAIL_URL, {"email": "x@example.test", "current_password": "x"}
-    )
-
-    assert response.status_code == 401
 
 
 # --------------------------------------------------------------------------

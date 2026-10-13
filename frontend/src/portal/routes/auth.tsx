@@ -3,7 +3,8 @@
  *
  * These sit in `publicRoutes`, outside the shell's `RequireAuth`, so
  * `/change-password` and `/change-email` carry their own guard.  `/verify-email`
- * is public: a verification link may be opened in a browser with no session.
+ * and `/undo-email-change` are public: a link from an email may be opened in a
+ * browser with no session.
  * `/change-email` stays open to a reader who has not finished joining, so a
  * mistyped address can be corrected from the verify step; `/change-password` does
  * not.
@@ -18,6 +19,7 @@ import {
   ResetPasswordPage,
 } from '../features/auth';
 import { ChangeEmailPage } from '../features/auth/ChangeEmailPage';
+import { UndoEmailChangePage } from '../features/auth/UndoEmailChangePage';
 import { VerifyEmailPage } from '../features/auth/VerifyEmailPage';
 
 export const authRoutes: RouteObject[] = [
@@ -25,6 +27,7 @@ export const authRoutes: RouteObject[] = [
   { path: 'forgot-password', element: <ForgotPasswordPage /> },
   { path: 'reset-password', element: <ResetPasswordPage /> },
   { path: 'verify-email', element: <VerifyEmailPage /> },
+  { path: 'undo-email-change', element: <UndoEmailChangePage /> },
   {
     path: 'change-password',
     element: (

@@ -14,6 +14,7 @@ your home page, and the menu down its left leads to the rest.
    forgot-password
    reset-password
    verify-email
+   undo-email-change
    join
    dashboard
    profile

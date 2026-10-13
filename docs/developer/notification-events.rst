@@ -182,11 +182,10 @@ Accounts
      - ``user``; ``added`` and ``removed``, lists of role slugs in privilege order;
        ``actor``
    * - ``email_changed``
-     - ``accounts.services.verify_email``, when the link mailed to a changed
-       address stamps the account verified; ``update_account`` signs the old
-       address into that link whenever an edit really alters the address (a change
-       of case does not): an administrator's edit and the member's own
-       ``POST /auth/email/change`` alike
+     - ``accounts.email_change.complete_email_change``, when the link mailed to the
+       new address completes a change of address (:ref:`api-email-change`), whether
+       an administrator's edit or the member's own ``POST /auth/email/change`` asked
+       for it; a second visit to the link raises nothing
      - ``user``; ``old_email``, the address the account held before, since the
        account holds only the new one
    * - ``profile_changed``

@@ -269,6 +269,10 @@ for constantly:
    * - ``golden``
      - ``golden(name, text)`` compares a whole rendered document with
        ``backend/tests/golden/name`` (:ref:`testing-golden-files`)
+   * - ``run_on_commit``
+     - runs every ``transaction.on_commit`` callback where it is queued, since a
+       test's transaction never commits; a test that reads the outbox a request left
+       through ``send_on_commit`` takes it, as ``test_email_change.py`` does
 
 The role groups exist in every test database already: the accounts data
 migration creates one ``Group`` per role slug, so nothing has to seed them.  A
@@ -973,14 +977,19 @@ which the target empties at the start of each run and git ignores.
 the newest message addressed there with its quoted-printable bodies decoded;
 ``verificationLink(text)``, which picks the first
 ``/portal/verify-email?token=`` link out of it; and ``followVerificationLink(page,
-address)``, which opens that link and presses **Continue**.  Every spec that
-registers an account goes through it, because the join wizard waits at its
-verify step until the address is verified.
+address)``, which opens that link, presses **Continue**, and signs in on the sign-in
+page it lands on when nobody is signed in.  Every spec that registers an account goes
+through it, because registering signs nobody in and the join wizard waits at its
+verify step until the address is verified.  ``signInAsJoiner(page, address)`` signs a
+joiner in before that, which lands on the verify step.
 
 **Prove that nothing was sent by counting.**  ``emailCountTo(address)``, from the
 same module, counts the messages sent to an address so far in the run.  The
-server writes a message before it answers the request that sent it, so a count
-read once that response has landed is final for the request.  The notifications
+server writes most messages before it answers the request that sent them, so a count
+read once that response has landed is final for the request.  A registration and a
+password reset request answer first and mail afterwards
+(:ref:`mail after the answer <api-after-response>`), so their count is final only
+once the next request has been made.  The notifications
 spec reads it after a deactivation to show that an address subscribed to other
 events heard nothing, and reads the account administrator's newest message in the
 same step to show the event did go out.

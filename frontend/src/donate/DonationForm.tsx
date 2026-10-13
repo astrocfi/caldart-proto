@@ -11,6 +11,9 @@
  * A payment method that leaves the page (a card that asks for 3-D Secure) comes back
  * to `returnUrl` with `payment_id` and `token` in the query string; the form then
  * confirms that payment instead of drawing itself.
+ *
+ * The form answers the same whatever address is typed, so it always offers a
+ * member or a friend the way to give from the portal instead, through sign-in.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { FormEvent, JSX } from 'react';
@@ -27,12 +30,16 @@ import { ContributionChooser } from '@/portal/features/checkout/ContributionChoo
 import type { PaymentEndpoints } from '@/portal/features/checkout/endpoints';
 import { ProviderTabs } from '@/portal/features/checkout/ProviderTabs';
 import { maskEmail, maskPhone } from '@/portal/masks';
+import { PORTAL_BASENAME } from '@/portal/urlPrefix';
 import { donationEndpoints, useDonationsConfig } from './api';
 import type { DonorBody } from './api';
 import { DonorDetails } from './DonorDetails';
 import { EMPTY_DONATION_FORM, donorBody, donorFieldErrors, validateDonation } from './form';
 import type { DonationFormErrors, DonationFormValues } from './form';
 import './donate.css';
+
+/** The portal's sign-in, going on to its Donate screen, so a gift lands on the giver's record. */
+const PORTAL_SIGN_IN_TO_DONATE = `${PORTAL_BASENAME}/login?next=${encodeURIComponent('/donate')}`;
 
 export interface DonationFormProps {
   /** Where the form reads its providers, amounts, and choices from. */
@@ -227,6 +234,10 @@ function GiftForm({ configUrl, returnUrl, onGiven }: GiftFormProps): JSX.Element
 
       <fieldset>
         <legend>About you</legend>
+        <p className="muted">
+          Already have an account?{' '}
+          <a href={PORTAL_SIGN_IN_TO_DONATE}>Sign in to give from the portal.</a>
+        </p>
         <div className="form-grid">
           <Field label="First name" required error={errors.first_name}>
             {(props) => (

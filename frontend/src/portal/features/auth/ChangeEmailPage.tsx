@@ -2,21 +2,24 @@ import { useState } from 'react';
 import type { JSX } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
+import { pendingEmailNotice } from '@/portal/auth/pendingEmail';
 import { useAuth, useEmailChange } from '@/portal/auth/useAuth';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { Field } from '@/portal/components/Field';
 import { Page } from '@/portal/components/Page';
+import { ResendVerificationButton } from '@/portal/components/ResendVerificationButton';
 import { useToast } from '@/portal/components/Toast';
 import { FormAlert, fieldError } from './form';
 import { safeNext } from './LoginPage';
 
 /**
- * `/change-email` — move your own account to another address while signed in.
+ * `/change-email` — ask to move your own account to another address while signed in.
  *
- * The new address is unverified until its owner follows the link the server mails
- * to it.  Afterwards the member goes back to the portal page named by `?next=`, or
- * to the dashboard.
+ * Nothing changes until the link the server mails to the new address is followed: the
+ * account keeps signing in with the address it has, and the page says so while the
+ * change waits, with a control that sends the link again.  After asking, the member
+ * goes back to the portal page named by `?next=`, or to the dashboard.
  */
 export function ChangeEmailPage(): JSX.Element {
   const change = useEmailChange();
@@ -28,16 +31,25 @@ export function ChangeEmailPage(): JSX.Element {
   const [password, setPassword] = useState('');
 
   const next = safeNext(params.get('next'));
+  const pending = user ? pendingEmailNotice(user) : null;
 
   return (
     <Page
       title="Change email"
       lede={
         user
-          ? `Your address is ${user.email}. We will send a link to the new one; sign in with it after you open the link.`
+          ? `Your sign-in address is ${user.email}. We will send a link to the new address; the change takes effect when you open it.`
           : undefined
       }
     >
+      {pending !== null ? (
+        <Card title="Change waiting">
+          <p role="status">{pending}</p>
+          <div className="cluster card__footer">
+            <ResendVerificationButton />
+          </div>
+        </Card>
+      ) : null}
       <Card>
         <form
           noValidate
@@ -46,9 +58,9 @@ export function ChangeEmailPage(): JSX.Element {
             change.mutate(
               { email, current_password: password },
               {
-                onSuccess: (user) => {
+                onSuccess: (changed) => {
                   toast.show(
-                    `Your email is now ${user.email}. We sent a verification message to it.`,
+                    pendingEmailNotice(changed) ?? 'Your email address is unchanged.',
                     'success',
                   );
                   void navigate(next, { replace: true });

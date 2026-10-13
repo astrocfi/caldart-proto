@@ -377,12 +377,15 @@ links and spending them draw on the same budget:
    * - ``POST /auth/password/reset`` and ``…/reset/confirm``
      - ``auth_password_reset``
      - ``AUTH_THROTTLE_PASSWORD_RESET`` (``10/hour``)
-   * - ``POST /auth/email/verify``
+   * - ``POST /auth/email/verify`` and ``POST /auth/email/undo``
      - ``auth_verify``
      - ``AUTH_THROTTLE_VERIFY`` (``30/hour``)
    * - ``POST /auth/email/resend``
      - ``auth_verify_resend``
      - ``AUTH_THROTTLE_VERIFY_RESEND`` (``5/hour``)
+   * - ``POST /auth/email/change``
+     - ``auth_email_change``
+     - ``AUTH_THROTTLE_EMAIL_CHANGE`` (``10/hour``)
    * - ``POST /donations/checkout``
      - ``donate``
      - ``AUTH_THROTTLE_DONATE`` (``10/hour``)
@@ -394,9 +397,8 @@ Setting a rate to empty turns that throttle off, and a value that is neither
 empty nor a readable rate stops start-up; see :doc:`configuration`.  The test
 settings switch every one off in Python rather than through the environment.
 The auth and donation classes subclass ``AnonRateThrottle`` but override
-``get_cache_key`` so they bucket by address even for an authenticated caller —
-registration signs the new account in, and every request after the first would
-otherwise go uncounted.  The address-suggestion class subclasses
+``get_cache_key`` so they bucket by address even for an authenticated caller,
+whose requests would otherwise go uncounted.  The address-suggestion class subclasses
 ``UserRateThrottle`` and counts each account on its own, because every
 suggestion spends the Geoapify quota the whole site shares.  Exceeding a rate
 is **429**.
@@ -627,7 +629,15 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - ✓
-     - asks for the current password
+     - asks for the current password; the address changes once the new one is proved; throttled
+   * - ``POST /auth/email/undo``
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - throttled; ends every session of the account
    * - ``POST /auth/deactivate``
      - ·
      - ✓

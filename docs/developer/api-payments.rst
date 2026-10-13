@@ -362,7 +362,10 @@ certificate needs no number here.  ``address_line1``, ``address_line2``, and
 
 The address is matched case-insensitively.  A new address becomes a bare donor
 account with no name yet and no profile; an existing donor is only found, never
-touched.  Either way, the details sent are filed on the pending payment rather
+touched.  An address that belongs to a member's or a friend's account, active or
+deactivated, is that account: the gift is theirs, an ordinary contribution, and the
+answer is the same as for any address, so the page never says who has an account.
+The details sent are never written onto such an account.  Either way, the details sent are filed on the pending payment rather
 than written to the account, so that an unauthenticated caller who only knows a
 donor's address can never overwrite what an earlier, completed gift recorded.
 Two first gifts from one address arriving together wait on one lock on the
@@ -374,7 +377,27 @@ time, and an existing donor's names are replaced, with the phone and each option
 field that was sent filled in (a non-blank value, a DART, a checked box) written
 over the stored one and a field left out or blank keeping what an earlier, completed
 gift said (``apps.payments.donations.apply_donor_fields``, called from
-``mark_succeeded``).  Nothing is mailed to the donor but the receipt.  The page's
+``mark_succeeded``).  Only a donor's account takes them; a member's or a friend's
+keeps the details its owner keeps from the portal.
+
+A gift from this page is marked as one (``Payment.is_public_gift``: its
+``donor_fields`` are filled in when ``start_donation`` makes it), because whoever gives
+may not own the account the address names.  Such a payment never matches a renewal
+mandate (``pending_mandate_for`` answers ``None``), so it never activates the account's
+pending automatic renewal or recurring donation and never saves the giver's card or
+PayPal account against the account, and Stripe creates its intent with no customer.
+Until it settles it is left out of the account holder's ``GET /me/payments``
+(:doc:`api-profile`); it counts in no report or statement before then, as no unsettled
+payment does.  Its receipt is made out to the name the giver typed
+(``Payment.payer_name``), while the receipt email greets the account holder and adds
+*This gift was made on the public donation page with your email address. If it wasn't
+you, contact <organization>.*  On the account holder's year statement such a gift is
+not counted in the total: it is listed apart, under *Gifts made on the public donation
+page with your address*, with the name it was given in when that differs from the
+holder's (``StatementData.public_gifts``; ``given as …`` under the receipt number).
+An address an account keeps as its recovery address after a change of address
+(:ref:`api-email-change`) gives to that account too, and the receipt goes to that
+address (``receipts.receipt_address``).  Nothing is mailed to the donor but the receipt.  The page's
 Stripe tab starts a checkout as soon as it shows, to load Stripe's card form, and
 again each time the giver comes back to it with changed details; each one counts
 against the ``donate`` rate.  A visitor who opens the Stripe tab and leaves is
@@ -390,13 +413,7 @@ cleans either up.
     "client": {"client_secret": "pi_3Nk..._secret_..."},
     "token": "eyJwYXltZW50Ijo0MTV9:1tQ..."}
 
-An address that belongs to a member or a friend, active or deactivated, is
-refused with a code the page reads::
-
-    400 {"email": ["An account already uses that email address. Sign in to donate."],
-         "code": "has_account"}
-
-Statuses: **201**; **400** for that address, a missing or malformed field, a gift
+Statuses: **201**; **400** for a missing or malformed field, a gift
 of nothing (``{"contribution_cents": ["Choose an amount to give."]}``), a provider
 that is not configured (``{"provider": "'stripe' is not configured."}``), or a
 provider that refuses to start (``detail``); **403** without a CSRF token;
@@ -415,7 +432,9 @@ Anyone holding the payment's token.  The bodies are the portal's (see
    {"payment_id": 415, "payment_intent_id": "pi_3Nk...", "token": "eyJwYXltZW50Ijo0MTV9:1tQ..."}
 
 The provider is asked exactly as the portal's endpoint asks it, and the answer is
-the same ``{status, membership}`` body; a donor's ``membership`` reads ``donor``.
+the same ``{status, membership}`` body, except that ``membership`` always reads
+``donor`` (``apps.payments.api.donation_views.gift_result``): the giver may not own
+the account the gift went to, so the answer says nothing about it.
 ``/mock/complete`` is **404** while ``PAYMENTS_MOCK_ENABLED`` is off.
 
 Statuses: **200**; **400** for a missing field, a payment started with another
@@ -426,7 +445,8 @@ payment's token.
 ``GET /donations/{id}?token=``
 ------------------------------
 
-Anyone holding the payment's token.  The payment's ``{status, membership}``, read
+Anyone holding the payment's token.  The payment's ``{status, membership}``,
+``membership`` reading ``donor`` as above, read
 by the page when a payment method that left it (a card that asked for 3-D Secure)
 sends the browser back to ``/donate/?payment_id=<id>&token=<token>``.
 

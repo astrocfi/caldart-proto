@@ -1,0 +1,16 @@
+{% autoescape off %}{{ org_name }} — confirm your new email address
+
+Hello{% if first_name %} {{ first_name }}{% endif %},
+
+Somebody, perhaps you, asked to make {{ new_email }} the address a {{ org_name }}
+account signs in with. To make the change, open this link:
+
+{{ confirm_url }}
+
+The link expires in {{ expiry_days }} day{{ expiry_days|pluralize }}. Until you open it, nothing changes.
+
+If you did not ask for this, ignore this message.{% if contact_email %} Anything that looks wrong, write to {{ contact_email }}.{% endif %}
+
+— {{ org_name }}
+{{ site_url }}
+{% endautoescape %}

@@ -2,13 +2,14 @@
  * A visitor who is not signed in gives through the public donation page: an amount,
  * their name, address and phone, then the mock provider.  The page thanks them, the
  * receipt reaches their address without a link to a portal they cannot sign in to,
- * and a second gift from the same address goes to the same donor.  An address that
- * already belongs to a member is sent to sign in instead.
+ * and a second gift from the same address goes to the same donor.  The page answers
+ * the same whoever holds the address, so a friend's address gives like any other, and
+ * the page always offers the portal through sign-in.
  */
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-import { DEMO, latestEmailTo, uniqueEmail } from './helpers';
+import { completeOnboarding, latestEmailTo, uniqueEmail } from './helpers';
 
 /** Fill in a $100 gift from `email` and go on to the payment. */
 async function startGift(page: Page, email: string): Promise<void> {
@@ -56,12 +57,21 @@ test('a second gift from the same address is taken as well', async ({ page }) =>
   await expect(page.getByText(`A receipt is on its way to ${email}.`)).toBeVisible();
 });
 
-test("a member's address is sent to sign in", async ({ page }) => {
-  await startGift(page, DEMO.member);
+test('the page offers a member or a friend the portal through sign-in', async ({ page }) => {
+  await page.goto('donate/');
 
+  await expect(
+    page.getByRole('link', { name: 'Sign in to give from the portal.' }),
+  ).toHaveAttribute('href', /\/portal\/login\?next=%2Fdonate$/);
+});
+
+test("a friend's address gives like any other", async ({ page }) => {
+  const email = uniqueEmail('friendgift');
+  await completeOnboarding(page, email, { as: 'friend', firstName: 'Rosa' });
+  await page.context().clearCookies();
+
+  await startGift(page, email);
   await page.getByRole('button', { name: 'Succeed' }).click();
 
-  await expect(page.getByRole('alert')).toHaveText(
-    'An account already uses that email address. Sign in to donate.',
-  );
+  await expect(page.getByText(`A receipt is on its way to ${email}.`)).toBeVisible();
 });

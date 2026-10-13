@@ -77,8 +77,9 @@ def deactivate_own_account(user: User) -> None:
     ``system_admin_target`` or ``donor_account``.  Otherwise the account is saved
     inactive and the change is recorded as ``account.deactivate`` with
     ``self_service=true`` and raised as the ``account_deactivated`` event with
-    ``actor=None``.  The kind, the roles and every record are kept.  The caller cancels
-    the mandates, suspends the membership, and ends the session.
+    ``actor=None``.  The kind, the roles and every record are kept; a change of address
+    still waiting for its link is dropped.  The caller cancels the mandates, suspends
+    the membership, and ends the session.
     """
     if is_donor(user):
         audit.refuse(
@@ -94,7 +95,8 @@ def deactivate_own_account(user: User) -> None:
         )
         raise DomainError(SYSTEM_ADMIN_SELF_DEACTIVATION_REFUSED)
     user.is_active = False
-    user.save(update_fields=["is_active", "updated_at"])
+    user.pending_email = ""
+    user.save(update_fields=["is_active", "pending_email", "updated_at"])
     audit.record(audit.ACCOUNT_DEACTIVATE, actor=user, target=user, self_service=True)
     record_account_change(AccountChangeKind.DEACTIVATED, actor=user, target=user)
     events.emit("account_deactivated", user=user, actor=None)
@@ -162,8 +164,8 @@ def deactivate_account(actor: User, target: User) -> None:
     Otherwise the account is saved inactive, recorded as ``account.deactivate`` under
     ``actor``, and raised as the ``account_deactivated`` event naming ``actor``, and
     every session signed in to it is ended (:func:`end_sessions`).  The kind, the roles
-    and every record are kept.  The caller cancels the mandates and suspends the
-    membership.
+    and every record are kept; a change of address still waiting for its link is
+    dropped.  The caller cancels the mandates and suspends the membership.
     """
     if is_donor(target):
         _refuse(audit.ACCOUNT_DEACTIVATE, actor, target, audit.REASON_DONOR_ACCOUNT)
@@ -177,7 +179,8 @@ def deactivate_account(actor: User, target: User) -> None:
     if not target.is_active:
         raise DomainError(ALREADY_DEACTIVATED)
     target.is_active = False
-    target.save(update_fields=["is_active", "updated_at"])
+    target.pending_email = ""
+    target.save(update_fields=["is_active", "pending_email", "updated_at"])
     audit.record(audit.ACCOUNT_DEACTIVATE, actor=actor, target=target)
     record_account_change(AccountChangeKind.DEACTIVATED, actor=actor, target=target)
     events.emit("account_deactivated", user=target, actor=actor)
@@ -280,14 +283,17 @@ def set_reactivation_blocked(actor: User, target: User, *, blocked: bool) -> boo
 def clear_password_and_end_sessions(user: User) -> int:
     """Make ``user``'s password unusable and end every session signed in to it.
 
-    The password column and ``updated_at`` alone are saved, so nothing else read with
-    ``user`` is written back.  Neither the old password nor any reset link made for it
-    works afterwards, since Django signs a reset link over the stored hash.  Returns how
-    many sessions :func:`end_sessions` ended.  The caller locks the row first and records
-    the change.
+    The password, ``pending_email`` and ``updated_at`` alone are saved, so nothing else
+    read with ``user`` is written back.  Neither the old password nor any reset link
+    made for it works afterwards, since Django signs a reset link over the stored hash.
+    Returns how many sessions :func:`end_sessions` ended.  The caller locks the row first
+    and records the change.  Any change of address waiting for its link is dropped with
+    the password (``pending_email`` emptied): whoever asked for it may be whoever is
+    being shut out.
     """
     user.set_unusable_password()
-    user.save(update_fields=["password", "updated_at"])
+    user.pending_email = ""
+    user.save(update_fields=["password", "pending_email", "updated_at"])
     return end_sessions(user)
 
 

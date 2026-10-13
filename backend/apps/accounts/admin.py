@@ -56,7 +56,11 @@ class UserAdmin(DjangoUserAdmin):  # type: ignore[type-arg]
     )
 
     def get_readonly_fields(self, request: HttpRequest, obj: User | None = None) -> list[str]:
-        """The stamps, plus whichever flag could make an account active and blocked.
+        """The stamps, the address, and whichever flag would leave it active and blocked.
+
+        The address is never edited here: a change of address waits for its new owner
+        and tells the old address (``apps.accounts.email_change``), which this form
+        would bypass.
 
         While ``reactivation_blocked`` is set, ``is_active`` is read-only, so a blocked
         account cannot be switched back on here; while the account is active,
@@ -67,6 +71,7 @@ class UserAdmin(DjangoUserAdmin):  # type: ignore[type-arg]
         fields = list(super().get_readonly_fields(request, obj))
         if obj is None:
             return fields
+        fields.append("email")
         if obj.reactivation_blocked:
             fields.append("is_active")
         elif obj.is_active:

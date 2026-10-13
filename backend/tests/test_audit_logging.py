@@ -325,14 +325,14 @@ def test_an_email_change_records_the_field_name_and_not_the_address(
     target_member: UserModel,
     audit_log: pytest.LogCaptureFixture,
 ) -> None:
-    """Changing the email address records the field name ``email``, not its value."""
+    """Asking to change the address records the request, and not either address."""
     api_client.force_login(account_admin)
     response = api_client.patch(
         f"{MEMBERS_URL}/{target_member.pk}", {"email": "moved@example.test"}, format="json"
     )
     assert response.status_code == 200
     assert one_message(audit_log) == (
-        f"action=account.update actor={account_admin.pk} target={target_member.pk} fields=email"
+        f"action=account.email_change_request actor={account_admin.pk} target={target_member.pk}"
     )
 
 

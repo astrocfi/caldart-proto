@@ -399,9 +399,11 @@ function newestMessageTo(address: string): string | null {
 /**
  * How many emails have been sent to `address` so far in this run.
  *
- * A message is written before the response to the request that sent it, so a
+ * Most messages are written before the response to the request that sent it, so a
  * count read once that response has landed is final for that request: compare
- * one taken before with one taken after to prove a request sent nothing.
+ * one taken before with one taken after to prove a request sent nothing.  A
+ * registration and a password reset request answer first and mail afterwards, so
+ * their count is final only once the next request has been made.
  */
 export function emailCountTo(address: string): number {
   return messagesTo(address).length;
@@ -425,6 +427,9 @@ export async function latestEmailTo(address: string): Promise<string> {
   }
 }
 
+/** The password every account a spec registers through the join wizard is given. */
+export const JOINER_PASSWORD = 'a-long-demo-passphrase';
+
 /** The first `/portal/verify-email?token=` link in an email's text. */
 export function verificationLink(text: string): string {
   const match = /https?:\/\/\S+?\/portal\/verify-email\?token=[^\s"<&]+/.exec(text);
@@ -435,12 +440,24 @@ export function verificationLink(text: string): string {
 /**
  * Follow the newest verification link mailed to `email`, as its owner would, and
  * press `Continue` on the page it opens.  A signed-in joiner lands back in the join
- * wizard at the profile step.
+ * wizard at the profile step.  Nobody is signed in after registering, so `Continue`
+ * then opens the sign-in page with the address filled in: the helper signs in there
+ * with `password` (the joiner's, by default), which carries a joiner on to the
+ * profile step.
  */
-export async function followVerificationLink(page: Page, email: string): Promise<void> {
+export async function followVerificationLink(
+  page: Page,
+  email: string,
+  password: string = JOINER_PASSWORD,
+): Promise<void> {
   await page.goto(verificationLink(await latestEmailTo(email)));
   await expect(page.getByRole('heading', { name: 'Email verified' })).toBeVisible();
   await page.getByRole('link', { name: 'Continue' }).click();
+  await expect(page).not.toHaveURL(/\/portal\/verify-email/);
+  if (!/\/portal\/login/.test(page.url())) return;
+  await page.getByLabel(/^Password/).fill(password);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page).not.toHaveURL(/\/portal\/login/);
 }
 
 /** The first `/portal/reset-password?uid=&token=` link in an email's text. */
@@ -467,8 +484,18 @@ export async function choosePasswordFromEmail(
   await expect(page.getByRole('heading', { name: 'Password changed' })).toBeVisible();
 }
 
-/** The password every account a spec registers through the join wizard is given. */
-export const JOINER_PASSWORD = 'a-long-demo-passphrase';
+/**
+ * Sign in as a joiner, with the password every spec's joiner has, through the portal's
+ * login form.  An account that has not finished joining lands on the step it owes, the
+ * verify step while its address is unverified.
+ */
+export async function signInAsJoiner(page: Page, email: string): Promise<void> {
+  await page.goto('portal/login');
+  await page.getByRole('textbox', { name: 'Email address' }).fill(email);
+  await page.getByLabel(/^Password/).fill(JOINER_PASSWORD);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page).not.toHaveURL(/\/portal\/login/);
+}
 
 /** How a spec's fresh account joins: as a member, who pays, or as a friend, who does not. */
 export interface JoinAs {
@@ -478,8 +505,9 @@ export interface JoinAs {
 }
 
 /**
- * Create an account at the join wizard's first step, which signs its owner in and
- * ends on the verify step, the only screen an unverified account may see.
+ * Create an account at the join wizard's first step.  Nobody is signed in: the step
+ * shows "Check your email" in place of the form, and the verification link mailed to
+ * the address (`followVerificationLink`) is the way on.
  */
 export async function registerAccount(
   page: Page,
@@ -493,8 +521,8 @@ export async function registerAccount(
   await page.getByRole('textbox', { name: 'Email address' }).fill(email);
   await page.getByLabel(/^Password/).fill(JOINER_PASSWORD);
   await page.getByRole('button', { name: 'Create account' }).click();
-  await expect(page).toHaveURL(/\/portal\/join\/verify/);
   await expect(page.getByRole('heading', { name: 'Check your email' })).toBeVisible();
+  await expect(page.getByText(`We sent a message to ${email}.`, { exact: false })).toBeVisible();
 }
 
 /**

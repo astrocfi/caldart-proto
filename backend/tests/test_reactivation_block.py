@@ -304,12 +304,25 @@ def test_a_refused_reset_sets_no_password(api_client: APIClient, blocked: User) 
     assert (blocked.check_password(DEFAULT_PASSWORD), blocked.is_active) == (True, False)
 
 
-def test_registering_again_is_refused(api_client: APIClient, blocked: User) -> None:
-    """The address is refused with the closed sentence and no reactivation code."""
+def test_registering_again_is_answered_like_any_address(
+    api_client: APIClient, blocked: User
+) -> None:
+    """The answer is the one every registration gets: it says nothing about the block."""
     status, body = post(
         api_client, REGISTER_URL, **register_payload(email=blocked.email, password=GOOD_PASSWORD)
     )
-    assert (status, body) == (400, {"email": [CLOSED]})
+    assert (status, body) == (
+        202,
+        {"detail": f"We sent a message to {blocked.email}. Follow the link in it to continue."},
+    )
+
+
+def test_registering_again_brings_nothing_back(api_client: APIClient, blocked: User) -> None:
+    """The account stays deactivated; its owner is mailed that it was closed."""
+    post(api_client, REGISTER_URL, **register_payload(email=blocked.email, password=GOOD_PASSWORD))
+
+    blocked.refresh_from_db()
+    assert blocked.is_active is False
 
 
 def test_an_account_administrator_cannot_reactivate_it(

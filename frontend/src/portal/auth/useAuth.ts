@@ -12,6 +12,8 @@ import { useNavigate } from 'react-router-dom';
 import { ApiError, api } from '../api/client';
 import type {
   EmailChangePayload,
+  EmailChangeUndoPayload,
+  EmailChangeUndoResult,
   EmailVerifyPayload,
   EmailVerifyResult,
   LoginPayload,
@@ -122,32 +124,14 @@ export function useReactivate(): UseMutationResult<User, Error, LoginPayload> {
 }
 
 /**
- * What `POST /auth/register` answers: the new account's user payload, signed in (201),
- * or, for an address that belongs to a donor, only word that a verification message
- * went there (202), with nobody signed in until the link is followed.
+ * Registers against `POST /auth/register`.  The server answers every address the same
+ * way, with a sentence naming it, and signs nobody in: the address's owner learns the
+ * next step from the message mailed there.  The cache is left alone.
  */
-export type RegisterResult = User | VerificationSentResult;
-
-/** True when registering mailed a donor's address instead of signing anybody in. */
-export function isVerificationSent(result: RegisterResult): result is VerificationSentResult {
-  return !('id' in result);
-}
-
-/**
- * Registers against `POST /auth/register`.  When an account was created and signed
- * in, it drops every query cached for whoever was here before and seeds the auth-me
- * cache with the new user; when the address belonged to a donor, nobody is signed in
- * and the cache is left alone.
- */
-export function useRegister(): UseMutationResult<RegisterResult, Error, RegisterPayload> {
-  const queryClient = useQueryClient();
+export function useRegister(): UseMutationResult<VerificationSentResult, Error, RegisterPayload> {
   return useMutation({
-    mutationFn: (payload: RegisterPayload) => api.post<RegisterResult>('/auth/register', payload),
-    onSuccess: (result) => {
-      if (isVerificationSent(result)) return;
-      queryClient.clear();
-      queryClient.setQueryData(AUTH_ME_KEY, result);
-    },
+    mutationFn: (payload: RegisterPayload) =>
+      api.post<VerificationSentResult>('/auth/register', payload),
   });
 }
 
@@ -255,8 +239,9 @@ export function useResendVerification(): UseMutationResult<VerificationSentResul
 }
 
 /**
- * Changes the signed-in user's address through `POST /auth/email/change` and seeds
- * the auth-me cache with the answer, whose address is unverified.
+ * Asks to change the signed-in user's address through `POST /auth/email/change` and
+ * seeds the auth-me cache with the answer: `email` is still the sign-in address, and
+ * `pending_email` the address the link went to.
  */
 export function useEmailChange(): UseMutationResult<User, Error, EmailChangePayload> {
   const queryClient = useQueryClient();
@@ -264,6 +249,27 @@ export function useEmailChange(): UseMutationResult<User, Error, EmailChangePayl
     mutationFn: (payload: EmailChangePayload) => api.post<User>('/auth/email/change', payload),
     onSuccess: (user) => {
       queryClient.setQueryData(AUTH_ME_KEY, user);
+    },
+  });
+}
+
+/**
+ * Follows a link that undoes a change of address through `POST /auth/email/undo`.  The
+ * server ends every session of the account, so on success the cache is emptied and the
+ * auth-me cache says nobody is signed in.
+ */
+export function useEmailChangeUndo(): UseMutationResult<
+  EmailChangeUndoResult,
+  Error,
+  EmailChangeUndoPayload
+> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: EmailChangeUndoPayload) =>
+      api.post<EmailChangeUndoResult>('/auth/email/undo', payload),
+    onSuccess: () => {
+      queryClient.clear();
+      queryClient.setQueryData(AUTH_ME_KEY, null);
     },
   });
 }

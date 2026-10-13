@@ -1,0 +1,21 @@
+{% extends "emails/account_base.html" %}
+{% comment %}
+The link to a new address that completes a change of sign-in address.
+{% endcomment %}
+
+{% block heading %}Confirm your new email address{% endblock %}
+
+{% block body %}
+  <p style="margin: 0 0 16px;">
+    Somebody, perhaps you, asked to make <strong>{{ new_email }}</strong> the address a
+    {{ org_name }} account signs in with. To make the change, confirm it here:
+  </p>
+{% endblock %}
+
+{% block button %}
+  {% include "emails/account_button.html" with url=confirm_url label="Confirm my new address" %}
+  <p style="margin: 0 0 16px; font-size: 14px; color: #55606d;">
+    The link expires in {{ expiry_days }} day{{ expiry_days|pluralize }}. Until you open it, nothing
+    changes. If you did not ask for this, ignore this message.
+  </p>
+{% endblock %}

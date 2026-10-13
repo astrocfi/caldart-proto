@@ -105,7 +105,7 @@ def test_registration_counts_the_real_client_too(api_client: APIClient, settings
         response = api_client.post(
             REGISTER_URL, payload, HTTP_X_FORWARDED_FOR=forwarded_for(spoofed, CLIENT)
         )
-        assert response.status_code == 201
+        assert response.status_code == 202
 
     payload = register_payload(email="applicant9@example.test")
     response = api_client.post(

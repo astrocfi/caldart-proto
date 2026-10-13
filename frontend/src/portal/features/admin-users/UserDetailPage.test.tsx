@@ -694,6 +694,17 @@ describe('UserDetailPage', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('says a change of address waits for the new address to confirm', async () => {
+    stubDetail({ target: { ...TARGET, pending_email: 'priya.new@example.org' } });
+    renderDetail();
+
+    expect(
+      await screen.findByText(
+        'Waiting for priya.new@example.org to confirm. The address changes when the link sent there is followed.',
+      ),
+    ).toBeInTheDocument();
+  });
+
   it('offers to resend a verification message for an unverified address', async () => {
     stubDetail({ target: { ...TARGET, email_verified: false, email_verified_at: null } });
     server.use(

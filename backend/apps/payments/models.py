@@ -200,6 +200,34 @@ class Payment(TimestampedModel):
         return self.status == PaymentStatus.SUCCEEDED
 
     @property
+    def is_public_gift(self) -> bool:
+        """Whether the payment is a gift started on the public donation page.
+
+        ``apps.payments.donations.start_donation`` files the giver's details on
+        ``donor_fields`` before the provider is asked, and no other payment carries
+        any, so a non-empty ``donor_fields`` is the mark.  Whoever gave may not own the
+        account the address names, so such a payment never touches that account's
+        renewal mandates or saved payment methods.
+        """
+        return len(self.donor_fields) > 0
+
+    @property
+    def payer_name(self) -> str:
+        """The name the payment's receipt is made out to.
+
+        The name the giver typed for a public gift, which may differ from the name of
+        the account the address belongs to; the account's display name otherwise.
+        """
+        if self.is_public_gift:
+            typed = " ".join(
+                str(self.donor_fields.get(field, "")).strip()
+                for field in ("first_name", "last_name")
+            ).strip()
+            if typed:
+                return typed
+        return self.user.display_name
+
+    @property
     def refunded_cents(self) -> int:
         """What has been given back, in cents: the sum of the succeeded refunds.
 

@@ -157,8 +157,8 @@ const DONOR_FORM_FIELDS: readonly (keyof DonationFormValues)[] = [
  * The message for each of the form's own fields that `caught` refused, if any.
  *
  * `ApiError.fieldErrors` reads every string-valued key of the response body, which
- * would also pick up a sibling ``code`` such as ``has_account``; this narrows that
- * down to the fields the donation form can show an error beside.  Anything else --
+ * would also pick up a sibling ``code``; this narrows that down to the fields the
+ * donation form can show an error beside.  Anything else --
  * a refusal with no such field, or a rejection that is not an `ApiError` at all --
  * answers empty.
  */

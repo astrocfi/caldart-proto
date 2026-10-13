@@ -58,7 +58,7 @@ def detach_url(aircraft_id: int) -> str:
 # --------------------------------------------------------------------------
 def test_registering_stamps_the_new_profile(today: date) -> None:
     """A freshly registered member's profile is stamped the moment it is created."""
-    user = register_member(email="joan.ames@example.test", password=PASSWORD)
+    user = register_member(email="joan.ames@example.test", password=PASSWORD).user
     assert MemberProfile.objects.get(user=user).profile_updated_at == timezone.now()
 
 

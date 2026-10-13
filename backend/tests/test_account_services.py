@@ -6,6 +6,7 @@ import re
 
 import pytest
 
+from apps.accounts.email_change import request_email_change
 from apps.accounts.models import User
 from apps.accounts.roles import (
     ACCOUNT_ADMIN,
@@ -75,12 +76,12 @@ def test_update_account_writes_the_names(user_admin: User) -> None:
     assert target.display_name == "Marta Reyes"
 
 
-def test_update_account_writes_the_email(user_admin: User) -> None:
-    """A plain email edit is written to the target account."""
+def test_update_account_leaves_the_email_alone(user_admin: User) -> None:
+    """An address handed to ``update_account`` is ignored: a change of address waits."""
     target = UserFactory(email="target@example.test", roles=[MEMBER])
     update_account(user_admin, target, {"email": "moved@example.test"})
     target.refresh_from_db()
-    assert target.email == "moved@example.test"
+    assert (target.email, target.pending_email) == ("target@example.test", "")
 
 
 def test_deactivate_account_deactivates_another_account(user_admin: User) -> None:
@@ -211,13 +212,13 @@ def test_a_user_admin_cannot_change_an_account_admins_email(
 ) -> None:
     """A user administrator cannot move an account administrator's email."""
     with pytest.raises(DomainValidationError, match=re.escape(EMAIL_CHANGE_REFUSED)):
-        update_account(user_admin, account_admin, {"email": "taken.over@example.test"})
+        request_email_change(user_admin, account_admin, "taken.over@example.test")
 
 
 def test_the_email_refusal_names_the_email_field(user_admin: User, account_admin: User) -> None:
     """The email-change refusal names ``email`` as the offending field."""
     with pytest.raises(DomainValidationError) as refusal:
-        update_account(user_admin, account_admin, {"email": "taken.over@example.test"})
+        request_email_change(user_admin, account_admin, "taken.over@example.test")
     assert refusal.value.field == "email"
 
 
@@ -231,9 +232,9 @@ def test_a_user_admin_cannot_deactivate_an_account_admin(
 
 def test_a_system_admin_may_change_anybodys_email(system_admin: User, account_admin: User) -> None:
     """A system administrator may change any account's email."""
-    update_account(system_admin, account_admin, {"email": "moved@example.test"})
+    request_email_change(system_admin, account_admin, "moved@example.test")
     account_admin.refresh_from_db()
-    assert account_admin.email == "moved@example.test"
+    assert account_admin.pending_email == "moved@example.test"
 
 
 def test_an_email_resent_in_another_case_is_not_written_back(
@@ -256,15 +257,15 @@ def test_a_dart_leaders_email_is_protected_from_a_user_admin(user_admin: User) -
     """Every role counts towards the guard, administrative or not."""
     target = UserFactory(email="target@example.test", roles=[MEMBER, DART_LEADER])
     with pytest.raises(DomainValidationError, match=re.escape(EMAIL_CHANGE_REFUSED)):
-        update_account(user_admin, target, {"email": "taken.over@example.test"})
+        request_email_change(user_admin, target, "taken.over@example.test")
 
 
 def test_an_account_admin_may_change_a_plain_members_email(account_admin: User) -> None:
     """An account administrator may change a plain member's email."""
     target = UserFactory(email="target@example.test", roles=[MEMBER])
-    update_account(account_admin, target, {"email": "moved@example.test"})
+    request_email_change(account_admin, target, "moved@example.test")
     target.refresh_from_db()
-    assert target.email == "moved@example.test"
+    assert target.pending_email == "moved@example.test"
 
 
 # --------------------------------------------------------------------------
@@ -315,7 +316,7 @@ def test_a_user_admin_cannot_take_over_a_system_admin_account(
 ) -> None:
     """The gap that let a user administrator redirect the reset link and take over."""
     with pytest.raises(DomainValidationError, match=re.escape(EMAIL_CHANGE_REFUSED)):
-        update_account(user_admin, system_admin, {"email": "taken.over@example.test"})
+        request_email_change(user_admin, system_admin, "taken.over@example.test")
 
 
 def test_a_user_admin_cannot_lock_a_system_admin_out(user_admin: User, system_admin: User) -> None:

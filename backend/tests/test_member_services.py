@@ -45,13 +45,13 @@ def _boom(*_args: Any, **_kwargs: Any) -> None:
 # --------------------------------------------------------------------------
 def test_register_member_grants_the_member_role() -> None:
     """A freshly registered member holds exactly the member role."""
-    user = register_member(email="joan.ames@example.test", password=PASSWORD)
+    user = register_member(email="joan.ames@example.test", password=PASSWORD).user
     assert user.roles == [MEMBER]
 
 
 def test_register_member_creates_the_empty_profile() -> None:
     """``/me/profile`` is a PATCH, so the row has to exist from the start."""
-    user = register_member(email="joan.ames@example.test", password=PASSWORD)
+    user = register_member(email="joan.ames@example.test", password=PASSWORD).user
     assert MemberProfile.objects.filter(user=user).count() == 1
 
 
@@ -59,7 +59,7 @@ def test_register_member_keeps_the_names() -> None:
     """Registration keeps the first and last name it was given."""
     user = register_member(
         email="joan.ames@example.test", password=PASSWORD, first_name="Joan", last_name="Ames"
-    )
+    ).user
     assert user.display_name == "Joan Ames"
 
 

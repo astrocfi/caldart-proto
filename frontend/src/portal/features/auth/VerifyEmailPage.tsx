@@ -20,6 +20,9 @@ const PASSWORD_REQUIRED_CODE = 'password_required';
 /**
  * `/verify-email?token=…` — the page a verification message links to.
  *
+ * The same link completes a change of address when it was mailed to the new address;
+ * the answer's `changed` says so, and the page then names the new sign-in address.
+ *
  * It posts the token as soon as it loads, signed in or not, since the mail client
  * may open the link in a browser that has no session.  A link that opens a donor's
  * account is answered with a request for a password, so the page then asks the person
@@ -55,8 +58,12 @@ export function VerifyEmailPage(): JSX.Element {
 
   if (verify.isSuccess) {
     return (
-      <AuthShell title="Email verified">
-        <p>{verify.data.email} is verified.</p>
+      <AuthShell title={verify.data.changed ? 'Email address changed' : 'Email verified'}>
+        <p>
+          {verify.data.changed
+            ? `${verify.data.email} is your sign-in address from now on.`
+            : `${verify.data.email} is verified.`}
+        </p>
         <div className="auth__actions">
           <ButtonLink to={continueTo(user, verify.data.email)}>Continue</ButtonLink>
         </div>

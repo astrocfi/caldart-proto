@@ -203,6 +203,17 @@ describe('MemberDetailPage', () => {
     expect(screen.getByText('Verified')).toHaveTextContent('Verified 07/01/2024');
   });
 
+  it('says a change of address waits for the new address to confirm', async () => {
+    server.use(...detailHandlers(makeDetail({ pending_email: 'ana.new@example.org' })));
+    renderDetail();
+
+    expect(
+      await screen.findByText(
+        /Waiting for ana\.new@example\.org to confirm\. The address changes when the link sent there is followed\./,
+      ),
+    ).toBeInTheDocument();
+  });
+
   it('shows an unverified email address with no resend button', async () => {
     server.use(...detailHandlers(makeDetail({ email_verified_at: null })));
     renderDetail();

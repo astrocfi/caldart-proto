@@ -28,11 +28,11 @@ status** beside it. Five cards follow.
 **Roles**
    A line that reads **Email address:** and then **Verified** with a date, or
    **Unverified**, and **Bounced**, beside a red dot, when the address bounces. The address
-   itself is at the top of the page, and the name and the address are changed on the
-   :doc:`member-record` or by the person, never here. Then a box for each role with a line
-   saying what it grants. Unless you are a system administrator, the **System
-   administrator** box is grayed out, and its line adds *Only a system administrator can
-   give or take away this role.*
+   itself is at the top of the page, changed on the :doc:`member-record` or by the person
+   (*Waiting for … to confirm.* marks a change waiting), never here, as is the name. Then a
+   box for each role with a line saying what it grants. Unless you
+   are a system administrator, the **System administrator** box is grayed out, and its line
+   adds *Only a system administrator can give or take away this role.*
 
 **Account status**
    Whether the account can sign in, and the actions that change it: **Deactivate account**
@@ -45,14 +45,13 @@ status** beside it. Five cards follow.
    password.*
 
 **History**
-   Every change to the account's roles and status, newest first, one a line: when, who, and
-   what, such as *10/04/2026 at 3:12 PM · Nina Kowalski · gave DART leader* or *… blocked
-   reactivation*. It records an account an administrator created on :doc:`new-member`, each
-   role given or taken away, each deactivation, reactivation, block, and lifted block,
-   including the person's own, and each new password required, which reads *… required a new
-   password*. A change made from the server's command line reads *The system*, and one by an
-   administrator whose account has since been deleted *A deleted account*. With none it
-   reads *No change to this account's roles or status is recorded.*
+   Every change to the account's roles, status, and address, newest first, one a line: when,
+   who, and what, such as *10/04/2026 at 3:12 PM · Nina Kowalski · gave DART leader*. It
+   records an account an administrator created on :doc:`new-member`, each role given or taken
+   away, each deactivation, reactivation, block, and lifted block, each new password
+   required, and each change of address confirmed or undone. The command line reads *The
+   system*, a deleted administrator *A deleted account*, and none at all *No change to this
+   account's roles or status is recorded.*
 
 No role change is saved until you press **Save changes**, and the message *Account saved.*
 confirms it. A refused save takes you to what the site refused. **Cancel** puts every box
@@ -180,7 +179,7 @@ exactly as **Deactivate account** does. While the block holds:
   name in place of CalDART;
 - asking for a password reset sends no email, and a reset link sent before the block is
   answered with the same sentence;
-- registering again with the same address is answered with the same sentence;
+- registering again opens nothing, and the person is emailed that the account is closed;
 - nobody can press **Reactivate account**, here or on the :doc:`member-record`.
 
 Only a user administrator blocks an account or lifts the block. **Allow reactivation** lifts

@@ -22,7 +22,6 @@ async function registerAsFriend(page: Page, first: string, email: string): Promi
   await page.getByLabel(/^Password/).fill('a-long-demo-passphrase');
   await page.getByRole('button', { name: 'Create account' }).click();
 
-  await expect(page).toHaveURL(/\/portal\/join\/verify/);
   await expect(page.getByRole('heading', { name: 'Check your email' })).toBeVisible();
   await followVerificationLink(page, email);
 

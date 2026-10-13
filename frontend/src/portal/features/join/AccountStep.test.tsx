@@ -1,4 +1,3 @@
-import { QueryClient } from '@tanstack/react-query';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
@@ -18,37 +17,73 @@ async function fillAndSubmit(): Promise<void> {
   await userEvent.click(screen.getByRole('button', { name: 'Create account' }));
 }
 
-/**
- * A client that keeps cached data alive without an observer, so that a query
- * seeded for the previous session can only disappear because registering
- * cleared it.  The shared test client collects such a query immediately
- * (`gcTime: 0`), which would let this test pass without the clear.
- */
-function makeRetainingQueryClient(): QueryClient {
-  return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false, staleTime: 0, gcTime: Infinity },
-      mutations: { retry: false },
-    },
-  });
+/** The answer `POST /auth/register` gives every address. */
+function serveRegistration(): void {
+  server.use(
+    http.post(`${API}/auth/register`, () =>
+      HttpResponse.json(
+        { detail: 'We sent a message to marta@example.org. Follow the link in it to continue.' },
+        { status: 202 },
+      ),
+    ),
+  );
 }
 
 describe('<AccountStep/>', () => {
-  it('clears queries cached for a previous session and seeds the new user', async () => {
-    const user = makeUser();
-    server.use(http.post(`${API}/auth/register`, () => HttpResponse.json(user, { status: 201 })));
-
-    const handleDone = vi.fn();
-    const { client } = renderWithProviders(<AccountStep onDone={handleDone} />, {
-      client: makeRetainingQueryClient(),
-    });
-    client.setQueryData(['members', 'roster'], ['someone else was here']);
+  it('shows Check your email once the server takes the registration', async () => {
+    serveRegistration();
+    renderWithProviders(<AccountStep onDone={() => {}} />);
 
     await fillAndSubmit();
 
-    expect(handleDone).toHaveBeenCalled();
-    expect(client.getQueryData(['members', 'roster'])).toBeUndefined();
-    expect(client.getQueryData(AUTH_ME_KEY)).toEqual(user);
+    expect(await screen.findByRole('heading', { name: 'Check your email' })).toBeInTheDocument();
+  });
+
+  it('names the address the message went to', async () => {
+    serveRegistration();
+    renderWithProviders(<AccountStep onDone={() => {}} />);
+
+    await fillAndSubmit();
+
+    expect(
+      await screen.findByText(
+        'We sent a message to marta@example.org. Follow the link in it to continue.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('says the message tells an existing account how to sign in', async () => {
+    serveRegistration();
+    renderWithProviders(<AccountStep onDone={() => {}} />);
+
+    await fillAndSubmit();
+
+    expect(
+      await screen.findByText(
+        'If the address already has an account, the message says how to sign in instead.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('moves on to no other step, since nobody is signed in', async () => {
+    serveRegistration();
+    const handleDone = vi.fn();
+    renderWithProviders(<AccountStep onDone={handleDone} />);
+
+    await fillAndSubmit();
+
+    await screen.findByRole('heading', { name: 'Check your email' });
+    expect(handleDone).not.toHaveBeenCalled();
+  });
+
+  it('leaves the signed-in user unknown', async () => {
+    serveRegistration();
+    const { client } = renderWithProviders(<AccountStep onDone={() => {}} />);
+
+    await fillAndSubmit();
+
+    await screen.findByRole('heading', { name: 'Check your email' });
+    expect(client.getQueryData(AUTH_ME_KEY)).toBeNull();
   });
 
   it('offers "Use a different account" as a button rather than a link', async () => {
@@ -107,7 +142,7 @@ describe('<AccountStep/>', () => {
     server.use(
       http.post(`${API}/auth/register`, async ({ request }) => {
         posted = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json(makeUser({ kind: 'friend' }), { status: 201 });
+        return HttpResponse.json({ detail: 'We sent a message.' }, { status: 202 });
       }),
     );
 
@@ -118,44 +153,11 @@ describe('<AccountStep/>', () => {
     await waitFor(() => expect(posted).toMatchObject({ kind: 'friend' }));
   });
 
-  describe('when the address belongs to a donor', () => {
-    function serveDonorUpgrade(): void {
-      server.use(
-        http.post(`${API}/auth/register`, () =>
-          HttpResponse.json(
-            { detail: 'Verification message sent to marta@example.org.' },
-            { status: 202 },
-          ),
-        ),
-      );
-    }
-
-    it('asks for the address to be verified without signing anybody in', async () => {
-      serveDonorUpgrade();
-      const handleDone = vi.fn();
-      const { client } = renderWithProviders(<AccountStep onDone={handleDone} />, {
-        client: makeRetainingQueryClient(),
-      });
-
-      await fillAndSubmit();
-
-      expect(await screen.findByRole('heading', { name: 'Check your email' })).toBeInTheDocument();
-      expect(
-        screen.getByText(/We sent a verification message to marta@example.org\./),
-      ).toBeInTheDocument();
-      expect(handleDone).not.toHaveBeenCalled();
-      expect(client.getQueryData(AUTH_ME_KEY)).toBeNull();
-    });
-  });
-
-  it('offers a deactivated account the way back through the sign-in page', async () => {
+  it('shows a refusal of the address beside the box', async () => {
     server.use(
       http.post(`${API}/auth/register`, () =>
         HttpResponse.json(
-          {
-            email: ['This email belongs to a deactivated account. Sign in to reactivate it.'],
-            code: 'deactivated',
-          },
+          { email: ['Enter an email address, such as name@example.org.'] },
           { status: 400 },
         ),
       ),
@@ -164,29 +166,9 @@ describe('<AccountStep/>', () => {
     renderWithProviders(<AccountStep onDone={() => {}} />);
     await fillAndSubmit();
 
-    expect(
-      await screen.findByText(
-        'This email belongs to a deactivated account. Sign in to reactivate it.',
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Sign in to reactivate' })).toHaveAttribute(
-      'href',
-      '/login?email=marta%40example.org',
+    expect(await screen.findByLabelText(/^Email address/)).toHaveAccessibleDescription(
+      /Enter an email address, such as name@example.org\./,
     );
-  });
-
-  it('offers no reactivation link for any other refusal', async () => {
-    server.use(
-      http.post(`${API}/auth/register`, () =>
-        HttpResponse.json({ email: ['That address is already registered.'] }, { status: 400 }),
-      ),
-    );
-
-    renderWithProviders(<AccountStep onDone={() => {}} />);
-    await fillAndSubmit();
-
-    await screen.findByText('That address is already registered.');
-    expect(screen.queryByRole('link', { name: 'Sign in to reactivate' })).not.toBeInTheDocument();
   });
 
   it('offers anybody with an account, friend or member, a way to sign in', async () => {
@@ -202,7 +184,7 @@ describe('<AccountStep/>', () => {
     server.use(
       http.post(`${API}/auth/register`, () => {
         register();
-        return HttpResponse.json(makeUser(), { status: 201 });
+        return HttpResponse.json({ detail: 'We sent a message.' }, { status: 202 });
       }),
     );
     renderWithProviders(<AccountStep onDone={() => {}} />);

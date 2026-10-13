@@ -22,7 +22,7 @@ from django.conf import settings
 from django.utils import timezone
 from django.utils.text import slugify
 
-from apps.accounts.models import User
+from apps.accounts.models import AccountKind, User
 from apps.members.models import Membership
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, RefundStatus
 from caldart.mail import send_templated
@@ -120,18 +120,41 @@ def receipt_data(payment: Payment) -> ReceiptData:
 
     The issue date is the payment's ledger date -- the day a check was received,
     or the day the provider settled -- and falls back to today for a payment
-    that has not completed.
+    that has not completed.  The payer is ``Payment.payer_name``: for a gift from the
+    public donation page, the name the giver typed.
     """
     return ReceiptData(
         org=org_details(),
         receipt_number=payment.receipt_number,
         issued_on=payment.paid_on or timezone.localdate(),
-        payer_name=payment.user.display_name,
+        payer_name=payment.payer_name,
         payer_email=payment.user.email,
         lines=receipt_lines(payment),
         provider_label=provider_label(payment),
         provider_ref=payment.provider_ref,
     )
+
+
+def is_public_gift_on_account(payment: Payment) -> bool:
+    """True for a public-page gift that went to a member's or a friend's account.
+
+    Whoever gave may not be the account's holder, so the receipt says how the gift was
+    made and the year statement keeps it apart from the holder's own giving.
+    """
+    return payment.is_public_gift and payment.user.kind != AccountKind.DONOR
+
+
+def receipt_address(payment: Payment) -> str:
+    """Where ``payment``'s receipt goes.
+
+    The account's address, except for a public gift made with another address that
+    belongs to the account -- the recovery address an account keeps after a change of
+    address -- whose receipt goes to the address it was made with.
+    """
+    typed = str(payment.donor_fields.get("email", "")).strip()
+    if payment.is_public_gift and typed and typed.lower() != payment.user.email.lower():
+        return typed
+    return payment.user.email
 
 
 def render_receipt_pdf(payment: Payment) -> bytes:
@@ -178,10 +201,11 @@ def send_receipt(payment: Payment) -> bool:
         "site_url": settings.SITE_URL.rstrip("/"),
         # The template leaves the portal link out for a donor, who cannot sign in.
         "user": payment.user,
+        "public_gift": is_public_gift_on_account(payment),
     }
     try:
         send_templated(
-            to=payment.user.email,
+            to=receipt_address(payment),
             subject=RECEIPT_SUBJECT.format(org=org.name, amount=money_label(payment.amount_cents)),
             template="receipt",
             context=context,
@@ -250,18 +274,23 @@ def statement_data(user: User, year: int) -> StatementData:
     """``user``'s contributions in ``year``, gathered for the statement PDF.
 
     One line per settled contribution, in the order they were paid, each netted
-    against whatever of it was refunded.  A year the member gave nothing in
-    yields a statement whose total is zero rather than no statement at all;
-    :func:`statement_years` is what says which years are worth offering.
+    against whatever of it was refunded.  A gift made on the public donation page with
+    a member's or a friend's address is not counted as theirs: it is listed apart, in
+    ``public_gifts``, with the name it was made out to as ``given_as`` when that is not
+    the account's own, and left out of the total.  A year
+    the member gave nothing in yields a statement whose total is zero rather than no
+    statement at all; :func:`statement_years` is what says which years are worth offering.
     """
+    payments = contribution_payments(user, year)
     lines = [
-        StatementLine(
-            paid_on=payment.paid_on or date(year, 1, 1),
-            receipt_number=payment.receipt_number,
-            amount_cents=payment.contribution_cents,
-            refunded_cents=refunded_contribution_cents(payment),
-        )
-        for payment in contribution_payments(user, year)
+        _statement_line(payment, user, year)
+        for payment in payments
+        if not is_public_gift_on_account(payment)
+    ]
+    public_gifts = [
+        _statement_line(payment, user, year)
+        for payment in payments
+        if is_public_gift_on_account(payment)
     ]
     return StatementData(
         org=org_details(),
@@ -269,7 +298,30 @@ def statement_data(user: User, year: int) -> StatementData:
         member_name=user.display_name,
         member_email=user.email,
         contributions=lines,
+        public_gifts=public_gifts,
     )
+
+
+def _statement_line(payment: Payment, user: User, year: int) -> StatementLine:
+    """``payment``'s line on ``user``'s statement for ``year``."""
+    return StatementLine(
+        paid_on=payment.paid_on or date(year, 1, 1),
+        receipt_number=payment.receipt_number,
+        amount_cents=payment.contribution_cents,
+        refunded_cents=refunded_contribution_cents(payment),
+        given_as=_given_as(payment, user),
+    )
+
+
+def _given_as(payment: Payment, user: User) -> str:
+    """The giver's name on a statement line, when it is not the account's own.
+
+    ``""`` for every payment but a public gift whose typed name differs from ``user``'s
+    display name.
+    """
+    if not payment.is_public_gift or payment.payer_name == user.display_name:
+        return ""
+    return payment.payer_name
 
 
 def render_statement_pdf(user: User, year: int) -> bytes:

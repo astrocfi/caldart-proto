@@ -37,6 +37,8 @@ from apps.accounts.api.serializers import (
     AdminUserSerializer,
     DeactivateSerializer,
     EmailChangeSerializer,
+    EmailChangeUndoneSerializer,
+    EmailChangeUndoSerializer,
     EmailVerifiedSerializer,
     EmailVerifySerializer,
     LoginSerializer,
@@ -49,12 +51,19 @@ from apps.accounts.api.serializers import (
     UserSerializer,
     VerificationSentSerializer,
 )
+from apps.accounts.email_change import (
+    Mailing,
+    follow_verification_link,
+    request_email_change,
+    send_email_change_link,
+    undo_email_change,
+)
 from apps.accounts.models import AccountChange, AccountKind, User
+from apps.accounts.notices import send_password_changed_notice
 from apps.accounts.permissions import IsUserAdmin
 from apps.accounts.roles import ROLE_DESCRIPTIONS
 from apps.accounts.services import (
     DonorPasswordRequiredError,
-    change_own_email,
     clear_email_bounce,
     confirm_email_address,
     is_donor,
@@ -62,7 +71,6 @@ from apps.accounts.services import (
     replace_password,
     send_email_verification,
     send_password_reset_email,
-    verify_email,
 )
 from apps.accounts.status import (
     closed_account_message,
@@ -71,6 +79,7 @@ from apps.accounts.status import (
     reactivate_own_account,
 )
 from apps.accounts.throttling import (
+    EmailChangeThrottle,
     EmailVerifyResendThrottle,
     EmailVerifyThrottle,
     LoginThrottle,
@@ -87,7 +96,13 @@ from apps.members.services import (
 from apps.payments.renewals.mandates import cancel_all_mandates
 from caldart import audit
 from caldart.exceptions import DomainError
-from caldart.mail import MailRefusedError, log_refusal, send_logging_refusal
+from caldart.mail import (
+    MailRefusedError,
+    log_refusal,
+    send_after_response,
+    send_logging_refusal,
+    send_on_commit,
+)
 
 #: What every refused login says.  It names neither half of the credentials, and
 #: a deactivated account whose password was wrong is answered with it too, so a
@@ -177,48 +192,51 @@ class CsrfView(APIView):
 
 
 class RegisterView(APIView):
-    """``POST /auth/register`` -- create a member's or friend's account and sign it in."""
+    """``POST /auth/register`` -- open an account, or tell the owner they have one."""
 
     permission_classes = [AllowAny]
     throttle_classes = [RegisterThrottle]
 
-    @extend_schema(
-        request=RegisterSerializer,
-        responses={201: UserSerializer, 202: VerificationSentSerializer},
-    )
+    @extend_schema(request=RegisterSerializer, responses={202: VerificationSentSerializer})
     def post(self, request: Request) -> Response:
-        """Create an account from the posted fields, sign it in, and answer 201.
+        """Register the posted address and answer 202, the same way whoever holds it.
 
         The body carries ``email``, ``password``, ``first_name``, ``last_name``, and
-        ``kind`` (``member``, the default, or ``friend``); the response is the ``user``
-        payload, with ``email_verified`` false.  Once the account is committed its
-        address is mailed a verification link.  Open to anonymous callers and throttled
-        under the ``auth_register`` scope.
-
-        An active donor's address signs nobody in and writes nothing: the answer is a
-        202 ``{"detail": "Verification message sent to <address>."}``, and following the
-        link mailed there asks for a password and upgrades the donor in place, keeping
-        its gifts.  The password given here is not used.  A deactivated account's address
-        is a 400 ``{"email": [...], "code": "deactivated"}``; any other taken address, or
-        a password Django's validators reject, is a 400 naming the field.
+        ``kind`` (``member``, the default, or ``friend``).  Every address that parses is
+        answered 202 ``{"detail": "We sent a message to <address>. Follow the link in it
+        to continue."}``, with nobody signed in, so the answer never says whether the
+        address has an account.  What is done, and the message the address is mailed
+        once the answer has gone, is :func:`apps.members.services.register_member`'s: a
+        new account and its verification link, a donor's upgrade link, or word that the
+        address already has an account.  A missing field, an address that does not
+        parse, an unknown ``kind``, or a password Django's validators reject is a 400
+        naming the field, judged from the body alone.  Open to anonymous callers and
+        throttled under the ``auth_register`` scope.
         """
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = dict(serializer.validated_data)
-        user = register_member(
+        registration = register_member(
             email=data["email"],
             password=data["password"],
             first_name=data["first_name"],
             last_name=data["last_name"],
             kind=AccountKind(data["kind"]),
         )
-        if is_donor(user):
-            return Response(
-                {"detail": f"Verification message sent to {user.email}."},
-                status=status.HTTP_202_ACCEPTED,
-            )
-        login(request, user)
-        return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
+        response = Response(
+            {"detail": registration_sent(data["email"])}, status=status.HTTP_202_ACCEPTED
+        )
+        send_after_response(
+            response,
+            registration.send,
+            what=f"the registration message for account {registration.user.pk}",
+        )
+        return response
+
+
+def registration_sent(email: str) -> str:
+    """What a registration is answered with for ``email``, whoever holds the address."""
+    return f"We sent a message to {email}. Follow the link in it to continue."
 
 
 class LoginView(APIView):
@@ -320,11 +338,15 @@ class PasswordChangeView(APIView):
 
         The body carries ``current_password`` and ``new_password``.  A wrong current
         password or a new one Django's validators reject is a 400 naming the field.  The
-        session survives the change, so the caller stays signed in.  An anonymous caller
-        gets 401.  So does a change whose stored password moved after the request
-        checked the current one (another change, a reset, or ``create_admin`` clearing
-        it): nothing is written, the session is left as it was, and the 401 carries
-        :data:`CHANGED_ELSEWHERE`.
+        session survives the change, so the caller stays signed in, while every other
+        session of the account ends.  An anonymous caller gets 401.  So does a change
+        whose stored password moved after the request checked the current one (another
+        change, a reset, or ``create_admin`` clearing it): nothing is written, the session
+        is left as it was, and the 401 carries :data:`CHANGED_ELSEWHERE`.  A change that
+        goes through is audited as ``account.password_change`` and the account's address
+        is mailed a notice that the password was changed
+        (:func:`apps.accounts.notices.send_password_changed_notice`); a mail server that
+        refuses it is logged and the answer is unchanged.
         """
         serializer = PasswordChangeSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
@@ -334,6 +356,11 @@ class PasswordChangeView(APIView):
         # Rotating the password rotates the session auth hash; without this the
         # caller is logged out by their own request.
         update_session_auth_hash(request, user)
+        audit.record(audit.ACCOUNT_PASSWORD_CHANGE, actor=user, target=user, reset=False)
+        send_logging_refusal(
+            lambda: send_password_changed_notice(user),
+            what=f"the password change notice for account {user.pk}",
+        )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -360,19 +387,23 @@ class PasswordResetView(APIView):
         enumerate members.  A deactivated account is mailed the link, since completing
         the reset reactivates it.  An account
         that has never set a password is mailed the link like any other.  A malformed
-        address is a 400.  A mail server that refuses the message changes nothing in
-        the answer: the failed send is in the email log, and the refusal is logged
-        (``caldart.mail.send_logging_refusal``).
+        address is a 400.  The message is rendered and sent only once the answer has gone
+        (``caldart.mail.send_after_response``), so the time the request takes does not
+        depend on whether there was anybody to mail.  A mail server that refuses the
+        message changes nothing: the failed send is in the email log, and the refusal is
+        logged.
         """
         serializer = PasswordResetSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = User.objects.filter(email__iexact=serializer.validated_data["email"]).first()
+        response = Response(status=status.HTTP_204_NO_CONTENT)
         if user is not None:
-            send_logging_refusal(
+            send_after_response(
+                response,
                 lambda: send_password_reset_email(user, request=request),
                 what=f"the password reset for account {user.pk}",
             )
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return response
 
 
 class PasswordResetConfirmView(APIView):
@@ -401,10 +432,17 @@ class PasswordResetConfirmView(APIView):
         password moved after the link was checked (another reset, or ``create_admin``
         clearing it) is spent: a 400 under ``token`` like any other spent link, and
         nothing changes.
+
+        A reset that replaces a password the account already had is audited as
+        ``account.password_change`` with ``reset=true``, and the account's address is
+        mailed a notice that the password was changed; setting the first password of an
+        account that had none, through an invitation or after an undone change of
+        address, is neither.
         """
         serializer = PasswordResetConfirmSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
+        had_password = user.has_usable_password()
         try:
             with transaction.atomic():
                 if not replace_password(user, serializer.validated_data["new_password"]):
@@ -415,6 +453,12 @@ class PasswordResetConfirmView(APIView):
                 confirm_email_address(user)
                 if not user.is_active:
                     reactivate(user)
+                if had_password:
+                    audit.record(audit.ACCOUNT_PASSWORD_CHANGE, actor=user, target=user, reset=True)
+                    send_on_commit(
+                        lambda: send_password_changed_notice(user),
+                        what=f"the password change notice for account {user.pk}",
+                    )
         except DomainError:
             # Blocked after the link was checked: the whole reset is rolled back.
             return Response(
@@ -570,14 +614,19 @@ class EmailVerifyView(APIView):
 
     @extend_schema(request=EmailVerifySerializer, responses={200: EmailVerifiedSerializer})
     def post(self, request: Request) -> Response:
-        """Mark the account the posted ``token`` names verified, answering its address.
+        """Follow the link the posted ``token`` came from, answering the address proved.
 
         Open to anonymous callers, since the link may be opened in a browser that is
         not signed in, and throttled under the ``auth_verify`` scope.  The answer is 200
-        ``{"email": <address>}``, also for a link followed a second time.  A token that
-        is forged, expired, for a deactivated or deleted account, or for an address the
-        account no longer holds is a 400 ``{"token": ["That verification link is invalid
-        or has expired."]}``.
+        ``{"email": <address>, "changed": <bool>}``, also for a link followed a second
+        time.  A verification link stamps the account verified; a link mailed to a new
+        address completes that change of address
+        (:func:`apps.accounts.email_change.complete_email_change`), and ``changed`` is
+        then true.  A token that is forged, expired, for a deactivated or deleted
+        account, for an address the account no longer holds, or for a change of address
+        since replaced or undone is a 400 ``{"token": ["That verification link is invalid
+        or has expired."]}``; a change whose address another account has taken meanwhile
+        is a 400 ``{"token": ["Another account already uses that email address."]}``.
 
         A link that opens a donor's account also needs ``password``, the one the account
         will sign in with, chosen by whoever follows the link.  Without it the answer is
@@ -589,7 +638,7 @@ class EmailVerifyView(APIView):
         serializer = EmailVerifySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:
-            user = verify_email(
+            followed = follow_verification_link(
                 serializer.validated_data["token"],
                 password=serializer.validated_data["password"],
             )
@@ -600,7 +649,7 @@ class EmailVerifyView(APIView):
             )
         except DjangoValidationError as error:
             return Response({"password": list(error.messages)}, status=status.HTTP_400_BAD_REQUEST)
-        return Response({"email": user.email})
+        return Response(EmailVerifiedSerializer(followed).data)
 
 
 class EmailVerifyResendView(APIView):
@@ -611,16 +660,34 @@ class EmailVerifyResendView(APIView):
 
     @extend_schema(request=None, responses={202: VerificationSentSerializer})
     def post(self, request: Request) -> Response:
-        """Mail the signed-in account's address a verification link and answer 202.
+        """Mail the signed-in account a fresh link and answer 202.
 
-        The answer is ``{"detail": "Verification message sent to <address>."}``.  An
-        address that is already verified is a 400 with "Your email address is already
-        verified." and nothing is mailed.  A mail server that refuses the message
+        While a change of address is waiting, the link that completes it goes to the
+        pending address once the answer has gone
+        (:func:`apps.accounts.email_change.send_email_change_link`, which sends nothing to
+        an address another account holds, the answer the same either way); otherwise a
+        verification link goes to the account's own address.  The answer is ``{"detail":
+        "Verification message sent to <address>."}``, naming the address mailed.  A
+        verified address with no change waiting is a 400 with "Your email address is
+        already verified." and nothing is mailed.  A mail server that refuses the message
         changes nothing in the answer: the failed send is in the email log, and the
-        refusal is logged.  Throttled under the ``auth_verify_resend`` scope; an
-        anonymous caller gets 401.
+        refusal is logged.  Throttled under the ``auth_verify_resend`` scope; an anonymous
+        caller gets 401.
         """
         user = signed_in_user(request)
+        if user.pending_email != "":
+            response = Response(
+                {"detail": f"Verification message sent to {user.pending_email}."},
+                status=status.HTTP_202_ACCEPTED,
+            )
+            # After the answer, and sending nothing for an address another account
+            # holds, so neither the answer nor its timing says which it was.
+            send_after_response(
+                response,
+                lambda: send_email_change_link(user, requested_by=user.pk),
+                what=f"the email change link for account {user.pk}",
+            )
+            return response
         if user.email_verified:
             return Response(
                 {"detail": "Your email address is already verified."},
@@ -634,26 +701,77 @@ class EmailVerifyResendView(APIView):
 
 
 class EmailChangeView(APIView):
-    """``POST /auth/email/change`` -- change the signed-in user's own address, 200."""
+    """``POST /auth/email/change`` -- ask to change the caller's own address, 200."""
 
     permission_classes = [IsAuthenticated]
+    throttle_classes = [EmailChangeThrottle]
 
     @extend_schema(request=EmailChangeSerializer, responses={200: UserSerializer})
     def post(self, request: Request) -> Response:
-        """Move the signed-in account to the posted ``email``, answering the payload.
+        """Ask to move the signed-in account to the posted ``email``; answer the payload.
 
-        The body carries ``email`` and ``current_password``.  A wrong password, the
-        account's own address, and an address another account uses are each a 400
-        naming the field, the password checked first.  The changed address is marked
-        unverified (``email_verified`` is false in the answer) and mailed a
-        verification link once the change commits; the session survives, so the caller
-        stays signed in.  The change is recorded in the audit log as the account's own
-        ``account.update`` of ``email``.  An anonymous caller gets 401.
+        The body carries ``email`` and ``current_password``.  A wrong password and the
+        account's own address are each a 400 naming the field, the password checked
+        first, and so, against ``email``, is any change while the account keeps a
+        recovery address after a change of address.  Nothing about signing in changes
+        yet: the address becomes the account's ``pending_email``, the new address is
+        mailed a link that completes the change, and the current address, when verified
+        (or the recovery address), a notice with a link that undoes it
+        (:func:`apps.accounts.email_change.request_email_change`); both are sent after
+        the answer has gone.  The answer is the ``user`` payload, ``email`` as it was and
+        ``pending_email`` the address asked for.  An address another account holds is
+        handled exactly the same way -- stored as pending, shown by ``/auth/me``, resent
+        by ``/auth/email/resend`` -- except that no link is ever mailed to it, so neither
+        this answer nor any later one says who has an account.  The request is recorded
+        in the audit log as the account's own ``account.email_change_request``.
+        Throttled under the ``auth_email_change`` scope; an anonymous caller gets 401.
         """
         serializer = EmailChangeSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
-        user = change_own_email(signed_in_user(request), email=serializer.validated_data["email"])
-        return Response(UserSerializer(user).data)
+        user = signed_in_user(request)
+        address = serializer.validated_data["email"]
+        mailings: list[Mailing] = []
+        request_email_change(user, user, address, quiet_if_taken=True, mailings=mailings)
+        response = Response(UserSerializer(user).data)
+        for mailing in mailings:
+            send_after_response(response, mailing.send, what=mailing.what)
+        return response
+
+
+class EmailChangeUndoView(APIView):
+    """``POST /auth/email/undo`` -- follow a link that undoes a change of address."""
+
+    permission_classes = [AllowAny]
+    throttle_classes = [EmailVerifyThrottle]
+
+    @extend_schema(request=EmailChangeUndoSerializer, responses={200: EmailChangeUndoneSerializer})
+    def post(self, request: Request) -> Response:
+        """Undo the change of address the posted ``token`` was mailed about; answer 200.
+
+        Open to anonymous callers, since the link is followed from the address the
+        account had, and throttled under the ``auth_verify`` scope.  What is undone is
+        :func:`apps.accounts.email_change.undo_email_change`'s: the address put back if
+        it had changed, any change still waiting dropped, every session ended, the
+        password made unusable, and a password reset link mailed to the address.  The
+        answer is ``{"email": <the account's address>, "taken": <bool>}``; ``taken`` is
+        true when another account held the address so it could not be put back, and the
+        account was only secured.  A token that is forged, expired, for no account or a
+        donor's, spent by an earlier undo, or mailed to an address other than the one
+        the account keeps for recovery is a 400 ``{"token": ["That link is invalid, has
+        expired, or has been used."]}``.
+        """
+        serializer = EmailChangeUndoSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        undone = undo_email_change(serializer.validated_data["token"])
+        user = undone["user"]
+        if undone["taken"]:
+            # The account was closed: withdraw what runs on, as any deactivation does.
+            with transaction.atomic():
+                cancel_all_mandates(user)
+                suspend_terms(user)
+        if request.user.is_authenticated and request.user.pk == user.pk:
+            logout(request)
+        return Response({"email": user.email, "taken": undone["taken"]})
 
 
 class RolesView(APIView):

@@ -756,6 +756,7 @@ def test_detail_returns_the_whole_record(
         "id",
         "created_at",
         "email",
+        "pending_email",
         "first_name",
         "last_name",
         "name",

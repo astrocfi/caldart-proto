@@ -68,7 +68,13 @@ export type PersonKind = Exclude<AccountKind, 'donor'>;
 
 export interface User {
   id: number;
+  /** The address the account signs in with. */
   email: string;
+  /**
+   * The address a requested change waits to move the account to, or `''`.  `email`
+   * stays the sign-in address until the link mailed there is followed.
+   */
+  pending_email: string;
   first_name: string;
   last_name: string;
   roles: RoleSlug[];
@@ -135,9 +141,25 @@ export interface EmailVerifyPayload {
   password?: string;
 }
 
-/** `POST /auth/email/verify`: the address the link verified. */
+/**
+ * `POST /auth/email/verify`: the address the link proved, and whether following it moved
+ * the account to that address.
+ */
 export interface EmailVerifyResult {
   email: string;
+  changed: boolean;
+}
+
+/** `POST /auth/email/undo`: the token from a link that undoes a change of address. */
+export interface EmailChangeUndoPayload {
+  token: string;
+}
+
+/** `POST /auth/email/undo`: the address the account holds once the change is undone. */
+export interface EmailChangeUndoResult {
+  email: string;
+  /** True when the previous address could not be put back: the account was only secured. */
+  taken: boolean;
 }
 
 /** `POST /auth/email/change`: the address to move to, and the current password. */
@@ -159,7 +181,10 @@ export interface BecomeFriendPayload {
   keep_contribution?: boolean;
 }
 
-/** `POST /auth/email/resend` and `/admin/users/{id}/send-email-verification`. */
+/**
+ * `POST /auth/register`, `POST /auth/email/resend`, and
+ * `/admin/users/{id}/send-email-verification`: the sentence naming the address mailed.
+ */
 export interface VerificationSentResult {
   detail: string;
 }
@@ -188,7 +213,15 @@ export interface AdminUser extends User {
 
 /** What one entry of an account's history did: `GET /admin/users/{id}/history`. */
 export type AccountChangeKind =
-  'created' | 'roles' | 'deactivated' | 'reactivated' | 'blocked' | 'unblocked' | 'new_password';
+  | 'created'
+  | 'roles'
+  | 'deactivated'
+  | 'reactivated'
+  | 'blocked'
+  | 'unblocked'
+  | 'new_password'
+  | 'email_changed'
+  | 'email_change_undone';
 
 /**
  * One row of `GET /admin/users/{id}/history`, newest first.  `changed_by` is null for a
@@ -638,6 +671,8 @@ export interface MemberPayment {
 export interface MemberDetail {
   id: number;
   email: string;
+  /** The address a requested change waits to move the account to, or `''`. */
+  pending_email: string;
   first_name: string;
   last_name: string;
   name: string;

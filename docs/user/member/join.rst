@@ -77,50 +77,48 @@ mistyped box is marked at once, and the line beside the button says how many to
 check.
 
 If you already have an account, as a member or a friend, follow **Already have an
-account? Sign in** and the wizard
-picks up where you left off. If you are already signed in, the step says **Your
-account** with your address, and offers **Continue** and **Use a different
-account**, which signs you out.
+account? Sign in** and the wizard picks up where you left off. If you are already
+signed in, the step says **Your account** with your address, and offers **Continue**
+and **Use a different account**, which signs you out.
 
-Two addresses are handled differently:
+Once the boxes are filled in right, the step changes to **Check your email**: *We
+sent a message to marta.reyes@example.org. Follow the link in it to continue.* Nobody
+is signed in yet, and the screen reads the same whatever the address, so nobody can
+use it to find out who has an account. The message says what to do:
 
-* **An address you gave from before, as a donor.** Creating the account does not
-  sign you in. The step shows **Check your email** for that address, and your past
-  gifts stay with the account. Open the link in the message, choose the password
-  you will sign in with, and press **Open my account**, then **Continue**, and sign
-  in with that password. The wizard carries on at your profile.
-* **The address of a deactivated account.** The step says *This email belongs to a
-  deactivated account. Sign in to reactivate it.* and offers **Sign in to
-  reactivate**, which opens the sign-in screen with the address filled in.
-* **The address of an account an administrator has closed.** The step says *This
-  account has been closed. Contact CalDART to reopen it.*, with your
-  organization's name in place of CalDART, and offers nothing else.
+* **A new address** gets *CalDART: verify your email address*. Its link opens
+  :doc:`verify-email`; press **Continue**, sign in with your address and password,
+  and the wizard carries on at your profile.
+* **An address you gave from before, as a donor**, gets a message asking to open a
+  portal account for it; your past gifts stay with it. Open the link, choose the
+  password you will sign in with, press **Open my account**, then **Continue**, and
+  sign in with that password.
+* **An address that already has an account** gets *CalDART: you already have an
+  account*, with links to sign in and to choose a new password; nothing about the
+  account changes. A deactivated account is told to sign in and press **Reactivate
+  my account** (see :doc:`sign-in`), and a closed one to contact CalDART.
 
-An address another account already uses is refused with *An account already uses
-that email address. Sign in, or reset your password.*
+No message? Look in your spam folder, then sign in to send it again.
 
 
 Step 2: Verify
 ==============
 
-CalDART emails your address a verification message, subject *CalDART: verify your
-email address*. The **Check your email** step waits until you open the link in it.
-The link opens the **Email verified** screen (see :doc:`verify-email`); press
-**Continue** there and the wizard moves on.
+You see this step when you sign in before following the link in *CalDART: verify
+your email address*, and it waits until you open it. Press **Continue** on the
+**Email verified** screen (see :doc:`verify-email`) and the wizard moves on.
 
 * **I've clicked the link** checks again, for when you opened the link in another
   browser or on your phone. If the address is not verified yet, the step says *Not
   verified yet. Open the link in the message we sent, then try again.*
 * **Resend verification message** sends another. Look in your spam folder first.
 * **Use a different email address** opens :doc:`change-email` to fix a mistyped
-  address, and brings you back here. A fresh message goes to the corrected one.
+  address, and brings you back here, naming the address the link went to. Following
+  it moves the account there and verifies it.
 
-Nothing else in the portal is available until you verify your email address. If
-you sign out, or close the tab, and sign in again before you have followed the
-link, you land back on **Check your email**: press **Resend verification message**
-there if the first message is lost or its link has expired.
-
-The link is good for three days. An address you verified before skips this step.
+Nothing else in the portal is available until you verify your address, and signing
+in again before you do lands you back here. The link is good for three days. An
+address you verified before skips this step.
 
 
 Step 3: Profile
