@@ -126,6 +126,22 @@ export function useSendPasswordReset(
 }
 
 /**
+ * Requires a new password of the account: `POST /admin/users/{id}/require-new-password`.
+ * The old password stops working, every session of the account ends, and its address is
+ * mailed a reset link. The history is read again on settling either way, since a mail
+ * server that refused the email still leaves the change made.
+ */
+export function useRequireNewPassword(
+  id: string | number,
+): UseMutationResult<SendPasswordResetResult, Error, void> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.post<SendPasswordResetResult>(`/admin/users/${id}/require-new-password`),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: adminUserHistoryKey(id) }),
+  });
+}
+
+/**
  * Mails the account a fresh verification link for its current address.
  *
  * Refetches the account on settling either way, since a refusal (the address was

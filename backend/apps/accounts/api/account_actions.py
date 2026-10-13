@@ -3,25 +3,44 @@
 ``apps.accounts.status`` writes an account's active and blocked flags.  Deactivating
 also withdraws every standing payment authority and sets the membership aside, and
 reactivating brings the membership back, so the actions the member record and the
-user record offer run here, where the payments and members apps may be reached.  Each
-locks the account's row for its transaction, so two administrators acting on one
-account at once take turns.  A refusal raises the ``DomainError`` the status or
-lifecycle rule raised, and nothing is written.
+user record offer run here, where the payments and members apps may be reached.  So
+does the user record's **Require a new password**, which shuts an account's password
+out and ends its sessions.  Each locks the account's row for its transaction, so two
+administrators acting on one account at once take turns.  A refusal raises the
+``DomainError`` the status, lifecycle, or password rule raised, and nothing is written.
 """
 
 from __future__ import annotations
 
 from django.db import transaction
 
-from apps.accounts.models import User
+from apps.accounts.history import record_account_change
+from apps.accounts.models import AccountChangeKind, User
+from apps.accounts.services import is_donor, may_edit_protected_fields
 from apps.accounts.status import (
     check_block,
     deactivate_account,
+    end_sessions,
     reactivate_account,
     set_reactivation_blocked,
 )
 from apps.members.services import restore_terms, suspend_terms
 from apps.payments.renewals.mandates import cancel_all_mandates, switch_to_friend
+from caldart import audit
+from caldart.exceptions import DomainError
+
+#: Why :func:`require_new_password_for` refuses a donor, a tombstone included.
+DONOR_CREDENTIAL_REFUSED = "A donor cannot sign in, so there is no password to replace."
+
+#: Why it refuses the administrator's own account, which has its own page for this.
+SELF_CREDENTIAL_REFUSED = (
+    "You cannot require a new password for your own account. Use Change password instead."
+)
+
+#: Why it refuses an account holding a role the administrator lacks.
+CREDENTIAL_ROLES_REFUSED = (
+    "You cannot require a new password for an account that holds roles you do not hold."
+)
 
 
 def _locked(target: User) -> User:
@@ -90,6 +109,45 @@ def block_for(actor: User, target: User) -> User:
         cancel_all_mandates(user, actor=actor)
         suspend_terms(user, actor=actor)
     set_reactivation_blocked(actor, user, blocked=True)
+    return user
+
+
+@transaction.atomic
+def require_new_password_for(actor: User, target: User) -> User:
+    """Shut ``target``'s current password out on ``actor``'s behalf, ending its sessions.
+
+    Refused with ``DomainError``, in this order and changing nothing: a donor, a
+    tombstone among them (:data:`DONOR_CREDENTIAL_REFUSED`), the actor's own account
+    (:data:`SELF_CREDENTIAL_REFUSED`), and an account holding roles the actor does not
+    hold (:data:`CREDENTIAL_ROLES_REFUSED`).  Each is recorded at WARNING as
+    ``account.new_password`` with the reason ``donor_account``,
+    ``own_account``, or ``roles_not_held``.
+
+    Otherwise the account's password is made unusable, so neither signing in nor
+    ``/auth/reactivate`` accepts the old one and every reset link made for it is spent;
+    every session signed in to it is ended
+    (:func:`apps.accounts.status.end_sessions`); and the change is recorded as
+    ``account.new_password`` under ``actor`` and as a ``new_password`` entry of
+    the account's history.  The active flag and the reactivation block are left as
+    they are.  Mailing the owner a link to choose a new password is the caller's.
+    Requiring it again repeats all of this.  Returns the account as stored.
+    """
+    user = _locked(target)
+    action = audit.ACCOUNT_REQUIRE_RESET
+    if is_donor(user):
+        audit.refuse(action, actor=actor, target=user, reason=audit.REASON_DONOR_ACCOUNT)
+        raise DomainError(DONOR_CREDENTIAL_REFUSED)
+    if user.pk == actor.pk:
+        audit.refuse(action, actor=actor, target=user, reason=audit.REASON_OWN_ACCOUNT)
+        raise DomainError(SELF_CREDENTIAL_REFUSED)
+    if not may_edit_protected_fields(actor, user):
+        audit.refuse(action, actor=actor, target=user, reason=audit.REASON_ROLES_NOT_HELD)
+        raise DomainError(CREDENTIAL_ROLES_REFUSED)
+    user.set_unusable_password()
+    user.save(update_fields=["password", "updated_at"])
+    end_sessions(user)
+    audit.record(action, actor=actor, target=user)
+    record_account_change(AccountChangeKind.NEW_PASSWORD, actor=actor, target=user)
     return user
 
 

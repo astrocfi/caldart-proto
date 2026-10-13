@@ -578,6 +578,8 @@ administrator may choose.
      - Reactivation blocked
    * - ``unblocked``
      - Reactivation allowed
+   * - ``new_password``
+     - New password required
 
 .. _choices-membership-state:
 
@@ -1796,9 +1798,10 @@ writes this row beside the audit line for the same change.  It does not inherit
 
 A row is written by ``members.services.create_member`` (``created``),
 ``accounts.services.update_account`` for a role list that really changes
-(``roles``), and the four status functions in ``accounts.status`` (``deactivated``,
+(``roles``), the four status functions in ``accounts.status`` (``deactivated``,
 ``reactivated``, ``blocked``, ``unblocked``), the owner's own deactivation and
-reactivation included.  :doc:`api-auth` covers ``GET /admin/users/{id}/history``,
+reactivation included, and
+``accounts.api.account_actions.require_new_password_for`` (``new_password``).  :doc:`api-auth` covers ``GET /admin/users/{id}/history``,
 which is ``user_admin`` only.
 
 Roles

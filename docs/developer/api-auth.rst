@@ -71,6 +71,12 @@ mails to ``ADMIN_EMAILS``
 
      {"detail": "The mail server did not accept the message. A system administrator can see the attempt on the Sent emails page."}
 
+* ``POST /admin/users/{id}/require-new-password`` answers **503** too, but its
+  change has committed by then and is recorded: the ``detail`` says the old password
+  no longer works and every session is ended, and asks for the action to be pressed
+  again, which mails a fresh link, once the server is fixed
+  (:ref:`api-require-new-password`).
+
 A refusal is ``caldart.mail.MailRefusedError``, which ``send_templated`` raises
 only from an ``smtplib.SMTPException`` or an ``OSError`` (a connection refused, a
 host that does not resolve, a TLS failure, a timeout) raised while the message is
@@ -953,6 +959,55 @@ server refused the message.  This endpoint is not
 throttled —
 the throttles guard the anonymous routes.
 
+.. _api-require-new-password:
+
+``POST /admin/users/{id}/require-new-password``
+-----------------------------------------------
+
+For an account somebody other than its owner may know the password to.  No body.
+``accounts.api.account_actions.require_new_password_for`` makes the account's password
+unusable and ends every session signed in to it (``accounts.status.end_sessions``), in
+one transaction under a lock on the account's row; then the same email as
+``/auth/password/reset`` goes to the account's address.  Afterwards the old password
+signs nobody in, ``/auth/reactivate`` refuses it, and every reset link made before is
+spent, because Django's reset token is built from the password hash.  The owner's way
+back is the mailed link, or **Forgot password** on the sign-in page.
+
+.. code-block:: json
+
+   {"detail": "The old password no longer works and every session is ended. A password reset email went to marta.reyes@example.org."}
+
+The active flag and the reactivation block are left alone.  A deactivated account stays
+deactivated and is mailed the link all the same: confirming it at
+``/auth/password/reset/confirm`` sets the new password and reactivates the account, as
+any reset of a deactivated account does.  A blocked account is mailed nothing, since
+the confirmation would refuse its link, and the answer's second sentence reads "The
+account is blocked from reactivating, so no reset email was sent."  Once the block is
+lifted, the owner asks for a reset themselves.  Requiring a new password again repeats
+everything and mails a fresh link.
+
+Refused, changing nothing, in this order::
+
+    400 {"detail": "A donor cannot sign in, so there is no password to replace."}
+    400 {"detail": "You cannot require a new password for your own account. Use Change password instead."}
+    400 {"detail": "You cannot require a new password for an account that holds roles you do not hold."}
+
+A tombstone is a donor, so the first sentence covers it; the last is the
+:ref:`account-edit guard <account-edit-guard>`.  Each refusal is recorded at WARNING as
+``action=account.new_password`` with ``reason=donor_account``,
+``own_account``, or ``roles_not_held``; the change itself is recorded at INFO as
+``action=account.new_password actor=<admin> target=<id>`` and as a
+``new_password`` entry of the account's history.  A mail server that refuses the reset
+email is a 503 whose ``detail`` says the password was shut out and the sessions ended
+regardless, and asks for the action to be pressed again once the server is fixed; the
+failed send is in the email log and the refusal is logged
+(:ref:`refused sends <api-refused-send>`).
+
+Statuses: **200** once the password is shut out, whether or not a link was mailed;
+**400** for a donor, your own account, or an account holding roles you do not hold;
+**401** when anonymous; **403** without ``user_admin``; **404** for an unknown id;
+**503** when the mail server refused the reset email.  Not throttled.
+
 ``POST /admin/users/{id}/send-email-verification``
 --------------------------------------------------
 
@@ -1003,9 +1058,10 @@ The account's role and status changes, newest first, unpaginated: the user recor
 History card.  Each is an ``AccountChange`` row (``apps.accounts.history``), written
 beside the audit line for the same change, since the audit log is a journal and cannot
 be read back.  A row is written for an account created on New member (``created``), a
-role list that really changes (``roles``), and each deactivation, reactivation, block,
+role list that really changes (``roles``), each deactivation, reactivation, block,
 and lifted block (``deactivated``, ``reactivated``, ``blocked``, ``unblocked``),
-including the owner's own deactivation and reactivation.
+including the owner's own deactivation and reactivation, and each new password required
+(``new_password``).
 
 .. code-block:: json
 
@@ -1127,7 +1183,8 @@ every write of ``email`` past ``accounts.services.check_account_edit`` first;
 ``PATCH /admin/users/{id}`` above refuses the address outright.  The status actions — the user
 record's ``/deactivate``, ``/reactivate``, ``/block`` and ``/unblock`` above and
 the member record's ``/deactivate`` and ``/reactivate`` — apply the same rule in
-``accounts.status``.
+``accounts.status``, and the user record's ``/require-new-password``, which shuts the
+owner's password out, applies it in ``accounts.api.account_actions``.
 
 The rule, in the order it is applied:
 
@@ -1189,6 +1246,10 @@ Their status        You cannot activate or deactivate an account that holds role
 Your own block      You cannot block your own account.
 Their block         You cannot block or unblock an account that holds roles you
                     do not hold.
+Your own password   You cannot require a new password for your own account. Use
+                    Change password instead.
+Their password      You cannot require a new password for an account that holds
+                    roles you do not hold.
 A donor             A donor has no portal account to deactivate. (or *to
                     reactivate.*, or *to block.*)
 A blocked account   A user administrator has blocked this account from
@@ -1207,7 +1268,9 @@ that identifies a person.  A refused role change reads
 ``action=account.roles ... reason=system_admin_role``; a refused status action
 reads ``action=account.deactivate``, ``account.activate``, ``account.block`` or
 ``account.unblock`` with ``reason=self_deactivation``, ``roles_not_held``,
-``donor_account`` or ``reactivation_blocked``.  An action that goes through is
+``donor_account`` or ``reactivation_blocked``, and a refused
+``/require-new-password`` reads ``action=account.new_password`` with
+``reason=own_account``, ``roles_not_held`` or ``donor_account``.  An action that goes through is
 recorded the same way at INFO, under the administrator.  The self-service
 endpoints record ``action=account.deactivate actor=12 target=12
 self_service=true`` and ``action=account.activate actor=12 target=12
@@ -1329,6 +1392,12 @@ Tests
 ``backend/tests/test_users_admin_api.py``
    The full role matrix on every users-admin endpoint, the search and filter
    parameters, and each business rule above.
+
+``backend/tests/test_require_new_password.py``
+   ``/require-new-password``: the role matrix, the unusable password, the ended
+   sessions, the old password refused at sign-in and at ``/auth/reactivate``, the
+   mailed link and an earlier one spent, a deactivated and a blocked account, each
+   refusal, the audit lines and history entry, and a mail server that refuses.
 
 ``backend/tests/test_user_history.py``
    Which changes write an ``AccountChange`` row and under whom, and the history

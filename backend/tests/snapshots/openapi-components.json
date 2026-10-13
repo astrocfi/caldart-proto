@@ -36,7 +36,8 @@
       "deactivated",
       "reactivated",
       "blocked",
-      "unblocked"
+      "unblocked",
+      "new_password"
     ]
   },
   "AccountKindEnum": {

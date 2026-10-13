@@ -6,8 +6,9 @@
  * verified. An address the bounce check found bouncing carries a **Bounced** chip there and
  * a **Clear bounce** action that asks first.  Only a system administrator may give or take
  * away the System administrator role, so its box is grayed out for anybody else, with
- * the reason under it.  The **History** card lists who changed the account's roles or
- * status, and when.
+ * the reason under it.  The **Password** card sends a reset link or requires a new
+ * password.  The **History** card lists who changed the account's roles or status, and
+ * when.
  */
 import { useEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
@@ -37,14 +38,9 @@ import { useFocusAfterSave } from '@/portal/components/focus';
 import { FormAlert, fieldError } from '@/portal/features/auth/form';
 import { AccountHistoryCard } from './AccountHistoryCard';
 import { AccountStatusCard } from './AccountStatusCard';
+import { PasswordCard } from './PasswordCard';
 import './users.css';
-import {
-  useAdminUser,
-  useClearBounce,
-  useSendEmailVerification,
-  useSendPasswordReset,
-  useUpdateAdminUser,
-} from './api';
+import { useAdminUser, useClearBounce, useSendEmailVerification, useUpdateAdminUser } from './api';
 
 interface FormState {
   roles: RoleSlug[];
@@ -79,7 +75,6 @@ export function UserDetailPage(): JSX.Element {
   const query = useAdminUser(id);
   const roles = useRoles();
   const update = useUpdateAdminUser(id);
-  const sendReset = useSendPasswordReset(id);
   const sendVerification = useSendEmailVerification(id);
   const clearBounce = useClearBounce(id);
   const toast = useToast();
@@ -276,31 +271,7 @@ export function UserDetailPage(): JSX.Element {
 
       {isDonor ? null : <AccountStatusCard user={user} isSelf={isSelf} />}
 
-      {isDonor ? null : (
-        <Card
-          title="Password"
-          footer={
-            <Button
-              variant="secondary"
-              disabled={sendReset.isPending || !user.is_active}
-              onClick={() =>
-                sendReset.mutate(undefined, {
-                  onSuccess: (result) => toast.show(result.detail, 'success'),
-                  onError: (error) => toast.show(error.message, 'error'),
-                })
-              }
-            >
-              {sendReset.isPending ? 'Sending…' : 'Send password reset'}
-            </Button>
-          }
-        >
-          <p className="muted">
-            {user.is_active
-              ? 'Emails a one-time link so they can choose a new password. You never see it.'
-              : 'Reactivate the account before sending a reset link.'}
-          </p>
-        </Card>
-      )}
+      {isDonor ? null : <PasswordCard user={user} isSelf={isSelf} />}
 
       <AccountHistoryCard userId={user.id} />
     </Page>

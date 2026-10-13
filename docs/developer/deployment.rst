@@ -1930,6 +1930,9 @@ Action                        Fields beyond actor and target
                               ended, and whether a block on reactivating was
                               lifted (``create_admin`` took an existing
                               account back from whoever set its password)
+``account.new_password``      -- (a user administrator required a new
+                              password: the old one shut out and every
+                              session ended)
 ``member.create``             --
 ``member.delete``             ``payments``, ``owner`` -- when the member had
                               paid, how many payments moved and the
@@ -2049,6 +2052,7 @@ names the columns that moved, and ``fields=-`` when none did.
 
 A privileged attempt a rule turns away is logged at WARNING under the same
 action, with a ``reason`` slug saying which rule refused it: ``self_deactivation``,
+``own_account`` (a new password required of the administrator's own account),
 ``roles_not_held``, ``system_admin_role``, ``self_delete``,
 ``system_admin_target``, ``inactive_account``, ``donor_account``,
 ``donor_kind``, ``reactivation_blocked`` (a reactivation of an account a user
