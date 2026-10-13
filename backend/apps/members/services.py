@@ -638,7 +638,7 @@ def _not_yet_paid() -> MembershipStatusDict:
     }
 
 
-def _donor_membership() -> MembershipStatusDict:
+def donor_membership() -> MembershipStatusDict:
     """The status of a donor: ``donor``, with no expiry, no plan, and never lifetime."""
     return {
         "status": MembershipState.DONOR,
@@ -749,7 +749,7 @@ def membership_status(
         return _friend_membership()
     kind = account_kind(user, on_date)
     if kind == AccountKind.DONOR:
-        return _donor_membership()
+        return donor_membership()
     if kind == AccountKind.FRIEND:
         if awaits_first_term(user, on_date):
             return _not_yet_paid()
@@ -859,7 +859,7 @@ def membership_payload(user: MemberRow) -> MembershipStatusDict:
     not guaranteed.
     """
     if user.effective_kind == AccountKind.DONOR:
-        return _donor_membership()
+        return donor_membership()
     if user.effective_kind == AccountKind.FRIEND:
         return _not_yet_paid() if user.awaits_first_term else _friend_membership()
     if user.covers_today:

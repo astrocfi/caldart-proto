@@ -82,7 +82,8 @@ form:
 
 #. **Amount.** Choose a tier, or **Other amount** and type whole dollars. Without an
    amount it says *Choose an amount to give.*
-#. **About you.** **First name**, **Last name**, and **Email** (*Your receipt goes
+#. **About you.** The section opens with *Already have an account? Sign in to give
+   from the portal.* **First name**, **Last name**, and **Email** (*Your receipt goes
    here*) are required. **Phone** is optional; the box takes ten digits and writes
    the dashes itself.
 #. **Tell us more (optional).** Closed until you open it: your address, city, state,
@@ -99,8 +100,12 @@ is on its way to rosa@example.org.* The receipt email has the PDF attached and t
 sentence *No goods or services were provided in exchange for this contribution.* A
 payment that fails leaves the form where it was, says why, and charges nothing.
 
-If an account already uses the address, the page answers *An account already uses
-that email address. Sign in to donate.*
+The page answers the same whatever address you give. A gift from an address that
+already has a portal account is that account's own gift, as if you had given from the
+portal, and what you typed in the form is not written onto the account. To give with
+everything on your own record, follow *Already have an account? Sign in to give from
+the portal.* at the top of **About you**: it opens the sign-in screen, then the
+portal's :doc:`donate` screen.
 
 What a donor is
 ~~~~~~~~~~~~~~~

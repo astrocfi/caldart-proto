@@ -104,19 +104,26 @@ def load_payment(payment_id: int, user: User, *, provider: str | None = None) ->
     return payment
 
 
-def confirmed(payment: Payment, provider: str, **arguments: str) -> Response:
-    """Ask ``provider`` to confirm ``payment`` with ``arguments``, then answer its result.
+def confirm_payment(payment: Payment, provider: str, **arguments: str) -> None:
+    """Ask ``provider`` to confirm ``payment`` with ``arguments``, and read it again.
 
-    Every confirm endpoint, the portal's and the public donation page's, ends here once
-    it has loaded the payment.  Answers 200 with ``{status, membership}`` as the payment
-    stands afterwards; a provider that refuses or cannot be reached is a 400 carrying
-    its reason as ``detail``.
+    Every confirm endpoint, the portal's and the public donation page's, calls this once
+    it has loaded the payment.  A provider that refuses or cannot be reached raises
+    DRF's ``ValidationError``, a 400 carrying its reason as ``detail``.
     """
     try:
         get_provider(provider).confirm(payment, **arguments)
     except PaymentError as exc:
         raise ValidationError({"detail": str(exc)}) from exc
     payment.refresh_from_db()
+
+
+def confirmed(payment: Payment, provider: str, **arguments: str) -> Response:
+    """Confirm ``payment`` through :func:`confirm_payment`, then answer its result.
+
+    Answers 200 with ``{status, membership}`` as the payment stands afterwards.
+    """
+    confirm_payment(payment, provider, **arguments)
     return Response(PaymentResultSerializer(payment_result(payment)).data)
 
 

@@ -252,17 +252,20 @@ describe('DonationForm', () => {
     await waitFor(() => expect(onGiven).toHaveBeenCalledTimes(1));
   });
 
-  it('shows why an address that belongs to a member is refused beside the field', async () => {
+  it('offers a member or a friend the portal through sign-in', async () => {
+    serveGift();
+    renderForm();
+
+    expect(
+      await screen.findByRole('link', { name: 'Sign in to give from the portal.' }),
+    ).toHaveAttribute('href', '/portal/login?next=%2Fdonate');
+  });
+
+  it('shows why the server refused the address beside the field', async () => {
     serveGift();
     server.use(
       http.post(`${API}/donations/checkout`, () =>
-        HttpResponse.json(
-          {
-            email: ['An account already uses that email address. Sign in to donate.'],
-            code: 'has_account',
-          },
-          { status: 400 },
-        ),
+        HttpResponse.json({ email: ['Enter a valid email address.'] }, { status: 400 }),
       ),
     );
     const user = userEvent.setup();
@@ -275,9 +278,7 @@ describe('DonationForm', () => {
     // The refusal takes the giver back to the details, with the message beside
     // the field it named rather than only in the payment panel; the hint gives way to it.
     const email = await screen.findByLabelText(/^Email/);
-    expect(email).toHaveAccessibleDescription(
-      'An account already uses that email address. Sign in to donate.',
-    );
+    expect(email).toHaveAccessibleDescription('Enter a valid email address.');
     expect(screen.getByRole('button', { name: 'Continue to payment' })).toBeInTheDocument();
   });
 

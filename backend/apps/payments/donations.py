@@ -1,8 +1,10 @@
 """Gifts through the public donation page, from people who never sign in.
 
-A gift made on the public site belongs to a **donor**: an account found or made by
-email address, with no role and no usable password, so it can never sign in and
-appears in no member list.  :func:`donor_for` finds or makes that bare account;
+A gift made on the public site belongs to the account its email address names, and
+an address with none becomes a **donor**: an account with no role and no usable
+password, so it can never sign in and appears in no member list.  The page answers
+the same whoever holds the address, so a member's or a friend's address simply gives
+to that account.  :func:`donor_for` finds the account or makes the bare donor;
 :func:`start_donation` starts a contribution for it through the same
 :func:`~apps.payments.services.create_checkout` a member's own checkout uses, keeping
 what the giver typed on the payment's own ``donor_fields`` column rather than
@@ -34,7 +36,6 @@ from apps.members.models import MemberProfile
 from apps.members.services import touch_profile
 from apps.payments.models import Payment
 from apps.payments.services import create_checkout
-from caldart.exceptions import DomainValidationError
 
 log = logging.getLogger(__name__)
 
@@ -47,12 +48,6 @@ DONATION_TOKEN_MAX_AGE = 3_600
 
 #: What sets donor locks apart from any other advisory lock taken on the database.
 DONOR_LOCK_PERSON = b"caldart-donor"
-
-#: What an address that already signs in to the portal is told.
-HAS_ACCOUNT_MESSAGE = "An account already uses that email address. Sign in to donate."
-
-#: The ``code`` that travels with :data:`HAS_ACCOUNT_MESSAGE`.
-HAS_ACCOUNT_CODE = "has_account"
 
 #: What a caller without a good token is told: the same words an unknown id earns.
 NO_SUCH_PAYMENT = "No such payment."
@@ -110,18 +105,6 @@ class DonorFields(TypedDict, total=False):
     vol_newsletter: bool
 
 
-class HasAccountError(DomainValidationError):
-    """The address a giver typed belongs to a member or a friend.
-
-    Keyed by ``email`` and carrying :data:`HAS_ACCOUNT_MESSAGE`; the endpoint answers
-    it with the ``has_account`` code, so the page can send the person to sign in.
-    """
-
-    def __init__(self) -> None:
-        """Key the refusal by ``email`` with :data:`HAS_ACCOUNT_MESSAGE`."""
-        super().__init__("email", HAS_ACCOUNT_MESSAGE)
-
-
 class DonationTokenError(Exception):
     """The token does not prove the payment: forged, expired, or for another payment."""
 
@@ -149,28 +132,27 @@ def _lock_address(email: str) -> None:
 
 @transaction.atomic
 def donor_for(fields: DonorFields) -> User:
-    """The donor account for ``fields["email"]``, found or made.
+    """The account a gift from ``fields["email"]`` belongs to, found or made.
 
     The address is matched case-insensitively, under a lock on the address held until
     the caller's transaction ends, so two first gifts from one address arriving
     together make one donor between them.  A new address becomes a bare donor
     account (``create_account`` with the ``donor`` kind: no name yet, no role, an
-    unusable password, the address unverified).  Nothing is mailed either way.
+    unusable password, the address unverified).  An address that belongs to any
+    account, a member's or a friend's included, active or not, is that account: the
+    gift is theirs, as an ordinary contribution, and the page that takes it answers
+    the same whoever holds the address.  Nothing is mailed either way.
 
     The names, the phone, and the profile fields the giver typed are not written
     here: an unauthenticated caller who only knows a donor's address must not be
     able to overwrite what an earlier, completed gift recorded.  :func:`start_donation`
     keeps them on the pending payment's ``donor_fields`` column instead, and
-    :func:`apply_donor_fields` writes them once that payment settles.
-
-    Raises :class:`HasAccountError` when the address belongs to a member or a friend,
-    whether their account is active or deactivated: that person gives from the portal.
+    :func:`apply_donor_fields` writes them once that payment settles, and only onto a
+    donor's account.
     """
     email = fields["email"].strip()
     _lock_address(email)
     user = User.objects.filter(email__iexact=email).first()
-    if user is not None and user.kind != AccountKind.DONOR:
-        raise HasAccountError
     if user is None:
         user = create_account(email=email, kind=AccountKind.DONOR)
         log.info("Donor account %s created for a gift on the public site", user.pk)
@@ -223,9 +205,11 @@ def apply_donor_fields(payment: Payment) -> None:
     gift told us.  A payment that carries no such fields -- every payment but a public
     gift -- is left alone, which is what lets
     :func:`apps.payments.services.mark_succeeded` call this unconditionally for
-    every payment that settles.
+    every payment that settles.  So is a public gift whose account is a member's or a
+    friend's: what an unauthenticated giver typed never rewrites the details of an
+    account that signs in, which its owner keeps from the portal.
     """
-    if not payment.donor_fields:
+    if not payment.donor_fields or payment.user.kind != AccountKind.DONOR:
         return
     fields = _fields_from_storage(payment.donor_fields)
     user = payment.user

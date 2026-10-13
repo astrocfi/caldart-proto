@@ -92,13 +92,11 @@ describe('donorFieldErrors', () => {
 
   it('leaves out a code the refusal carries alongside a field', () => {
     const caught = new ApiError(400, {
-      email: ['An account already uses that email address. Sign in to donate.'],
-      code: 'has_account',
+      email: ['Enter a valid email address.'],
+      code: 'invalid',
     });
 
-    expect(donorFieldErrors(caught)).toEqual({
-      email: 'An account already uses that email address. Sign in to donate.',
-    });
+    expect(donorFieldErrors(caught)).toEqual({ email: 'Enter a valid email address.' });
   });
 
   it('is empty for a refusal that names no form field', () => {
