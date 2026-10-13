@@ -12,18 +12,24 @@ import logging
 import re
 
 import pytest
+from django.contrib.sessions.models import Session
 from django.core import mail
+from django.core.mail import EmailMultiAlternatives
 from rest_framework.test import APIClient
 
+from apps.accounts.api.account_actions import require_new_password_for
+from apps.accounts.api.serializers import PasswordChangeSerializer
 from apps.accounts.models import AccountChangeKind, AccountKind, User
-from apps.accounts.roles import SYSTEM_ADMIN, USER_ADMIN
-from apps.accounts.services import make_reset_token
+from apps.accounts.roles import ACCOUNT_ADMIN, MEMBER, SYSTEM_ADMIN, USER_ADMIN
+from apps.accounts.services import make_reset_token, update_account
 from apps.members.services import tombstone_for
 from tests.conftest import (
+    CHANGE_URL,
     GOOD_PASSWORD,
     LOGIN_URL,
     ME_URL,
     RESET_CONFIRM_URL,
+    RESET_URL,
     audit_messages,
     role_matrix,
 )
@@ -162,6 +168,22 @@ def test_the_old_password_no_longer_signs_in(user_admin_client: APIClient, targe
     assert response.status_code == 400
 
 
+def signed_in_client(user: User) -> tuple[APIClient, str]:
+    """A fresh client signed in to ``user``, and the key of its stored session."""
+    client = APIClient()
+    client.force_login(user)
+    return client, client.session.session_key or ""
+
+
+def test_every_stored_session_of_the_account_is_deleted(
+    user_admin_client: APIClient, target: User
+) -> None:
+    """The session rows are gone, not merely refused on their next request."""
+    keys = [signed_in_client(target)[1], signed_in_client(target)[1]]
+    user_admin_client.post(require_url(target))
+    assert Session.objects.filter(session_key__in=keys).exists() is False
+
+
 def test_a_session_signed_in_before_no_longer_authenticates(
     user_admin_client: APIClient, target: User
 ) -> None:
@@ -183,12 +205,53 @@ def test_the_administrators_own_session_survives(
     assert user_admin_client.get(ME_URL).status_code == 200
 
 
-def test_the_account_is_mailed_a_reset_link(user_admin_client: APIClient, target: User) -> None:
-    """One message, the ordinary reset email, goes to the account's address."""
+def test_the_account_is_mailed_a_link(user_admin_client: APIClient, target: User) -> None:
+    """One message goes to the account's address, asking for a new password."""
     user_admin_client.post(require_url(target))
     assert [(message.to, message.subject) for message in mail.outbox] == [
-        (["target@example.test"], "CalDART: reset your password")
+        (["target@example.test"], "CalDART: choose a new password")
     ]
+
+
+@pytest.mark.parametrize(
+    "sentence",
+    [
+        "An administrator at CalDART has required a new password for your",
+        "Your old password no longer works",
+        "Nobody can sign in to the account until the link is used.",
+    ],
+)
+def test_the_email_says_an_administrator_required_it(
+    user_admin_client: APIClient, target: User, sentence: str
+) -> None:
+    """The text body says what happened, rather than that somebody asked for a reset."""
+    user_admin_client.post(require_url(target))
+    assert sentence in " ".join(str(mail.outbox[0].body).split())
+
+
+def test_the_email_never_says_the_password_is_unchanged(
+    user_admin_client: APIClient, target: User
+) -> None:
+    """The ordinary reset wording, which says to ignore the message, is left out."""
+    user_admin_client.post(require_url(target))
+    assert "your password has not" not in str(mail.outbox[0].body)
+
+
+def test_the_html_body_says_an_administrator_required_it(
+    user_admin_client: APIClient, target: User
+) -> None:
+    """The HTML alternative carries the same news as the text body."""
+    user_admin_client.post(require_url(target))
+    message = mail.outbox[0]
+    assert isinstance(message, EmailMultiAlternatives)
+    html = str(message.alternatives[0][0])
+    assert "has required a new password" in " ".join(html.split())
+
+
+def test_a_reset_the_owner_asks_for_keeps_its_own_wording(target: User) -> None:
+    """The self-service reset still reads as a request somebody made."""
+    APIClient().post(RESET_URL, {"email": target.email}, format="json")
+    assert "Someone asked to reset the password" in " ".join(str(mail.outbox[0].body).split())
 
 
 def test_the_mailed_link_sets_the_new_password(user_admin_client: APIClient, target: User) -> None:
@@ -301,9 +364,31 @@ def test_a_blocked_account_is_sent_nothing(user_admin_client: APIClient, target:
 def test_a_blocked_accounts_password_is_replaced(
     user_admin_client: APIClient, target: User
 ) -> None:
-    """Lifting the block later does not bring the old password back."""
+    """The password is shut out even though no email goes."""
     user_admin_client.post(require_url(deactivated(target, blocked=True)))
     assert fresh(target).has_usable_password() is False
+
+
+def test_once_the_block_is_lifted_forgot_password_mails_the_owner(
+    user_admin_client: APIClient, target: User
+) -> None:
+    """After **Allow reactivation**, the owner's own reset request is mailed a link."""
+    user_admin_client.post(require_url(deactivated(target, blocked=True)))
+    user_admin_client.post(f"/api/v1/admin/users/{target.pk}/unblock")
+    APIClient().post(RESET_URL, {"email": target.email}, format="json")
+    assert [message.to for message in mail.outbox] == [["target@example.test"]]
+
+
+def test_once_the_block_is_lifted_the_old_password_still_fails(
+    user_admin_client: APIClient, target: User
+) -> None:
+    """Lifting the block does not bring the old password back."""
+    user_admin_client.post(require_url(deactivated(target, blocked=True)))
+    user_admin_client.post(f"/api/v1/admin/users/{target.pk}/unblock")
+    response = APIClient().post(
+        REACTIVATE_URL, {"email": target.email, "password": DEFAULT_PASSWORD}, format="json"
+    )
+    assert response.status_code == 400
 
 
 # --------------------------------------------------------------------------
@@ -329,18 +414,39 @@ def test_your_own_account_is_refused(user_admin_client: APIClient, user_admin: U
     assert (response.status_code, response.json()) == (400, SELF_REFUSED)
 
 
+def account_holding(who: str) -> User:
+    """An account holding a role a user administrator lacks, as ``who`` describes it.
+
+    ``superuser`` is a Django superuser without the role group, who counts as a system
+    administrator all the same.
+    """
+    if who == "superuser":
+        return UserFactory(
+            email="root.flag@example.test", roles=[MEMBER], is_superuser=True, is_staff=True
+        )
+    role = {"account_admin": ACCOUNT_ADMIN, "system_admin": SYSTEM_ADMIN}[who]
+    return UserFactory(email=f"{who}.target@example.test", roles=[MEMBER, role])
+
+
+@pytest.mark.parametrize("who", ["account_admin", "system_admin", "superuser"])
 def test_an_account_holding_roles_you_lack_is_refused(
-    user_admin_client: APIClient, account_admin: User
+    user_admin_client: APIClient, who: str
 ) -> None:
     """The account-edit guard applies: the caller holds every role the target holds."""
-    response = user_admin_client.post(require_url(account_admin))
+    response = user_admin_client.post(require_url(account_holding(who)))
     assert (response.status_code, response.json()) == (400, ROLES_REFUSED)
 
 
 def test_a_refusal_changes_nothing(user_admin_client: APIClient, account_admin: User) -> None:
-    """A refused request leaves the password and sends no mail."""
+    """A refusal leaves the password, the sessions, and the history, and mails nobody."""
+    _, key = signed_in_client(account_admin)
     user_admin_client.post(require_url(account_admin))
-    assert (fresh(account_admin).has_usable_password(), mail.outbox) == (True, [])
+    assert (
+        fresh(account_admin).has_usable_password(),
+        Session.objects.filter(session_key=key).exists(),
+        account_admin.account_changes.count(),
+        mail.outbox,
+    ) == (True, True, 0, [])
 
 
 def test_a_system_administrator_may_act_on_anybody(
@@ -390,4 +496,35 @@ def test_a_refused_mail_still_shuts_the_old_password_out(
 ) -> None:
     """The password is replaced whether or not the email went."""
     user_admin_client.post(require_url(target))
+    assert fresh(target).has_usable_password() is False
+
+
+# --------------------------------------------------------------------------
+# A request already in flight when the new password is required
+# --------------------------------------------------------------------------
+def test_a_password_change_overtaken_by_the_action_is_refused(
+    monkeypatch: pytest.MonkeyPatch, user_admin: User, target: User
+) -> None:
+    """A change validated against the old password answers 401 and writes nothing."""
+    theirs, _ = signed_in_client(target)
+    validate = PasswordChangeSerializer.validate_new_password
+
+    def require_first(self: PasswordChangeSerializer, value: str) -> str:
+        require_new_password_for(user_admin, User.objects.get(pk=target.pk))
+        return validate(self, value)
+
+    monkeypatch.setattr(PasswordChangeSerializer, "validate_new_password", require_first)
+    response = theirs.post(
+        CHANGE_URL, {"current_password": DEFAULT_PASSWORD, "new_password": GOOD_PASSWORD}
+    )
+    assert (response.status_code, fresh(target).has_usable_password()) == (401, False)
+
+
+def test_a_stale_edit_after_the_action_keeps_the_password_unusable(
+    user_admin: User, target: User
+) -> None:
+    """An account edit made from a copy read before the action does not restore it."""
+    stale = User.objects.get(pk=target.pk)
+    require_new_password_for(user_admin, User.objects.get(pk=target.pk))
+    update_account(user_admin, stale, {"first_name": "Mallory"})
     assert fresh(target).has_usable_password() is False

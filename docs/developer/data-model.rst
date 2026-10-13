@@ -1800,9 +1800,9 @@ A row is written by ``members.services.create_member`` (``created``),
 ``accounts.services.update_account`` for a role list that really changes
 (``roles``), the four status functions in ``accounts.status`` (``deactivated``,
 ``reactivated``, ``blocked``, ``unblocked``), the owner's own deactivation and
-reactivation included, and
-``accounts.api.account_actions.require_new_password_for`` (``new_password``).  :doc:`api-auth` covers ``GET /admin/users/{id}/history``,
-which is ``user_admin`` only.
+reactivation included, and ``accounts.api.account_actions.require_new_password_for``
+(``new_password``).  :doc:`api-auth` covers ``GET /admin/users/{id}/history``, which
+is ``user_admin`` only.
 
 Roles
 -----

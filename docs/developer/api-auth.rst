@@ -942,18 +942,26 @@ An account with nobody to mail is refused::
 
 Two accounts have nobody to mail: a deactivated one, and one that holds no
 email address.  Both are refused with that one sentence, so a caller who sees
-it on an active account should check the address on the member record.  A
-donor, who cannot sign in, is refused with a sentence of its own::
+it on an active account should check the address on the member record.  Three
+more are refused first, in this order, each with a sentence of its own: a donor, who
+cannot sign in; the caller's own account, whose password is changed on Change
+password; and an account holding roles the caller does not hold, under the
+:ref:`account-edit guard <account-edit-guard>`::
 
     400 {"detail": "A donor cannot sign in, so no reset email was sent."}
+    400 {"detail": "You cannot send a password reset to your own account. Use Change password instead."}
+    400 {"detail": "You cannot send a password reset to an account that holds roles you do not hold."}
 
 Both the send and the refusal are recorded in the audit log
-(:ref:`deploy-audit-log`).  A mail server that refuses the message is a 503
+(:ref:`deploy-audit-log`), a refusal as ``action=password_reset.admin_sent`` with
+``reason=donor_account``, ``own_account``, ``roles_not_held``, or
+``inactive_account``.  A mail server that refuses the message is a 503
 naming the Sent emails page, and nothing is recorded in the audit log
 (:ref:`refused sends <api-refused-send>`).
 
 Statuses: **200** when the mail went out; **400** for an account that is
-deactivated, holds no email address, or is a donor's; **401** when anonymous;
+deactivated, holds no email address, is a donor's, is the caller's own, or holds
+roles the caller does not hold; **401** when anonymous;
 **403** without ``user_admin``; **404** for an unknown id; **503** when the mail
 server refused the message.  This endpoint is not
 throttled —
@@ -966,12 +974,24 @@ the throttles guard the anonymous routes.
 
 For an account somebody other than its owner may know the password to.  No body.
 ``accounts.api.account_actions.require_new_password_for`` makes the account's password
-unusable and ends every session signed in to it (``accounts.status.end_sessions``), in
-one transaction under a lock on the account's row; then the same email as
-``/auth/password/reset`` goes to the account's address.  Afterwards the old password
-signs nobody in, ``/auth/reactivate`` refuses it, and every reset link made before is
-spent, because Django's reset token is built from the password hash.  The owner's way
-back is the mailed link, or **Forgot password** on the sign-in page.
+unusable and ends every session signed in to it
+(``accounts.status.clear_password_and_end_sessions``, which ``create_admin`` uses too),
+in one transaction under a lock on the account's row.  Then the ``password_reset``
+email goes to the address the account holds now, sent with
+``send_password_reset_email(..., required=True)``: its subject is ``<organization
+name>: choose a new password``, and its bodies say that an administrator has required
+a new password, that the old one no longer works and every session was ended, and that
+nobody can sign in until the link is used, in place of the self-service wording that
+says the password has not changed.  Afterwards the old password signs nobody in,
+``/auth/reactivate`` refuses it, and every reset link made before is spent, because
+Django's reset token is built from the password hash.  A password change or reset
+already in flight is refused too, since ``accounts.services.replace_password`` writes
+only over the hash the request checked, and an account edit made from a copy read
+earlier saves only the columns it changed.  The owner's way back is the mailed link,
+or **Forgot password** on the sign-in page.  The link goes to whatever address the
+account holds, which somebody who took the account over may have changed; the portal's
+confirmation names it, so the administrator can have it corrected on the member
+record first.
 
 .. code-block:: json
 
@@ -1184,7 +1204,8 @@ every write of ``email`` past ``accounts.services.check_account_edit`` first;
 record's ``/deactivate``, ``/reactivate``, ``/block`` and ``/unblock`` above and
 the member record's ``/deactivate`` and ``/reactivate`` — apply the same rule in
 ``accounts.status``, and the user record's ``/require-new-password``, which shuts the
-owner's password out, applies it in ``accounts.api.account_actions``.
+owner's password out, and ``/send-password-reset``, which mails a link that sets one,
+apply it too.
 
 The rule, in the order it is applied:
 
@@ -1247,9 +1268,11 @@ Your own block      You cannot block your own account.
 Their block         You cannot block or unblock an account that holds roles you
                     do not hold.
 Your own password   You cannot require a new password for your own account. Use
-                    Change password instead.
+                    Change password instead. (or *You cannot send a password reset
+                    to your own account.*)
 Their password      You cannot require a new password for an account that holds
-                    roles you do not hold.
+                    roles you do not hold. (or *You cannot send a password reset to
+                    an account that holds roles you do not hold.*)
 A donor             A donor has no portal account to deactivate. (or *to
                     reactivate.*, or *to block.*)
 A blocked account   A user administrator has blocked this account from
@@ -1270,7 +1293,9 @@ reads ``action=account.deactivate``, ``account.activate``, ``account.block`` or
 ``account.unblock`` with ``reason=self_deactivation``, ``roles_not_held``,
 ``donor_account`` or ``reactivation_blocked``, and a refused
 ``/require-new-password`` reads ``action=account.new_password`` with
-``reason=own_account``, ``roles_not_held`` or ``donor_account``.  An action that goes through is
+``reason=own_account``, ``roles_not_held``, or ``donor_account``, and a refused
+``/send-password-reset`` reads ``action=password_reset.admin_sent`` with the same
+reasons, or ``inactive_account``.  An action that goes through is
 recorded the same way at INFO, under the administrator.  The self-service
 endpoints record ``action=account.deactivate actor=12 target=12
 self_service=true`` and ``action=account.activate actor=12 target=12
@@ -1394,10 +1419,15 @@ Tests
    parameters, and each business rule above.
 
 ``backend/tests/test_require_new_password.py``
-   ``/require-new-password``: the role matrix, the unusable password, the ended
+   ``/require-new-password``: the role matrix, the unusable password, the deleted
    sessions, the old password refused at sign-in and at ``/auth/reactivate``, the
-   mailed link and an earlier one spent, a deactivated and a blocked account, each
-   refusal, the audit lines and history entry, and a mail server that refuses.
+   email's wording and its link, an earlier link spent, a deactivated and a blocked
+   account, each refusal, the audit lines and history entry, a mail server that
+   refuses, and a password change or a stale edit racing the action.
+
+``backend/tests/test_account_admin_passwords.py``
+   The Django admin's accounts pages: no password on the change form, the add form
+   and the change-password page closed, and a posted password changing nothing.
 
 ``backend/tests/test_user_history.py``
    Which changes write an ``AccountChange`` row and under whom, and the history

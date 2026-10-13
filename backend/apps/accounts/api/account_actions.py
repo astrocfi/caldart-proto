@@ -19,8 +19,8 @@ from apps.accounts.models import AccountChangeKind, User
 from apps.accounts.services import is_donor, may_edit_protected_fields
 from apps.accounts.status import (
     check_block,
+    clear_password_and_end_sessions,
     deactivate_account,
-    end_sessions,
     reactivate_account,
     set_reactivation_blocked,
 )
@@ -123,14 +123,14 @@ def require_new_password_for(actor: User, target: User) -> User:
     ``account.new_password`` with the reason ``donor_account``,
     ``own_account``, or ``roles_not_held``.
 
-    Otherwise the account's password is made unusable, so neither signing in nor
-    ``/auth/reactivate`` accepts the old one and every reset link made for it is spent;
-    every session signed in to it is ended
-    (:func:`apps.accounts.status.end_sessions`); and the change is recorded as
-    ``account.new_password`` under ``actor`` and as a ``new_password`` entry of
-    the account's history.  The active flag and the reactivation block are left as
-    they are.  Mailing the owner a link to choose a new password is the caller's.
-    Requiring it again repeats all of this.  Returns the account as stored.
+    Otherwise :func:`apps.accounts.status.clear_password_and_end_sessions` makes the
+    password unusable, so neither signing in nor ``/auth/reactivate`` accepts the old
+    one and every reset link made for it is spent, and ends every session signed in to
+    the account.  The change is recorded as ``account.new_password`` under ``actor``
+    and as a ``new_password`` entry of the account's history.  The active flag and the
+    reactivation block are left as they are.  Mailing the owner a link to choose a new
+    password is the caller's.  Requiring it again repeats all of this.  Returns the
+    account as stored.
     """
     user = _locked(target)
     action = audit.ACCOUNT_REQUIRE_RESET
@@ -143,9 +143,7 @@ def require_new_password_for(actor: User, target: User) -> User:
     if not may_edit_protected_fields(actor, user):
         audit.refuse(action, actor=actor, target=user, reason=audit.REASON_ROLES_NOT_HELD)
         raise DomainError(CREDENTIAL_ROLES_REFUSED)
-    user.set_unusable_password()
-    user.save(update_fields=["password", "updated_at"])
-    end_sessions(user)
+    clear_password_and_end_sessions(user)
     audit.record(action, actor=actor, target=user)
     record_account_change(AccountChangeKind.NEW_PASSWORD, actor=actor, target=user)
     return user

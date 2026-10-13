@@ -683,7 +683,7 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ·
      - ·
-     -
+     - the account-edit guard applies
    * - ``POST /admin/users/{id}/require-new-password``
      - ·
      - ·

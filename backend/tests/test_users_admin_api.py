@@ -2,12 +2,13 @@
 
 Every endpoint is checked against the full role matrix, then against the
 business rules: role slugs are validated, only a ``system_admin`` may move the
-``system_admin`` role, the names and the address are refused, and nobody may deactivate
-themselves.
+``system_admin`` role, the names and the address are refused, nobody may deactivate
+themselves, and a password reset follows the account-edit guard.
 """
 
 from __future__ import annotations
 
+import logging
 from datetime import date
 
 import pytest
@@ -27,12 +28,19 @@ from apps.accounts.roles import (
 )
 from apps.members.models import MembershipPlan, MembershipStatusChoices
 from caldart.messages import USER_RECORD_ROLES_ONLY
-from tests.conftest import role_matrix
+from tests.conftest import audit_messages, role_matrix
 from tests.factories import DartFactory, MemberProfileFactory, MembershipFactory, UserFactory
 
 pytestmark = pytest.mark.django_db
 
 LIST = "/api/v1/admin/users"
+
+SELF_RESET_REFUSED = (
+    "You cannot send a password reset to your own account. Use Change password instead."
+)
+RESET_ROLES_REFUSED = (
+    "You cannot send a password reset to an account that holds roles you do not hold."
+)
 ROLES = "/api/v1/roles"
 
 
@@ -611,6 +619,65 @@ def test_send_password_reset_404s_for_an_unknown_id(
     """Sending a reset for an unknown id is 404."""
     api_client.force_login(user_admin)
     assert api_client.post(f"{LIST}/99999/send-password-reset").status_code == 404
+
+
+def test_send_password_reset_refuses_your_own_account(
+    api_client: APIClient, user_admin: User
+) -> None:
+    """Your own password is changed on Change password, so nothing is sent."""
+    api_client.force_login(user_admin)
+    response = api_client.post(send_reset(user_admin))
+    assert (response.status_code, response.json(), mail.outbox) == (
+        400,
+        {"detail": SELF_RESET_REFUSED},
+        [],
+    )
+
+
+@pytest.mark.parametrize("role", [ACCOUNT_ADMIN, SYSTEM_ADMIN, "superuser"])
+def test_send_password_reset_refuses_an_account_holding_roles_you_lack(
+    api_client: APIClient, user_admin: User, role: str
+) -> None:
+    """The account-edit guard applies, a superuser without the role group included."""
+    target = (
+        UserFactory(email="root.flag@example.test", roles=[MEMBER], is_superuser=True)
+        if role == "superuser"
+        else UserFactory(email="lacking@example.test", roles=[MEMBER, role])
+    )
+    api_client.force_login(user_admin)
+    response = api_client.post(send_reset(target))
+    assert (response.status_code, response.json(), mail.outbox) == (
+        400,
+        {"detail": RESET_ROLES_REFUSED},
+        [],
+    )
+
+
+@pytest.mark.parametrize(("who", "reason"), [("self", "own_account"), ("roles", "roles_not_held")])
+def test_send_password_reset_refusals_are_audited(
+    api_client: APIClient,
+    user_admin: User,
+    account_admin: User,
+    audit_log: pytest.LogCaptureFixture,
+    who: str,
+    reason: str,
+) -> None:
+    """Each refusal writes one WARNING line naming the rule that refused it."""
+    subject = user_admin if who == "self" else account_admin
+    api_client.force_login(user_admin)
+    api_client.post(send_reset(subject))
+    assert audit_messages(audit_log, logging.WARNING) == [
+        f"action=password_reset.admin_sent actor={user_admin.pk} target={subject.pk} "
+        f"reason={reason}"
+    ]
+
+
+def test_a_system_administrator_may_send_anybody_a_reset(
+    api_client: APIClient, system_admin: User, account_admin: User
+) -> None:
+    """A system administrator holds every role, so the guard always passes."""
+    api_client.force_login(system_admin)
+    assert api_client.post(send_reset(account_admin)).status_code == 200
 
 
 # --------------------------------------------------------------------------

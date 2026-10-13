@@ -277,6 +277,20 @@ def set_reactivation_blocked(actor: User, target: User, *, blocked: bool) -> boo
 # --------------------------------------------------------------------------
 # Helpers
 # --------------------------------------------------------------------------
+def clear_password_and_end_sessions(user: User) -> int:
+    """Make ``user``'s password unusable and end every session signed in to it.
+
+    The password column and ``updated_at`` alone are saved, so nothing else read with
+    ``user`` is written back.  Neither the old password nor any reset link made for it
+    works afterwards, since Django signs a reset link over the stored hash.  Returns how
+    many sessions :func:`end_sessions` ended.  The caller locks the row first and records
+    the change.
+    """
+    user.set_unusable_password()
+    user.save(update_fields=["password", "updated_at"])
+    return end_sessions(user)
+
+
 def end_sessions(user: User) -> int:
     """Delete every unexpired session signed in to ``user``, and return how many.
 

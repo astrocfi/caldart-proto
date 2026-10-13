@@ -912,7 +912,7 @@ Tests
    endpoint except the list, 200 for ``account_admin`` and ``system_admin``),
    every filter against a mixed
    fixture, ordering, creation and its invitation (a posted ``password`` ignored),
-   nested profile updates, the delete rules and the grant-term arithmetic.
+   nested profile updates, the delete rules, and the grant-term arithmetic.
 ``backend/tests/test_member_county.py``
    The county filter on the list and on the membership report, one county and
    several, the 400 for a county outside California, the counties the PDF
