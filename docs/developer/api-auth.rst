@@ -158,7 +158,7 @@ Every endpoint that returns an account returns the same object:
 
 ``admin_created``
    True for an account an account administrator created on New member
-   (``POST /admin/members``, :doc:`api-members`), with or without a password.
+   (``POST /admin/members``, :doc:`api-members`).
    Such a person has joined already, as a member or a friend, so once
    ``email_verified`` is true the portal treats them as onboarded whatever
    ``profile_complete`` and ``membership`` say: their first sign-in after verifying

@@ -1930,7 +1930,7 @@ Action                        Fields beyond actor and target
                               ended, and whether a block on reactivating was
                               lifted (``create_admin`` took an existing
                               account back from whoever set its password)
-``member.create``             ``invited`` -- whether an invitation was mailed
+``member.create``             --
 ``member.delete``             ``payments``, ``owner`` -- when the member had
                               paid, how many payments moved and the
                               tombstone account that holds them

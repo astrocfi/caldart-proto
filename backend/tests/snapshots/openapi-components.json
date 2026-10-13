@@ -2362,7 +2362,6 @@
       "first_name": "string",
       "kind": "ref:PersonKindEnum",
       "last_name": "string",
-      "password": "string",
       "profile": "ref:AdminProfileRequest"
     },
     "required": [

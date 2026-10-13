@@ -32,7 +32,6 @@ export interface AccountDraft {
   email: string;
   first_name: string;
   last_name: string;
-  password: string;
   /** A donor's kind is shown elsewhere and never edited here. */
   kind: AccountKind;
 }
@@ -62,7 +61,6 @@ export function emptyAccountDraft(): AccountDraft {
     email: '',
     first_name: '',
     last_name: '',
-    password: '',
     kind: 'member',
   };
 }
@@ -133,21 +131,18 @@ export interface AccountFieldsProps {
   value: AccountDraft;
   onChange: (next: AccountDraft) => void;
   errors?: FieldErrors;
-  /** Offer a password box (creation only; changing one is the member's own job). */
-  withPassword?: boolean;
   /** A standing fact under the email box, such as whether the address is verified. */
   emailStatus?: ReactNode;
 }
 
 /**
- * The account fieldset: email, name, the kind of account (member or friend; a
- * donor's is left alone), and optionally a password.
+ * The account fieldset: email, name, and the kind of account (member or friend; a
+ * donor's is left alone). There is never a password box: the person chooses their own.
  */
 export function AccountFields({
   value,
   onChange,
   errors = {},
-  withPassword = false,
   emailStatus,
 }: AccountFieldsProps): JSX.Element {
   const set = <Key extends keyof AccountDraft>(key: Key, next: AccountDraft[Key]) =>
@@ -158,8 +153,7 @@ export function AccountFields({
       <legend>Account</legend>
       <div className="form-grid">
         {/* The address takes a row of its own, so the names share one with no hint above
-            either box, and the two fields that carry hints, the kind and the password,
-            share the next. */}
+            either box, and the kind, which carries a hint, takes the next. */}
         <div className="account-fields__email">
           <Field label="Email address" required error={errors.email} status={emailStatus}>
             {(props) => (
@@ -215,23 +209,6 @@ export function AccountFields({
             )}
           </Field>
         )}
-        {withPassword ? (
-          <Field
-            label="Password"
-            error={errors.password}
-            hint="Leave blank to email an invitation to set one."
-          >
-            {(props) => (
-              <input
-                {...props}
-                type="password"
-                autoComplete="new-password"
-                value={value.password}
-                onChange={(event) => set('password', event.target.value)}
-              />
-            )}
-          </Field>
-        ) : null}
       </div>
     </fieldset>
   );

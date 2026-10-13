@@ -11,7 +11,6 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import TYPE_CHECKING, Any, cast
 
-from django.contrib.auth import password_validation
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
@@ -463,7 +462,9 @@ class MemberCreateSerializer(serializers.Serializer[User]):
     ``email``, ``first_name``, and ``last_name`` are required; a missing or blank name
     is refused with "Enter a first name." or "Enter a last name."  Every phone number in
     the profile is optional.  ``kind`` is ``member`` (the default) or ``friend``: an
-    administrator never makes a donor by hand.
+    administrator never makes a donor by hand.  There is no password field, and a
+    ``password`` in the body is ignored like any other unknown key: the account is
+    mailed an invitation to choose its own (:func:`apps.members.services.create_member`).
     """
 
     email = serializers.EmailField(error_messages=email_messages("Enter their email address."))
@@ -473,7 +474,6 @@ class MemberCreateSerializer(serializers.Serializer[User]):
     last_name = serializers.CharField(
         max_length=150, error_messages=when_missing(LAST_NAME_MESSAGE)
     )
-    password = serializers.CharField(write_only=True, required=False, allow_blank=True)
     kind = serializers.ChoiceField(
         choices=PERSON_KIND_CHOICES, required=False, default=AccountKind.MEMBER.value
     )
@@ -490,17 +490,6 @@ class MemberCreateSerializer(serializers.Serializer[User]):
             raise serializers.ValidationError("An account with that email address already exists.")
         return value
 
-    def validate_password(self, value: str) -> str:
-        """Put a password through Django's validators; a blank one is allowed.
-
-        A blank password means the account is mailed an invitation instead, so
-        only a value that was given is checked, and a weak one is refused with
-        Django's own sentences.
-        """
-        if value:
-            password_validation.validate_password(value)
-        return value
-
     def create(self, validated_data: dict[str, Any]) -> User:
         """Create the account and its profile, and return the account.
 
@@ -511,7 +500,6 @@ class MemberCreateSerializer(serializers.Serializer[User]):
         return create_member(
             request.user,
             email=validated_data["email"],
-            password=validated_data.get("password", "") or "",
             first_name=validated_data["first_name"],
             last_name=validated_data["last_name"],
             kind=AccountKind(validated_data.get("kind", AccountKind.MEMBER)),

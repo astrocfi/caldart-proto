@@ -443,6 +443,30 @@ export async function followVerificationLink(page: Page, email: string): Promise
   await page.getByRole('link', { name: 'Continue' }).click();
 }
 
+/** The first `/portal/reset-password?uid=&token=` link in an email's text. */
+export function passwordLink(text: string): string {
+  const match = /https?:\/\/\S+?\/portal\/reset-password\?uid=[^\s"<]+/.exec(text);
+  if (match === null) throw new Error(`No password link in:\n${text}`);
+  // The HTML body escapes the ampersand between the two query parameters.
+  return match[0].replaceAll('&amp;', '&');
+}
+
+/**
+ * Follow the newest set-your-password or reset link mailed to `email`, as its owner
+ * would, and save `password` on the page it opens.
+ */
+export async function choosePasswordFromEmail(
+  page: Page,
+  email: string,
+  password: string,
+): Promise<void> {
+  await page.goto(passwordLink(await latestEmailTo(email)));
+  await page.getByLabel(/^New password/).fill(password);
+  await page.getByLabel(/^Repeat new password/).fill(password);
+  await page.getByRole('button', { name: 'Save new password' }).click();
+  await expect(page.getByRole('heading', { name: 'Password changed' })).toBeVisible();
+}
+
 /** The password every account a spec registers through the join wizard is given. */
 export const JOINER_PASSWORD = 'a-long-demo-passphrase';
 

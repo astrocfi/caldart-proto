@@ -677,7 +677,6 @@ export interface MemberCreatePayload {
   email: string;
   first_name?: string;
   last_name?: string;
-  password?: string;
   /** `member` when left out; an administrator never creates a donor. */
   kind?: PersonKind;
   profile?: AdminProfilePayload;

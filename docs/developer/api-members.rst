@@ -355,7 +355,6 @@ member record ``GET /admin/members/{user_id}`` returns.
      "email": "nova@example.org",
      "first_name": "Nova",
      "last_name": "Ito",
-     "password": "optional",
      "kind": "member",
      "profile": {"phone": "408-555-0199", "dart_id": 3, "ratings": ["instrument"]}
    }
@@ -366,7 +365,9 @@ more than a name and an address.  A missing or blank address is refused with "En
 their email address.", a missing or blank name with "Enter a first name." or "Enter a
 last name.", and every phone number in ``profile`` is optional.
 ``kind`` is ``member`` (the default) or ``friend``; an administrator never
-creates a donor, and ``donor`` is a 400 on ``kind``.
+creates a donor, and ``donor`` is a 400 on ``kind``.  There is no ``password``
+field: an administrator never chooses a member's password, and a ``password`` key in
+the body is ignored like any other unknown key.
 
 ``profile`` is ``AdminProfileSerializer``, which extends the ``/me/profile``
 serializer: the same fields except ``first_name`` and ``last_name``, which the
@@ -379,7 +380,7 @@ The user, of the kind posted, is granted the ``member`` role, marked
 ``admin_created`` (the person has joined already, so once the address is verified the
 portal skips the profile and pay steps for them, :doc:`api-auth`), and given an empty ``MemberProfile`` populated
 from ``profile``.  Its history (``GET /admin/users/{id}/history``) starts with a
-``created`` entry under the administrator.  With no ``password`` the account gets an unusable
+``created`` entry under the administrator.  The account gets an unusable
 password and ``apps.accounts.services.send_password_invitation`` emails an
 invitation whose subject is ``<organization name>: set your password``.  It
 renders
@@ -391,10 +392,8 @@ back to ``/auth/password/reset/confirm`` unchanged (:doc:`api-auth`).  The mail
 is queued with ``transaction.on_commit``, so a failed create never sends one —
 and a test has to use ``django_capture_on_commit_callbacks`` to see it.
 Following the invitation's link proves the address, so it also marks the account
-verified.  With a ``password`` no invitation is sent; the address is mailed a
-verification link instead, on commit in the same way (see the email
-verification section of :doc:`api-auth`).  A mail server that refuses either
-message leaves the member created and the answer a 201: the failed send is on
+verified, and no separate verification link is mailed.  A mail server that refuses the
+invitation leaves the member created and the answer a 201: the failed send is on
 the Sent emails page and the refusal is logged
 (:ref:`refused sends <api-refused-send>`).
 
@@ -404,8 +403,7 @@ Statuses:
 * **400** — a duplicate email address (compared case-insensitively, reported as
   ``{"email": ["An account with that email address already exists."]}``), a
   missing ``email``, a missing or blank ``first_name`` or ``last_name``
-  (``{"first_name": ["Enter a first name."]}``), a password one of Django's
-  validators refused, an unknown
+  (``{"first_name": ["Enter a first name."]}``), an unknown
   rating, or any profile rule the nested serializer states.  Nothing is
   written.
 
@@ -913,8 +911,8 @@ Tests
    ``user_admin``, and ``website_admin``, 403 for ``dart_leader`` on every
    endpoint except the list, 200 for ``account_admin`` and ``system_admin``),
    every filter against a mixed
-   fixture, ordering, creation with and without a password, nested profile
-   updates, the delete rules and the grant-term arithmetic.
+   fixture, ordering, creation and its invitation (a posted ``password`` ignored),
+   nested profile updates, the delete rules and the grant-term arithmetic.
 ``backend/tests/test_member_county.py``
    The county filter on the list and on the membership report, one county and
    several, the 400 for a county outside California, the counties the PDF
@@ -957,7 +955,7 @@ Tests
    The membership report in both formats.
 ``backend/tests/test_member_services.py``
    ``members.services`` on its own: atomic registration, the invitation sent
-   only without a password and only on commit, the two halves of an update, and
+   only on commit, the two halves of an update, and
    each delete guard.
 ``backend/tests/test_admin_account_actions.py``
    The Delete or deactivate tab's account actions and the user record's deactivation and

@@ -119,7 +119,14 @@ describe('MemberCreatePage', () => {
     await waitFor(() => expect(posted?.kind).toBe('friend'));
   });
 
-  it('omits the password when the box is left blank', async () => {
+  it('offers no password box, since the person chooses their own', () => {
+    server.use(...createHandlers());
+    renderCreate();
+
+    expect(screen.queryByLabelText(/password/i)).not.toBeInTheDocument();
+  });
+
+  it('posts no password', async () => {
     const user = userEvent.setup();
     server.use(...createHandlers());
     renderCreate();
@@ -131,17 +138,17 @@ describe('MemberCreatePage', () => {
     expect(posted).not.toHaveProperty('password');
   });
 
-  it('sends a password when one is typed', async () => {
+  it('says the new member has been emailed a link to set a password', async () => {
     const user = userEvent.setup();
-    server.use(...createHandlers());
+    server.use(...createHandlers(makeDetail({ id: 42, name: 'Nova Ito' })));
     renderCreate();
 
     await fillAccount(user, 'nova@example.org');
-    await user.type(screen.getByLabelText('Password'), 'correct-horse-battery');
     await user.click(screen.getByRole('button', { name: 'Add member' }));
 
-    await waitFor(() => expect(posted).not.toBeNull());
-    expect(posted?.password).toBe('correct-horse-battery');
+    expect(
+      await screen.findByText('Nova Ito has been emailed a link to set a password.'),
+    ).toBeInTheDocument();
   });
 
   it('goes to the new member record on success', async () => {

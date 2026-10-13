@@ -1,8 +1,8 @@
 /**
  * `/admin/members/new` — create an account and its profile in one request.
  *
- * Leaving the password blank is the normal path: the server stores an unusable
- * password and emails the new member a link to choose their own.
+ * The form has no password box: the server stores an unusable password and emails the
+ * new member a link to choose their own.
  */
 import { useRef, useState } from 'react';
 import type { JSX } from 'react';
@@ -76,18 +76,12 @@ export function MemberCreatePage(): JSX.Element {
         email: account.email.trim(),
         first_name: account.first_name,
         last_name: account.last_name,
-        ...(account.password ? { password: account.password } : {}),
         ...kindPayload(account),
         profile: adminProfilePayload(formToPatch(profile), adminOnly),
       },
       {
         onSuccess: (member) => {
-          toast.show(
-            account.password
-              ? `${member.name} can sign in now.`
-              : `${member.name} has been emailed a link to set a password.`,
-            'success',
-          );
+          toast.show(`${member.name} has been emailed a link to set a password.`, 'success');
           // The form goes with the move, so the record's title takes the focus.
           void navigate(`/admin/members/${member.id}`, { state: FOCUS_TITLE });
         },
@@ -116,7 +110,6 @@ export function MemberCreatePage(): JSX.Element {
               setAccount(next);
             }}
             errors={errors.account}
-            withPassword
           />
           <ProfileFieldsets
             value={profile}

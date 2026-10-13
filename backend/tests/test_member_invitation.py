@@ -1,7 +1,7 @@
 """The "set your password" email an administrator-created account receives.
 
-``POST /admin/members`` with no password gives the account an unusable password
-and mails an invitation.  The link is the same password-reset link
+``POST /admin/members`` gives the account an unusable password and mails an
+invitation.  The link is the same password-reset link
 ``/auth/password/reset/confirm`` accepts, so the two are tested together here.
 """
 
@@ -251,12 +251,12 @@ def test_the_mailed_link_verifies_the_address(
 # --------------------------------------------------------------------------
 # When it is sent
 # --------------------------------------------------------------------------
-def test_creating_a_member_without_a_password_sends_the_invitation(
+def test_creating_a_member_sends_the_invitation(
     account_admin_client: APIClient,
     site_settings: SiteSettings,
     django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
 ) -> None:
-    """Creating a member with no password mails an invitation once the commit fires."""
+    """Creating a member mails an invitation once the commit fires."""
     with django_capture_on_commit_callbacks(execute=True):
         account_admin_client.post(
             MEMBERS_URL,
@@ -266,12 +266,12 @@ def test_creating_a_member_without_a_password_sends_the_invitation(
     assert mail.outbox[0].subject == f"{ORG_NAME}: set your password"
 
 
-def test_creating_a_member_with_a_password_sends_no_invitation(
+def test_a_password_posted_with_the_member_still_sends_the_invitation_alone(
     account_admin_client: APIClient,
     site_settings: SiteSettings,
     django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
 ) -> None:
-    """A member created with a password is sent verification, not an invitation."""
+    """A posted password is ignored: the invitation goes, and no verification message."""
     with django_capture_on_commit_callbacks(execute=True):
         account_admin_client.post(
             MEMBERS_URL,
@@ -283,6 +283,4 @@ def test_creating_a_member_with_a_password_sends_no_invitation(
             },
             format="json",
         )
-    assert [message.subject for message in mail.outbox] == [
-        f"{ORG_NAME}: verify your email address"
-    ]
+    assert [message.subject for message in mail.outbox] == [f"{ORG_NAME}: set your password"]
