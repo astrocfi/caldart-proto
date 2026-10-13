@@ -211,7 +211,10 @@ knows nothing of.  So the Wagtail admin manages no account:
 
 A website administrator signs in to the editor with their portal account; only
 the screens that would change an account are closed.  The Django admin at
-``/django-admin/``, open to superusers alone, lists accounts.
+``/django-admin/``, open to superusers alone, lists accounts and edits their flags,
+but sets nobody's password: ``accounts.admin.UserAdmin`` leaves the password off the
+change form, closes the add form (an account is added on New member, which invites the
+person), and answers 403 on Django's change-password page.
 
 Members-only documents
 ----------------------
