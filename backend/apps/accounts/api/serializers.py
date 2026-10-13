@@ -360,9 +360,11 @@ class RoleSerializer(serializers.Serializer[dict[str, str]]):
 
 
 class SendPasswordResetResultSerializer(serializers.Serializer[dict[str, str]]):
-    """``POST /admin/users/{id}/send-password-reset``: the sentence to show.
+    """The sentence to show after a user record's password action.
 
-    The one field, ``detail``, names the address the link went to.
+    ``POST /admin/users/{id}/send-password-reset`` and ``/require-new-password`` both
+    answer with it.  The one field, ``detail``, says what was done and names the address
+    the link went to.
     """
 
     detail = serializers.CharField()

@@ -36,6 +36,7 @@ describe('changeWhat', () => {
     ['reactivated', 'reactivated the account'],
     ['blocked', 'blocked reactivation'],
     ['unblocked', 'allowed reactivation'],
+    ['new_password', 'required a new password'],
   ] as const)('words a %s entry as "%s"', (kind, words) => {
     expect(changeWhat(change({ kind }))).toBe(words);
   });

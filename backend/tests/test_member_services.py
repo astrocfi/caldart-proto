@@ -85,12 +85,12 @@ def test_create_member_writes_the_profile_fields(account_admin: User, dart: Dart
     assert user.profile.phone == "530-555-0142"
 
 
-def test_create_member_without_a_password_invites_the_account(
+def test_create_member_invites_the_account(
     account_admin: User,
     site_settings: SiteSettings,
     django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
 ) -> None:
-    """Creating a member with no password mails an invitation to that address."""
+    """Creating a member mails an invitation to that address."""
     with django_capture_on_commit_callbacks(execute=True):
         create_member(account_admin, email="joan.ames@example.test")
     assert mail.outbox[0].to == ["joan.ames@example.test"]
@@ -107,15 +107,6 @@ def test_the_invitation_is_the_set_your_password_email(
     assert mail.outbox[0].subject == f"{site_settings.org_name}: set your password"
 
 
-def test_create_member_with_a_password_invites_nobody(
-    account_admin: User, django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks
-) -> None:
-    """A member created with a password is sent verification, not an invitation."""
-    with django_capture_on_commit_callbacks(execute=True):
-        create_member(account_admin, email="joan.ames@example.test", password=PASSWORD)
-    assert [message.subject for message in mail.outbox] == ["CalDART: verify your email address"]
-
-
 def test_the_invitation_waits_for_the_commit(
     account_admin: User, site_settings: SiteSettings
 ) -> None:
@@ -124,7 +115,7 @@ def test_the_invitation_waits_for_the_commit(
     assert len(mail.outbox) == 0
 
 
-def test_create_member_leaves_an_invited_account_without_a_password(account_admin: User) -> None:
+def test_create_member_leaves_the_account_without_a_password(account_admin: User) -> None:
     """An invited account holds no usable password until it is set."""
     user = create_member(account_admin, email="joan.ames@example.test")
     assert user.has_usable_password() is False

@@ -520,12 +520,12 @@ def test_a_reset_for_a_deactivated_account_is_refused_and_recorded(
 # --------------------------------------------------------------------------
 # Members and memberships
 # --------------------------------------------------------------------------
-def test_creating_a_member_records_the_account_and_the_invitation(
+def test_creating_a_member_records_the_account(
     api_client: APIClient,
     account_admin: UserModel,
     audit_log: pytest.LogCaptureFixture,
 ) -> None:
-    """Creating a member records the new account's id and that it was invited."""
+    """Creating a member records the new account's id under the administrator."""
     api_client.force_login(account_admin)
     response = api_client.post(
         MEMBERS_URL,
@@ -534,7 +534,7 @@ def test_creating_a_member_records_the_account_and_the_invitation(
     )
     assert response.status_code == 201
     assert one_message(audit_log) == (
-        f"action=member.create actor={account_admin.pk} target={response.json()['id']} invited=true"
+        f"action=member.create actor={account_admin.pk} target={response.json()['id']}"
     )
 
 

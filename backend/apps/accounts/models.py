@@ -283,6 +283,7 @@ class AccountChangeKind(models.TextChoices):
     REACTIVATED = "reactivated", "Reactivated"
     BLOCKED = "blocked", "Reactivation blocked"
     UNBLOCKED = "unblocked", "Reactivation allowed"
+    NEW_PASSWORD = "new_password", "New password required"
 
 
 class AccountChange(models.Model):
@@ -290,8 +291,9 @@ class AccountChange(models.Model):
 
     The user record's **History** card reads these back.  An entry is written beside
     the audit line for the same change, for an account an administrator created, a
-    role granted or taken away, and an account deactivated, reactivated, blocked from
-    reactivating, or allowed to reactivate again.  ``changed_by`` is the account that
+    role granted or taken away, an account deactivated, reactivated, blocked from
+    reactivating, or allowed to reactivate again, and a new password required of it.
+    ``changed_by`` is the account that
     acted, which is the account itself when its owner deactivated or reactivated it,
     and ``None`` for a management command (``by_command`` is then true) or an actor
     since deleted.  ``added`` and

@@ -236,7 +236,6 @@ def create_member(
     actor: User,
     *,
     email: str,
-    password: str = "",
     first_name: str = "",
     last_name: str = "",
     kind: AccountKind = AccountKind.MEMBER,
@@ -247,12 +246,12 @@ def create_member(
 
     ``kind`` is the kind of person, a member unless it says friend.  ``profile`` is
     the profile fields to record, which on the day somebody joins
-    at an airshow may be none of them.  Without a password the account holds an
-    unusable one and is mailed an invitation to set the first, whose link also
-    proves the address; with one it is mailed a verification link instead.  Either
-    mail is queued past the commit, so a create that rolls back mails nobody, and a
-    mail server that refuses it is logged (``caldart.mail.send_on_commit``) rather than
-    failing the committed create.
+    at an airshow may be none of them.  The account holds an unusable password and is
+    mailed an invitation to choose its own, whose link also proves the address: the
+    administrator never picks a password for anybody.  The invitation is queued past
+    the commit, so a create that rolls back mails nobody, and a mail server that
+    refuses it is logged (``caldart.mail.send_on_commit``) rather than failing the
+    committed create.
     ``request`` only tells the invitation which site's name and contact address to
     use.  The account is marked ``admin_created``, so once the address is verified its
     owner's sign-in opens the portal rather than the profile and pay steps, and its
@@ -260,24 +259,16 @@ def create_member(
     ``profile_updated_at`` is stamped as the moment it was created.  The ``member_added``
     event is raised with the account and ``actor``.
     """
-    user = create_account(
-        email=email, password=password, first_name=first_name, last_name=last_name, kind=kind
-    )
+    user = create_account(email=email, first_name=first_name, last_name=last_name, kind=kind)
     user.admin_created = True
     user.save(update_fields=["admin_created"])
     row = MemberProfile.objects.create(user=user, **(profile or {}))
     touch_profile(row)
-    if password:
-        send_on_commit(
-            lambda: send_email_verification(user),
-            what=f"the email verification for account {user.pk}",
-        )
-    else:
-        send_on_commit(
-            lambda: send_password_invitation(user, request=request),
-            what=f"the invitation for account {user.pk}",
-        )
-    audit.record(audit.MEMBER_CREATE, actor=actor, target=user, invited=not password)
+    send_on_commit(
+        lambda: send_password_invitation(user, request=request),
+        what=f"the invitation for account {user.pk}",
+    )
+    audit.record(audit.MEMBER_CREATE, actor=actor, target=user)
     record_account_change(AccountChangeKind.CREATED, actor=actor, target=user)
     events.emit("member_added", user=user, actor=actor)
     return user

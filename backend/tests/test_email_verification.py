@@ -41,7 +41,7 @@ from apps.cms.models import SiteSettings
 from apps.mail.models import EmailLog
 from apps.mail.purposes import purpose_label
 from apps.members.services import create_member
-from tests.conftest import GOOD_PASSWORD, ME_URL, REGISTER_URL, audit_messages, register_payload
+from tests.conftest import ME_URL, REGISTER_URL, audit_messages, register_payload
 from tests.factories import DEFAULT_PASSWORD, UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -414,20 +414,10 @@ def test_the_user_payload_says_verified(api_client: APIClient, verified: User) -
     assert api_client.get(ME_URL).json()["email_verified"] is True
 
 
-def test_creating_a_member_with_a_password_sends_the_message(
+def test_creating_a_member_sends_no_verification(
     account_admin: User, site_settings: SiteSettings, django_capture_on_commit_callbacks: OnCommit
 ) -> None:
-    """A member created with a password is mailed a verification message."""
-    with django_capture_on_commit_callbacks(execute=True):
-        create_member(account_admin, email="walk.in@example.test", password=GOOD_PASSWORD)
-
-    assert [m.to for m in verification_mails()] == [["walk.in@example.test"]]
-
-
-def test_creating_a_member_without_a_password_sends_no_verification(
-    account_admin: User, site_settings: SiteSettings, django_capture_on_commit_callbacks: OnCommit
-) -> None:
-    """A member created without a password is sent the invitation alone."""
+    """A member an administrator creates is sent the invitation alone."""
     with django_capture_on_commit_callbacks(execute=True):
         create_member(account_admin, email="invitee@example.test")
 

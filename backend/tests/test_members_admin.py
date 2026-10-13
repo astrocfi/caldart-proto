@@ -1,8 +1,8 @@
 """Account-administrator member management.
 
 Covers the role matrix on every endpoint, each list filter against a
-deliberately mixed data set, ordering, member creation with and without a
-password, nested profile updates, the delete guard rails, and the arithmetic
+deliberately mixed data set, ordering, member creation and its invitation,
+nested profile updates, the delete guard rails, and the arithmetic
 of a manually granted term.
 """
 
@@ -792,13 +792,14 @@ def test_detail_404s_for_an_unknown_id(account_admin_client: APIClient) -> None:
 # --------------------------------------------------------------------------
 # Create
 # --------------------------------------------------------------------------
-def test_create_with_a_password(account_admin_client: APIClient, dart: Dart) -> None:
-    """Creating a member with a password given creates the account outright."""
+def test_create_writes_the_account_and_its_profile(
+    account_admin_client: APIClient, dart: Dart
+) -> None:
+    """Creating a member writes the account, the member role, and the profile given."""
     payload = {
         "email": "newbie@example.test",
         "first_name": "Nova",
         "last_name": "Ito",
-        "password": "correct-horse-battery",
         "profile": {
             "phone": "408-555-0199",
             "city": "San Jose",
@@ -821,17 +822,15 @@ def test_create_with_a_password(account_admin_client: APIClient, dart: Dart) -> 
     assert body["membership"]["status"] == "none"
 
     user = User.objects.get(email="newbie@example.test")
-    assert user.check_password("correct-horse-battery")
     assert user.has_role(MEMBER)
     assert MemberProfile.objects.filter(user=user).exists()
-    assert mail.outbox == []
 
 
-def test_create_without_a_password_emails_an_invitation(
+def test_create_emails_an_invitation(
     account_admin_client: APIClient,
     django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
 ) -> None:
-    """Creating a member with no password mails a set-your-password invitation."""
+    """Creating a member mails a set-your-password invitation."""
     with django_capture_on_commit_callbacks(execute=True):
         response = account_admin_client.post(
             LIST_URL,
@@ -858,14 +857,20 @@ def test_create_rejects_a_duplicate_email(
     assert "email" in response.json()
 
 
-def test_create_rejects_a_weak_password(account_admin_client: APIClient) -> None:
-    """Creating a member with a weak password is refused and creates nothing."""
+def test_create_ignores_a_password_in_the_body(account_admin_client: APIClient) -> None:
+    """A posted ``password`` is not stored: the person picks their own."""
     response = account_admin_client.post(
-        LIST_URL, {"email": "weak@example.test", "password": "123"}, format="json"
+        LIST_URL,
+        {
+            "email": "chosen@example.test",
+            "first_name": "Ivy",
+            "last_name": "Novak",
+            "password": "correct-horse-battery",
+        },
+        format="json",
     )
-    assert response.status_code == 400
-    assert "password" in response.json()
-    assert not User.objects.filter(email="weak@example.test").exists()
+    assert response.status_code == 201
+    assert User.objects.get(email="chosen@example.test").has_usable_password() is False
 
 
 def test_create_applies_the_same_profile_rules_as_the_member_form(

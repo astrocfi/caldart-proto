@@ -313,7 +313,8 @@ view builds as a plain 400 response rather than raising; the rest are DRF
 Two views outside the table build a plain response too, but with a ``detail``
 string rather than a field key: ``POST /auth/login`` for a wrong password and
 ``POST /admin/users/{id}/send-password-reset`` when there is nobody to mail.  That
-endpoint and ``POST /admin/users/{id}/send-email-verification`` also build a 503
+endpoint, ``POST /admin/users/{id}/require-new-password``, and
+``POST /admin/users/{id}/send-email-verification`` also build a 503
 ``{"detail": ...}`` when the mail server refuses the message
 (:ref:`refused sends <api-refused-send>`).
 
@@ -682,7 +683,15 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ·
      - ·
-     -
+     - the account-edit guard applies
+   * - ``POST /admin/users/{id}/require-new-password``
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ·
+     - ·
+     - the account-edit guard applies; ends the account's sessions
    * - ``POST /admin/users/{id}/send-email-verification``
      - ·
      - ·

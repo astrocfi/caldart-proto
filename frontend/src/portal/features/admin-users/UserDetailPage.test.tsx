@@ -427,6 +427,191 @@ describe('UserDetailPage', () => {
     expect(screen.getByText(/reactivate the account/i)).toBeInTheDocument();
   });
 
+  describe('Require a new password', () => {
+    const DONE =
+      'The old password no longer works and every session is ended. ' +
+      'A password reset email went to priya@example.org.';
+
+    function stubRequire(answer: { detail: string } = { detail: DONE }, status = 200) {
+      const calls: string[] = [];
+      server.use(
+        http.post(`${API}/admin/users/${TARGET.id}/require-new-password`, () => {
+          calls.push('require-new-password');
+          return HttpResponse.json(answer, { status });
+        }),
+      );
+      return calls;
+    }
+
+    async function confirmRequire() {
+      await userEvent.click(screen.getByRole('button', { name: 'Require a new password' }));
+      await userEvent.click(
+        within(screen.getByRole('region', { name: 'Require a new password' })).getByRole('button', {
+          name: 'Yes, require a new password',
+        }),
+      );
+    }
+
+    it('asks before acting, so pressing it alone posts nothing', async () => {
+      stubDetail();
+      const calls = stubRequire();
+      renderDetail();
+      await screen.findByRole('heading', { name: 'Priya Raman' });
+
+      await userEvent.click(screen.getByRole('button', { name: 'Require a new password' }));
+
+      expect(calls).toEqual([]);
+    });
+
+    it('says in the confirmation that whoever knows the password is shut out', async () => {
+      stubDetail();
+      renderDetail();
+      await screen.findByRole('heading', { name: 'Priya Raman' });
+
+      await userEvent.click(screen.getByRole('button', { name: 'Require a new password' }));
+
+      expect(
+        within(screen.getByRole('region', { name: 'Require a new password' })).getByText(
+          /for them and for anybody else who knows it/,
+        ),
+      ).toBeVisible();
+    });
+
+    it('requires a new password once confirmed and reports what the API said', async () => {
+      stubDetail();
+      const calls = stubRequire();
+      renderDetail();
+      await screen.findByRole('heading', { name: 'Priya Raman' });
+
+      await confirmRequire();
+
+      expect(await screen.findByText(DONE)).toBeInTheDocument();
+      expect(calls).toEqual(['require-new-password']);
+    });
+
+    it('posts nothing when the confirmation is canceled', async () => {
+      stubDetail();
+      const calls = stubRequire();
+      renderDetail();
+      await screen.findByRole('heading', { name: 'Priya Raman' });
+
+      await userEvent.click(screen.getByRole('button', { name: 'Require a new password' }));
+      await userEvent.click(
+        within(screen.getByRole('region', { name: 'Require a new password' })).getByRole('button', {
+          name: 'Cancel',
+        }),
+      );
+
+      expect(calls).toEqual([]);
+    });
+
+    it('shows a refusal in the card', async () => {
+      const refused =
+        'You cannot require a new password for an account that holds roles you do not hold.';
+      stubDetail();
+      stubRequire({ detail: refused }, 400);
+      renderDetail();
+      await screen.findByRole('heading', { name: 'Priya Raman' });
+
+      await confirmRequire();
+
+      expect(await screen.findByText(refused)).toBeInTheDocument();
+    });
+
+    it('shows in the card that the mail server refused the email', async () => {
+      const refused =
+        'The old password no longer works and every session is ended, but the mail server ' +
+        'did not accept the reset email. A system administrator can see the attempt on the ' +
+        'Sent emails page; press Require a new password again once it is fixed.';
+      stubDetail();
+      stubRequire({ detail: refused }, 503);
+      renderDetail();
+      await screen.findByRole('heading', { name: 'Priya Raman' });
+
+      await confirmRequire();
+
+      expect(await screen.findByText(refused)).toBeInTheDocument();
+    });
+
+    it('names in the confirmation the address the link will go to', async () => {
+      stubDetail();
+      renderDetail();
+      await screen.findByRole('heading', { name: 'Priya Raman' });
+
+      await userEvent.click(screen.getByRole('button', { name: 'Require a new password' }));
+
+      expect(
+        within(screen.getByRole('region', { name: 'Require a new password' })).getByText(
+          /goes to priya@example\.org: check that this address is theirs/,
+        ),
+      ).toBeVisible();
+    });
+
+    it('says in the confirmation that a blocked account is sent nothing', async () => {
+      stubDetail({ target: { ...TARGET, is_active: false, reactivation_blocked: true } });
+      renderDetail();
+      await screen.findByRole('heading', { name: 'Priya Raman' });
+
+      await userEvent.click(screen.getByRole('button', { name: 'Require a new password' }));
+
+      expect(
+        within(screen.getByRole('region', { name: 'Require a new password' })).getByText(
+          /so no email is sent/,
+        ),
+      ).toBeVisible();
+    });
+
+    it('is offered on a deactivated account', async () => {
+      stubDetail({ target: { ...TARGET, is_active: false } });
+      renderDetail();
+      await screen.findByRole('heading', { name: 'Priya Raman' });
+
+      expect(screen.getByRole('button', { name: 'Require a new password' })).toBeEnabled();
+    });
+
+    it('tells the administrator a deactivated account stays deactivated until the link', async () => {
+      stubDetail({ target: { ...TARGET, is_active: false } });
+      renderDetail();
+      await screen.findByRole('heading', { name: 'Priya Raman' });
+
+      await userEvent.click(screen.getByRole('button', { name: 'Require a new password' }));
+
+      expect(
+        within(screen.getByRole('region', { name: 'Require a new password' })).getByText(
+          /stays deactivated until they follow the link/,
+        ),
+      ).toBeVisible();
+    });
+
+    it('is not offered on your own account', async () => {
+      stubDetail({ me: makeUser({ id: 7, roles: ['member', 'user_admin'] }) });
+      renderDetail();
+      await screen.findByRole('heading', { name: 'Priya Raman' });
+
+      expect(
+        screen.queryByRole('button', { name: 'Require a new password' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('offers no password reset on your own account either', async () => {
+      stubDetail({ me: makeUser({ id: 7, roles: ['member', 'user_admin'] }) });
+      renderDetail();
+      await screen.findByRole('heading', { name: 'Priya Raman' });
+
+      expect(
+        screen.queryByRole('button', { name: /send password reset/i }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('points you at Change password on your own account', async () => {
+      stubDetail({ me: makeUser({ id: 7, roles: ['member', 'user_admin'] }) });
+      renderDetail();
+      await screen.findByRole('heading', { name: 'Priya Raman' });
+
+      expect(screen.getByText('To change your own password, use Change password.')).toBeVisible();
+    });
+  });
+
   it('explains a missing account rather than rendering an empty form', async () => {
     server.use(
       signedInAs(makeUser({ roles: ['member', 'user_admin'] })),
@@ -612,6 +797,16 @@ describe('UserDetailPage', () => {
 
       expect(
         screen.queryByRole('button', { name: /send password reset/i }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('offers no Require a new password', async () => {
+      stubDetail({ target: DONOR });
+      renderDetail(String(DONOR.id));
+      await screen.findByRole('heading', { name: 'Gil Ivers' });
+
+      expect(
+        screen.queryByRole('button', { name: 'Require a new password' }),
       ).not.toBeInTheDocument();
     });
 

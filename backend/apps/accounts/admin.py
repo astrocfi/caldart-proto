@@ -2,7 +2,8 @@
 
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
-from django.http import HttpRequest
+from django.core.exceptions import PermissionDenied
+from django.http import HttpRequest, HttpResponse
 from django.utils.translation import gettext_lazy as _
 
 from apps.accounts.models import User
@@ -13,7 +14,13 @@ from apps.accounts.models import User
 # naming the model here would raise TypeError on startup.
 @admin.register(User)
 class UserAdmin(DjangoUserAdmin):  # type: ignore[type-arg]
-    """Django admin for the accounts, listing and searching them by name and address."""
+    """Django admin for the accounts, listing and searching them by name and address.
+
+    No administrator chooses or sets anybody's password here: the change form shows
+    no password, the add form is closed (an account is added on the portal's New
+    member, which mails the person an invitation to choose their own), and the
+    change-password page Django's own ``UserAdmin`` offers answers 403.
+    """
 
     ordering = ["last_name", "first_name", "email"]
     list_display = [
@@ -30,7 +37,7 @@ class UserAdmin(DjangoUserAdmin):  # type: ignore[type-arg]
     readonly_fields = ["created_at", "updated_at", "last_login", "date_joined"]
 
     fieldsets = (
-        (None, {"fields": ("email", "password")}),
+        (None, {"fields": ("email",)}),
         (_("Personal info"), {"fields": ("first_name", "last_name")}),
         (
             _("Permissions"),
@@ -46,15 +53,6 @@ class UserAdmin(DjangoUserAdmin):  # type: ignore[type-arg]
             },
         ),
         (_("Dates"), {"fields": ("last_login", "date_joined", "created_at", "updated_at")}),
-    )
-    add_fieldsets = (
-        (
-            None,
-            {
-                "classes": ("wide",),
-                "fields": ("email", "first_name", "last_name", "password1", "password2"),
-            },
-        ),
     )
 
     def get_readonly_fields(self, request: HttpRequest, obj: User | None = None) -> list[str]:
@@ -74,6 +72,24 @@ class UserAdmin(DjangoUserAdmin):  # type: ignore[type-arg]
         elif obj.is_active:
             fields.append("reactivation_blocked")
         return fields
+
+    def has_add_permission(self, request: HttpRequest) -> bool:
+        """Never: an account is added on New member, which invites the person by email."""
+        return False
+
+    def user_change_password(
+        self,
+        request: HttpRequest,
+        id: str,  # noqa: A002 - Django's URL pattern passes the account as ``id``
+        form_url: str = "",
+    ) -> HttpResponse:
+        """Refuse the page that sets another account's password, with 403, for anybody.
+
+        Raises ``PermissionDenied``.  A forgotten password is the owner's own reset, and
+        an account somebody else may have the password to is the user record's
+        **Require a new password**.
+        """
+        raise PermissionDenied
 
     @admin.display(description="roles")
     def role_list(self, obj: User) -> str:

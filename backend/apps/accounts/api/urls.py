@@ -39,6 +39,11 @@ urlpatterns = [
         name="admin-user-send-password-reset",
     ),
     path(
+        "admin/users/<int:pk>/require-new-password",
+        views.AdminUserRequireNewPasswordView.as_view(),
+        name="admin-user-require-new-password",
+    ),
+    path(
         "admin/users/<int:pk>/send-email-verification",
         views.AdminUserSendEmailVerificationView.as_view(),
         name="admin-user-send-email-verification",

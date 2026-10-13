@@ -622,11 +622,17 @@ def _send_password_link_email(
     )
 
 
-def send_password_reset_email(user: User, *, request: HttpRequest | None = None) -> bool:
+def send_password_reset_email(
+    user: User, *, request: HttpRequest | None = None, required: bool = False
+) -> bool:
     """Mail ``user`` a reset link.  Returns False when there is nobody to mail.
 
     The subject is ``"<organization name>: reset your password"`` and the two
-    bodies are ``emails/password_reset.{txt,html}``.
+    bodies are ``emails/password_reset.{txt,html}``.  With ``required`` -- the email
+    a user administrator's **Require a new password** sends -- the subject is
+    ``"<organization name>: choose a new password"`` and the bodies say instead that
+    an administrator has required a new password, that the old one no longer works
+    and every session was ended, and that the link is the way to sign in again.
 
     Donors -- who cannot sign in, so have no password to reset -- accounts without
     an address, and accounts a user administrator has blocked from reactivating are
@@ -641,10 +647,12 @@ def send_password_reset_email(user: User, *, request: HttpRequest | None = None)
         return False
 
     context = _password_link_context(user, request=request)
+    context["required"] = required
+    what = "choose a new password" if required else "reset your password"
     _send_password_link_email(
         user,
         template="password_reset",
-        subject=f"{context['org_name']}: reset your password",
+        subject=f"{context['org_name']}: {what}",
         context=context,
     )
     return True

@@ -16,6 +16,7 @@ const DID: Record<Exclude<AccountChangeKind, 'roles'>, string> = {
   reactivated: 'reactivated the account',
   blocked: 'blocked reactivation',
   unblocked: 'allowed reactivation',
+  new_password: 'required a new password',
 };
 
 /**

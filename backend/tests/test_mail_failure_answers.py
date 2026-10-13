@@ -205,7 +205,7 @@ def admin_user_reactivation(client: APIClient) -> Exchange:
 
 
 def admin_member_creation(client: APIClient) -> Exchange:
-    """An account administrator adds a member without a password, who is invited."""
+    """An account administrator adds a member, who is invited."""
     signed_in_admin(client, ACCOUNT_ADMIN)
     response = client.post(
         MEMBERS_URL,

@@ -188,7 +188,7 @@ export interface AdminUser extends User {
 
 /** What one entry of an account's history did: `GET /admin/users/{id}/history`. */
 export type AccountChangeKind =
-  'created' | 'roles' | 'deactivated' | 'reactivated' | 'blocked' | 'unblocked';
+  'created' | 'roles' | 'deactivated' | 'reactivated' | 'blocked' | 'unblocked' | 'new_password';
 
 /**
  * One row of `GET /admin/users/{id}/history`, newest first.  `changed_by` is null for a
@@ -230,7 +230,7 @@ export interface AdminUserPatch {
   roles?: RoleSlug[];
 }
 
-/** `POST /admin/users/{id}/send-password-reset`. */
+/** `POST /admin/users/{id}/send-password-reset` and `/require-new-password`. */
 export interface SendPasswordResetResult {
   detail: string;
 }
@@ -677,7 +677,6 @@ export interface MemberCreatePayload {
   email: string;
   first_name?: string;
   last_name?: string;
-  password?: string;
   /** `member` when left out; an administrator never creates a donor. */
   kind?: PersonKind;
   profile?: AdminProfilePayload;

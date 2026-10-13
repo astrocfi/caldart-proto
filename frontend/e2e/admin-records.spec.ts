@@ -7,7 +7,7 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-import { DEMO, JOINER_PASSWORD, followVerificationLink, signIn, uniqueEmail } from './helpers';
+import { DEMO, JOINER_PASSWORD, choosePasswordFromEmail, signIn, uniqueEmail } from './helpers';
 
 const PHONE = { width: 390, height: 844 };
 const DESKTOP = { width: 1920, height: 1080 };
@@ -19,7 +19,6 @@ async function createMember(page: Page, email: string): Promise<string> {
   await page.getByLabel(/^Email address/).fill(email);
   await page.getByLabel(/^First name/).fill('Pat');
   await page.getByLabel(/^Last name/).fill('Quinn');
-  await page.getByLabel(/^Password/).fill(JOINER_PASSWORD);
   await page.getByRole('button', { name: 'Add member' }).click();
   await expect(page).toHaveURL(/\/portal\/admin\/members\/\d+$/);
   // Relative to the run's base address, which carries any URL prefix itself.
@@ -28,7 +27,7 @@ async function createMember(page: Page, email: string): Promise<string> {
   return record[0];
 }
 
-/** Sign in as the account just created, with the password the administrator gave it. */
+/** Sign in as the account just created, with the password its owner chose. */
 async function signInAsCreated(page: Page, email: string): Promise<void> {
   await page.context().clearCookies();
   await page.goto('portal/login');
@@ -46,16 +45,14 @@ async function labelToBox(page: Page, label: RegExp): Promise<number> {
   return box.y - (caption.y + caption.height);
 }
 
-test('an account an administrator created verifies its address, then opens the dashboard', async ({
+test('an account an administrator created sets its password, then opens the dashboard', async ({
   page,
 }) => {
   const email = uniqueEmail('created');
   await createMember(page, email);
 
-  await signInAsCreated(page, email);
-  await expect(page).toHaveURL(/\/portal\/join\/verify/);
-
-  await followVerificationLink(page, email);
+  await page.context().clearCookies();
+  await choosePasswordFromEmail(page, email, JOINER_PASSWORD);
   await signInAsCreated(page, email);
 
   await expect(page).toHaveURL(/\/portal\/?$/);

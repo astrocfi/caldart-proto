@@ -44,7 +44,6 @@ function accountDraftFrom(member: MemberDetail): AccountDraft {
     email: member.email,
     first_name: member.first_name,
     last_name: member.last_name,
-    password: '',
     kind: member.kind,
   };
 }

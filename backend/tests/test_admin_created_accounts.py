@@ -25,13 +25,12 @@ pytestmark = pytest.mark.django_db
 
 MEMBERS_URL = "/api/v1/admin/members"
 USERS_URL = "/api/v1/admin/users"
-PASSWORD = "a-long-enough-password-9"  # noqa: S105 - a throwaway test password
 
 
-def created_on_new_member(client: APIClient, admin: User, **extra: str) -> User:
+def created_on_new_member(client: APIClient, admin: User) -> User:
     """Create Pat Quinn on New member as ``admin``, and return the account."""
     client.force_login(admin)
-    body = {"email": "pat.quinn@example.test", "first_name": "Pat", "last_name": "Quinn", **extra}
+    body = {"email": "pat.quinn@example.test", "first_name": "Pat", "last_name": "Quinn"}
     response = client.post(MEMBERS_URL, body, format="json")
     assert response.status_code == 201, response.json()
     client.logout()
@@ -45,17 +44,9 @@ def test_an_account_made_on_new_member_reads_admin_created(
     api_client: APIClient, account_admin: User
 ) -> None:
     """The person's own ``/auth/me`` says an administrator created the account."""
-    user = created_on_new_member(api_client, account_admin, password=PASSWORD)
+    user = created_on_new_member(api_client, account_admin)
     api_client.force_login(user)
     assert api_client.get(ME_URL).json()["admin_created"] is True
-
-
-def test_an_invited_account_reads_admin_created_too(
-    api_client: APIClient, account_admin: User
-) -> None:
-    """An account made without a password, and so invited by email, is marked as well."""
-    user = created_on_new_member(api_client, account_admin)
-    assert user.admin_created is True
 
 
 def test_a_registered_account_is_not_admin_created(api_client: APIClient) -> None:

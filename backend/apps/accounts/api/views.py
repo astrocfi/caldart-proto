@@ -27,6 +27,7 @@ from apps.accounts.api.account_actions import (
     block_for,
     deactivate_for,
     reactivate_for,
+    require_new_password_for,
     unblock_for,
 )
 from apps.accounts.api.filters import UserFilter
@@ -57,6 +58,7 @@ from apps.accounts.services import (
     clear_email_bounce,
     confirm_email_address,
     is_donor,
+    may_edit_protected_fields,
     replace_password,
     send_email_verification,
     send_password_reset_email,
@@ -108,11 +110,35 @@ DONOR_UPGRADE_CODE = "password_required"
 DONOR_RESET_REFUSED = "A donor cannot sign in, so no reset email was sent."
 DONOR_VERIFICATION_REFUSED = "A donor cannot sign in, so no verification message was sent."
 
+#: What the user administrator is told when asking to mail their own account a reset
+#: link: their own password is changed on the Change password page.
+SELF_RESET_REFUSED = (
+    "You cannot send a password reset to your own account. Use Change password instead."
+)
+
+#: What the user administrator is told when the account holds a role they lack: a reset
+#: link reaches the account's owner, but the account-edit guard covers it all the same.
+RESET_ROLES_REFUSED = (
+    "You cannot send a password reset to an account that holds roles you do not hold."
+)
+
 #: What the user administrator is told when the mail server refuses a message they
 #: asked to send, so they know it did not go and where to see the attempt.
 MAIL_REFUSED = (
     "The mail server did not accept the message. "
     "A system administrator can see the attempt on the Sent emails page."
+)
+
+#: What **Require a new password** has done once it goes through, before what was mailed.
+CREDENTIAL_RESET_DONE = "The old password no longer works and every session is ended."
+
+#: What **Require a new password** answers when the mail server refuses the reset email:
+#: the password is shut out regardless, and pressing it again mails a fresh link.
+CREDENTIAL_MAIL_REFUSED = (
+    "The old password no longer works and every session is ended, but the mail server "
+    "did not accept the reset email. "
+    "A system administrator can see the attempt on the Sent emails page; "
+    "press Require a new password again once it is fixed."
 )
 
 
@@ -743,11 +769,15 @@ class AdminUserSendPasswordResetView(APIView):
         """Mail the account with id ``pk`` a reset link, and answer 200 with a message.
 
         Restricted to ``user_admin``, and to ``system_admin`` by implication; anyone
-        else gets 403 and an unknown ``pk`` gets 404.  An account with nobody to mail --
-        a deactivated one, or one with no email address -- is a 400 with "That account
-        is deactivated, so no reset email was sent."  A donor, who cannot sign in, is a
-        400 with "A donor cannot sign in, so no reset email was sent."  Both the send and
-        the refusals are recorded in the audit log.  A mail server that refuses the
+        else gets 403 and an unknown ``pk`` gets 404.  Refused with a 400, in this order
+        and mailing nothing: a donor, who cannot sign in ("A donor cannot sign in, so no
+        reset email was sent."); your own account (:data:`SELF_RESET_REFUSED`); an
+        account holding roles you do not hold (:data:`RESET_ROLES_REFUSED`, the
+        account-edit guard); and an account with nobody to mail, a deactivated one or one
+        with no email address ("That account is deactivated, so no reset email was
+        sent.").  Both the send and the refusals are recorded in the audit log, a refusal
+        with the reason ``donor_account``, ``own_account``, ``roles_not_held``, or
+        ``inactive_account``.  A mail server that refuses the
         message is a 503 with ``MAIL_REFUSED``: the failed send is in the email log, the
         refusal is logged, and nothing is recorded in the audit log.
         """
@@ -761,6 +791,22 @@ class AdminUserSendPasswordResetView(APIView):
                 reason=audit.REASON_DONOR_ACCOUNT,
             )
             return Response({"detail": DONOR_RESET_REFUSED}, status=status.HTTP_400_BAD_REQUEST)
+        if user.pk == actor.pk:
+            audit.refuse(
+                audit.PASSWORD_RESET_ADMIN_SENT,
+                actor=actor,
+                target=user,
+                reason=audit.REASON_OWN_ACCOUNT,
+            )
+            return Response({"detail": SELF_RESET_REFUSED}, status=status.HTTP_400_BAD_REQUEST)
+        if not may_edit_protected_fields(actor, user):
+            audit.refuse(
+                audit.PASSWORD_RESET_ADMIN_SENT,
+                actor=actor,
+                target=user,
+                reason=audit.REASON_ROLES_NOT_HELD,
+            )
+            return Response({"detail": RESET_ROLES_REFUSED}, status=status.HTTP_400_BAD_REQUEST)
         # A reset reactivates a deactivated account, which is the person's own choice
         # to make: the administrator's send stays refused for one.
         try:
@@ -780,6 +826,56 @@ class AdminUserSendPasswordResetView(APIView):
             )
         audit.record(audit.PASSWORD_RESET_ADMIN_SENT, actor=actor, target=user)
         return Response({"detail": f"Password reset email sent to {user.email}."})
+
+
+class AdminUserRequireNewPasswordView(APIView):
+    """``POST /admin/users/{id}/require-new-password``."""
+
+    permission_classes = [IsUserAdmin]
+
+    @extend_schema(request=None, responses={200: SendPasswordResetResultSerializer})
+    def post(self, request: Request, pk: int) -> Response:
+        """Shut the account ``pk``'s password out, end its sessions, mail a reset link.
+
+        Restricted to ``user_admin``, and to ``system_admin`` by implication; anyone
+        else gets 403 and an unknown ``pk`` gets 404.  The account's password becomes
+        unusable and every session signed in to it is ended
+        (:func:`apps.accounts.api.account_actions.require_new_password_for`), so the old
+        password neither signs in nor reactivates; then the reset email, in the wording
+        that says an administrator required a new password, goes to the account's
+        address.  The answer is 200 ``{"detail": "The old password no
+        longer works and every session is ended. A password reset email went to
+        <address>."}``.  A deactivated account stays deactivated and is mailed the
+        link, which reactivates it when its owner chooses a password, as any reset
+        does.  A blocked account is mailed nothing, since its link would be refused,
+        and the detail ends "The account is blocked from reactivating, so no reset
+        email was sent."  A donor (a tombstone among them), your own account, and an
+        account holding roles you do not hold are each a 400 ``{"detail": ...}`` and
+        change nothing.  A mail server that refuses the message is a 503 with
+        :data:`CREDENTIAL_MAIL_REFUSED`: the password and sessions stay as the action
+        left them, the failed send is in the email log, and the refusal is logged.
+        """
+        actor = signed_in_user(request)
+        target = generics.get_object_or_404(User, pk=pk)
+        try:
+            user = require_new_password_for(actor, target)
+        except DomainError as error:
+            return Response({"detail": error.message}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            sent = send_password_reset_email(user, request=request, required=True)
+        except MailRefusedError as refusal:
+            log_refusal(f"the password reset for account {user.pk}", refusal)
+            return Response(
+                {"detail": CREDENTIAL_MAIL_REFUSED},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        if sent:
+            outcome = f"A password reset email went to {user.email}."
+        elif user.reactivation_blocked:
+            outcome = "The account is blocked from reactivating, so no reset email was sent."
+        else:
+            outcome = "The account has no email address, so no reset email was sent."
+        return Response({"detail": f"{CREDENTIAL_RESET_DONE} {outcome}"})
 
 
 class AdminUserSendEmailVerificationView(APIView):

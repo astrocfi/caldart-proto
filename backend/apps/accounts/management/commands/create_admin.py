@@ -20,7 +20,7 @@ from apps.accounts.services import (
     send_password_invitation,
     update_account,
 )
-from apps.accounts.status import end_sessions
+from apps.accounts.status import clear_password_and_end_sessions
 from apps.notifications.dispatch import suspended
 from caldart import audit
 from caldart.mail import send_logging_refusal
@@ -62,7 +62,8 @@ class Command(BaseCommand):
     set its password, with its row locked for the length of the command: the password
     is made unusable, any block on reactivating it is lifted (so the link can reopen a
     deactivated account, as a password reset does), every session signed in to the
-    account is ended (:func:`apps.accounts.status.end_sessions`), and the audit log
+    account is ended (:func:`apps.accounts.status.clear_password_and_end_sessions`), and
+    the audit log
     records ``account.password_cleared`` with ``actor=command``, ``sessions`` (how many
     were ended), and ``unblocked``.  ``--first-name`` and ``--last-name``, when given,
     replace the account's names (recorded as ``account.update``); left out, the names
@@ -159,10 +160,9 @@ def _take_back(user: User) -> None:
     Runs inside the caller's transaction, on a row it has locked.
     """
     is_blocked = user.reactivation_blocked
-    user.set_unusable_password()
     user.reactivation_blocked = False
-    user.save(update_fields=["password", "reactivation_blocked", "updated_at"])
-    ended = end_sessions(user)
+    user.save(update_fields=["reactivation_blocked", "updated_at"])
+    ended = clear_password_and_end_sessions(user)
     audit.record(
         audit.ACCOUNT_CREDENTIALS_CLEARED,
         actor=audit.COMMAND_ACTOR,

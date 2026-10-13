@@ -56,7 +56,9 @@ from the stored reminder schedule, so the mail app never imports it:
      - Invitation, Password reset, Email verification
      - the account flows (:doc:`api-auth`), and ``create_admin`` when it promotes
        an existing account: an invitation worded to say the account's earlier
-       password was cleared and its sessions ended (:ref:`deploy-database`)
+       password was cleared and its sessions ended (:ref:`deploy-database`); the
+       user record's **Require a new password** sends ``password_reset`` worded to
+       say an administrator required a new password (:ref:`api-require-new-password`)
    * - ``scheduled_report``, ``dart_roster``
      - Scheduled report, DART roster
      - the daily report run (:doc:`scheduled-reports`)

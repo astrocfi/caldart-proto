@@ -36,7 +36,8 @@
       "deactivated",
       "reactivated",
       "blocked",
-      "unblocked"
+      "unblocked",
+      "new_password"
     ]
   },
   "AccountKindEnum": {
@@ -2362,7 +2363,6 @@
       "first_name": "string",
       "kind": "ref:PersonKindEnum",
       "last_name": "string",
-      "password": "string",
       "profile": "ref:AdminProfileRequest"
     },
     "required": [
