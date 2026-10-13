@@ -14,6 +14,7 @@ import {
   JOINER_PASSWORD as PASSWORD,
   completeOnboarding,
   emailCountTo,
+  latestEmailTo,
   signIn,
   uniqueEmail,
 } from './helpers';
@@ -164,12 +165,14 @@ test('a user administrator blocks an account, and its owner cannot bring it back
   await expect(page.getByRole('heading', { name: 'Check your email' })).toBeVisible();
   expect(emailCountTo(email)).toBe(before);
 
-  // Joining again with the address is refused the same way.
+  // Joining again with the address answers as for anybody, and the mail to the
+  // address says the account has been closed.
   await page.goto('portal/join');
   await page.getByRole('textbox', { name: 'First name' }).fill('Lena');
   await page.getByRole('textbox', { name: 'Last name' }).fill('Okafor');
   await page.getByRole('textbox', { name: 'Email address' }).fill(email);
   await page.getByLabel(/^Password/).fill(PASSWORD);
   await page.getByRole('button', { name: 'Create account' }).click();
-  await expect(page.getByText(CLOSED)).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Check your email' })).toBeVisible();
+  await expect.poll(() => latestEmailTo(email)).toMatch(/This account has been closed\./);
 });

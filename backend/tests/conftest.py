@@ -882,6 +882,22 @@ def refusing_mail_server(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.fixture
+def run_on_commit(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Run every ``transaction.on_commit`` callback at once, as if each commit had come.
+
+    A test runs inside a transaction that never commits, so a message a request queues
+    for the commit is otherwise never sent.  With this fixture it is sent where it is
+    queued, inside the request, so the test can read the outbox the request left.
+    """
+
+    def at_once(func: Callable[[], object], using: str | None = None, robust: bool = False) -> None:
+        """Call ``func`` now; the commit it waited for is taken to have come."""
+        func()
+
+    monkeypatch.setattr("django.db.transaction.on_commit", at_once)
+
+
+@pytest.fixture
 def audit_log(caplog: pytest.LogCaptureFixture) -> Iterator[pytest.LogCaptureFixture]:
     """Capture the ``caldart.audit`` records a test provokes.
 

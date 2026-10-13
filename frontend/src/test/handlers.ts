@@ -76,6 +76,7 @@ export function makeUser(overrides: Partial<User> = {}): User {
   return {
     id: 1,
     email: 'member@example.org',
+    pending_email: '',
     first_name: 'Marta',
     last_name: 'Reyes',
     roles: ['member'] as RoleSlug[],

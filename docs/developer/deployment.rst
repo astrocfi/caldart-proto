@@ -1912,136 +1912,142 @@ Each line is ``key=value`` pairs in a fixed order::
 command and for the daily timers.  ``target`` is the id of the account or
 record acted on, or ``-``.  The actions:
 
-============================= ===============================================
-Action                        Fields beyond actor and target
-============================= ===============================================
-``account.update``            ``fields`` -- the account columns changed
-``account.roles``             ``added``, ``removed`` -- role slugs
-``account.activate``          ``self_service`` -- on the owner's own
-                              reactivation
-``account.deactivate``        ``self_service`` -- on the owner's own
-                              deactivation
-``account.block``             -- (a user administrator blocked the account
-                              from reactivating)
-``account.unblock``           --
-``account.bounce_cleared``    -- (a user administrator cleared the bounce
-                              recorded against the account's address)
-``account.password_cleared``  ``sessions``, ``unblocked`` -- the sessions
-                              ended, and whether a block on reactivating was
-                              lifted (``create_admin`` took an existing
-                              account back from whoever set its password)
-``account.new_password``      -- (a user administrator required a new
-                              password: the old one shut out and every
-                              session ended)
-``member.create``             --
-``member.delete``             ``payments``, ``owner`` -- when the member had
-                              paid, how many payments moved and the
-                              tombstone account that holds them
-``dart.create``               --
-``dart.update``               --
-``dart.delete``               ``members``, ``pages`` -- the members the
-                              delete unaffiliated and the website pages it
-                              unlinked
-``aircraft.create``           --
-``aircraft.update``           ``fields`` -- the register columns changed
-``aircraft.delete``           --
-``membership.grant``          ``plan``, ``term``
-``membership.correct``        ``term``, ``fields``
-``password_reset.admin_sent`` --
-``backup.create``             ``file``, ``size``
-``backup.download``           ``file``
-``backup.restore``            ``file``
-``db.reset``                  ``database``, ``seeded``
-``reminders.run``             ``dry_run``, ``sent``, ``skipped``, ``failed``,
-                              ``expired_flipped``
-``payment.record``            ``provider``, ``wallet``, ``amount_cents``,
-                              ``plan``
-``payment.refund``            ``amount_cents``, ``reason``, ``term_canceled``
-``payment.reconcile``         ``reconciled`` -- whether it is now matched
-``payment.receipt_resend``    --
-``payment.note``              --
-``renewal.enable``            ``provider``, ``plan`` -- ``-`` for a
-                              recurring donation, which renews nothing
-``renewal.cancel``            ``provider``, ``self_service`` -- whether the
-                              member turned it off themselves; ``reason``
-                              ``member.delete`` when the member's account
-                              is being deleted
-``renewal.change``            ``contribution_cents``, ``removed_cents`` -- the
-                              contribution taken off a renewal to make room
-                              for a recurring donation
-``renewals.run``              ``dry_run``, ``noticed``, ``charged``,
-                              ``failed``, ``paused``, ``skipped``
-``reports.run``               ``dry_run``, ``sent``, ``skipped``, ``failed``
-``bounces.run``               ``dry_run``, ``enabled``, ``bounced``,
-                              ``unmatched``, ``ignored``, ``skipped``
-``report.send``               ``kind`` -- ``subscription`` (the target is the
-                              subscription) or ``roster`` (the target is the
-                              DART), then ``dry_run``, ``sent``, ``skipped``,
-                              ``failed``; one line per **Send now**, and per
-                              DART when the rosters are sent by hand
-``bulk_email.queue``          ``recipients``, ``scheduled`` (the target is
-                              the ``BulkEmail``); one line per **Send** or
-                              **Schedule**
-``bulk_email.cancel``         -- (the target is the ``BulkEmail``); ``reason``
-                              ``batch_changed`` when a change to its batch,
-                              or ``type_changed`` when a change of its type,
-                              took a queued email back to a draft
-``bulk_email.stop``           ``recipients`` -- the copies kept back; written
-                              when the stop takes effect
-``bulk_email.resume``         ``recipients``, ``skipped`` -- the stopped copies
-                              **Send the rest** queued again, and those it
-                              found skipped
-``bulk_email.retry``          ``recipients``, ``skipped`` -- the failed copies
-                              **Retry failed** queued again, and those it
-                              found skipped
-``bulk_email.retry_finished`` ``recipients``, ``sent``, ``failed`` -- a
-                              retry's copies, once all were tried (the actor
-                              is who pressed **Retry failed**)
-``bulk_email.hide``           ``hidden`` -- ``true`` when the email was taken
-                              off the recipients' Messages, ``false`` when it
-                              was put back
-``bulk_email.send``           ``sent``, ``skipped``, ``failed`` (the target
-                              is the ``BulkEmail``, the actor its sender);
-                              one line per bulk email, when its last copy
-                              has been tried
-``bulk_email.run``            ``busy``, ``emails``, ``sent``, ``failed``,
-                              ``skipped``; one line per **Run now** on the
-                              Scheduled tasks page, which works for at most 45
-                              seconds and leaves the rest to the timer
-``bulk_email.refused``        -- (WARNING; the target is the ``BulkEmail``, the
-                              actor ``command``): the sender returned a due
-                              email unsent, with the ``reason`` below
-``callout.answer``            ``answer`` -- ``available``, ``limited``, or
-                              ``unavailable`` (the actor is the person who
-                              answered, the target the ``BulkEmail``); one line
-                              per new answer or change of answer, never the note
-``callout.remind``            ``round``, ``recipients``, ``skipped`` -- the
-                              reminders **Remind non-responders** queued, and
-                              the people it found skipped
-``callout.remind_finished``   ``round``, ``sent``, ``failed`` -- a round of
-                              reminders, once all were tried (the actor is the
-                              callout's sender)
-``callout.close``             -- (the target is the ``BulkEmail``); one line
-                              per **Close now**
-``email_type.create``         -- (the target is the ``EmailType``)
-``email_type.update``         --
-``email_type.delete``         --
-``email_template.create``     -- (the target is the ``EmailTemplate``)
-``email_template.update``     -- one line per change, whatever it changed
-``email_template.delete``     -- (the target is the deleted template's id)
-``recipient_group.create``    ``kind`` -- ``fixed`` or ``live`` (the target is
-                              the ``RecipientGroup``); made empty or saved
-                              from a batch
-``recipient_group.rename``    --
-``recipient_group.delete``    -- (the target is the deleted group's id)
-``email.opt_out``             ``email_type``, ``source`` -- the type turned
-                              off and where: ``profile``, ``unsubscribe``,
-                              or ``admin`` (the target is the person)
-``email.opt_in``              ``email_type``, ``source`` -- the type turned
-                              back on
-``system.registry_import``    -- (the target is the ``RegistryImport`` row);
-                              one line per **Run now** on Health and database
-============================= ===============================================
+================================= ===============================================
+Action                            Fields beyond actor and target
+================================= ===============================================
+``account.update``                ``fields`` -- the account columns changed
+``account.roles``                 ``added``, ``removed`` -- role slugs
+``account.activate``              ``self_service`` -- on the owner's own
+                                  reactivation
+``account.deactivate``            ``self_service`` -- on the owner's own
+                                  deactivation
+``account.block``                 -- (a user administrator blocked the account
+                                  from reactivating)
+``account.unblock``               --
+``account.bounce_cleared``        -- (a user administrator cleared the bounce
+                                  recorded against the account's address)
+``account.password_cleared``      ``sessions``, ``unblocked`` -- the sessions
+                                  ended, and whether a block on reactivating was
+                                  lifted (``create_admin`` took an existing
+                                  account back from whoever set its password)
+``account.new_password``          -- (a user administrator required a new
+                                  password: the old one shut out and every
+                                  session ended)
+``account.email_change_request``  -- (a change of address was asked for; the
+                                  account keeps its address until the new one
+                                  is proved)
+``account.email_change_undo``     ``restored`` -- whether an address was put
+                                  back
+``account.password_change``       ``reset`` -- whether a reset link set it
+``member.create``                 --
+``member.delete``                 ``payments``, ``owner`` -- when the member had
+                                  paid, how many payments moved and the
+                                  tombstone account that holds them
+``dart.create``                   --
+``dart.update``                   --
+``dart.delete``                   ``members``, ``pages`` -- the members the
+                                  delete unaffiliated and the website pages it
+                                  unlinked
+``aircraft.create``               --
+``aircraft.update``               ``fields`` -- the register columns changed
+``aircraft.delete``               --
+``membership.grant``              ``plan``, ``term``
+``membership.correct``            ``term``, ``fields``
+``password_reset.admin_sent``     --
+``backup.create``                 ``file``, ``size``
+``backup.download``               ``file``
+``backup.restore``                ``file``
+``db.reset``                      ``database``, ``seeded``
+``reminders.run``                 ``dry_run``, ``sent``, ``skipped``, ``failed``,
+                                  ``expired_flipped``
+``payment.record``                ``provider``, ``wallet``, ``amount_cents``,
+                                  ``plan``
+``payment.refund``                ``amount_cents``, ``reason``, ``term_canceled``
+``payment.reconcile``             ``reconciled`` -- whether it is now matched
+``payment.receipt_resend``        --
+``payment.note``                  --
+``renewal.enable``                ``provider``, ``plan`` -- ``-`` for a
+                                  recurring donation, which renews nothing
+``renewal.cancel``                ``provider``, ``self_service`` -- whether the
+                                  member turned it off themselves; ``reason``
+                                  ``member.delete`` when the member's account
+                                  is being deleted
+``renewal.change``                ``contribution_cents``, ``removed_cents`` -- the
+                                  contribution taken off a renewal to make room
+                                  for a recurring donation
+``renewals.run``                  ``dry_run``, ``noticed``, ``charged``,
+                                  ``failed``, ``paused``, ``skipped``
+``reports.run``                   ``dry_run``, ``sent``, ``skipped``, ``failed``
+``bounces.run``                   ``dry_run``, ``enabled``, ``bounced``,
+                                  ``unmatched``, ``ignored``, ``skipped``
+``report.send``                   ``kind`` -- ``subscription`` (the target is the
+                                  subscription) or ``roster`` (the target is the
+                                  DART), then ``dry_run``, ``sent``, ``skipped``,
+                                  ``failed``; one line per **Send now**, and per
+                                  DART when the rosters are sent by hand
+``bulk_email.queue``              ``recipients``, ``scheduled`` (the target is
+                                  the ``BulkEmail``); one line per **Send** or
+                                  **Schedule**
+``bulk_email.cancel``             -- (the target is the ``BulkEmail``); ``reason``
+                                  ``batch_changed`` when a change to its batch,
+                                  or ``type_changed`` when a change of its type,
+                                  took a queued email back to a draft
+``bulk_email.stop``               ``recipients`` -- the copies kept back; written
+                                  when the stop takes effect
+``bulk_email.resume``             ``recipients``, ``skipped`` -- the stopped copies
+                                  **Send the rest** queued again, and those it
+                                  found skipped
+``bulk_email.retry``              ``recipients``, ``skipped`` -- the failed copies
+                                  **Retry failed** queued again, and those it
+                                  found skipped
+``bulk_email.retry_finished``     ``recipients``, ``sent``, ``failed`` -- a
+                                  retry's copies, once all were tried (the actor
+                                  is who pressed **Retry failed**)
+``bulk_email.hide``               ``hidden`` -- ``true`` when the email was taken
+                                  off the recipients' Messages, ``false`` when it
+                                  was put back
+``bulk_email.send``               ``sent``, ``skipped``, ``failed`` (the target
+                                  is the ``BulkEmail``, the actor its sender);
+                                  one line per bulk email, when its last copy
+                                  has been tried
+``bulk_email.run``                ``busy``, ``emails``, ``sent``, ``failed``,
+                                  ``skipped``; one line per **Run now** on the
+                                  Scheduled tasks page, which works for at most 45
+                                  seconds and leaves the rest to the timer
+``bulk_email.refused``            -- (WARNING; the target is the ``BulkEmail``, the
+                                  actor ``command``): the sender returned a due
+                                  email unsent, with the ``reason`` below
+``callout.answer``                ``answer`` -- ``available``, ``limited``, or
+                                  ``unavailable`` (the actor is the person who
+                                  answered, the target the ``BulkEmail``); one line
+                                  per new answer or change of answer, never the note
+``callout.remind``                ``round``, ``recipients``, ``skipped`` -- the
+                                  reminders **Remind non-responders** queued, and
+                                  the people it found skipped
+``callout.remind_finished``       ``round``, ``sent``, ``failed`` -- a round of
+                                  reminders, once all were tried (the actor is the
+                                  callout's sender)
+``callout.close``                 -- (the target is the ``BulkEmail``); one line
+                                  per **Close now**
+``email_type.create``             -- (the target is the ``EmailType``)
+``email_type.update``             --
+``email_type.delete``             --
+``email_template.create``         -- (the target is the ``EmailTemplate``)
+``email_template.update``         -- one line per change, whatever it changed
+``email_template.delete``         -- (the target is the deleted template's id)
+``recipient_group.create``        ``kind`` -- ``fixed`` or ``live`` (the target is
+                                  the ``RecipientGroup``); made empty or saved
+                                  from a batch
+``recipient_group.rename``        --
+``recipient_group.delete``        -- (the target is the deleted group's id)
+``email.opt_out``                 ``email_type``, ``source`` -- the type turned
+                                  off and where: ``profile``, ``unsubscribe``,
+                                  or ``admin`` (the target is the person)
+``email.opt_in``                  ``email_type``, ``source`` -- the type turned
+                                  back on
+``system.registry_import``        -- (the target is the ``RegistryImport`` row);
+                                  one line per **Run now** on Health and database
+================================= ===============================================
 
 An account edit is recorded only when it really alters the record.  The admin
 account form resends every field on each save, so ``account.update`` names just

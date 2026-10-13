@@ -41,6 +41,7 @@ UNVERIFIED_ALLOWED_VIEWS: frozenset[str] = frozenset(
         "api:accounts:email-verify",
         "api:accounts:email-resend",
         "api:accounts:email-change",
+        "api:accounts:email-change-undo",
         "api:cms:site-config",
     }
 )

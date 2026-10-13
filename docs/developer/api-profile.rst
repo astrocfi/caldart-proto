@@ -501,7 +501,10 @@ payment succeeds.
 ``GET /me/payments``
 ====================
 
-The caller's payments, newest first, unpaginated.
+The caller's payments, newest first, unpaginated.  A gift started on the public
+donation page with the caller's address that has not settled is left out: anybody who
+knows the address can start one, and until its money arrives it is nothing the caller
+did (:doc:`api-payments`).
 
 .. code-block:: json
 

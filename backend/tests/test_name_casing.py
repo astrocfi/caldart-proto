@@ -188,7 +188,7 @@ def test_registration_stores_normalized_names(api_client: APIClient) -> None:
     response = api_client.post(
         REGISTER_URL, register_payload(first_name="NORA", last_name="SMITH"), format="json"
     )
-    assert response.status_code in {200, 201}, response.json()
+    assert response.status_code == 202, response.json()
     user = User.objects.get(email="new.member@example.test")
     assert (user.first_name, user.last_name) == ("Nora", "Smith")
 

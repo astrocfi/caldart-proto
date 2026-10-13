@@ -74,8 +74,8 @@ plus:
 
 **Save changes** saves the account and the profile together, and the message *Member saved.*
 confirms it. Saving a changed pilot certificate, medical, or photo ID clears that item's
-verification. Changing the email address marks it **Unverified** and sends the new address a
-message with the subject *CalDART: verify your email address*.
+verification. A new email address takes effect once its owner follows the link sent to it
+(see :doc:`../member/change-email`); until then **Email address** reads *Waiting for … to confirm.*
 
 The **Amateur radio** fieldset, under the emergency contact, holds the **Amateur radio
 callsign**: optional, a US callsign such as W6ABC, upper-cased as you type. Anything else is

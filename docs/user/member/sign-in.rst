@@ -48,8 +48,8 @@ in place of **Sign in**, and takes you back to the portal from any page.
 
 Most pages of this guide also ask you to sign in first, because the guide is for
 members. Once you are in, the guide page opens. This page and the pages for
-:doc:`forgot-password`, :doc:`reset-password`, :doc:`join`, and :doc:`verify-email`
-open without signing in, so **Help** works on the screens you see before you can
+:doc:`forgot-password`, :doc:`reset-password`, :doc:`join`, :doc:`verify-email`, and
+:doc:`undo-email-change` open without signing in, so **Help** works on the screens you see before you can
 sign in.
 
 You stay signed in on that browser until you sign out. **Sign out** is in the

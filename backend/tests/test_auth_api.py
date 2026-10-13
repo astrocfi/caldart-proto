@@ -43,6 +43,7 @@ def test_login_returns_the_user_payload(
     assert set(data) == {
         "id",
         "email",
+        "pending_email",
         "first_name",
         "last_name",
         "roles",

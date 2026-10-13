@@ -83,7 +83,7 @@ def test_registration_ignores_roles_and_the_django_flags(api_client: APIClient) 
         },
         format="json",
     )
-    assert response.status_code == 201
+    assert response.status_code == 202
 
     user = User.objects.get(email="new.member@example.test")
     assert user.roles == [MEMBER]

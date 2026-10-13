@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 
 import { ApiError } from '@/portal/api/client';
 import type { PersonKind } from '@/portal/api/types';
-import { isVerificationSent, useAuth, useRegister, useSignOut } from '@/portal/auth/useAuth';
+import { useAuth, useRegister, useSignOut } from '@/portal/auth/useAuth';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { Field } from '@/portal/components/Field';
@@ -13,9 +13,6 @@ import { MaskedInput } from '@/portal/components/MaskedInput';
 import { RefusedSubmitNote, useRefusedSubmit } from '@/portal/components/RefusedSubmit';
 import { addressProblem, maskEmail } from '@/portal/masks';
 import './join.css';
-
-/** The error code `POST /auth/register` answers for a deactivated account's address. */
-const DEACTIVATED = 'deactivated';
 
 /** What each box says when it is left empty, in the server's own words. */
 const MISSING: Record<'first_name' | 'last_name' | 'password', string> = {
@@ -49,11 +46,10 @@ export interface AccountStepProps {
  * Step 1 of the join wizard: sign in, or register through `useRegister` as a member
  * or as a friend.
  *
- * An address that belongs to a donor signs nobody in: the server mails it a
- * verification link instead, so the step shows the verify step's "Check your email"
- * copy for that address in place of the form.  An address that belongs to a
- * deactivated account is refused, and the refusal comes with a link to the sign-in
- * page, which offers to reactivate it.
+ * Registering signs nobody in, and the server answers every address the same way: the
+ * next step arrives by email, a verification link for a new account and a way to sign
+ * in for an address that already has one.  So every registration the server accepts
+ * shows "Check your email" in place of the form.
  */
 export function AccountStep({ onDone: handleDone }: AccountStepProps): JSX.Element {
   const { user, isAuthenticated } = useAuth();
@@ -98,7 +94,6 @@ export function AccountStep({ onDone: handleDone }: AccountStepProps): JSX.Eleme
 
   const error = register.error instanceof ApiError ? register.error : null;
   const fieldErrors = error?.fieldErrors ?? {};
-  const isDeactivated = error !== null && errorCode(error) === DEACTIVATED;
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -125,15 +120,7 @@ export function AccountStep({ onDone: handleDone }: AccountStepProps): JSX.Eleme
         last_name: lastName.trim(),
         kind,
       },
-      {
-        onSuccess: (result) => {
-          if (isVerificationSent(result)) {
-            setSentTo(address);
-            return;
-          }
-          handleDone();
-        },
-      },
+      { onSuccess: () => setSentTo(address) },
     );
   }
 
@@ -244,14 +231,6 @@ export function AccountStep({ onDone: handleDone }: AccountStepProps): JSX.Eleme
           )}
         </Field>
 
-        {isDeactivated ? (
-          <p className="join__aside">
-            <Link to={`/login?email=${encodeURIComponent(email.trim())}`}>
-              Sign in to reactivate
-            </Link>
-          </p>
-        ) : null}
-
         {error && Object.keys(fieldErrors).length === 0 ? (
           <p className="field__error" role="alert">
             {error.message}
@@ -270,30 +249,21 @@ export function AccountStep({ onDone: handleDone }: AccountStepProps): JSX.Eleme
   );
 }
 
-/** The machine-readable `code` an error body carries beside its messages, if any. */
-function errorCode(error: ApiError): string | null {
-  const body = error.body;
-  if (body === null || typeof body !== 'object' || !('code' in body)) return null;
-  return typeof body.code === 'string' ? body.code : null;
-}
-
 interface VerificationSentProps {
   email: string;
 }
 
 /**
- * What registering a donor's address shows: the verify step's copy, with nobody
- * signed in, since only following the link turns the donor into an account that
- * can sign in.
+ * What registering shows, whoever holds the address: nobody is signed in, and the
+ * message mailed there says what to do next.
  */
 function VerificationSent({ email }: VerificationSentProps): JSX.Element {
   return (
     <Card className="join-card" title="Check your email">
-      <p>
-        We sent a verification message to {email}. Click the link in it to continue setting up your
-        account.
+      <p>We sent a message to {email}. Follow the link in it to continue.</p>
+      <p className="muted">
+        If the address already has an account, the message says how to sign in instead.
       </p>
-      <p className="muted">The link asks you to choose the password you will sign in with.</p>
     </Card>
   );
 }

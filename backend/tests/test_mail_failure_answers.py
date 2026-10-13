@@ -107,15 +107,23 @@ def password_reset(client: APIClient) -> Exchange:
     )
 
 
+#: What every registration is answered with, whoever holds the address.
+REGISTRATION_SENT = {
+    "detail": (
+        f"We sent a message to {register_payload()['email']}. Follow the link in it to continue."
+    )
+}
+
+
 def registration(client: APIClient) -> Exchange:
-    """Register a new member, who is signed in and mailed a verification link."""
+    """Register a new member, who is mailed a verification link after the answer."""
     response = client.post(REGISTER_URL, register_payload())
     account = User.objects.get(email=register_payload()["email"])
     return Exchange(
         response.status_code,
         response.json(),
-        201,
-        client.get(ME_URL).json(),
+        202,
+        REGISTRATION_SENT,
         account,
         "email_verification",
     )
@@ -131,7 +139,7 @@ def donor_registration(client: APIClient) -> Exchange:
         response.status_code,
         response.json(),
         202,
-        {"detail": f"Verification message sent to {donor.email}."},
+        REGISTRATION_SENT,
         donor,
         "email_verification",
     )
@@ -153,8 +161,11 @@ def verification_resend(client: APIClient) -> Exchange:
 
 
 def email_change(client: APIClient) -> Exchange:
-    """Move one's own account to another address, which is mailed a verification link."""
-    account = UserFactory(email="cal.change@example.test", roles=[MEMBER])
+    """Ask to move one's own account to another address, which is mailed a link.
+
+    The account's own address is unverified, so the link is the one message sent.
+    """
+    account = UserFactory(email="cal.change@example.test", roles=[MEMBER], email_verified_at=None)
     client.force_login(account)
     response = client.post(
         CHANGE_EMAIL_URL,
@@ -166,7 +177,7 @@ def email_change(client: APIClient) -> Exchange:
         200,
         client.get(ME_URL).json(),
         account,
-        "email_verification",
+        "email_change_confirm",
     )
 
 
@@ -224,9 +235,12 @@ def admin_member_creation(client: APIClient) -> Exchange:
 
 
 def admin_member_edit(client: APIClient) -> Exchange:
-    """An account administrator changes an address on the member record."""
+    """An account administrator asks for another address on the member record.
+
+    The member's own address is unverified, so the link is the one message sent.
+    """
     signed_in_admin(client, ACCOUNT_ADMIN)
-    account = UserFactory(email="max.edit@example.test", roles=[MEMBER])
+    account = UserFactory(email="max.edit@example.test", roles=[MEMBER], email_verified_at=None)
     url = f"{MEMBERS_URL}/{account.pk}"
     response = client.patch(url, {"email": "max.moved@example.test"}, format="json")
     return Exchange(
@@ -235,7 +249,7 @@ def admin_member_edit(client: APIClient) -> Exchange:
         200,
         client.get(url).json(),
         account,
-        "email_verification",
+        "email_change_confirm",
     )
 
 
@@ -409,22 +423,44 @@ def unrenderable_templates(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.mark.usefixtures("unrenderable_templates")
 @pytest.mark.parametrize(
     ("role", "path"),
-    [(MEMBER, None), (USER_ADMIN, "send-password-reset"), (USER_ADMIN, "send-email-verification")],
-    ids=["self-service reset", "admin reset", "admin verification"],
+    [(USER_ADMIN, "send-password-reset"), (USER_ADMIN, "send-email-verification")],
+    ids=["admin reset", "admin verification"],
 )
 def test_a_template_that_does_not_render_answers_500(
-    api_client: APIClient, role: str, path: str | None
+    api_client: APIClient, role: str, path: str
 ) -> None:
     """An ``OSError`` while rendering is a bug, not a refusal, so the request fails."""
     api_client.raise_request_exception = False
     account = UserFactory(email="ren.der@example.test", roles=[MEMBER], email_verified_at=None)
-    if path is None:
-        response = api_client.post(RESET_URL, {"email": account.email})
-    else:
-        signed_in_admin(api_client, role)
-        response = api_client.post(f"{USERS_URL}/{account.pk}/{path}")
+    signed_in_admin(api_client, role)
+    response = api_client.post(f"{USERS_URL}/{account.pk}/{path}")
 
     assert response.status_code == 500
+
+
+@pytest.mark.usefixtures("unrenderable_templates")
+def test_a_reset_whose_template_does_not_render_still_answers_204(api_client: APIClient) -> None:
+    """The reset is rendered after the answer has gone, so the answer cannot change."""
+    account = UserFactory(email="ren.der@example.test", roles=[MEMBER])
+
+    response = api_client.post(RESET_URL, {"email": account.email})
+
+    assert response.status_code == 204
+
+
+@pytest.mark.usefixtures("unrenderable_templates")
+def test_a_reset_whose_template_does_not_render_is_logged(
+    api_client: APIClient, caplog: pytest.LogCaptureFixture
+) -> None:
+    """The failure is logged at ERROR, since no answer is left to carry it."""
+    account = UserFactory(email="ren.der@example.test", roles=[MEMBER])
+
+    with caplog.at_level(logging.ERROR, logger="caldart.mail"):
+        api_client.post(RESET_URL, {"email": account.email})
+
+    assert [record.getMessage() for record in caplog.records] == [
+        f"Could not send the password reset for account {account.pk} after the response"
+    ]
 
 
 @pytest.mark.usefixtures("refusing_mail_server")

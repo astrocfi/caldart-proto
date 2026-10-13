@@ -670,9 +670,9 @@ courtesy: the API enforces every permission itself.
 
 **Server state.**  Everything from the API goes through TanStack Query.
 ``auth/useAuth.ts`` wraps ``GET /auth/me`` under the key ``['auth', 'me']``,
-the portal's single notion of who is signed in.  Signing in, registering, and
-signing out clear the whole cache and write the result into that key, so
-nothing cached for one person is shown to the next.
+the portal's single notion of who is signed in.  Signing in and signing out
+clear the whole cache and write the result into that key, so nothing cached for
+one person is shown to the next; registering signs nobody in and leaves it alone.
 
 **The API client.**  ``api/client.ts`` is the only code that calls
 ``fetch``.  It prefixes ``API_BASE``, sends the session cookie, performs the

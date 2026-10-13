@@ -20,8 +20,10 @@ A send raises :class:`MailRefusedError` when the mail server refuses the message
 cannot be reached.  A caller that must answer whatever the server does -- a request
 whose answer must not depend on the mail, or a change already committed -- sends
 through :func:`send_logging_refusal` or :func:`send_on_commit`, which log the refusal
-on this module's logger instead of raising it.  Production routes that logger to the
-error mail ``ADMIN_EMAILS`` receives.
+on this module's logger instead of raising it.  A request whose answer must not even
+take longer when a message goes out sends through :func:`send_after_response`, after
+the client has its answer.  Production routes that logger to the error mail
+``ADMIN_EMAILS`` receives.
 """
 
 from __future__ import annotations
@@ -40,6 +42,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.core.mail.backends.base import BaseEmailBackend
 from django.core.mail.utils import DNS_NAME
 from django.db import transaction
+from django.http import HttpResponseBase
 from django.template.loader import render_to_string
 from django.utils import timezone
 
@@ -315,6 +318,36 @@ def send_on_commit(send: Callable[[], object], *, what: str) -> None:
     nothing.
     """
     transaction.on_commit(lambda: send_logging_refusal(send, what=what))
+
+
+def send_after_response(
+    response: HttpResponseBase, send: Callable[[], object], *, what: str
+) -> None:
+    """Call ``send`` once ``response`` has gone to the client, logging what goes wrong.
+
+    The WSGI server closes a response after it has written the body, and Django runs
+    the response's closers then; ``send`` is added to them.  An answer that must not
+    depend on whether a message goes out, nor on how long rendering and sending it
+    takes, can therefore be sent first: a client timing the request learns nothing from
+    the mail.  The send runs through :func:`send_logging_refusal`, so a refusal is logged
+    rather than raised; anything else it raises, a template that does not render
+    included, is logged at ERROR on this module's logger with its traceback, since
+    Django discards what a closer raises and no answer is left to carry it.  The
+    request's transaction has ended by then, so ``send`` sees what it committed.  A
+    response that is never closed, such as one a test builds by calling a view
+    directly, sends nothing.
+    """
+
+    def closer() -> None:
+        """Send, logging a refusal or any other failure rather than raising it."""
+        try:
+            send_logging_refusal(send, what=what)
+        except Exception:
+            log.exception("Could not send %s after the response", what)
+
+    # Django keeps the closers it runs on close() in this list; it is how a file
+    # response closes its file, and the only per-response hook the close offers.
+    response._resource_closers.append(closer)  # type: ignore[attr-defined]  # not in django-stubs
 
 
 def new_message_id() -> str:

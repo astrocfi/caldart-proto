@@ -1,0 +1,35 @@
+{% autoescape off %}{{ org_name }} — you already have an account
+
+Hello{% if first_name %} {{ first_name }}{% endif %},
+
+Somebody, perhaps you, tried to open a {{ org_name }} account with {{ email }}.
+This address already has one, so nothing was changed.
+{% if state == "closed" %}
+That account has been closed. Contact {{ org_name }} to reopen it.{% if contact_email %} Write to
+{{ contact_email }}.{% endif %}
+{% elif state == "deactivated" %}
+That account is deactivated. To bring it back, sign in with your password and press
+Reactivate my account:
+
+{{ sign_in_url }}
+
+If you do not remember the password, choosing a new one reactivates the account too:
+
+{{ forgot_url }}
+{% else %}
+Sign in with your password:
+
+{{ sign_in_url }}
+
+If you do not remember it, choose a new one here:
+
+{{ forgot_url }}
+
+If you never followed the link that verifies the address, sign in and the portal
+offers to send a fresh one.
+{% endif %}
+If you did not try to open an account, ignore this message.{% if contact_email and state != "closed" %} Anything that looks wrong, write to {{ contact_email }}.{% endif %}
+
+— {{ org_name }}
+{{ site_url }}
+{% endautoescape %}

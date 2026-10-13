@@ -1,0 +1,40 @@
+{% extends "emails/account_base.html" %}
+{% comment %}
+The answer to a registration for an address that already has an account, worded by
+the account's `state`: `active`, `deactivated`, or `closed`.
+{% endcomment %}
+
+{% block heading %}You already have an account{% endblock %}
+
+{% block body %}
+  <p style="margin: 0 0 16px;">
+    Somebody, perhaps you, tried to open a {{ org_name }} account with
+    <strong>{{ email }}</strong>. This address already has one, so nothing was changed.
+  </p>
+  {% if state == "closed" %}
+    <p style="margin: 0 0 16px;">
+      That account has been closed. Contact {{ org_name }} to reopen it.
+    </p>
+  {% elif state == "deactivated" %}
+    <p style="margin: 0 0 16px;">
+      That account is deactivated. To bring it back, sign in with your password and press
+      Reactivate my account. If you do not remember the password,
+      <a href="{{ forgot_url }}" style="color: #1f4e79;">choosing a new one</a> reactivates
+      the account too.
+    </p>
+  {% else %}
+    <p style="margin: 0 0 16px;">
+      Sign in with your password. If you do not remember it,
+      <a href="{{ forgot_url }}" style="color: #1f4e79;">choose a new one</a>. If you never
+      followed the link that verifies the address, sign in and the portal offers to send a
+      fresh one.
+    </p>
+  {% endif %}
+  <p style="margin: 0 0 16px;">If you did not try to open an account, ignore this message.</p>
+{% endblock %}
+
+{% block button %}
+  {% if state != "closed" %}
+    {% include "emails/account_button.html" with url=sign_in_url label="Sign in" %}
+  {% endif %}
+{% endblock %}

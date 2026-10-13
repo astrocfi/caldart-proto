@@ -50,9 +50,12 @@ canceled terms, and friends.
 from __future__ import annotations
 
 import secrets
+from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import date, timedelta
 from typing import TYPE_CHECKING, Any, NoReturn, TypedDict, cast
 
+from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, transaction
 from django.db.models import (
@@ -72,15 +75,19 @@ from django.db.models import (
 from django.http import HttpRequest
 from django.utils import timezone
 
+from apps.accounts.email_change import request_email_change
 from apps.accounts.history import record_account_change
 from apps.accounts.models import AccountChangeKind, AccountKind, User
+from apps.accounts.notices import send_account_exists_notice
 from apps.accounts.roles import SYSTEM_ADMIN
 from apps.accounts.services import (
     AccountChanges,
     DonorUpgrade,
+    address_holder,
     create_account,
     effective_roles,
     is_donor,
+    lock_address,
     send_email_verification,
     send_password_invitation,
     set_kind,
@@ -173,6 +180,18 @@ def touch_profile(profile: MemberProfile) -> None:
 # --------------------------------------------------------------------------
 # The member record: account plus profile
 # --------------------------------------------------------------------------
+@dataclass(frozen=True)
+class Registration:
+    """What one registration did: the account the address belongs to, and its message.
+
+    ``send`` mails the address its owner's next step; the caller decides when, since the
+    answer to the person registering must not depend on which message it is.
+    """
+
+    user: User
+    send: Callable[[], object]
+
+
 @transaction.atomic
 def register_member(
     *,
@@ -181,54 +200,59 @@ def register_member(
     first_name: str = "",
     last_name: str = "",
     kind: AccountKind = AccountKind.MEMBER,
-) -> User:
-    """Create the account ``POST /auth/register`` signs in, and return it.
+) -> Registration:
+    """Register ``email`` for ``POST /auth/register``, and say what to mail it.
 
-    ``kind`` is a member or a friend.  The profile starts blank on purpose -- the
-    join wizard fills it in -- but it must exist so ``/me/profile`` is a PATCH rather
-    than a create.  Account and profile are written together, so a failure leaves no
-    half-made member.  The profile's ``profile_updated_at`` is stamped as the moment
-    it was written.  The account starts unverified, and once the transaction commits
-    its address is mailed a verification link; a mail server that refuses it is logged
-    (``caldart.mail.send_on_commit``) and the account stands.  Nothing is raised yet:
-    the join wizard asks for the DART at the profile step, and the save that completes
-    the profile raises ``signed_up``
-    (:meth:`apps.members.api.profile_serializers.ProfileSerializer.update`).
+    Nobody is signed in, and what happens depends on who holds the address, which only
+    the mailbox's owner learns, from the message ``send`` mails:
 
-    An address that belongs to a donor is not a new account, and the donor is
-    returned unchanged: ``password`` is not written, since the person registering has
-    not shown the address is theirs.  The verification link mailed to the donor's
-    address carries the names and the kind, and following it asks for a password and
-    upgrades the donor in place (:func:`apps.accounts.services.verify_email`), so the
-    gifts already made stay on the account and only whoever holds the mailbox opens it.
+    * **Nobody.**  A member's or a friend's account of ``kind`` is created with
+      ``password``, the names stripped, and an empty profile, written together so a
+      failure leaves no half-made member; the profile's ``profile_updated_at`` is stamped
+      as the moment it was written.  The account starts unverified, and the message is
+      the verification link (:func:`apps.accounts.services.send_email_verification`).
+      Nothing is raised yet: the join wizard asks for the DART at the profile step, and
+      the save that completes the profile raises ``signed_up``
+      (:meth:`apps.members.api.profile_serializers.ProfileSerializer.update`).
+    * **A donor.**  No account is made and the donor is unchanged but for an empty
+      profile, made if it has none; ``password`` is not written, since the person
+      registering has not shown the address is theirs.  The message is a verification
+      link carrying the names and the kind, and following it asks for a password and
+      upgrades the donor in place (:func:`apps.accounts.services.verify_email`), so the
+      gifts already made stay on the account and only whoever holds the mailbox opens
+      it.
+    * **A member or a friend**, active or not.  Nothing changes, and the message says
+      the address already has an account and how to sign in, bring it back, or ask
+      about a closed one (:func:`apps.accounts.notices.send_account_exists_notice`).
+
+    The address belongs to an account when the account signs in with it or keeps it
+    as its recovery address after a change of address
+    (:func:`apps.accounts.services.address_holder`).  It is looked up under a lock on
+    the address (:func:`apps.accounts.services.lock_address`), so two registrations of
+    one new address at once make one account between them.  ``password`` is hashed
+    whoever holds the address, before the address is looked up, so the time the call
+    takes does not say which case it was.
     """
-    donor = User.objects.filter(email__iexact=email.strip(), kind=AccountKind.DONOR).first()
-    if donor is not None:
+    hashed = make_password(password)
+    address = email.strip()
+    lock_address(address)
+    existing = address_holder(address)
+    if existing is not None and is_donor(existing):
         upgrade: DonorUpgrade = {
             "first_name": first_name.strip(),
             "last_name": last_name.strip(),
             "kind": kind.value,
         }
-        MemberProfile.objects.get_or_create(user=donor)
-        send_on_commit(
-            lambda: send_email_verification(donor, upgrade=upgrade),
-            what=f"the email verification for account {donor.pk}",
-        )
-        return donor
-    user = create_account(
-        email=email,
-        password=password,
-        first_name=first_name,
-        last_name=last_name,
-        kind=kind,
-    )
+        MemberProfile.objects.get_or_create(user=existing)
+        return Registration(existing, lambda: send_email_verification(existing, upgrade=upgrade))
+    if existing is not None:
+        return Registration(existing, lambda: send_account_exists_notice(existing, to=address))
+    user = create_account(email=address, first_name=first_name, last_name=last_name, kind=kind)
+    user.password = hashed
+    user.save(update_fields=["password", "updated_at"])
     profile, _ = MemberProfile.objects.get_or_create(user=user)
     touch_profile(profile)
-    send_on_commit(
-        lambda: send_email_verification(user),
-        what=f"the email verification for account {user.pk}",
-    )
-    return user
+    return Registration(user, lambda: send_email_verification(user))
 
 
 @transaction.atomic
@@ -285,7 +309,11 @@ def update_member(
     """Apply an administrator's edit to a member, and return the account.
 
     ``account`` goes to :func:`apps.accounts.services.update_account`, which owns
-    every rule about who may change what; the active flag is not part of an edit.
+    every rule about who may change what; the active flag is not part of an edit.  Its
+    ``email`` goes first to :func:`apps.accounts.email_change.request_email_change`, so
+    a new address waits for its owner to follow the link mailed to it while the
+    account keeps signing in with the one it has, and an address the guard refuses
+    leaves everything else unwritten.
     ``profile`` is written over the member's profile row, creating it if the account
     somehow has none.  Both halves are written together, so a refused account edit
     leaves the profile alone.  A profile write that moves a field a verified item covers
@@ -305,6 +333,8 @@ def update_member(
     """
     names = {key: value for key, value in (account or {}).items() if key in NAME_FIELDS}
     changed = changed_field_labels(target, names)
+    if account is not None and "email" in account:
+        request_email_change(actor, target, account["email"])
     update_account(actor, target, account or {})
     if profile is not None:
         row, _ = MemberProfile.objects.get_or_create(user=target)

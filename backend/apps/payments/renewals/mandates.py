@@ -385,8 +385,12 @@ def pending_mandate_for(payment: Payment) -> RenewalMandate | None:
     started a Stripe mandate and then paid with PayPal activates nothing, and
     neither does a checkout for some other plan that happens to follow an
     abandoned one: a mandate is the authority the payer asked for at *this*
-    checkout, never one left over from another.
+    checkout, never one left over from another.  A gift from the public donation
+    page activates nothing either (``Payment.is_public_gift``): whoever gave may not
+    own the account, and must never save a method against its standing authority.
     """
+    if payment.is_public_gift:
+        return None
     mandate = RenewalMandate.objects.filter(
         user_id=payment.user_id,
         status=MandateStatus.PENDING,

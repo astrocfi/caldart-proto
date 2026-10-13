@@ -514,6 +514,7 @@ SIGNED_OUT_PAGES = frozenset(
         "member/reset-password",
         "member/join",
         "member/verify-email",
+        "member/undo-email-change",
     }
 )
 

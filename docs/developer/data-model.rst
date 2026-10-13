@@ -156,7 +156,7 @@ Accounts, members, DARTs, and aircraft
       Models in this area
       -------------------
       accounts.User             the account; inherits auth.AbstractUser (abstract)
-      accounts.AccountChange    one change to an account's roles or status
+      accounts.AccountChange    one change to an account's roles, status, or address
       auth.Group                a role, named by its slug
       auth.Permission           Django's per-model permissions
       members.MemberProfile     everything the join form collects
@@ -580,6 +580,10 @@ administrator may choose.
      - Reactivation allowed
    * - ``new_password``
      - New password required
+   * - ``email_changed``
+     - Email address changed
+   * - ``email_change_undone``
+     - Email address change undone
 
 .. _choices-membership-state:
 
@@ -1550,6 +1554,22 @@ and ``PermissionsMixin`` classes it builds on.
      - ``CharField(255)``
      - not null; default ``""``
      - that report's status code and diagnostic text, such as ``5.1.1 550 User unknown``; blank while no bounce is known
+   * - ``pending_email``
+     - ``EmailField(254)``
+     - not null; default ``""``
+     - the address a requested change of address waits to move the account to (:ref:`api-email-change`); blank while none is waiting
+   * - ``email_change_undone_at``
+     - ``DateTimeField``
+     - null; default ``NULL``
+     - when a link mailed to an earlier address last undid a change of address; every undo link made before it is spent
+   * - ``recovery_email``
+     - ``EmailField(254)``
+     - not null; default ``""``
+     - the verified address a completed change of address left, kept for its owner's undo and reserved for this account until ``recovery_until`` (:ref:`api-email-change`); blank with none kept
+   * - ``recovery_until``
+     - ``DateTimeField``
+     - null; default ``NULL``
+     - when ``recovery_email`` stops being kept: seven days after the change completed
    * - ``kind``
      - ``CharField(8)``, choices :ref:`AccountKind <choices-account-kind>`
      - not null; default ``"member"``
@@ -1620,14 +1640,14 @@ to the rows already stored (:doc:`setup`).
 - ``accounts.services.sync_django_flags`` keeps ``is_superuser`` equal to
   holding ``system_admin``, and ``is_staff`` true for a superuser or a
   ``website_admin``, after every role edit.
-- ``accounts.services.update_account`` clears ``email_verified_at`` whenever an
-  edit really changes the address (a change of case alone does not), and mails
-  the new address a verification link once the transaction commits.  Following
-  that link, or a password reset or invitation link, sets it again.
+- A change of address never clears ``email_verified_at``: the address changes
+  only when the link mailed to ``pending_email`` is followed, which proves the
+  new address and stamps it verified (:ref:`api-email-change`).  A verification,
+  password reset, or invitation link sets it too.
   ``seed_demo`` stamps every seeded account but a donor verified as of its
   ``created_at``.
 - ``email_bounced_at`` and ``email_bounce_detail`` are set together by the bounce
-  check and cleared together: by an edit that really changes the address, by
+  check and cleared together: by a change of address when it completes or is undone, by
   following a verification, password reset, or invitation link sent to the
   address (whether or not it was verified already), and by a user
   administrator's ``POST /admin/users/{id}/clear-bounce``
@@ -1774,7 +1794,7 @@ writes this row beside the audit line for the same change.  It does not inherit
      - not null; default ``False``
      - true for a change a management command made, so a null ``changed_by`` tells a command from an actor since deleted
    * - ``kind``
-     - ``CharField(12)``, choices :ref:`AccountChangeKind <choices-account-change-kind>`
+     - ``CharField(20)``, choices :ref:`AccountChangeKind <choices-account-change-kind>`
      - not null; required
      - what the change did
    * - ``added``
@@ -3407,7 +3427,7 @@ One attempt to pay for a membership term, make a contribution, or both.
    * - ``donor_fields``
      - ``JSONField``
      - not null; default ``{}``
-     - a public gift's details, kept here until the payment settles; empty for every other payment (:doc:`api-payments`)
+     - a public gift's details, kept here until the payment settles; empty for every other payment, so a non-empty value is what ``Payment.is_public_gift`` reads (:doc:`api-payments`)
 
 **Constraints, indexes, and ordering.**
 

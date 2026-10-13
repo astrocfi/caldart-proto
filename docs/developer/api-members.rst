@@ -419,13 +419,15 @@ to it, and ``null`` while it is unverified.  ``email_bounced_at`` is when the
 bounce check last found the address bouncing, and ``null`` while no bounce is
 known; ``email_bounce_detail`` is that report's status code and diagnostic, or
 ``""`` (:ref:`email-bounces`).  Both are read-only: a user administrator clears
-them from the user record (:ref:`api-clear-bounce`).
+them from the user record (:ref:`api-clear-bounce`).  ``pending_email`` is the address
+a requested change waits to move the account to, or ``""`` (:ref:`api-email-change`).
 
 .. code-block:: json
 
    {
      "id": 11,
      "email": "ana@example.org",
+     "pending_email": "",
      "first_name": "Ana",
      "last_name": "Bracco",
      "name": "Ana Bracco",
@@ -602,10 +604,15 @@ read-only here too, and an item is verified only through the member check.
 alongside the rest of the profile.  A request that only changes ``kind`` leaves
 the stamp alone, and so does one for a target with no profile row to stamp.
 
-A write that really changes ``email`` — compared stripped and
-case-insensitively — clears ``email_verified_at`` and, once it commits, mails
-the new address a verification link.  A refused link leaves the edit standing
-and the answer unchanged (:ref:`refused sends <api-refused-send>`).
+An ``email`` that really differs from the stored one — compared stripped and
+case-insensitively — does not change the address: it asks for the change
+(:ref:`api-email-change`).  The record answers with ``email`` as it was and
+``pending_email`` the new address; the new address is mailed a link that completes
+the change, and the member's address, when verified, a notice with a link that undoes
+it.  Until the link is followed the member signs in as before.  A donor's address,
+which signs nothing in, changes at once and nothing is mailed.  A refused message
+leaves the request standing and the answer unchanged
+(:ref:`refused sends <api-refused-send>`).
 
 ``email`` goes through the account-edit guard, which also covers the account
 status actions — see :ref:`account-edit-guard`.  An account administrator

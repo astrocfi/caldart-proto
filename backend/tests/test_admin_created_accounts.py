@@ -50,9 +50,9 @@ def test_an_account_made_on_new_member_reads_admin_created(
 
 
 def test_a_registered_account_is_not_admin_created(api_client: APIClient) -> None:
-    """Somebody who registers through the join wizard reads ``admin_created: false``."""
-    response = api_client.post(REGISTER_URL, register_payload(), format="json")
-    assert response.json()["admin_created"] is False
+    """Somebody who registers through the join wizard is not ``admin_created``."""
+    api_client.post(REGISTER_URL, register_payload(), format="json")
+    assert User.objects.get(email=register_payload()["email"]).admin_created is False
 
 
 # --------------------------------------------------------------------------

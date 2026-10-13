@@ -157,7 +157,10 @@ class Command(BaseCommand):
 def _take_back(user: User) -> None:
     """Clear ``user``'s password and reactivation block, and end its sessions.
 
-    Runs inside the caller's transaction, on a row it has locked.
+    Any change of address waiting for its link is dropped with the password
+    (``clear_password_and_end_sessions``): whoever asked for it may be whoever set the
+    password being cleared.  Runs inside the caller's transaction, on a row it has
+    locked.
     """
     is_blocked = user.reactivation_blocked
     user.reactivation_blocked = False

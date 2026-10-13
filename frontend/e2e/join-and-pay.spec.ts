@@ -16,6 +16,7 @@ import {
   formatCents,
   registerAccount,
   signIn,
+  signInAsJoiner,
   uniqueEmail,
 } from './helpers';
 
@@ -77,7 +78,6 @@ async function register(page: Page, first: string, email: string): Promise<void>
   await page.getByLabel(/^Password/).fill('a-long-demo-passphrase');
   await page.getByRole('button', { name: 'Create account' }).click();
 
-  await expect(page).toHaveURL(/\/portal\/join\/verify/);
   await expect(page.getByRole('heading', { name: 'Check your email' })).toBeVisible();
   await followVerificationLink(page, email);
 
@@ -151,6 +151,10 @@ test('an unverified joiner sees only the verify screen, even after signing in ag
 }) => {
   const email = uniqueEmail('waiting');
   await registerAccount(page, email, { as: 'member', firstName: 'Vera' });
+  // Registering signs nobody in; signing in before following the link opens the verify
+  // step.
+  await signInAsJoiner(page, email);
+  await expect(page).toHaveURL(/\/portal\/join\/verify/);
   const rail = page.getByRole('navigation', { name: 'Portal sections' });
   await expect(rail).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Menu' })).toHaveCount(0);

@@ -32,6 +32,7 @@ REGISTER_SCOPE = "auth_register"
 PASSWORD_RESET_SCOPE = "auth_password_reset"  # noqa: S105 - a throttle scope name, not a secret
 VERIFY_SCOPE = "auth_verify"
 VERIFY_RESEND_SCOPE = "auth_verify_resend"
+EMAIL_CHANGE_SCOPE = "auth_email_change"
 DONATE_SCOPE = "donate"
 
 #: What a login form that is not the portal's answers once the ``auth_login`` budget
@@ -92,6 +93,12 @@ class EmailVerifyResendThrottle(AuthScopedThrottle):
     """Throttles ``POST /auth/email/resend`` under the ``auth_verify_resend`` rate."""
 
     scope = VERIFY_RESEND_SCOPE
+
+
+class EmailChangeThrottle(AuthScopedThrottle):
+    """Throttles ``POST /auth/email/change`` under the ``auth_email_change`` rate."""
+
+    scope = EMAIL_CHANGE_SCOPE
 
 
 class DonateThrottle(AuthScopedThrottle):

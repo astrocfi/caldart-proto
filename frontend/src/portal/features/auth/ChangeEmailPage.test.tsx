@@ -38,7 +38,36 @@ describe('<ChangeEmailPage/>', () => {
   it('names the address the account uses now', async () => {
     renderPage();
 
-    expect(await screen.findByText(/Your address is member@example\.org\./)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Your sign-in address is member@example\.org\./),
+    ).toBeInTheDocument();
+  });
+
+  it('says a waiting change keeps the current address', async () => {
+    server.use(signedInAs(makeUser({ pending_email: 'new@example.org' })));
+    renderPage();
+
+    expect(
+      await screen.findByText(
+        'We sent a link to new@example.org. Your sign-in address stays member@example.org until you follow it.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('offers to send the link again while a change waits', async () => {
+    server.use(signedInAs(makeUser({ pending_email: 'new@example.org' })));
+    renderPage();
+
+    expect(
+      await screen.findByRole('button', { name: 'Resend verification message' }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows no waiting change when there is none', async () => {
+    renderPage();
+
+    await screen.findByText(/Your sign-in address is member@example\.org\./);
+    expect(screen.queryByRole('button', { name: 'Resend verification message' })).toBeNull();
   });
 
   it('sends the new address and the current password', async () => {
@@ -46,7 +75,7 @@ describe('<ChangeEmailPage/>', () => {
     server.use(
       http.post(`${API}/auth/email/change`, async ({ request }) => {
         posted = await request.json();
-        return HttpResponse.json(makeUser({ email: 'new@example.org', email_verified: false }));
+        return HttpResponse.json(makeUser({ pending_email: 'new@example.org' }));
       }),
     );
     renderPage();
@@ -60,7 +89,7 @@ describe('<ChangeEmailPage/>', () => {
   it('confirms with a toast and returns to the dashboard', async () => {
     server.use(
       http.post(`${API}/auth/email/change`, () =>
-        HttpResponse.json(makeUser({ email: 'new@example.org', email_verified: false })),
+        HttpResponse.json(makeUser({ pending_email: 'new@example.org' })),
       ),
     );
     renderPage();
@@ -69,7 +98,7 @@ describe('<ChangeEmailPage/>', () => {
 
     expect(
       await screen.findByText(
-        'Your email is now new@example.org. We sent a verification message to it.',
+        'We sent a link to new@example.org. Your sign-in address stays member@example.org until you follow it.',
       ),
     ).toBeInTheDocument();
     expect(screen.getByTestId('where')).toHaveTextContent(/^\/$/);
@@ -78,7 +107,7 @@ describe('<ChangeEmailPage/>', () => {
   it('returns to the page named by next', async () => {
     server.use(
       http.post(`${API}/auth/email/change`, () =>
-        HttpResponse.json(makeUser({ email: 'new@example.org', email_verified: false })),
+        HttpResponse.json(makeUser({ pending_email: 'new@example.org' })),
       ),
     );
     renderPage('/change-email?next=/join');
@@ -91,7 +120,7 @@ describe('<ChangeEmailPage/>', () => {
   it('ignores a next that leaves the portal', async () => {
     server.use(
       http.post(`${API}/auth/email/change`, () =>
-        HttpResponse.json(makeUser({ email: 'new@example.org', email_verified: false })),
+        HttpResponse.json(makeUser({ pending_email: 'new@example.org' })),
       ),
     );
     renderPage('/change-email?next=//evil.example');

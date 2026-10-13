@@ -115,6 +115,7 @@ export function makeDetail(overrides: Partial<MemberDetail> = {}): MemberDetail 
   return {
     id: 1,
     email: 'ana@example.org',
+    pending_email: '',
     first_name: 'Ana',
     last_name: 'Bracco',
     name: 'Ana Bracco',

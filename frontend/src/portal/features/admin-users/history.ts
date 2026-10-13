@@ -1,6 +1,6 @@
 /**
- * The wording of a user record's history: one line per change to the account's roles
- * or status, in the words the record's own controls use.
+ * The wording of a user record's history: one line per change to the account's roles,
+ * status, or address, in the words the record's own controls use.
  */
 import type { AccountChange, AccountChangeKind } from '@/portal/api/types';
 import { roleLabel } from '@/portal/choices';
@@ -17,6 +17,8 @@ const DID: Record<Exclude<AccountChangeKind, 'roles'>, string> = {
   blocked: 'blocked reactivation',
   unblocked: 'allowed reactivation',
   new_password: 'required a new password',
+  email_changed: 'changed the email address',
+  email_change_undone: 'undid a change of email address',
 };
 
 /**

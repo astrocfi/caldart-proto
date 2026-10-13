@@ -15,6 +15,7 @@ import type { JSX } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 import type { AdminUser, AdminUserDetail, RoleSlug } from '@/portal/api/types';
+import { pendingEmailStatus } from '@/portal/auth/pendingEmail';
 import { useAuth, useRoles } from '@/portal/auth/useAuth';
 import { ACCOUNT_KIND_LABELS, roleLabel } from '@/portal/choices';
 import { BouncedDot } from '@/portal/components/BouncedDot';
@@ -168,6 +169,9 @@ export function UserDetailPage(): JSX.Element {
           <EmailVerifiedText verifiedAt={user.email_verified_at} />{' '}
           <BouncedDot bouncedAt={user.email_bounced_at} detail={user.email_bounce_detail} />
         </p>
+        {user.pending_email === '' ? null : (
+          <p className="muted">{pendingEmailStatus(user.pending_email)}</p>
+        )}
         {user.email_verified || isDonor ? null : (
           <div className="cluster user-record__resend">
             <ResendVerificationButton

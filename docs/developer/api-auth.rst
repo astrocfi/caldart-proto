@@ -54,9 +54,11 @@ mails to ``ADMIN_EMAILS``
 
 * A request people make for themselves answers exactly as it does when the
   message goes out: ``POST /auth/password/reset``, ``POST /auth/register``,
-  ``POST /auth/email/resend``, ``POST /auth/email/change``, and
-  ``POST /auth/reactivate``.  A reset in particular must not tell the caller
-  anything about the address, and any other answer would.
+  ``POST /auth/password/change``, ``POST /auth/password/reset/confirm``,
+  ``POST /auth/email/resend``, ``POST /auth/email/change``, ``POST /auth/email/verify``,
+  ``POST /auth/email/undo``, and ``POST /auth/reactivate``.  A reset and a
+  registration in particular must not tell the caller anything about the address,
+  and any other answer would.
 * A change an administrator saves that mails somebody along the way answers as
   it does when the message goes out too, because the change has committed: an
   reactivation, and the member record's create, edit, and reactivation
@@ -85,6 +87,18 @@ template that does not render, is a bug and answers 500.  The quiet answers go
 through ``caldart.mail.send_logging_refusal``, or ``send_on_commit`` for a send
 queued for the commit.
 
+.. _api-after-response:
+
+**Mail sent after the answer.**  ``POST /auth/password/reset`` and
+``POST /auth/register`` must not take longer for an address that has an account than
+for one that has none, so they render and send their message only once the answer
+has gone: ``caldart.mail.send_after_response`` adds the send to the response's
+closers, which Django runs when the WSGI server closes the response after writing it.
+The send runs through ``send_logging_refusal``, so a refusal is logged as above; any
+other error, a template that does not render included, has no answer left to turn
+into a 500, so it is logged at ERROR on ``caldart.mail`` with its traceback.  The
+test client closes every response it makes, so a test reads the outbox as usual.
+
 
 The user payload
 ================
@@ -96,6 +110,7 @@ Every endpoint that returns an account returns the same object:
    {
      "id": 12,
      "email": "marta.reyes@example.org",
+     "pending_email": "",
      "first_name": "Marta",
      "last_name": "Reyes",
      "roles": ["member", "dart_leader"],
@@ -113,6 +128,12 @@ Every endpoint that returns an account returns the same object:
      "admin_created": false,
      "can_use_aircraft": true
    }
+
+``pending_email``
+   The address a requested change of address waits to move the account to, or
+   ``""`` when none is waiting (see `Changing the address`_).  ``email`` stays the
+   address the account signs in with until the link mailed to ``pending_email`` is
+   followed.  Read-only everywhere.
 
 ``roles``
    Slugs the account holds, always in privilege order (``member``,
@@ -142,9 +163,9 @@ Every endpoint that returns an account returns the same object:
 
 ``email_verified``
    True once the account's owner has followed a link sent to the address the
-   account holds now: a verification link (see `Email verification`_), or a
-   password reset or invitation link.  A new account and a changed address
-   start false.  While it is false the API refuses the session everything but a
+   account holds now: a verification link (see `Email verification`_), the link
+   that completed a change of address, or a password reset or invitation link.  A
+   new account starts false.  While it is false the API refuses the session everything but a
    few endpoints (see `Unverified sessions`_), and the portal shows only the join
    wizard's verify step.
 
@@ -197,20 +218,12 @@ Statuses: **204**, for anybody.
 ``POST /auth/register``
 -----------------------
 
-Creates a member's or a friend's account, signs it in and returns the user
-payload.  ``email``, ``password``, ``first_name``, and ``last_name`` are
-required; ``kind`` is ``member`` (the default) or ``friend``, stored as given.
-A member is an effective friend until a paid or granted term starts, so the
-account reads ``membership.status: "friend"`` until the first payment clears.
-In one transaction
-the endpoint creates the ``User`` of that kind, grants the ``member`` role and
-creates an empty ``MemberProfile``, then calls ``django.contrib.auth.login``.  If
-any part fails, none of it is written.  No event is raised yet: the join
-wizard asks for the DART at its profile step, and the ``PATCH /me/profile``
-that completes the profile raises ``signed_up`` (:doc:`notification-events`).
-Once the transaction commits, the new
-address is mailed a verification link (see `Email verification`_), and the
-payload's ``email_verified`` is false.
+Registers an address for a member's or a friend's account, and answers the same way
+whoever holds it, so the endpoint cannot be used to find out who has an account.
+``email``, ``password``, ``first_name``, and ``last_name`` are required; ``kind``
+is ``member`` (the default) or ``friend``.  Nobody is signed in.  Every address that
+parses is answered **202** with this body, which echoes the address posted and
+nothing else:
 
 .. code-block:: json
 
@@ -219,48 +232,52 @@ payload's ``email_verified`` is false.
 
 .. code-block:: json
 
-   {"id": 12, "email": "marta.reyes@example.org", "first_name": "Marta",
-    "last_name": "Reyes", "roles": ["member"], "is_active": true,
-    "membership": {"status": "friend", "expires_on": null, "plan": null,
-                   "is_lifetime": false},
-    "profile_complete": false, "email_verified": false, "kind": "friend",
-    "friend_on": null}
+   {"detail": "We sent a message to marta.reyes@example.org. Follow the link in it to continue."}
 
-**A donor's address upgrades the donor, once the address is proved.**  When the
-address belongs to an active donor (:ref:`kinds of account <account-kinds>`), no
-second account is made and nobody is signed in: the gifts on that account are
-not shown to anyone who has not proved the address is theirs.  The posted
-``password`` is not used: the donor's account keeps no usable password and gets a
-profile, and the address is mailed a link, worded as a request to open a portal
-account, that carries the names and the ``kind`` posted.  The answer is a 202
-naming the address:
+What happens depends on who holds the address, and only the mailbox's owner learns
+which, from the message mailed once the answer has gone
+(:ref:`mail after the answer <api-after-response>`).  ``apps.members.services.register_member`` does the
+work, and hashes the password first whichever case it is, so the time the request
+takes does not tell the cases apart either.
 
-.. code-block:: json
+**Nobody.**  In one transaction the endpoint creates the ``User`` of that kind with
+the password, grants the ``member`` role and creates an empty ``MemberProfile``.  If
+any part fails, none of it is written.  A member is an effective friend until a paid
+or granted term starts, so the account reads ``membership.status: "friend"`` until
+the first payment clears.  The address is mailed a verification link (see `Email
+verification`_), and the account is unverified until it is followed; its owner signs
+in with the password, from any browser, and the join wizard carries on.  No event is
+raised yet: the join wizard asks for the DART at its profile step, and the
+``PATCH /me/profile`` that completes the profile raises ``signed_up``
+(:doc:`notification-events`).
 
-   {"detail": "Verification message sent to giver@example.org."}
+**A donor.**  When the address belongs to a donor (:ref:`kinds of account
+<account-kinds>`), no second account is made: the gifts on that account are not
+shown to anyone who has not proved the address is theirs.  The posted ``password``
+is not used: the donor's account keeps no usable password and gets a profile, and
+the address is mailed a link, worded as a request to open a portal account, that
+carries the names and the ``kind`` posted.  Following the link
+(`POST /auth/email/verify`_) asks for a password and completes the upgrade: the
+account takes that password, the names and the ``kind``, gains the ``member`` role,
+and is verified.  The password is chosen by whoever follows the link, so only the
+person who holds the mailbox can open the account.  Until then the account is still
+a donor, and no login form or session signs it in.  The donations already on the
+account stay on it, and the change of kind is audited as ``account.kind``.
+Registering again with the address mails a fresh link.
 
-Following the link (`POST /auth/email/verify`_) asks for a password and completes
-the upgrade: the account takes that password, the names and the ``kind``, gains the
-``member`` role, and is verified.  The password is chosen by whoever follows the
-link, so only the person who holds the mailbox can open the account.  Until then
-the account is still a donor, and no login form or session signs it in.  The
-donations already on the account stay on it, and the change of kind is audited
-as ``account.kind``.  Registering again with the address mails a fresh link.
+**A member or a friend**, active or not.  Nothing about the account changes; the
+posted password and names are not written.  The address is mailed *you already have
+an account* (``apps.accounts.notices.send_account_exists_notice``,
+``templates/emails/account_exists.{txt,html}``), worded for the account's state: an
+active account is given the sign-in page with the address filled in and the
+forgot-password page, and told that signing in offers a fresh verification link
+while the address is unverified; a deactivated one is told that signing in and
+pressing **Reactivate my account**, or choosing a new password, brings it back; one
+a user administrator has closed (:ref:`api-reactivation-block`) is told to contact
+the organization, and given no link.
 
-Rejections, all 400:
-
-``{"email": ["This account has been closed. Contact CalDART to reopen it."]}``
-   The address belongs to an account a user administrator has blocked from
-   reactivating (:ref:`api-reactivation-block`).  The organization's name comes
-   from the site settings.  No ``code``: the portal offers nothing further.
-
-``{"email": ["This email belongs to a deactivated account. Sign in to reactivate it."], "code": "deactivated"}``
-   The address belongs to any other deactivated account, of any kind.  ``code``
-   lets the portal offer a sign-in instead of a second account.
-
-``{"email": [...]}``
-   The address is already in use by an active member or friend.  The check is
-   case-insensitive, so ``A@example.org`` collides with ``a@example.org``.
+Rejections, all 400, judged from the body alone, so they read the same whoever holds
+the address:
 
 ``{"kind": [...]}``
    A kind other than ``member`` or ``friend``: nobody registers as a donor.
@@ -276,10 +293,9 @@ Rejections, all 400:
    password.*, *Enter your first name.*, or *Enter your last name.*  An address
    that does not parse is *Enter an email address, such as name@example.org.*
 
-Statuses: **201** with the user payload; **202** for a donor's address; **400**
-for any rejection above; **429** when the ``auth_register`` throttle is
-exhausted.  A refused verification message changes neither answer
-(:ref:`refused sends <api-refused-send>`).
+Statuses: **202** for every address that parses; **400** for any rejection above;
+**429** when the ``auth_register`` throttle is exhausted.  A refused message changes
+nothing in the answer (:ref:`refused sends <api-refused-send>`).
 
 ``POST /auth/login``
 --------------------
@@ -374,6 +390,13 @@ in the meantime (another change, a reset, or ``create_admin`` clearing it), the
 change writes nothing, leaves the session alone, and answers **401** with
 ``{"detail": "This account's password was changed elsewhere. Sign in again."}``.
 
+The change is audited as ``action=account.password_change actor=12 target=12
+reset=false``, and the account's address is mailed *your password was changed*
+(``apps.accounts.notices.send_password_changed_notice``,
+``templates/emails/password_changed.{txt,html}``): when it happened, and the
+forgot-password page for an owner who did not make the change.  A mail server that
+refuses it leaves the answer unchanged (:ref:`refused sends <api-refused-send>`).
+
 * ``{"current_password": [...]}`` — did not match, or *Enter your current
   password.* when it was left empty.
 * ``{"new_password": [...]}`` — refused by a password validator, or *Choose a new
@@ -406,6 +429,11 @@ The token comes from ``django.contrib.auth.tokens.default_token_generator``, so
 it is invalidated by the password changing or by ``PASSWORD_RESET_TIMEOUT``
 (three days by default) elapsing.  In development Mailpit catches the mail on
 SMTP 1025; read it at http://localhost:8025/.
+
+The address is looked up before the answer, the same one query whether or not it
+matches, and the message is rendered and sent after the answer has gone
+(:ref:`mail after the answer <api-after-response>`), so the time the request takes does not say whether
+there was anybody to mail.
 
 ``apps.accounts.services.build_reset_url`` builds that link, stripping any
 trailing slash from ``SITE_URL``, and the invitation an administrator-created
@@ -451,6 +479,13 @@ has blocked from reactivating (one mailed before the block) is refused with
 the organization's name read from the site settings, and no password is set.  The block is
 read again from the locked account row, so one set while the reset is under way
 refuses it the same way and rolls the whole reset back.
+
+A reset that replaces a password the account already had is audited as
+``account.password_change`` with ``reset=true``, and the address is mailed the same
+*your password was changed* notice as ``POST /auth/password/change``, once the reset
+commits.  Setting the first password of an account that had none, from an
+invitation or after an undone change of address (`POST /auth/email/undo`_), is
+neither audited nor reported.
 
 Statuses: **204**; **400** for an unusable link, a closed account, a weak
 password or a missing field; **429** when the ``auth_password_reset`` throttle is exhausted, which
@@ -582,8 +617,8 @@ server refuses the verification link (:ref:`refused sends <api-refused-send>`);
 Email verification
 ==================
 
-A new account, a member an administrator creates with a password, and every
-change of address are mailed a link that proves the address::
+A new account and a member an administrator creates with a password are mailed a
+link that proves the address::
 
     {SITE_URL}/portal/verify-email?token=<token>
 
@@ -599,21 +634,15 @@ change of capitalization alone does not.
 ``"<organization name>: verify your email address"``, and the email log
 records it under the purpose ``email_verification``.
 
-``accounts.services.update_account`` is the one hook for a change of address:
-whenever an edit really changes ``email`` — compared stripped and
-case-insensitively — it clears ``email_verified_at`` and mails the new address
-once the transaction commits, with the address it replaced signed into the
-link.  The same edit clears any bounce recorded against the old address
-(``email_bounced_at`` and ``email_bounce_detail``).  That covers
-``PATCH /admin/members/{user_id}`` and ``POST /auth/email/change`` alike.  A mail server that refuses the link leaves
-the edit standing and the answer unchanged
-(:ref:`refused sends <api-refused-send>`).
+A change of address is proved by a link of its own, to the same page and endpoint,
+before it takes effect (`Changing the address`_).
 
 ``POST /auth/email/verify``
 ---------------------------
 
-Follows a verification link.  Open to anonymous callers, because the mail
-client may open the link in a browser that has no session.
+Follows a link mailed to prove an address: a verification link, or the link that
+completes a change of address.  Open to anonymous callers, because the mail client
+may open the link in a browser that has no session.
 
 .. code-block:: json
 
@@ -621,9 +650,14 @@ client may open the link in a browser that has no session.
 
 .. code-block:: json
 
-   {"email": "marta.reyes@example.org"}
+   {"email": "marta.reyes@example.org", "changed": false}
 
-The account the token names is stamped verified and an
+``email`` is the address the link proved, which the account signs in with, and
+``changed`` is true when following the link moved the account to it.
+``apps.accounts.email_change.follow_verification_link`` tells the two kinds of link
+apart by their signing salts.
+
+For a verification link, the account the token names is stamped verified and an
 ``account.email_verified`` audit line is written; any bounce recorded against the
 address is cleared, since mail to it has just arrived.  A link mailed when somebody
 registered with a donor's address first upgrades the donor to the member or
@@ -644,14 +678,17 @@ password form and posts again::
 
 A password Django's validators reject is a ``400 {"password": [...]}``, and nothing
 changes either.  ``password`` is ignored for every other link, and nobody is signed
-in.  A donor's link that carries no upgrade is refused like a forged one.  A link mailed after a
-change of address carries the address it replaced, and the visit that stamps the
-account verified raises the ``email_changed`` event with that old address
-(:doc:`notification-events`).  Following a link a second
-time answers 200 again and changes nothing.  Every way a link can be unusable —
-a forged or mangled token, one older than the timeout, a deactivated or deleted
-account, an address the account no longer holds — returns the same
-``400 {"token": ["That verification link is invalid or has expired."]}``.
+in.  A donor's link that carries no upgrade is refused like a forged one.
+
+A link that completes a change of address is described under `Changing the
+address`_.  Following any link a second time answers 200 again and changes nothing.
+Every way a link can be unusable — a forged or mangled token, one older than the
+timeout, a deactivated or deleted account, an address the account no longer holds,
+a change of address since replaced or undone — returns the same
+``400 {"token": ["That verification link is invalid or has expired."]}``.  A change
+whose new address another account has taken meanwhile is
+``400 {"token": ["Another account already uses that email address."]}``, and
+nothing changes.
 
 Statuses: **200**; **400** for an unusable token, a missing field, or a donor's
 link with no password or a rejected one; **429** when the ``auth_verify`` throttle
@@ -660,26 +697,106 @@ is exhausted.
 ``POST /auth/email/resend``
 ---------------------------
 
-Mails the signed-in account's address a fresh verification link.  No body.
+Mails the signed-in account a fresh link.  No body.  While a change of address is
+waiting, the link that completes it goes to ``pending_email``
+(``apps.accounts.email_change.send_email_change_link``); otherwise a verification
+link goes to the account's own address.  The answer names the address mailed:
 
 .. code-block:: json
 
    {"detail": "Verification message sent to marta.reyes@example.org."}
 
-An address that is already verified is refused, and nothing is mailed::
+A verified address with no change waiting is refused, and nothing is mailed::
 
     400 {"detail": "Your email address is already verified."}
 
 Statuses: **202**, also when the mail server refuses the message
-(:ref:`refused sends <api-refused-send>`); **400** for a verified address;
-**401** when anonymous; **429** when the ``auth_verify_resend`` throttle is exhausted.
+(:ref:`refused sends <api-refused-send>`); **400** for a verified address with no
+change waiting; **401** when anonymous; **429** when the ``auth_verify_resend``
+throttle is exhausted.
+
+
+.. _api-email-change:
+
+Changing the address
+--------------------
+
+The address is the login and where a password reset link goes, so a change never
+takes effect on the word of whoever asked: a stolen session must not be able to move
+the account to its own mailbox unseen.  ``apps.accounts.email_change`` holds the
+whole flow.
+
+#. **The request.**  ``request_email_change(actor, target, email)`` stores the new
+   address as the account's ``pending_email``, replacing any earlier one, and audits
+   ``action=account.email_change_request actor=<who asked> target=<id>``.  Nothing
+   about signing in changes: the account keeps its ``email``, its verification and
+   its password.  An address equal to the current one, compared case-insensitively,
+   is no change at all.  Otherwise the account-edit guard (:ref:`account-edit-guard`)
+   runs first; then the account's own request is refused while it keeps a recovery
+   address (below); then an address another account holds, or keeps as its recovery
+   address (``apps.accounts.services.address_taken``), is refused with *Another
+   account already uses that email address.* -- except on the account's own request,
+   which answers exactly as for a free address, stores nothing, and mails nothing, so
+   that a session cannot be used to find out who has an account.
+   ``POST /auth/email/change`` below asks for the account itself, and
+   ``PATCH /admin/members/{user_id}`` for an account administrator
+   (:doc:`api-members`).
+#. **The link to the new address.**  Once the request commits, ``pending_email`` is
+   mailed *confirm your new email address*
+   (``templates/emails/email_change_confirm.{txt,html}``) with a link to
+   ``/portal/verify-email``; the message does not show the address the account signs
+   in with.  Its token is ``django.core.signing.dumps({"user": <id>, "email": <current
+   address>, "change_to": <new address>, "by": <id of who asked>, "pw": <password
+   fingerprint>}, salt="accounts.email-change")``, the addresses normalized, read with
+   the same ``EMAIL_VERIFICATION_TIMEOUT``.  The fingerprint is a keyed HMAC of the
+   stored password hash (``email_change.password_fingerprint``), as Django signs a
+   password reset link over it, so any new password spends the link.  Every write of a
+   new or unusable password also empties ``pending_email``:
+   ``accounts.services.replace_password`` (a change and a reset) and
+   ``accounts.status.clear_password_and_end_sessions`` (``create_admin`` taking an
+   account back, and **Require a new password**).
+#. **The notice.**  The recovery address, while the account keeps one, or else the
+   current address when it is verified, is mailed *your email address is changing*
+   (``templates/emails/email_change_notice.{txt,html}``), naming the new address and
+   carrying a link that undoes the change.  An address nobody has verified is told
+   nothing: it may belong to somebody else entirely, who must not be handed a link
+   that takes the account.
+#. **Completing.**  Following the link (`POST /auth/email/verify`_) works only while
+   the account is active, still holds the address the token names, still waits for
+   the address the link was sent to, and still has the password it had when the link
+   was made; a later request, an undo, a new password, or any other change of address
+   spends it.  It writes ``pending_email`` as the account's ``email``, as it was
+   typed, empties ``pending_email``, stamps the address verified now, and clears any
+   bounce recorded against the old one.  It is audited as the account's own
+   ``account.update`` of ``email`` and ``account.email_verified``, recorded in the
+   account's history as ``email_changed`` under the account that asked for it
+   (`GET /admin/users/{id}/history`_), and raises the ``email_changed`` event with the
+   old address (:doc:`notification-events`).  The answer's ``changed`` is true.  An
+   address another account took meanwhile, checked first and caught again as the
+   unique constraint's ``IntegrityError`` when two complete at once, is a 400 and
+   changes nothing.  Sessions are left alone.
+#. **The recovery address.**  A completed change keeps the verified address it left
+   as ``recovery_email`` until ``recovery_until``, ``EMAIL_CHANGE_UNDO_TIMEOUT``
+   seconds (seven days, as long as an undo link lasts); while one is kept already, it
+   stays and is kept that long from now.  Meanwhile the address is reserved for the
+   account: registration (``POST /auth/register`` treats it as the account's own),
+   the public donation checkout (the gift goes to the account), and every other
+   account's change of address treat it as taken.  The account's own address cannot
+   change again by self-service; an account administrator may still change it, and
+   the notices go to the recovery address.  Once it commits, the recovery address is
+   mailed *your email address has changed*, with a fresh undo link.
+#. **Undo.**  `POST /auth/email/undo`_ below.
+
+A donor cannot sign in, so a donor's address is only where receipts go: an account
+administrator's change of it is written at once, audited as ``account.update`` of
+``email``, and nothing is mailed.
 
 ``POST /auth/email/change``
 ---------------------------
 
-Moves the signed-in account to another address and returns the user payload,
-whose ``email_verified`` is then false.  The address is the login, so the
-current password is asked for first.
+Asks to move the signed-in account to another address and returns the user payload,
+``email`` unchanged and ``pending_email`` the address asked for.  The address is the
+login, so the current password is asked for first.
 
 .. code-block:: json
 
@@ -693,19 +810,77 @@ the first failure is reported, each a 400 keyed on its field:
 * ``{"current_password": ["That is not your current password."]}``
 * ``{"email": ["That is already your email address."]}`` — compared
   case-insensitively.
-* ``{"email": ["Another account already uses that email address."]}`` — also
-  case-insensitive.
+* ``{"email": ["Your sign-in address changed in the last seven days, so it cannot
+  change again until 10/19/2026."]}`` — while the account keeps a recovery address,
+  naming the day it stops being kept.
 
-The change goes through ``accounts.services.change_own_email``, which is
-``update_account`` with the account as both actor and target: it is audited as
-``action=account.update actor=12 target=12 fields=email``, and the new address
-is mailed a verification link on commit.  The session survives, so the caller
-stays signed in.
+An address another account holds is not refused: the answer is the same as for a free
+address, ``pending_email`` included, but nothing is stored and nothing is mailed, so
+no link ever arrives and the Change email screen shows no change waiting afterwards.
 
-Statuses: **200**, also when the mail server refuses the verification link
+The request goes through ``request_email_change`` with the account as both actor
+and target, described under `Changing the address`_; it is audited as
+``action=account.email_change_request actor=12 target=12``.  The session survives.
+Asking again with another address replaces the one waiting, and the earlier link
+stops working.
+
+Statuses: **200**, also when the mail server refuses either message
 (:ref:`refused sends <api-refused-send>`); **400** for any rejection above or a
-missing field; **401** when anonymous.
+missing field; **401** when anonymous; **429** when the ``auth_email_change``
+throttle is exhausted.
 
+``POST /auth/email/undo``
+-------------------------
+
+Follows the link in a notice to the old address, and undoes the change it was mailed
+about.  Open to anonymous callers, and throttled under ``auth_verify``.  The link is
+``{SITE_URL}/portal/undo-email-change?token=<token>``, the token
+``django.core.signing.dumps({"user": <id>, "from": <old address>, "to": <new
+address>, "at": <when it was made>}, salt="accounts.email-change-undo")``, the
+addresses as they were stored.  It is good for
+``apps.accounts.email_change.EMAIL_CHANGE_UNDO_TIMEOUT`` seconds, seven days.  The
+portal's page posts the token only when the visitor presses **Undo the change**, so a
+mail scanner that opens the link changes nothing.
+
+.. code-block:: json
+
+   {"token": "eyJ1c2VyIjoxMiwiZnJvbSI6Im1hcnRhQGV4YW1wbGUub3JnIn0:1xAG4w:..."}
+
+.. code-block:: json
+
+   {"email": "marta.reyes@example.org", "taken": false}
+
+In one transaction, holding a lock on the account's row
+(``apps.accounts.email_change.undo_email_change``):
+
+#. when the account no longer holds the old address, it is put back and stamped
+   verified, since the link could only have reached its owner, and any bounce is
+   cleared.  When another account holds that address by then, the address stays as
+   it is and ``taken`` is true, but everything below happens all the same;
+#. any change still waiting is dropped, and the recovery address is forgotten;
+#. the password is made unusable, so whoever asked for the change, who knew it,
+   cannot sign in again, and every session signed in to the account is ended
+   (``accounts.status.end_sessions``);
+#. ``email_change_undone_at`` is set to now, audited as
+   ``action=account.email_change_undo actor=12 target=12 restored=<true or false>``,
+   and recorded in the account's history as ``email_change_undone``;
+#. once it commits, the address the undo link was mailed to is sent a password reset
+   link, which is how the owner signs in again.  The account's active flag is left
+   alone; completing that reset reactivates a deactivated account, as any reset does.
+
+Each link works once: an undo spends every undo link made before it, because a token
+older than ``email_change_undone_at`` is refused.  While the account keeps a recovery
+address, only a link mailed to that address counts, so whoever moved the account can
+never follow an undo link of their own that spends its owner's; and since the
+account's own address cannot change again meanwhile, they cannot be sent one.
+
+* **400** ``{"token": ["That link is invalid, has expired, or has been used."]}`` —
+  a forged or mangled token, one older than seven days, one spent by an earlier
+  undo, one for no account or a donor's, or one mailed to another address than the
+  recovery address the account keeps.
+
+Statuses: **200**; **400** as above or for a missing field; **429** when the
+``auth_verify`` throttle is exhausted.
 
 Unverified sessions
 -------------------
@@ -716,8 +891,8 @@ A signed-in account whose ``email_verified`` is false may call only these:
   ``POST /auth/login``, ``POST /auth/register``, ``POST /auth/password/reset``, and
   ``POST /auth/password/reset/confirm``;
 * ``GET /auth/me`` and ``POST /auth/logout``;
-* ``POST /auth/email/verify``, ``POST /auth/email/resend``, and
-  ``POST /auth/email/change``;
+* ``POST /auth/email/verify``, ``POST /auth/email/resend``,
+  ``POST /auth/email/change``, and ``POST /auth/email/undo``;
 * ``GET /site/config``.
 
 Every other request under ``/api/v1/``, read or write, is answered::
@@ -1074,14 +1249,16 @@ Statuses: **200** with the user payload; **401** when anonymous; **403** without
 ``GET /admin/users/{id}/history``
 ---------------------------------
 
-The account's role and status changes, newest first, unpaginated: the user record's
-History card.  Each is an ``AccountChange`` row (``apps.accounts.history``), written
-beside the audit line for the same change, since the audit log is a journal and cannot
-be read back.  A row is written for an account created on New member (``created``), a
-role list that really changes (``roles``), each deactivation, reactivation, block,
-and lifted block (``deactivated``, ``reactivated``, ``blocked``, ``unblocked``),
-including the owner's own deactivation and reactivation, and each new password required
-(``new_password``).
+The account's role, status, and address changes, newest first, unpaginated: the user
+record's History card.  Each is an ``AccountChange`` row (``apps.accounts.history``),
+written beside the audit line for the same change, since the audit log is a journal and
+cannot be read back.  A row is written for an account created on New member
+(``created``), a role list that really changes (``roles``), each deactivation,
+reactivation, block, and lifted block (``deactivated``, ``reactivated``, ``blocked``,
+``unblocked``), including the owner's own deactivation and reactivation, each new
+password required (``new_password``), and each change of address completed or undone (``email_changed``, under the account that asked for it,
+and ``email_change_undone``, under the account itself; see `Changing the address`_).
+Neither address is stored.
 
 .. code-block:: json
 
@@ -1164,9 +1341,8 @@ Blocking reactivation
 =====================
 
 A deactivated account normally comes back whenever its owner wants: by signing
-in, through ``POST /auth/reactivate``, by completing a password reset, or by
-registering again with the address.  ``User.reactivation_blocked`` closes all four
-doors.  Only a user administrator sets or clears it, through ``POST
+in, through ``POST /auth/reactivate``, or by completing a password reset.
+``User.reactivation_blocked`` closes all three doors.  Only a user administrator sets or clears it, through ``POST
 /admin/users/{id}/block`` and ``/unblock`` above, and setting it on an active
 account deactivates the account first, so a blocked account is always
 deactivated.  While it is set:
@@ -1178,8 +1354,8 @@ deactivated.  While it is set:
   address;
 * ``POST /auth/password/reset/confirm`` refuses a link mailed before the block
   with the same sentence under ``token``;
-* ``POST /auth/register`` refuses the address with the same sentence under
-  ``email``;
+* ``POST /auth/register`` answers as for any address, and mails the address that
+  the account has been closed (`POST /auth/register`_);
 * an administrator's ``/reactivate`` is refused with "A user administrator has
   blocked this account from reactivating. Allow reactivation on its user record
   first."
@@ -1198,8 +1374,9 @@ Two things an administrator could use to take an account over are guarded: the
 email address, which is the login *and* where a password reset link is mailed,
 and the account's status, since deactivating or blocking it locks its owner out.
 The one administrator edit of the address, ``PATCH /admin/members/{user_id}`` in
-:doc:`api-members`, writes through ``accounts.services.update_account``, which runs
-every write of ``email`` past ``accounts.services.check_account_edit`` first;
+:doc:`api-members`, asks for the change through
+``accounts.email_change.request_email_change``, which runs every new address past
+``accounts.services.check_account_edit`` first (`Changing the address`_);
 ``PATCH /admin/users/{id}`` above refuses the address outright.  The status actions — the user
 record's ``/deactivate``, ``/reactivate``, ``/block`` and ``/unblock`` above and
 the member record's ``/deactivate`` and ``/reactivate`` — apply the same rule in
@@ -1244,10 +1421,10 @@ included — is closed to a lower administrator by either route.  Against an
 account administrator the guard is absolute in one request as well as two,
 because ``PATCH /admin/members/{user_id}`` has no ``roles`` field at all.
 
-On a record whose address the caller may not write, a value that is not a real
-change is dropped rather than saved, so an address resent in another case leaves
-the stored one exactly as it was.  A caller who may write it saves what they
-sent, case included.
+An address that is not a real change, such as the stored one resent in another case,
+asks for nothing, whoever sends it: the stored address stays exactly as it was.  A
+real change the guard allows is a request, which the new address's owner completes
+(`Changing the address`_).
 
 A refused address is a 400 keyed on ``email``, the same shape as the ``roles``
 guard, so a client can show it against the input it came from; a refused status
@@ -1306,12 +1483,12 @@ Rate limiting
 =============
 
 Login, reactivation, registration, both password-reset endpoints, the
-email-verify endpoint, the verification resend, and the public donation
-checkout are throttled by client address.  The classes are in
+email-verify and email-undo endpoints, the verification resend, a change of one's own
+address, and the public donation checkout are throttled by client address.  The classes are in
 ``apps.accounts.throttling``; they subclass
 ``AnonRateThrottle`` but override ``get_cache_key`` so a session does not exempt
-the caller — registration signs the new account in, so every request after the
-first would otherwise carry a cookie and go uncounted.
+the caller — a signed-in caller's requests would otherwise carry a cookie and go
+uncounted.
 
 Rates come from the ``AUTH_THROTTLE_RATES`` setting rather than DRF's
 ``DEFAULT_THROTTLE_RATES``, which makes them easy to change per environment and
@@ -1325,6 +1502,7 @@ Scope                    Default                    Environment variable
 ``auth_password_reset``  10/hour                    ``AUTH_THROTTLE_PASSWORD_RESET``
 ``auth_verify``          30/hour                    ``AUTH_THROTTLE_VERIFY``
 ``auth_verify_resend``   5/hour                     ``AUTH_THROTTLE_VERIFY_RESEND``
+``auth_email_change``    10/hour                    ``AUTH_THROTTLE_EMAIL_CHANGE``
 ``donate``               10/hour                    ``AUTH_THROTTLE_DONATE``
 =======================  =========================  ===========================
 
@@ -1355,11 +1533,15 @@ How the portal uses this
 ``useMe`` and ``useAuth`` for identity, ``useRoles`` for the catalog, and
 ``useLogin``, ``useReactivate``, ``useRegister``, ``useLogout``, ``usePasswordChange``,
 ``usePasswordResetRequest``, ``usePasswordResetConfirm``, ``useEmailVerify``,
-``useResendVerification``, and ``useEmailChange`` for the mutations.
-``useEmailChange`` seeds ``['auth', 'me']`` with the answer, and
-``useEmailVerify`` invalidates it, so a signed-in member's own payload says
-verified straight away.
-Login, reactivation, registration, and logout all call ``queryClient.clear()`` so
+``useResendVerification``, ``useEmailChange``, and ``useEmailChangeUndo`` for the
+mutations.  ``useRegister`` touches no cache, since nobody is signed in: the join
+wizard's account step shows **Check your email** for every address.
+``useEmailChange`` seeds ``['auth', 'me']`` with the answer, whose ``pending_email``
+the Change email screen, the join wizard's verify step, and the member and user records
+show as the change waiting; ``useEmailVerify`` invalidates it, so a signed-in member's
+own payload says verified, or moved, straight away.  ``useEmailChangeUndo`` backs the
+public ``/undo-email-change`` page and empties the cache, since every session of the
+account has ended.  Login, reactivation, and logout all call ``queryClient.clear()`` so
 no screen can show the previous user's data.  The sign-in page reads a 403 whose
 ``code`` is ``deactivated`` as an offer: it shows a **Reactivate my account**
 panel whose button sends the same credentials through ``useReactivate`` and then
@@ -1410,9 +1592,22 @@ Tests
 =====
 
 ``backend/tests/test_accounts_auth.py``
-   Registration (happy path, duplicate address in either case, weak passwords,
-   rollback), password change, the whole reset flow end to end through
-   ``mail.outbox``, ``profile_complete``, and the throttles.
+   Registration (a new account, no second account for a taken address in either
+   case, weak passwords, rollback), password change, the whole reset flow end to end
+   through ``mail.outbox``, ``profile_complete``, and the throttles.
+
+``backend/tests/test_registration.py``
+   The one answer registration gives whoever holds the address, the session it never
+   starts, refusals that read alike, and the message each kind of holder is mailed.
+
+``backend/tests/test_email_change.py``
+   A change of address: the request and what it leaves alone, the link to the new
+   address and each way it is spent, an administrator's change, a donor's, and the
+   undo link with each thing it does and each way it is refused.
+
+``backend/tests/test_account_notices.py``
+   The notice of a changed password, from a change and from a reset, and the mail
+   sent after the answer (``send_after_response``).
 
 ``backend/tests/test_users_admin_api.py``
    The full role matrix on every users-admin endpoint, the search and filter
@@ -1439,16 +1634,15 @@ Tests
 
 ``backend/tests/test_email_verification.py``
    The verification token and each way it is refused, the message, every path
-   that sends one, and the verify, resend, change, and administrator resend
-   endpoints.
+   that sends one, and the verify, resend, and administrator resend endpoints.
 
 ``backend/tests/test_mail_failure_answers.py``
    Every request that sends mail, against a mail server that takes the message
    and one that refuses it: the same answer either way for the self-service and
    side-effect sends, the 503 on the two user-record sends, the failed email log
    row, the ``caldart.mail`` error record and the address it leaves out, a
-   template that does not render answering 500, and the error-mail handler that
-   cannot raise.
+   template that does not render answering 500 (or, for a reset sent after the
+   answer, logged), and the error-mail handler that cannot raise.
 
 ``backend/tests/test_auth_api.py``
    The minimal surface the portal shell needs — CSRF, login, logout, me.
@@ -1464,5 +1658,5 @@ Tests
 
 ``backend/tests/test_account_kinds.py``
    Members, friends, and donors: the effective kind in Python and SQL, the
-   ``friend`` state, kind at registration and the donor upgrade, the
-   deactivated refusal, and every way a donor is kept from signing in.
+   ``friend`` state, kind at registration and the donor upgrade, and every way a
+   donor is kept from signing in.

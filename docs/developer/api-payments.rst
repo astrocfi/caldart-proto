@@ -378,7 +378,21 @@ field that was sent filled in (a non-blank value, a DART, a checked box) written
 over the stored one and a field left out or blank keeping what an earlier, completed
 gift said (``apps.payments.donations.apply_donor_fields``, called from
 ``mark_succeeded``).  Only a donor's account takes them; a member's or a friend's
-keeps the details its owner keeps from the portal.  Nothing is mailed to the donor but the receipt.  The page's
+keeps the details its owner keeps from the portal.
+
+A gift from this page is marked as one (``Payment.is_public_gift``: its
+``donor_fields`` are filled in when ``start_donation`` makes it), because whoever gives
+may not own the account the address names.  Such a payment never matches a renewal
+mandate (``pending_mandate_for`` answers ``None``), so it never activates the account's
+pending automatic renewal or recurring donation and never saves the giver's card or
+PayPal account against the account, and Stripe creates its intent with no customer.
+Until it settles it is left out of the account holder's ``GET /me/payments``
+(:doc:`api-profile`); it counts in no report or statement before then, as no unsettled
+payment does.  Its receipt is made out to the name the giver typed
+(``Payment.payer_name``), and a contribution statement line for it names the giver when
+that differs from the account holder (``given as …`` under the receipt number).  An
+address an account keeps as its recovery address after a change of address
+(:ref:`api-email-change`) gives to that account too.  Nothing is mailed to the donor but the receipt.  The page's
 Stripe tab starts a checkout as soon as it shows, to load Stripe's card form, and
 again each time the giver comes back to it with changed details; each one counts
 against the ``donate`` rate.  A visitor who opens the Stripe tab and leaves is

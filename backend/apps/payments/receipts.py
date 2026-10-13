@@ -120,18 +120,31 @@ def receipt_data(payment: Payment) -> ReceiptData:
 
     The issue date is the payment's ledger date -- the day a check was received,
     or the day the provider settled -- and falls back to today for a payment
-    that has not completed.
+    that has not completed.  The payer is ``Payment.payer_name``: for a gift from the
+    public donation page, the name the giver typed.
     """
     return ReceiptData(
         org=org_details(),
         receipt_number=payment.receipt_number,
         issued_on=payment.paid_on or timezone.localdate(),
-        payer_name=payment.user.display_name,
+        payer_name=payment.payer_name,
         payer_email=payment.user.email,
         lines=receipt_lines(payment),
         provider_label=provider_label(payment),
         provider_ref=payment.provider_ref,
     )
+
+
+def _greeting_name(payment: Payment) -> str:
+    """The name the receipt email greets: the giver's typed first name for a public gift.
+
+    Otherwise the account's first name, or its display name when it has none.
+    """
+    if payment.is_public_gift:
+        typed = str(payment.donor_fields.get("first_name", "")).strip()
+        if typed:
+            return typed
+    return payment.user.first_name or payment.user.display_name
 
 
 def render_receipt_pdf(payment: Payment) -> bytes:
@@ -164,7 +177,7 @@ def send_receipt(payment: Payment) -> bool:
     context: dict[str, object] = {
         "org_name": org.name,
         "contact_email": org.contact_email,
-        "first_name": payment.user.first_name or payment.user.display_name,
+        "first_name": _greeting_name(payment),
         "receipt_number": payment.receipt_number,
         "issued_on": payment.paid_on or timezone.localdate(),
         "amount": money_label(payment.amount_cents),
@@ -250,9 +263,10 @@ def statement_data(user: User, year: int) -> StatementData:
     """``user``'s contributions in ``year``, gathered for the statement PDF.
 
     One line per settled contribution, in the order they were paid, each netted
-    against whatever of it was refunded.  A year the member gave nothing in
-    yields a statement whose total is zero rather than no statement at all;
-    :func:`statement_years` is what says which years are worth offering.
+    against whatever of it was refunded.  A gift from the public donation page made
+    out to another name than the account's carries that name as ``given_as``.  A year
+    the member gave nothing in yields a statement whose total is zero rather than no
+    statement at all; :func:`statement_years` is what says which years are worth offering.
     """
     lines = [
         StatementLine(
@@ -260,6 +274,7 @@ def statement_data(user: User, year: int) -> StatementData:
             receipt_number=payment.receipt_number,
             amount_cents=payment.contribution_cents,
             refunded_cents=refunded_contribution_cents(payment),
+            given_as=_given_as(payment, user),
         )
         for payment in contribution_payments(user, year)
     ]
@@ -270,6 +285,17 @@ def statement_data(user: User, year: int) -> StatementData:
         member_email=user.email,
         contributions=lines,
     )
+
+
+def _given_as(payment: Payment, user: User) -> str:
+    """The giver's name on a statement line, when it is not the account's own.
+
+    ``""`` for every payment but a public gift whose typed name differs from ``user``'s
+    display name.
+    """
+    if not payment.is_public_gift or payment.payer_name == user.display_name:
+        return ""
+    return payment.payer_name
 
 
 def render_statement_pdf(user: User, year: int) -> bytes:

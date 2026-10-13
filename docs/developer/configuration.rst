@@ -212,8 +212,9 @@ rate is a **429**.
    :Production: ``10/hour``
 
 ``AUTH_THROTTLE_VERIFY``
-   ``POST /auth/email/verify``, which follows a verification link.  Open to
-   anonymous callers, so the rate is what keeps a token from being guessed.
+   ``POST /auth/email/verify``, which follows a verification link, and
+   ``POST /auth/email/undo``, which follows the link that undoes a change of address.
+   Open to anonymous callers, so the rate is what keeps a token from being guessed.
 
    :Development: ``30/hour``
    :Production: ``30/hour``
@@ -224,6 +225,15 @@ rate is a **429**.
 
    :Development: ``5/hour``
    :Production: ``5/hour``
+
+``AUTH_THROTTLE_EMAIL_CHANGE``
+   ``POST /auth/email/change``, which asks to move the signed-in account to another
+   address and mails that address a link.  It answers an address another account
+   holds as it answers a free one, and the rate keeps a session from being used to
+   test many addresses.
+
+   :Development: ``10/hour``
+   :Production: ``10/hour``
 
 ``AUTH_THROTTLE_DONATE``
    ``POST /donations/checkout``, which starts a gift on the public donation page

@@ -17,7 +17,7 @@ from rest_framework import serializers
 
 from apps.accounts.models import PERSON_KIND_CHOICES, AccountKind, User
 from apps.accounts.roles import ROLE_SLUGS
-from apps.accounts.services import AccountChanges
+from apps.accounts.services import AccountChanges, address_taken
 from apps.aircraft.api.serializers import AircraftSummarySerializer
 from apps.members.api.profile_serializers import (
     FIRST_NAME_MESSAGE,
@@ -377,12 +377,15 @@ class MemberDetailSerializer(serializers.Serializer[User]):
 
     ``email_bounced_at`` and ``email_bounce_detail`` say when and why the bounce check
     last found the member's address bouncing; null and blank with no bounce known.
+    ``pending_email`` is the address a requested change waits to move the account to,
+    or ``""``: ``email`` changes only once the link mailed there is followed.
     ``is_tombstone`` is true for the **Deleted member <id>** account that keeps a
     deleted account's payments, whose record refuses every change.
     """
 
     id = serializers.IntegerField(read_only=True)
     email = serializers.EmailField(read_only=True)
+    pending_email = serializers.CharField(read_only=True)
     first_name = serializers.CharField(read_only=True)
     last_name = serializers.CharField(read_only=True)
     name = serializers.CharField(source="display_name", read_only=True)
@@ -482,11 +485,12 @@ class MemberCreateSerializer(serializers.Serializer[User]):
     def validate_email(self, value: str) -> str:
         """Trim the address, refusing one an account already has.
 
-        The test ignores case, and the complaint is "An account with that email
-        address already exists."
+        The test ignores case and counts an address an account keeps as its recovery
+        address (:func:`apps.accounts.services.address_taken`), and the complaint is "An
+        account with that email address already exists."
         """
         value = value.strip()
-        if User.objects.filter(email__iexact=value).exists():
+        if address_taken(value):
             raise serializers.ValidationError("An account with that email address already exists.")
         return value
 
@@ -560,14 +564,13 @@ class MemberUpdateSerializer(serializers.Serializer[User]):
     def validate_email(self, value: str) -> str:
         """Trim the address, refusing one another account already has.
 
-        The test ignores case and skips the member being edited, and the
-        complaint is "An account with that email address already exists."
+        The test ignores case, counts an address an account keeps as its recovery
+        address, and skips the member being edited
+        (:func:`apps.accounts.services.address_taken`), and the complaint is "An account
+        with that email address already exists."
         """
         value = value.strip()
-        clash = User.objects.filter(email__iexact=value)
-        if self.instance is not None:
-            clash = clash.exclude(pk=self.instance.pk)
-        if clash.exists():
+        if address_taken(value, by_other_than=self.instance):
             raise serializers.ValidationError("An account with that email address already exists.")
         return value
 

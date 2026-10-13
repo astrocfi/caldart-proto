@@ -150,13 +150,13 @@ def test_an_account_admin_cannot_deactivate_themselves(
 def test_an_admin_may_still_change_a_plain_members_email(
     api_client: APIClient, account_admin: User, member: User
 ) -> None:
-    """The guard does not apply to a plain member: the member record moves the address."""
+    """The guard does not apply to a plain member: the member record asks for the move."""
     api_client.force_login(account_admin)
     response = api_client.patch(member_detail(member), {"email": "marta@example.test"})
 
     assert response.status_code == 200
     member.refresh_from_db()
-    assert member.email == "marta@example.test"
+    assert member.pending_email == "marta@example.test"
 
 
 def test_a_system_admin_may_change_another_system_admins_email(
@@ -169,7 +169,7 @@ def test_a_system_admin_may_change_another_system_admins_email(
 
     assert response.status_code == 200
     target.refresh_from_db()
-    assert target.email == "moved@example.test"
+    assert target.pending_email == "moved@example.test"
 
 
 def test_a_role_less_superuser_may_change_a_system_admins_email(
@@ -181,7 +181,7 @@ def test_a_role_less_superuser_may_change_a_system_admins_email(
 
     assert response.status_code == 200
     system_admin.refresh_from_db()
-    assert system_admin.email == "moved@example.test"
+    assert system_admin.pending_email == "moved@example.test"
 
 
 def test_resending_the_stored_values_with_a_name_change_succeeds(
@@ -211,16 +211,16 @@ def test_an_email_that_differs_only_in_case_is_not_a_change(
     assert system_admin.email == "sysadmin@example.test"
 
 
-def test_an_admin_who_may_edit_the_address_saves_the_case_they_sent(
+def test_a_change_of_case_alone_is_no_change_of_address(
     api_client: APIClient, system_admin: User, member: User
 ) -> None:
-    """Nothing is dropped from a record the actor may edit: the write goes in verbatim."""
+    """The stored address in other capitals asks for nothing, whoever sends it."""
     api_client.force_login(system_admin)
     response = api_client.patch(member_detail(member), {"email": member.email.upper()})
 
     assert response.status_code == 200
     member.refresh_from_db()
-    assert member.email == "MEMBER@EXAMPLE.TEST"
+    assert (member.email, member.pending_email) == ("member@example.test", "")
 
 
 def test_an_account_admin_may_still_rename_a_system_admin(

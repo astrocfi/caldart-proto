@@ -30,6 +30,18 @@ describe('<VerifyStep/>', () => {
     ).toBeInTheDocument();
   });
 
+  it('names the new address while a change of address waits', async () => {
+    stubMe(() => ({ ...UNVERIFIED, pending_email: 'right@example.org' }));
+    renderWithProviders(<VerifyStep onDone={() => undefined} />);
+
+    expect(
+      await screen.findByText(
+        'We sent a link to right@example.org. Your sign-in address stays new@example.org ' +
+          'until you follow it.',
+      ),
+    ).toBeInTheDocument();
+  });
+
   it('resends the message and says where it went', async () => {
     let resent = false;
     stubMe(() => UNVERIFIED);

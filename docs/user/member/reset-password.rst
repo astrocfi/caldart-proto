@@ -39,6 +39,11 @@ The screen changes to **Password changed**: *Your new password is saved. Sign in
 with it to get back to the portal.* Press **Go to sign in** and sign in with the
 new password (see :doc:`sign-in`).
 
+CalDART emails your address *CalDART: your password was changed*, so you hear of a
+reset you did not ask for. Setting the first password of an account, from *CalDART:
+set your password* or after you took your account back (see
+:doc:`undo-email-change`), sends no such message.
+
 Setting the password also confirms your email address, since the link could only
 have reached you there. If the account was deactivated, it is active again,
 unless an administrator has closed it: then the screen answers *This account has

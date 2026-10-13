@@ -36,7 +36,7 @@ function verifySucceeds(): { posted: unknown[] } {
   server.use(
     http.post(`${API}/auth/email/verify`, async ({ request }) => {
       record.posted.push(await request.json());
-      return HttpResponse.json({ email: 'marta@example.org' });
+      return HttpResponse.json({ email: 'marta@example.org', changed: false });
     }),
   );
   return record;
@@ -49,6 +49,32 @@ describe('<VerifyEmailPage/>', () => {
 
     await screen.findByRole('heading', { name: 'Email verified' });
     expect(record.posted).toEqual([{ token: 'signed-token' }]);
+  });
+
+  it('says a link that moved the account names its new sign-in address', async () => {
+    server.use(
+      http.post(`${API}/auth/email/verify`, () =>
+        HttpResponse.json({ email: 'marta.new@example.org', changed: true }),
+      ),
+    );
+    renderPage();
+
+    expect(
+      await screen.findByText('marta.new@example.org is your sign-in address from now on.'),
+    ).toBeInTheDocument();
+  });
+
+  it('titles a link that moved the account Email address changed', async () => {
+    server.use(
+      http.post(`${API}/auth/email/verify`, () =>
+        HttpResponse.json({ email: 'marta.new@example.org', changed: true }),
+      ),
+    );
+    renderPage();
+
+    expect(
+      await screen.findByRole('heading', { name: 'Email address changed' }),
+    ).toBeInTheDocument();
   });
 
   it('says which address is verified', async () => {
@@ -119,7 +145,7 @@ describe('<VerifyEmailPage/>', () => {
       http.post(`${API}/auth/email/verify`, () => {
         isVerified = true;
         releaseFirstCheck();
-        return HttpResponse.json({ email: 'marta@example.org' });
+        return HttpResponse.json({ email: 'marta@example.org', changed: false });
       }),
     );
     const { client } = renderPage();
@@ -156,7 +182,8 @@ describe('<VerifyEmailPage/>', () => {
      * one comes, then `answer` for the body that carries it. Records every body posted.
      */
     function donorLink(
-      answer: () => Response = () => HttpResponse.json({ email: 'giver@example.org' }),
+      answer: () => Response = () =>
+        HttpResponse.json({ email: 'giver@example.org', changed: false }),
     ): { posted: unknown[] } {
       const record: { posted: unknown[] } = { posted: [] };
       server.use(
@@ -238,7 +265,7 @@ describe('<VerifyEmailPage/>', () => {
     server.use(
       http.post(`${API}/auth/email/verify`, () => {
         asked = true;
-        return HttpResponse.json({ email: 'x@example.org' });
+        return HttpResponse.json({ email: 'x@example.org', changed: false });
       }),
     );
     renderPage('/verify-email');

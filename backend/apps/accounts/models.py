@@ -122,6 +122,20 @@ class User(AbstractUser):
     email_bounced_at = models.DateTimeField(null=True, blank=True)
     #: That report's status code and diagnostic text, or ``""`` with no bounce known.
     email_bounce_detail = models.CharField(max_length=255, blank=True)
+    #: The address a requested change of sign-in address moves the account to, or
+    #: ``""`` when no change is waiting.  The account keeps signing in with ``email``
+    #: until the link mailed to this address is followed; a later request replaces it.
+    pending_email = models.EmailField("pending email address", blank=True)
+    #: When a link mailed to an earlier address last undid a change of address; every
+    #: undo link issued before this moment is spent.  ``None`` until one is followed.
+    email_change_undone_at = models.DateTimeField(null=True, blank=True)
+    #: The verified address a completed change of address moved the account away from,
+    #: kept until ``recovery_until`` so that its owner can undo the change: while it is
+    #: kept the address is reserved for this account, the account's own address cannot
+    #: change again, and only an undo link mailed to it counts.  ``""`` with none kept.
+    recovery_email = models.EmailField("recovery email address", blank=True)
+    #: When ``recovery_email`` stops being kept; ``None`` with none kept.
+    recovery_until = models.DateTimeField(null=True, blank=True)
     #: The kind of person the account belongs to, as stored: what they asked for.  A
     #: member with a ``friend_on`` date that has arrived, or who has not yet paid,
     #: already counts as a friend: see ``apps.members.services.account_kind``.
@@ -284,6 +298,8 @@ class AccountChangeKind(models.TextChoices):
     BLOCKED = "blocked", "Reactivation blocked"
     UNBLOCKED = "unblocked", "Reactivation allowed"
     NEW_PASSWORD = "new_password", "New password required"
+    EMAIL_CHANGED = "email_changed", "Email address changed"
+    EMAIL_CHANGE_UNDONE = "email_change_undone", "Email address change undone"
 
 
 class AccountChange(models.Model):
@@ -292,9 +308,11 @@ class AccountChange(models.Model):
     The user record's **History** card reads these back.  An entry is written beside
     the audit line for the same change, for an account an administrator created, a
     role granted or taken away, an account deactivated, reactivated, blocked from
-    reactivating, or allowed to reactivate again, and a new password required of it.
-    ``changed_by`` is the account that
-    acted, which is the account itself when its owner deactivated or reactivated it,
+    reactivating, or allowed to reactivate again, a new password required of it,
+    and a change of sign-in address completed or undone.  ``changed_by`` is the
+    account that acted, which is the account itself when its owner deactivated or
+    reactivated it or undid a change of address, the account that asked for a change
+    of address that its new owner completed,
     and ``None`` for a management command (``by_command`` is then true) or an actor
     since deleted.  ``added`` and
     ``removed`` hold role slugs in privilege order, and are empty for every kind but
@@ -312,7 +330,7 @@ class AccountChange(models.Model):
     changed_at = models.DateTimeField(default=timezone.now)
     #: True for a change a management command made, which no account stands behind.
     by_command = models.BooleanField(default=False)
-    kind = models.CharField(max_length=12, choices=AccountChangeKind.choices)
+    kind = models.CharField(max_length=20, choices=AccountChangeKind.choices)
     added = models.JSONField(default=list, blank=True)
     removed = models.JSONField(default=list, blank=True)
 

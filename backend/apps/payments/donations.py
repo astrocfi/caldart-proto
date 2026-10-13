@@ -22,15 +22,14 @@ one that started it is a signed token over the payment's id
 
 from __future__ import annotations
 
-import hashlib
 import logging
 from typing import Any, TypedDict, cast
 
 from django.core import signing
-from django.db import connection, transaction
+from django.db import transaction
 
 from apps.accounts.models import AccountKind, User
-from apps.accounts.services import create_account
+from apps.accounts.services import address_holder, create_account, lock_address
 from apps.darts.models import Dart
 from apps.members.models import MemberProfile
 from apps.members.services import touch_profile
@@ -45,9 +44,6 @@ DONATION_TOKEN_SALT = "payments.donation"  # noqa: S105 - a signing salt name, n
 #: How long a donation token stays good, in seconds: an hour, which is longer than any
 #: provider takes to hand a browser back.
 DONATION_TOKEN_MAX_AGE = 3_600
-
-#: What sets donor locks apart from any other advisory lock taken on the database.
-DONOR_LOCK_PERSON = b"caldart-donor"
 
 #: What a caller without a good token is told: the same words an unknown id earns.
 NO_SUCH_PAYMENT = "No such payment."
@@ -113,35 +109,20 @@ class DonationTokenError(Exception):
         super().__init__(NO_SUCH_PAYMENT)
 
 
-def _lock_address(email: str) -> None:
-    """Hold a transaction-scoped advisory lock on ``email``, whatever its case.
-
-    ``User.email`` is unique but case-sensitive, so two first gifts from one address
-    racing each other would otherwise both miss the case-insensitive lookup: one then
-    fails on the unique address, or, typed in two cases, both make a donor.  The lock
-    makes the second wait until the first commits, and then find its donor.
-    """
-    digest = hashlib.blake2b(
-        email.lower().encode(), digest_size=8, person=DONOR_LOCK_PERSON
-    ).digest()
-    with connection.cursor() as cursor:
-        cursor.execute(
-            "SELECT pg_advisory_xact_lock(%s)", [int.from_bytes(digest, "big", signed=True)]
-        )
-
-
 @transaction.atomic
 def donor_for(fields: DonorFields) -> User:
     """The account a gift from ``fields["email"]`` belongs to, found or made.
 
     The address is matched case-insensitively, under a lock on the address held until
-    the caller's transaction ends, so two first gifts from one address arriving
-    together make one donor between them.  A new address becomes a bare donor
-    account (``create_account`` with the ``donor`` kind: no name yet, no role, an
-    unusable password, the address unverified).  An address that belongs to any
-    account, a member's or a friend's included, active or not, is that account: the
-    gift is theirs, as an ordinary contribution, and the page that takes it answers
-    the same whoever holds the address.  Nothing is mailed either way.
+    the caller's transaction ends (``apps.accounts.services.lock_address``), so two
+    first gifts from one address arriving together make one donor between them.  A new
+    address becomes a bare donor account (``create_account`` with the ``donor`` kind:
+    no name yet, no role, an unusable password, the address unverified).  An address
+    that belongs to any account, a member's or a friend's included, active or not, is
+    that account, and so is an address an account keeps as its recovery address after
+    a change of address (``apps.accounts.services.address_holder``): the gift is
+    theirs, as an ordinary contribution, and the page that takes it answers the same
+    whoever holds the address.  Nothing is mailed either way.
 
     The names, the phone, and the profile fields the giver typed are not written
     here: an unauthenticated caller who only knows a donor's address must not be
@@ -151,8 +132,8 @@ def donor_for(fields: DonorFields) -> User:
     donor's account.
     """
     email = fields["email"].strip()
-    _lock_address(email)
-    user = User.objects.filter(email__iexact=email).first()
+    lock_address(email)
+    user = address_holder(email)
     if user is None:
         user = create_account(email=email, kind=AccountKind.DONOR)
         log.info("Donor account %s created for a gift on the public site", user.pk)

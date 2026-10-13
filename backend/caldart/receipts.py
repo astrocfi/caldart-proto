@@ -158,13 +158,16 @@ class StatementLine:
     """One contribution in a year's statement.
 
     ``amount_cents`` is what was given and ``refunded_cents`` what came back,
-    so a contribution refunded in part still appears, honestly netted.
+    so a contribution refunded in part still appears, honestly netted.  ``given_as``
+    is the name a gift was made out to when it is not the account holder's own, such
+    as one given in another person's name on the public donation page, or ``""``.
     """
 
     paid_on: date
     receipt_number: str
     amount_cents: int
     refunded_cents: int = 0
+    given_as: str = ""
 
     @property
     def net_cents(self) -> int:
@@ -276,7 +279,7 @@ def build_statement_pdf(buffer: IO[bytes], statement: StatementData) -> None:
     rows.extend(
         [
             Paragraph(line.paid_on.isoformat(), CELL_STYLE),
-            Paragraph(escape_markup(line.receipt_number), CELL_STYLE),
+            Paragraph(_receipt_cell(line), CELL_STYLE),
             Paragraph(money_label(line.amount_cents), AMOUNT_STYLE),
             Paragraph(money_label(line.refunded_cents), AMOUNT_STYLE),
             Paragraph(money_label(line.net_cents), AMOUNT_STYLE),
@@ -303,6 +306,17 @@ def build_statement_pdf(buffer: IO[bytes], statement: StatementData) -> None:
 def _described(line: ReceiptLine) -> str:
     """The receipt's description cell: the label, and the detail when there is one."""
     return f"{line.label} ({line.detail})" if line.detail else line.label
+
+
+def _receipt_cell(line: StatementLine) -> str:
+    """A statement line's receipt number, and under it who gave, when someone else did.
+
+    The text is escaped for reportlab's markup, so a name cannot inject formatting.
+    """
+    number = escape_markup(line.receipt_number)
+    if not line.given_as:
+        return number
+    return f"{number}<br/>given as {escape_markup(line.given_as)}"
 
 
 def _paid_with(receipt: ReceiptData) -> str:

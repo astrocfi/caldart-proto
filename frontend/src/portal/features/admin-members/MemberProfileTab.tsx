@@ -11,6 +11,7 @@ import type { JSX } from 'react';
 
 import { useDarts } from '@/portal/api/queries';
 import type { MemberDetail } from '@/portal/api/types';
+import { pendingEmailStatus } from '@/portal/auth/pendingEmail';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { EmailVerifiedText } from '@/portal/components/EmailVerifiedText';
@@ -126,7 +127,7 @@ export function MemberProfileTab({ member }: { member: MemberDetail }): JSX.Elem
                 setAccount(next);
               }}
               errors={errors.account}
-              emailStatus={<EmailVerifiedText verifiedAt={member.email_verified_at} />}
+              emailStatus={<EmailStatus member={member} />}
             />
             <ProfileFieldsets
               value={profile}
@@ -151,6 +152,20 @@ export function MemberProfileTab({ member }: { member: MemberDetail }): JSX.Elem
           </form>
         </Card>
       )}
+    </>
+  );
+}
+
+/**
+ * The standing fact under the record's email box: whether the address is verified, and
+ * any change of address that waits for its new owner to follow the link.
+ */
+function EmailStatus({ member }: { member: MemberDetail }): JSX.Element {
+  const pending = pendingEmailStatus(member.pending_email);
+  return (
+    <>
+      <EmailVerifiedText verifiedAt={member.email_verified_at} />
+      {pending !== null ? <span> {pending}</span> : null}
     </>
   );
 }

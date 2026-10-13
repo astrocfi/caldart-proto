@@ -132,6 +132,7 @@ def test_list_returns_the_user_payload(
     assert set(row) == {
         "id",
         "email",
+        "pending_email",
         "first_name",
         "last_name",
         "roles",

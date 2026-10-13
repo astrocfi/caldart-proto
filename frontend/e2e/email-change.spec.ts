@@ -1,15 +1,18 @@
 /**
  * Email addresses and the verify screen: a joiner corrects a mistyped address from
- * the verify step, and a member who changes their address sees only the verify
- * screen, naming the new address, until they follow the link mailed to it.
+ * the verify step, and a member who asks to change their address keeps signing in
+ * with the one they have until they follow the link mailed to the new one, while the
+ * old address is told about the change.
  */
 import { expect, test } from '@playwright/test';
 
 import {
   JOINER_PASSWORD,
   completeOnboarding,
+  emailCountTo,
   latestEmailTo,
   registerAccount,
+  signInAsJoiner,
   uniqueEmail,
   verificationLink,
 } from './helpers';
@@ -18,6 +21,8 @@ test('a joiner corrects the address from the verify step', async ({ page }) => {
   const typo = uniqueEmail('typo');
   const right = uniqueEmail('right');
   await registerAccount(page, typo, { as: 'friend', firstName: 'Irena' });
+  await signInAsJoiner(page, typo);
+  await expect(page).toHaveURL(/\/portal\/join\/verify/);
 
   await page.getByRole('link', { name: 'Use a different email address' }).click();
   await page.getByRole('textbox', { name: 'New email address' }).fill(right);
@@ -25,35 +30,42 @@ test('a joiner corrects the address from the verify step', async ({ page }) => {
   await page.getByRole('button', { name: 'Change email' }).click();
 
   await expect(page).toHaveURL(/\/portal\/join\/verify/);
-  await expect(page.getByText(`We sent a verification message to ${right}.`)).toBeVisible();
+  await expect(
+    page.getByText(
+      `We sent a link to ${right}. Your sign-in address stays ${typo} until you follow it.`,
+    ),
+  ).toBeVisible();
 });
 
-test('a member changes their address and verifies the new one', async ({ page }) => {
+test('a member asks to change their address and confirms the new one', async ({ page }) => {
   const first = uniqueEmail('mover');
   const second = uniqueEmail('moved');
   await completeOnboarding(page, first, { as: 'friend', firstName: 'Irena' });
+  const toldBefore = emailCountTo(first);
 
   await page.goto('portal/change-email');
   await page.getByRole('textbox', { name: 'New email address' }).fill(second);
   await page.getByLabel(/^Current password/).fill(JOINER_PASSWORD);
   await page.getByRole('button', { name: 'Change email' }).click();
 
-  // The new address is unverified, so the verify screen is all there is, with no rail.
-  await expect(
-    page.getByText(`Your email is now ${second}. We sent a verification message to it.`),
-  ).toBeVisible();
-  await expect(page).toHaveURL(/\/portal\/join\/verify/);
-  await expect(page.getByText(`We sent a verification message to ${second}.`)).toBeVisible();
-  await expect(page.getByRole('navigation', { name: 'Portal sections' })).toHaveCount(0);
+  // Nothing changes yet: the portal stays open, and says the change is waiting.
+  const waiting = `We sent a link to ${second}. Your sign-in address stays ${first} until you follow it.`;
+  await expect(page.getByText(waiting).first()).toBeVisible();
+  await expect(page).toHaveURL(/\/portal\/?$/);
+  await expect(page.getByRole('navigation', { name: 'Portal sections' })).toBeVisible();
+  await page.goto('portal/change-email');
+  await expect(page.getByText(waiting)).toBeVisible();
 
-  // Ask for another message, then follow the newest one.
-  await page.getByRole('button', { name: 'Resend verification message' }).click();
-  await expect(page.getByText(`Verification message sent to ${second}.`)).toBeVisible();
+  // The old address is told about the request.
+  expect(emailCountTo(first)).toBe(toldBefore + 1);
+
   await page.goto(verificationLink(await latestEmailTo(second)));
-  await expect(page.getByText(`${second} is verified.`)).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Email address changed' })).toBeVisible();
+  await expect(page.getByText(`${second} is your sign-in address from now on.`)).toBeVisible();
   await page.getByRole('link', { name: 'Continue' }).click();
 
   await expect(page).toHaveURL(/\/portal\/?$/);
   await expect(page.getByRole('heading', { name: /Welcome, Irena/ })).toBeVisible();
-  await expect(page.getByRole('navigation', { name: 'Portal sections' })).toBeVisible();
+  // The old address is told again, now that the change has happened.
+  await expect.poll(() => emailCountTo(first)).toBe(toldBefore + 2);
 });

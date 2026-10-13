@@ -103,6 +103,8 @@ import type {
   DonationCheckoutResponse,
   DonationsConfig,
   EmailChangePayload,
+  EmailChangeUndoPayload,
+  EmailChangeUndoResult,
   EmailLogEntry,
   EmailVerifyPayload,
   EmailVerifyResult,
@@ -307,6 +309,8 @@ const adminUserDetail: Matches<AdminUserDetail, Schemas['AdminUserDetail']> = tr
 const emailVerify: Matches<EmailVerifyPayload, Schemas['EmailVerifyRequest']> = true;
 const emailVerified: Matches<EmailVerifyResult, Schemas['EmailVerified']> = true;
 const emailChange: Matches<EmailChangePayload, Schemas['EmailChangeRequest']> = true;
+const emailChangeUndo: Matches<EmailChangeUndoPayload, Schemas['EmailChangeUndoRequest']> = true;
+const emailChangeUndone: Matches<EmailChangeUndoResult, Schemas['EmailChangeUndone']> = true;
 const verificationSent: Matches<VerificationSentResult, Schemas['VerificationSent']> = true;
 const deactivate: Matches<DeactivatePayload, Schemas['DeactivateRequest']> = true;
 const becomeFriend: Matches<BecomeFriendPayload, Schemas['BecomeFriendRequest']> = true;
@@ -617,6 +621,8 @@ const assertions: readonly true[] = [
   emailVerify,
   emailVerified,
   emailChange,
+  emailChangeUndo,
+  emailChangeUndone,
   verificationSent,
   deactivate,
   becomeFriend,
@@ -842,6 +848,8 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'EmailVerifyRequest',
   'EmailVerified',
   'EmailChangeRequest',
+  'EmailChangeUndoRequest',
+  'EmailChangeUndone',
   'VerificationSent',
   'DeactivateRequest',
   'BecomeFriendRequest',

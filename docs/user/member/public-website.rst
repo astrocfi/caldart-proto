@@ -102,7 +102,9 @@ payment that fails leaves the form where it was, says why, and charges nothing.
 
 The page answers the same whatever address you give. A gift from an address that
 already has a portal account is that account's own gift, as if you had given from the
-portal, and what you typed in the form is not written onto the account. To give with
+portal, and what you typed in the form is not written onto the account. Its receipt
+is made out to the name you typed, and so is its line on the account's yearly
+contribution statement. To give with
 everything on your own record, follow *Already have an account? Sign in to give from
 the portal.* at the top of **About you**: it opens the sign-in screen, then the
 portal's :doc:`donate` screen.

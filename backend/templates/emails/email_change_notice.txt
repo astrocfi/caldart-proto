@@ -1,0 +1,23 @@
+{% autoescape off %}{{ org_name }} — {% if completed %}your email address has changed{% else %}your email address is changing{% endif %}
+
+Hello{% if first_name %} {{ first_name }}{% endif %},
+
+{% if completed %}Your {{ org_name }} account no longer signs in with {{ previous_email }}. Its
+address is now {{ new_email }}, and password reset links go there.{% else %}Somebody asked to move your {{ org_name }} account from {{ previous_email }} to
+{{ new_email }}. The account keeps signing in with {{ previous_email }} until
+somebody opens the link we sent to {{ new_email }}.{% endif %}
+
+If this was you, there is nothing to do.
+
+If it was not you, open this link{% if completed %} to put {{ previous_email }} back{% else %} to stop the change{% endif %}:
+
+{{ undo_url }}
+
+It also signs everybody out of the account, stops its password from working, and
+sends {{ previous_email }} a link to choose a new one. The link works once, for {{ undo_days }} day{{ undo_days|pluralize }}.{% if contact_email %}
+
+Anything that looks wrong, write to {{ contact_email }}.{% endif %}
+
+— {{ org_name }}
+{{ site_url }}
+{% endautoescape %}

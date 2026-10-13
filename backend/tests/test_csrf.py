@@ -152,7 +152,7 @@ def test_registration_succeeds_with_the_bootstrapped_token(
 
     response = csrf_client.post(REGISTER_URL, register_payload(), HTTP_X_CSRFTOKEN=token)
 
-    assert response.status_code == 201
+    assert response.status_code == 202
 
 
 def test_login_succeeds_with_the_bootstrapped_token(
