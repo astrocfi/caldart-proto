@@ -151,7 +151,6 @@ def _notice_address(user: User) -> str:
 # --------------------------------------------------------------------------
 # Asking for a change
 # --------------------------------------------------------------------------
-@transaction.atomic
 class Mailing(NamedTuple):
     """One message a change of address sends: the send itself, and what to log it as."""
 
@@ -167,6 +166,7 @@ def _queue(mailings: list[Mailing] | None, send: Callable[[], object], what: str
         mailings.append(Mailing(send, what))
 
 
+@transaction.atomic
 def request_email_change(
     actor: User | str,
     target: User,

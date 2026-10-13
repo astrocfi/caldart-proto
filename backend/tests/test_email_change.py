@@ -291,6 +291,22 @@ def test_a_taken_address_still_tells_the_old_address(
     assert [m.subject for m in mails_to(OLD)] == ["CalDART: your email address is changing"]
 
 
+def test_a_failure_after_the_pending_address_is_saved_rolls_it_back(
+    vera: User, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The request is one transaction: a failure once the address is saved leaves none."""
+
+    def explode(*_args: object, **_kwargs: object) -> None:
+        raise RuntimeError("audit exploded")
+
+    monkeypatch.setattr("apps.accounts.email_change.audit.record", explode)
+    with pytest.raises(RuntimeError, match="audit exploded"):
+        request_email_change(vera, vera, NEW)
+
+    vera.refresh_from_db()
+    assert vera.pending_email == ""
+
+
 def test_the_change_mails_wait_for_the_caller(vera: User, run_on_commit: None) -> None:
     """Given a list, the request queues its two messages there rather than sending."""
     mailings: list[Mailing] = []
