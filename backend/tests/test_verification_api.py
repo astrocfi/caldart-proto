@@ -49,8 +49,8 @@ LEADER_SEARCH_QUERIES = 4
 
 #: The queries one page of the register costs, however many rows are verified: the
 #: coverage policy is read once for the page, and the access check reads a plain
-#: member's roles and membership once (``apps.aircraft.access``).
-AIRCRAFT_LIST_QUERIES = 8
+#: member's roles and their current term once (``apps.aircraft.access``).
+AIRCRAFT_LIST_QUERIES = 9
 
 
 def member_verification_url(user: User) -> str:
@@ -485,6 +485,7 @@ def test_the_verified_flag_costs_the_search_no_query(
 # --------------------------------------------------------------------------
 # The register
 # --------------------------------------------------------------------------
+@pytest.mark.usefixtures("member_is_current")
 def test_the_register_carries_the_insurance_verification(
     api_client: APIClient, member: User, stamper: User
 ) -> None:
@@ -500,6 +501,7 @@ def test_the_register_carries_the_insurance_verification(
 
 
 @pytest.mark.parametrize("size", [3, 20])
+@pytest.mark.usefixtures("member_is_current")
 def test_the_verifier_names_cost_the_register_no_query(
     api_client: APIClient,
     member: User,

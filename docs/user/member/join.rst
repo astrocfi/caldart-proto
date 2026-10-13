@@ -227,8 +227,8 @@ If you paid on the step before, it adds that a receipt is on its way to your inb
 with the PDF attached, subject *CalDART: your receipt for $45.00* (with your own
 amount). You can download it again from :doc:`payments`.
 
-Two buttons take you on: **Go to my dashboard** and **Add the planes I fly** (see
-:doc:`my-aircraft`). From here the whole portal is open, with its menu down the
+**Go to my dashboard** takes you on, and **Add the planes I fly** (see
+:doc:`my-aircraft`) once your membership is current. From here the whole portal is open, with its menu down the
 left. A member also sees **What you can read now**, the
 members-only pages the membership opens (see :doc:`members-only-content`).
 

@@ -19,9 +19,15 @@ from apps.aircraft.coverage import CATEGORY_NOT_RECORDED, current_rule
 from apps.aircraft.models import AircraftCoveragePolicy
 from apps.aircraft.seed import COVERAGE_NOTE, seed_coverage_policy
 from tests.conftest import role_matrix
-from tests.factories import AircraftFactory, MemberProfileFactory, make_site_settings
+from tests.factories import (
+    AircraftFactory,
+    MemberProfileFactory,
+    MembershipFactory,
+    make_site_settings,
+)
 
-pytestmark = pytest.mark.django_db
+# Aircraft are for current members, so the `member` these tests act as holds a term.
+pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("member_is_current")]
 
 POLICY_URL = "/api/v1/aircraft/coverage-policy"
 LEADER_AIRCRAFT_URL = "/api/v1/leader/aircraft"
@@ -87,7 +93,8 @@ def test_a_policy_never_written_excludes_nothing(api_client: APIClient, member: 
 def test_every_signed_in_role_reads_the_policy(
     api_client: APIClient, all_role_users: dict[str, User], role: str
 ) -> None:
-    """Every signed-in role, account administrator included, is answered 200."""
+    """Every role, as a current member, account administrator included, gets a 200."""
+    MembershipFactory(user=all_role_users[role])
     api_client.force_login(all_role_users[role])
     assert api_client.get(POLICY_URL).status_code == 200
 

@@ -186,6 +186,7 @@ def test_as_of_is_the_import_date_once_the_table_holds_a_registration(
     assert registry.as_of() == emptied_registry.finished_at
 
 
+@pytest.mark.usefixtures("member_is_current")
 def test_the_status_reads_not_imported_after_a_restore(
     emptied_registry: RegistryImport, api_client: APIClient, member: User
 ) -> None:

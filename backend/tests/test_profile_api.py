@@ -119,6 +119,7 @@ def test_catalogs_are_not_paginated(
 # --------------------------------------------------------------------------
 # Reading the profile
 # --------------------------------------------------------------------------
+@pytest.mark.usefixtures("member_is_current")
 def test_get_profile_returns_the_documented_shape(
     api_client: APIClient, member: User, profile: MemberProfile, aircraft: Aircraft
 ) -> None:
@@ -164,6 +165,7 @@ def test_get_profile_returns_the_documented_shape(
     ]
 
 
+@pytest.mark.usefixtures("member_is_current")
 def test_profile_aircraft_name_the_member_who_added_each(
     api_client: APIClient, member: User, profile: MemberProfile, aircraft: Aircraft
 ) -> None:
@@ -661,6 +663,7 @@ def test_profile_reports_a_stale_medical_as_not_current(
     assert api_client.get(PROFILE_URL).json()["medical_is_current"] is False
 
 
+@pytest.mark.usefixtures("member_is_current")
 def test_attached_aircraft_summary_flags_expired_insurance(
     api_client: APIClient, member: User, profile: MemberProfile, today: date
 ) -> None:

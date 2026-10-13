@@ -18,15 +18,16 @@ below and are not repeated in the status lists.
 Who may use aircraft
 ====================
 
-Aircraft are for members.  Every register endpoint below that is not limited to a
+Aircraft are for current members.  Every register endpoint below that is not limited to a
 role, and attaching and detaching aircraft on the profile (:doc:`api-profile`),
 admits a caller ``apps.aircraft.access.may_use_aircraft`` admits:
 
-* a member whose membership is current, or who has joined and not yet paid;
+* a member whose membership is current;
 * any holder of a verifying role (``verifier``, ``dart_leader``, ``user_admin``,
   ``account_admin``) and ``system_admin``, whatever their own membership.
 
-A friend of CalDART, and a member whose membership has expired, are refused with::
+A friend of CalDART, a member who has joined and not yet paid, and a member whose
+membership has expired are refused with::
 
     403 {"detail": "Aircraft are for members with a current membership."}
 

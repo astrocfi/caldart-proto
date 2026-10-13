@@ -67,6 +67,7 @@ def make_register(count: int, *, expires_in_days: int = 200) -> None:
 # --------------------------------------------------------------------------
 # Page size: 25 by default, 200 at most
 # --------------------------------------------------------------------------
+@pytest.mark.usefixtures("member_is_current")
 def test_a_list_returns_twenty_five_rows_by_default(
     api_client: APIClient, member: User, aircraft: Aircraft
 ) -> None:
@@ -81,6 +82,7 @@ def test_a_list_returns_twenty_five_rows_by_default(
     assert body["next"] == "http://testserver/api/v1/aircraft?page=2"
 
 
+@pytest.mark.usefixtures("member_is_current")
 def test_the_last_page_carries_the_remainder(
     api_client: APIClient, member: User, aircraft: Aircraft
 ) -> None:
@@ -94,6 +96,7 @@ def test_the_last_page_carries_the_remainder(
     assert body["next"] is None
 
 
+@pytest.mark.usefixtures("member_is_current")
 def test_page_size_two_hundred_is_served_in_full(api_client: APIClient, member: User) -> None:
     """``page_size=200`` is the largest page the API serves, and it serves all of it."""
     make_register(OVER_THE_CAP)
@@ -105,6 +108,7 @@ def test_page_size_two_hundred_is_served_in_full(api_client: APIClient, member: 
     assert len(body["results"]) == 200
 
 
+@pytest.mark.usefixtures("member_is_current")
 def test_a_page_size_above_the_cap_is_clamped(api_client: APIClient, member: User) -> None:
     """A page size beyond 200 is answered with 200 rows rather than refused."""
     make_register(OVER_THE_CAP)
@@ -119,6 +123,7 @@ def test_a_page_size_above_the_cap_is_clamped(api_client: APIClient, member: Use
 @pytest.mark.parametrize(
     "page_size", ["0", "-10", "many"], ids=["zero", "negative", "not-a-number"]
 )
+@pytest.mark.usefixtures("member_is_current")
 def test_an_unusable_page_size_falls_back_to_the_default(
     api_client: APIClient, member: User, aircraft: Aircraft, page_size: str
 ) -> None:
@@ -131,6 +136,7 @@ def test_an_unusable_page_size_falls_back_to_the_default(
     assert len(body["results"]) == 25
 
 
+@pytest.mark.usefixtures("member_is_current")
 def test_a_page_past_the_end_is_refused(
     api_client: APIClient, member: User, aircraft: Aircraft
 ) -> None:
@@ -146,6 +152,7 @@ def test_a_page_past_the_end_is_refused(
 # --------------------------------------------------------------------------
 # expiring_within: clamped to 0..3650 days
 # --------------------------------------------------------------------------
+@pytest.mark.usefixtures("member_is_current")
 def test_an_absurd_aircraft_window_is_clamped_to_ten_years(
     api_client: APIClient, member: User
 ) -> None:
@@ -165,6 +172,7 @@ def test_an_absurd_aircraft_window_is_clamped_to_ten_years(
     assert [row["n_number"] for row in body["results"]] == ["N1INSIDE"]
 
 
+@pytest.mark.usefixtures("member_is_current")
 def test_a_negative_aircraft_window_reaches_only_today(api_client: APIClient, member: User) -> None:
     """A negative window is clamped to zero: only cover that runs out today is listed."""
     AircraftFactory(n_number="N3TODAY", insurance_expiration=timezone.localdate())
@@ -219,6 +227,7 @@ def test_an_absurd_membership_window_is_clamped_to_ten_years(
 # --------------------------------------------------------------------------
 # Column limits
 # --------------------------------------------------------------------------
+@pytest.mark.usefixtures("member_is_current")
 def test_a_make_filling_its_column_reads_back_unchanged(
     api_client: APIClient, member: User
 ) -> None:

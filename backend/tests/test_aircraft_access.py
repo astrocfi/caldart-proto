@@ -1,10 +1,10 @@
-"""Aircraft are for members: friends and expired members are refused.
+"""Aircraft are for current members: friends, unpaid and expired members are refused.
 
-A friend of CalDART pays no dues and has nothing to do with aircraft; a member whose
-membership has expired keeps the aircraft on their profile but cannot see or change
-them; a current member, or one who has joined and not yet paid, uses the register and
-their own aircraft; the roles that check members and aircraft use the register
-whatever their own membership.  See ``apps.aircraft.access``.
+A friend of CalDART pays no dues and has nothing to do with aircraft; a member who has
+joined and not yet paid has none until they pay; a member whose membership has expired
+keeps the aircraft on their profile but cannot see or change them; a current member
+uses the register and their own aircraft; the roles that check members and aircraft
+use the register whatever their own membership.  See ``apps.aircraft.access``.
 """
 
 from __future__ import annotations
@@ -24,6 +24,10 @@ from tests.factories import MemberProfileFactory, MembershipFactory, UserFactory
 pytestmark = pytest.mark.django_db
 
 REFUSED = {"detail": "Aircraft are for members with a current membership."}
+
+#: The accounts the register refuses: a friend, a member who has not yet paid (the
+#: ``member`` fixture holds no term), and a member whose membership has expired.
+REFUSED_ACCOUNTS = ["friend", "member", "expired_member"]
 PROFILE_URL = "/api/v1/me/profile"
 ATTACH_URL = "/api/v1/me/profile/aircraft"
 ADMIN_MEMBERS_URL = "/api/v1/admin/members"
@@ -95,8 +99,8 @@ def client_for(user: User) -> APIClient:
 # Who is refused
 # --------------------------------------------------------------------------
 @pytest.mark.parametrize("url", READ_URLS)
-@pytest.mark.parametrize("account", ["friend", "expired_member"])
-def test_a_friend_or_expired_member_is_refused_every_aircraft_read(
+@pytest.mark.parametrize("account", REFUSED_ACCOUNTS)
+def test_anyone_but_a_current_member_is_refused_every_aircraft_read(
     url: str, account: str, request: pytest.FixtureRequest
 ) -> None:
     """Every aircraft read answers 403 with the sentence."""
@@ -104,8 +108,8 @@ def test_a_friend_or_expired_member_is_refused_every_aircraft_read(
     assert (response.status_code, response.json()) == (403, REFUSED)
 
 
-@pytest.mark.parametrize("account", ["friend", "expired_member"])
-def test_a_friend_or_expired_member_cannot_add_an_aircraft(
+@pytest.mark.parametrize("account", REFUSED_ACCOUNTS)
+def test_anyone_but_a_current_member_cannot_add_an_aircraft(
     account: str, request: pytest.FixtureRequest
 ) -> None:
     """``POST /aircraft`` is refused before the body is read."""
@@ -115,8 +119,8 @@ def test_a_friend_or_expired_member_cannot_add_an_aircraft(
     assert (response.status_code, response.json()) == (403, REFUSED)
 
 
-@pytest.mark.parametrize("account", ["friend", "expired_member"])
-def test_a_friend_or_expired_member_cannot_read_an_aircraft_record(
+@pytest.mark.parametrize("account", REFUSED_ACCOUNTS)
+def test_anyone_but_a_current_member_cannot_read_an_aircraft_record(
     account: str, request: pytest.FixtureRequest, aircraft: Aircraft
 ) -> None:
     """``GET /aircraft/{id}`` is refused."""
@@ -124,8 +128,8 @@ def test_a_friend_or_expired_member_cannot_read_an_aircraft_record(
     assert (response.status_code, response.json()) == (403, REFUSED)
 
 
-@pytest.mark.parametrize("account", ["friend", "expired_member"])
-def test_a_friend_or_expired_member_cannot_attach_an_aircraft(
+@pytest.mark.parametrize("account", REFUSED_ACCOUNTS)
+def test_anyone_but_a_current_member_cannot_attach_an_aircraft(
     account: str, request: pytest.FixtureRequest, aircraft: Aircraft
 ) -> None:
     """``POST /me/profile/aircraft`` is refused."""
@@ -135,8 +139,8 @@ def test_a_friend_or_expired_member_cannot_attach_an_aircraft(
     assert (response.status_code, response.json()) == (403, REFUSED)
 
 
-@pytest.mark.parametrize("account", ["friend", "expired_member"])
-def test_a_friend_or_expired_member_cannot_detach_an_aircraft(
+@pytest.mark.parametrize("account", REFUSED_ACCOUNTS)
+def test_anyone_but_a_current_member_cannot_detach_an_aircraft(
     account: str, request: pytest.FixtureRequest, aircraft: Aircraft
 ) -> None:
     """``DELETE /me/profile/aircraft/{id}`` is refused."""
@@ -154,13 +158,13 @@ def test_an_anonymous_caller_is_asked_to_sign_in(api_client: APIClient) -> None:
 # --------------------------------------------------------------------------
 @pytest.mark.parametrize(
     "account",
-    ["current_member", "member", "expired_account_admin", "expired_verifier"],
-    ids=["current", "not-yet-paid", "lapsed-account-admin", "lapsed-verifier"],
+    ["current_member", "expired_account_admin", "expired_verifier"],
+    ids=["current", "lapsed-account-admin", "lapsed-verifier"],
 )
-def test_members_and_checking_roles_read_the_register(
+def test_current_members_and_checking_roles_read_the_register(
     account: str, request: pytest.FixtureRequest
 ) -> None:
-    """A current or not-yet-paid member, and any checking role, read the register."""
+    """A current member, and any checking role, read the register."""
     response = client_for(request.getfixturevalue(account)).get("/api/v1/aircraft")
     assert response.status_code == 200
 
@@ -220,7 +224,7 @@ def test_a_current_members_profile_lists_their_aircraft(
         ("friend", False),
         ("expired_member", False),
         ("current_member", True),
-        ("member", True),
+        ("member", False),
         ("expired_account_admin", True),
     ],
 )

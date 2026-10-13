@@ -14,7 +14,8 @@ from apps.accounts.models import User
 from apps.aircraft.models import Registration, RegistryImport
 from apps.aircraft.registry import FIXTURE_DIR, import_registry
 
-pytestmark = pytest.mark.django_db
+# Aircraft are for current members, so the `member` these tests act as holds a term.
+pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("member_is_current")]
 
 SEARCH_URL = "/api/v1/aircraft/registrations"
 

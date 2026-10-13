@@ -1,9 +1,9 @@
 """Who may use the aircraft register and keep aircraft on their profile.
 
-Aircraft are for members.  A friend of CalDART pays no dues and has no aircraft, and a
-member whose membership has expired keeps the aircraft on their profile but cannot see
-or change them until they renew.  A member who has joined and not yet paid their first
-dues uses aircraft like a current member.  The roles that check members and aircraft
+Aircraft are for current members.  A friend of CalDART pays no dues and has no aircraft;
+a member who has joined and not yet paid their first dues has none until they pay; and
+a member whose membership has expired keeps the aircraft on their profile but cannot
+see or change them until they renew.  The roles that check members and aircraft
 (``VERIFY_ROLES``, and ``system_admin``) use the register whatever their own
 membership.
 
@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from rest_framework.views import APIView
 
 #: The membership states whose holder uses aircraft without a checking role.
-AIRCRAFT_STATES: frozenset[str] = frozenset({MembershipState.CURRENT, MembershipState.NONE})
+AIRCRAFT_STATES: frozenset[str] = frozenset({MembershipState.CURRENT})
 
 #: What a caller the rule refuses is told.
 AIRCRAFT_REFUSED = "Aircraft are for members with a current membership."
@@ -41,9 +41,9 @@ def may_use_aircraft(user: User | AnonymousUser | None) -> bool:
 
     False for an anonymous caller.  True for any holder of a ``VERIFY_ROLES`` role or
     ``system_admin``.  Otherwise true only when the account's membership, by
-    :func:`apps.members.services.membership_of`, is current or not yet paid; a friend
-    (by kind, or by a ``friend_on`` date that has arrived), an expired member, and a
-    donor are refused.
+    :func:`apps.members.services.membership_of`, is current; a friend (by kind, or by a
+    ``friend_on`` date that has arrived), a member who has not yet paid, an expired
+    member, and a donor are refused.
     """
     if user is None or not user.is_authenticated:
         return False

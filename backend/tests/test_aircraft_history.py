@@ -25,7 +25,8 @@ from tests.factories import (
     UserFactory,
 )
 
-pytestmark = pytest.mark.django_db
+# Aircraft are for current members, so the `member` these tests act as holds a term.
+pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("member_is_current")]
 
 LIST_URL = "/api/v1/aircraft"
 

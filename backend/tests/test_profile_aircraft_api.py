@@ -10,9 +10,15 @@ from apps.aircraft.api.serializers import AircraftSummarySerializer
 from apps.aircraft.models import Aircraft
 from apps.members.models import MemberProfile
 from tests.conftest import ROLE_MATRIX
-from tests.factories import AircraftFactory, MemberProfileFactory, UserFactory
+from tests.factories import (
+    AircraftFactory,
+    MemberProfileFactory,
+    MembershipFactory,
+    UserFactory,
+)
 
-pytestmark = pytest.mark.django_db
+# Aircraft are for current members, so the `member` these tests act as holds a term.
+pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("member_is_current")]
 
 ATTACH_URL = "/api/v1/me/profile/aircraft"
 
@@ -163,7 +169,8 @@ def test_several_aircraft_can_be_attached(
 def test_every_role_may_attach_their_own_aircraft(
     api_client: APIClient, all_role_users: dict[str, User], aircraft: Aircraft, slug: str
 ) -> None:
-    """Every role can attach an aircraft to its own profile without a permission error."""
+    """Every role, as a current member, attaches an aircraft to its own profile."""
+    MembershipFactory(user=all_role_users[slug])
     api_client.force_login(all_role_users[slug])
     response = api_client.post(ATTACH_URL, {"aircraft_id": aircraft.id}, format="json")
     assert response.status_code == 200
@@ -173,7 +180,8 @@ def test_every_role_may_attach_their_own_aircraft(
 def test_every_role_may_detach_their_own_aircraft(
     api_client: APIClient, all_role_users: dict[str, User], aircraft: Aircraft, slug: str
 ) -> None:
-    """Every role can detach an aircraft from its own profile again."""
+    """Every role, as a current member, detaches an aircraft from its own profile."""
+    MembershipFactory(user=all_role_users[slug])
     api_client.force_login(all_role_users[slug])
     api_client.post(ATTACH_URL, {"aircraft_id": aircraft.id}, format="json")
     assert api_client.delete(detach_url(aircraft.id)).status_code == 204
@@ -184,6 +192,7 @@ def test_profile_aircraft_shape_matches_the_register(
 ) -> None:
     """The profile API's ``aircraft`` entries carry the register's summary fields."""
     profile = MemberProfileFactory()
+    MembershipFactory(user=profile.user)
     profile.aircraft.add(aircraft)
     api_client.force_login(profile.user)
 

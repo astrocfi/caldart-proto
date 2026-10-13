@@ -52,10 +52,15 @@ NO_ROLE_ALLOWED_GETS = [
     "/api/v1/me/profile",
     "/api/v1/me/membership",
     "/api/v1/me/payments",
-    "/api/v1/aircraft",
-    "/api/v1/aircraft/registrations?q=N1",
     "/api/v1/payments/config",
     "/api/v1/site/config",
+]
+
+#: The aircraft register, open to current members only: a role-less account with no
+#: term is refused it like a friend (``apps.aircraft.access``).
+NO_ROLE_NO_TERM_AIRCRAFT_GETS = [
+    "/api/v1/aircraft",
+    "/api/v1/aircraft/registrations?q=N1",
 ]
 
 #: Role-gated endpoints that a role-less account may not reach.
@@ -374,9 +379,18 @@ def test_wagtail_admin_redirects_to_login(
 def test_no_role_user_reaches_self_service_endpoints(
     api_client: APIClient, no_role_user: User, url: str
 ) -> None:
-    """Its own records, the register, the registry search, and site settings stay open."""
+    """Its own records, its payments, and site settings stay open."""
     api_client.force_login(no_role_user)
     assert api_client.get(url).status_code == 200
+
+
+@pytest.mark.parametrize("url", NO_ROLE_NO_TERM_AIRCRAFT_GETS)
+def test_no_role_user_without_a_term_is_refused_the_register(
+    api_client: APIClient, no_role_user: User, url: str
+) -> None:
+    """The register and the registry search are for current members."""
+    api_client.force_login(no_role_user)
+    assert api_client.get(url).status_code == 403
 
 
 def test_no_role_user_may_check_out(

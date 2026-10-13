@@ -20,7 +20,8 @@ from apps.aircraft.registry import FIXTURE_DIR, import_registry
 from tests.conftest import role_matrix
 from tests.factories import AircraftTypeFactory
 
-pytestmark = pytest.mark.django_db
+# Aircraft are for current members, so the `member` these tests act as holds a term.
+pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("member_is_current")]
 
 TYPES_URL = "/api/v1/aircraft/types"
 REGISTRY_URL = "/api/v1/aircraft/registry"
