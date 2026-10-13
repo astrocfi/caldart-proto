@@ -112,7 +112,12 @@ def deactivated_account(email: str, password: str) -> User | None:
     closed.
     """
     user = User.objects.filter(email__iexact=email.strip(), is_active=False).first()
-    if user is None or is_donor(user) or not user.check_password(password):
+    if user is None or is_donor(user):
+        # Hash the password anyway, so an address with no deactivated account behind it
+        # takes as long to refuse as a deactivated account's wrong password.
+        User().set_password(password)
+        return None
+    if not user.check_password(password):
         return None
     return user
 

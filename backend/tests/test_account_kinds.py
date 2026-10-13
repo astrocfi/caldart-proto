@@ -77,8 +77,6 @@ MEMBERS_URL = "/api/v1/admin/members"
 MEMBERSHIP_URL = "/api/v1/me/membership"
 MY_PAYMENTS_URL = "/api/v1/me/payments"
 VERIFY_URL = "/api/v1/auth/email/verify"
-WAGTAIL_LOGIN_URL = "/admin/login/"
-DJANGO_ADMIN_LOGIN_URL = "/django-admin/login/"
 
 #: The password whoever follows a donor's upgrade link chooses, unlike the
 #: registration's ``GOOD_PASSWORD``.
@@ -691,16 +689,6 @@ def test_a_donor_cannot_sign_in(api_client: APIClient, donor_with_password: User
     )
     assert response.status_code == 400
     assert response.json() == {"detail": WRONG_CREDENTIALS}
-
-
-@pytest.mark.parametrize("login_url", [WAGTAIL_LOGIN_URL, DJANGO_ADMIN_LOGIN_URL])
-def test_a_donor_cannot_sign_in_at_an_admin_login(
-    donor_with_password: User, login_url: str
-) -> None:
-    """The Wagtail and Django admin login forms start no session for a donor either."""
-    client = Client()
-    client.post(login_url, {"username": donor_with_password.email, "password": DEFAULT_PASSWORD})
-    assert client.get(ME_URL).status_code == 401
 
 
 def test_a_session_naming_a_donor_reads_as_signed_out(donor: User) -> None:

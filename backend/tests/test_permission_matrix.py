@@ -364,12 +364,15 @@ def test_role_may_patch_its_own_profile(
 def test_wagtail_admin_redirects_to_login(
     client: Client, request: pytest.FixtureRequest, fixture_name: str
 ) -> None:
-    """Only the website administrator's staff account gets past the Wagtail login."""
+    """Only the website administrator's staff account gets past the Wagtail admin.
+
+    Anybody else is sent to the portal's sign-in, the one login page.
+    """
     user = request.getfixturevalue(fixture_name)
     client.force_login(user)
     response = client.get("/admin/")
     assert response.status_code == 302
-    assert response["Location"] == "/admin/login/?next=/admin/"
+    assert response["Location"] == "/portal/login?next=/admin/"
 
 
 # --------------------------------------------------------------------------

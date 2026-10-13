@@ -158,7 +158,9 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    # Reads request.user, so it sits below AuthenticationMiddleware.
+    # Both read request.user, so they sit below AuthenticationMiddleware; the second
+    # factor's check comes first, so a session it ends reaches the gate anonymous.
+    "apps.accounts.middleware.MfaSessionMiddleware",
     "apps.accounts.middleware.EmailVerificationGateMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -198,10 +200,16 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Auth
 # --------------------------------------------------------------------------
 AUTH_USER_MODEL = "accounts.User"
-# One backend for every login surface (portal, Wagtail admin, Django admin) and for
-# reloading a session: Django's, refusing donors as well as deactivated accounts.
+# One backend for every sign-in (the portal's, which the Wagtail and Django admins send
+# their readers to) and for reloading a session: Django's, refusing donors as well as
+# deactivated accounts.
 AUTHENTICATION_BACKENDS = ["apps.accounts.backends.AccountBackend"]
 LOGIN_URL = f"{URL_PREFIX}/portal/login"
+# The Wagtail admin sends a signed-out reader to the portal's sign-in too, with the
+# admin page as ``next``: the portal is the one place anybody signs in.
+WAGTAILADMIN_LOGIN_URL = LOGIN_URL
+# So does a reader of a private page on the public site.
+WAGTAIL_FRONTEND_LOGIN_URL = LOGIN_URL
 LOGIN_REDIRECT_URL = f"{URL_PREFIX}/portal/"
 LOGOUT_REDIRECT_URL = f"{URL_PREFIX}/"
 
@@ -453,7 +461,20 @@ AUTH_THROTTLE_RATES = {
     "auth_email_change": _throttle_rate("AUTH_THROTTLE_EMAIL_CHANGE", "10/hour"),
     # Starting a gift on the public donation page, which may make a donor account.
     "donate": _throttle_rate("AUTH_THROTTLE_DONATE", "10/hour"),
+    # Every endpoint that takes a two-factor code, signed in or not.
+    "auth_mfa": _throttle_rate("AUTH_THROTTLE_MFA", "10/min"),
 }
+
+# The per-address sign-in lockout, read by ``apps.accounts.lockout``: this many failed
+# attempts (a wrong password or a wrong two-factor code) for one email address within
+# this many seconds refuse every further attempt for it until the window has passed.
+# Either set to 0 turns the lockout off.
+LOGIN_LOCKOUT_ATTEMPTS = env.int("LOGIN_LOCKOUT_ATTEMPTS", default=10)
+LOGIN_LOCKOUT_SECONDS = env.int("LOGIN_LOCKOUT_SECONDS", default=15 * 60)
+# Wrong two-factor codes are also counted over a longer window, since only somebody
+# who holds the password reaches them.  Either set to 0 turns this count off.
+LOGIN_LOCKOUT_CODE_ATTEMPTS = env.int("LOGIN_LOCKOUT_CODE_ATTEMPTS", default=30)
+LOGIN_LOCKOUT_CODE_SECONDS = env.int("LOGIN_LOCKOUT_CODE_SECONDS", default=24 * 60 * 60)
 
 # How often one account may run a bulk email's checks, read by
 # ``apps.bulk_email.throttling``: each run fetches every link in the message.

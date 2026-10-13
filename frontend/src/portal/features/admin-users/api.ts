@@ -181,7 +181,8 @@ export function useClearBounce(id: string | number): UseMutationResult<AdminUser
 }
 
 /** The status actions on the user record, by the path segment each posts to. */
-export type AccountStatusAction = 'deactivate' | 'reactivate' | 'block' | 'unblock';
+export type AccountStatusAction =
+  'deactivate' | 'reactivate' | 'block' | 'unblock' | 'reset-two-factor';
 
 /**
  * One of the user record's status actions: `POST /admin/users/{id}/{action}`.

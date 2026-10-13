@@ -103,6 +103,8 @@ export function makeAdminUser(overrides: Partial<AdminUser> = {}): AdminUser {
     email_bounced_at = null,
     email_bounce_detail = '',
     reactivation_blocked = false,
+    two_factor_enabled = false,
+    can_reset_two_factor = true,
     phone = '415-555-0100',
     dart = 'Palo Alto',
     city = 'Palo Alto',
@@ -117,6 +119,8 @@ export function makeAdminUser(overrides: Partial<AdminUser> = {}): AdminUser {
     email_bounced_at,
     email_bounce_detail,
     reactivation_blocked,
+    two_factor_enabled,
+    can_reset_two_factor,
     phone,
     dart,
     city,
@@ -201,6 +205,10 @@ export const handlers = [
   ),
   http.get(`${API}/auth/me`, () =>
     HttpResponse.json({ detail: 'Not authenticated' }, { status: 401 }),
+  ),
+  // The profile's Two-factor sign-in card reads this; off and not required by default.
+  http.get(`${API}/auth/mfa`, () =>
+    HttpResponse.json({ enabled: false, required_by_role: false, recovery_codes_remaining: 0 }),
   ),
   // Every screen that carries the renewal state reads this, so the default keeps
   // a suite that is not about renewal from having to declare one.

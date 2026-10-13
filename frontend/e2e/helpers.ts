@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url';
 import { expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
+import { finishSecondFactor, reuseSession } from './twoFactor';
+
 /** The keys `seed_demo` gives its named demo accounts. */
 export type DemoAccount =
   | 'member'
@@ -307,21 +309,42 @@ export function uniqueEmail(prefix: string): string {
   return `${prefix}-${stamp}@example.test`;
 }
 
-/** Sign in through the portal's own login form and wait for it to take. */
-export async function signIn(page: Page, email: string): Promise<void> {
-  await page.goto('portal/login');
+/** Give `email` and the demo password to the portal's sign-in form on `page`. */
+async function givePassword(page: Page, email: string): Promise<void> {
   await page.getByRole('textbox', { name: 'Email address' }).fill(email);
   await page.getByLabel(/^Password/).fill(DEMO_PASSWORD);
   await page.getByRole('button', { name: 'Sign in' }).click();
+}
+
+/**
+ * Sign in through the portal's own login form and wait for it to take, giving the
+ * second factor a staff account needs (`twoFactor.ts`).
+ */
+export async function signIn(page: Page, email: string): Promise<void> {
+  if (await reuseSession(page, email)) {
+    await page.goto('portal/');
+  } else {
+    await page.goto('portal/login');
+    await givePassword(page, email);
+    await finishSecondFactor(page, email);
+  }
   await expect(page).not.toHaveURL(/\/portal\/login/);
 }
 
-/** Sign in to the Wagtail admin, which has its own login form. */
+/**
+ * Sign in to the Wagtail admin.  The admin sends a signed-out reader to the portal's
+ * sign-in, which returns them to the admin once the password and the second factor
+ * are given.
+ */
 export async function signInToWagtail(page: Page, email: string): Promise<void> {
-  await page.goto('admin/login/');
-  await page.getByLabel(/email/i).fill(email);
-  await page.getByLabel(/password/i).fill(DEMO_PASSWORD);
-  await page.getByRole('button', { name: /sign in/i }).click();
+  if (await reuseSession(page, email)) {
+    await page.goto('admin/');
+  } else {
+    await page.goto('admin/');
+    await expect(page).toHaveURL(/\/portal\/login\?next=/);
+    await givePassword(page, email);
+    await finishSecondFactor(page, email);
+  }
   await expect(page).toHaveURL(/\/admin\/?$/);
 }
 

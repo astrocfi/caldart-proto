@@ -9,6 +9,8 @@ from django.core.management.base import BaseCommand, CommandError, CommandParser
 from django.core.validators import validate_email
 from django.db import transaction
 
+from apps.accounts import lockout
+from apps.accounts.mfa import remove_two_factor
 from apps.accounts.models import AccountKind, User
 from apps.accounts.roles import MEMBER, ROLE_SLUGS, SYSTEM_ADMIN, WEBSITE_ADMIN
 from apps.accounts.services import (
@@ -169,21 +171,26 @@ class Command(BaseCommand):
 
 
 def _take_back(user: User) -> None:
-    """Clear ``user``'s password and reactivation block, and end its sessions.
+    """Clear ``user``'s password, reactivation block, and two-factor; end its sessions.
 
     Any change of address waiting for its link is dropped with the password
     (``clear_password_and_end_sessions``): whoever asked for it may be whoever set the
-    password being cleared.  Runs inside the caller's transaction, on a row it has
-    locked.
+    password being cleared.  The authenticator device and backup codes go too, so one
+    somebody else set up on the account cannot keep the real owner out, and so do the
+    address's counted failed sign-ins.  Runs inside the caller's transaction, on a row
+    it has locked.
     """
     is_blocked = user.reactivation_blocked
     user.reactivation_blocked = False
     user.save(update_fields=["reactivation_blocked", "updated_at"])
     ended = clear_password_and_end_sessions(user)
+    had_device = remove_two_factor(user)
+    lockout.clear_all_failures(user.email)
     audit.record(
         audit.ACCOUNT_CREDENTIALS_CLEARED,
         actor=audit.COMMAND_ACTOR,
         target=user,
         sessions=ended,
         unblocked=is_blocked,
+        two_factor_removed=had_device,
     )

@@ -29,6 +29,7 @@
  *   SCREENSHOTS_WORKERS   roles shot at once (default 4)
  */
 
+import { createHmac } from 'node:crypto';
 import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -186,12 +187,50 @@ function parentPath(path) {
   return path.slice(0, path.lastIndexOf('/')) || '/';
 }
 
-/** Sign in through the portal's login form; throws when the form does not take. */
+const BASE32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+
+/** The RFC 6238 code `secret` (base32) gives now: 30-second steps, six digits, SHA-1. */
+function totpNow(secret) {
+  const bits = [...secret.replace(/\s/g, '').toUpperCase()]
+    .map((char) => BASE32.indexOf(char).toString(2).padStart(5, '0'))
+    .join('');
+  const key = Buffer.from(bits.match(/.{8}/g).map((byte) => Number.parseInt(byte, 2)));
+  const counter = Buffer.alloc(8);
+  counter.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 30_000)));
+  const digest = createHmac('sha1', key).update(counter).digest();
+  const offset = digest[digest.length - 1] & 0x0f;
+  return String((digest.readUInt32BE(offset) & 0x7fffffff) % 1_000_000).padStart(6, '0');
+}
+
+/**
+ * Sign in through the portal's login form; throws when the form does not take.
+ *
+ * A staff account must use two-factor sign-in, and the freshly seeded database gives
+ * it none, so its first sign-in sets one up on the portal's own screen: the key the
+ * screen offers for typing in by hand gives the code, and the backup codes are
+ * acknowledged unread.
+ */
 async function signIn(page, email, password) {
   await page.goto(`${BASE_URL}${PORTAL_PREFIX}/login`);
   await page.getByRole('textbox', { name: 'Email address' }).fill(email);
   await page.getByLabel(/^Password/).fill(password);
   await page.getByRole('button', { name: 'Sign in' }).click();
+  const setUp = page.getByRole('heading', { name: 'Set up two-factor sign-in', exact: true });
+  const askedForCode = page.getByRole('heading', { name: 'Two-factor sign-in', exact: true });
+  await Promise.race([
+    page.waitForURL((url) => !url.pathname.endsWith('/login'), { timeout: NAVIGATION_TIMEOUT_MS }),
+    setUp.waitFor({ timeout: NAVIGATION_TIMEOUT_MS }),
+    askedForCode.waitFor({ timeout: NAVIGATION_TIMEOUT_MS }),
+  ]);
+  if (await askedForCode.isVisible()) {
+    throw new Error(`${email} already has two-factor sign-in; reseed the database first.`);
+  }
+  if (await setUp.isVisible()) {
+    const key = await page.locator('.enrollment__secret').textContent();
+    await page.getByLabel(/^Code/).fill(totpNow(key));
+    await page.getByRole('button', { name: 'Confirm and continue' }).click();
+    await page.getByRole('button', { name: 'I saved these' }).click();
+  }
   await page.waitForURL((url) => !url.pathname.endsWith('/login'), {
     timeout: NAVIGATION_TIMEOUT_MS,
   });

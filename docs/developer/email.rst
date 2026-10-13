@@ -62,6 +62,14 @@ from the stored reminder schedule, so the mail app never imports it:
        password was cleared and its sessions ended (:ref:`deploy-database`); the
        user record's **Require a new password** sends ``password_reset`` worded to
        say an administrator required a new password (:ref:`api-require-new-password`)
+   * - ``mfa_enabled``, ``mfa_disabled``, ``mfa_reset``,
+       ``mfa_recovery_code_used``, ``mfa_recovery_codes_regenerated``,
+       ``mfa_wrong_code``, ``sign_in_locked``
+     - Two-factor sign-in turned on, Two-factor sign-in turned off, Two-factor
+       sign-in reset, Backup code used, New backup codes, Wrong two-factor code,
+       Sign-in paused
+     - two-factor sign-in and the sign-in lockout, once each change commits
+       (:ref:`api-two-factor`, :ref:`api-login-lockout`)
    * - ``scheduled_report``, ``dart_roster``
      - Scheduled report, DART roster
      - the daily report run (:doc:`scheduled-reports`)

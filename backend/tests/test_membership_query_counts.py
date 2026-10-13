@@ -54,8 +54,9 @@ SEARCH_TERM = "Querycount"
 #: The histories the population cycles through, one member each.
 HISTORIES: tuple[str, ...] = ("current", "expired", "lifetime", "unpaid")
 
-#: Queries per request, whatever the page size.
-ADMIN_USERS_QUERIES = 6
+#: Queries per request, whatever the page size; one of them reads the caller's roles
+#: for every row's ``can_reset_two_factor``.
+ADMIN_USERS_QUERIES = 7
 ADMIN_MEMBERS_QUERIES = 6
 LEADER_SEARCH_QUERIES = 4
 #: The aircraft endpoints add one query for the access check, which finds the leader's

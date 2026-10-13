@@ -6,9 +6,10 @@
  * verified. An address the bounce check found bouncing carries a **Bounced** chip there and
  * a **Clear bounce** action that asks first.  Only a system administrator may give or take
  * away the System administrator role, so its box is grayed out for anybody else, with
- * the reason under it.  The **Password** card sends a reset link or requires a new
- * password.  The **History** card lists who changed the account's roles or status, and
- * when.
+ * the reason under it.  The **Two-factor sign-in** card says whether the person has an
+ * authenticator app set up and offers **Reset two-factor** for a lost phone.  The
+ * **Password** card sends a reset link or requires a new password.  The **History**
+ * card lists who changed the account's roles or status, and when.
  */
 import { useEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
@@ -40,6 +41,7 @@ import { FormAlert, fieldError } from '@/portal/features/auth/form';
 import { AccountHistoryCard } from './AccountHistoryCard';
 import { AccountStatusCard } from './AccountStatusCard';
 import { PasswordCard } from './PasswordCard';
+import { TwoFactorCard } from './TwoFactorCard';
 import './users.css';
 import { useAdminUser, useClearBounce, useSendEmailVerification, useUpdateAdminUser } from './api';
 
@@ -274,6 +276,8 @@ export function UserDetailPage(): JSX.Element {
       </Card>
 
       {isDonor ? null : <AccountStatusCard user={user} isSelf={isSelf} />}
+
+      {isDonor ? null : <TwoFactorCard user={user} isSelf={isSelf} />}
 
       {isDonor ? null : <PasswordCard user={user} isSelf={isSelf} />}
 

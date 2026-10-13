@@ -49,8 +49,11 @@ const REACTIVATE_BLOCKED_HINT = 'Allow reactivation first; the block keeps the a
 const UNBLOCK_HINT =
   'Lifts the block. The account stays deactivated until somebody reactivates it.';
 
+/** The actions this card offers; the two-factor reset is on its own card. */
+type StatusCardAction = Exclude<AccountStatusAction, 'reset-two-factor'>;
+
 /** The toast each action shows once it has gone through. */
-const DONE: Record<AccountStatusAction, string> = {
+const DONE: Record<StatusCardAction, string> = {
   deactivate: 'Account deactivated.',
   reactivate: 'Account reactivated.',
   block: 'Reactivation blocked.',
@@ -67,7 +70,7 @@ export interface AccountStatusCardProps {
 export function AccountStatusCard({ user, isSelf }: AccountStatusCardProps): JSX.Element {
   const toast = useToast();
   const action = useAccountStatusAction(user.id);
-  const handleRun = (which: AccountStatusAction) => () =>
+  const handleRun = (which: StatusCardAction) => () =>
     action.mutateAsync(which).then(() => toast.show(DONE[which], 'success'));
 
   return (

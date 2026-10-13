@@ -1,0 +1,15 @@
+{% autoescape off %}{{ org_name }} — sign-in paused after failed attempts
+
+Hello{% if first_name %} {{ first_name }}{% endif %},
+
+Too many wrong passwords or two-factor codes have been tried for your account at
+{{ org_name }}, registered to {{ email }}, so signing in to it is paused for a while,
+whoever tries. Wait and try again later; nothing else has changed.
+
+If these attempts were not yours, somebody is guessing at your account: once you
+are back in, change your password, and tell {{ org_name }}{% if contact_email %} at
+{{ contact_email }}{% endif %}.
+
+— {{ org_name }}
+{{ site_url }}
+{% endautoescape %}

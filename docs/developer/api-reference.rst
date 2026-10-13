@@ -349,11 +349,12 @@ is not a bug: each endpoint that sends mail catches the refusal, and
 Throttling
 ----------
 
-There is no project-wide throttle.  The anonymous auth endpoints, and the start
-of a gift on the public donation page, are rate limited by client IP address,
-and address suggestions by signed-in account, with the rates read from the
-environment.  Both password-reset endpoints share one scope, so asking for
-links and spending them draw on the same budget:
+There is no project-wide throttle.  The anonymous auth endpoints, every
+endpoint that takes a two-factor code, and the start of a gift on the public
+donation page are rate limited by client IP address, and address suggestions by
+signed-in account, with the rates read from the environment.  Both
+password-reset endpoints share one scope, so asking for links and spending them
+draw on the same budget:
 
 .. list-table::
    :header-rows: 1
@@ -368,9 +369,10 @@ links and spending them draw on the same budget:
    * - ``POST /auth/reactivate``
      - ``auth_login``
      - ``AUTH_THROTTLE_LOGIN`` (``20/min``), shared with sign-in
-   * - ``POST /admin/login/`` and ``POST /django-admin/login/``
-     - ``auth_login``
-     - ``AUTH_THROTTLE_LOGIN`` (``20/min``), shared with sign-in; a plain-text 429
+   * - ``POST /auth/login/mfa``, ``…/mfa/enroll``, ``…/mfa/enroll/confirm``, and
+       every ``POST /auth/mfa/…``
+     - ``auth_mfa``
+     - ``AUTH_THROTTLE_MFA`` (``10/min``)
    * - ``POST /auth/register``
      - ``auth_register``
      - ``AUTH_THROTTLE_REGISTER`` (``10/hour``)
@@ -402,6 +404,12 @@ whose requests would otherwise go uncounted.  The address-suggestion class subcl
 ``UserRateThrottle`` and counts each account on its own, because every
 suggestion spends the Geoapify quota the whole site shares.  Exceeding a rate
 is **429**.
+
+Signing in is also limited per email address, whoever tries it: ten failed
+attempts at one address within fifteen minutes, wrong passwords and wrong
+two-factor codes together, refuse every further attempt at it with **429** until
+the window passes (``LOGIN_LOCKOUT_ATTEMPTS`` and ``LOGIN_LOCKOUT_SECONDS``; see
+:ref:`api-login-lockout`).
 
 .. _api-machine-readable-schema:
 
@@ -565,7 +573,15 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - ✓
-     - throttled
+     - throttled; asks for a second factor where one is needed
+   * - ``POST /auth/login/mfa``, ``…/mfa/enroll``, ``…/mfa/enroll/confirm``
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - throttled; acts only on the caller's pending sign-in
    * - ``POST /auth/logout``
      - ✓
      - ✓
@@ -654,6 +670,22 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - throttled; a deactivated account's own email and password; signs the caller in
+   * - ``GET /auth/mfa``, ``POST /auth/mfa/enroll``, ``…/enroll/confirm``, ``…/recovery-codes``
+     - ·
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - the caller's own; throttled except the ``GET``
+   * - ``POST /auth/mfa/disable``
+     - ·
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - throttled; asks for the password and a code; 403 where a role requires it
    * - ``GET /roles``
      - ·
      - ✓
@@ -734,6 +766,14 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - audited as ``account.bounce_cleared``
+   * - ``POST /admin/users/{id}/reset-two-factor``
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ·
+     - ·
+     - ends the person's sessions; audited as ``account.mfa_reset``
    * - ``GET /darts``, ``GET /plans``
      - ✓
      - ✓

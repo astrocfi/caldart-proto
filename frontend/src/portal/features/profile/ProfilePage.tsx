@@ -1,6 +1,6 @@
 /**
- * `/profile` — the member's own details, the kind of account they hold, and the way to
- * deactivate it.
+ * `/profile` — the member's own details, the kind of account they hold, their two-factor
+ * sign-in, and the way to deactivate it.
  */
 import { useEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
@@ -13,6 +13,7 @@ import { EmptyState } from '@/portal/components/EmptyState';
 import { Page } from '@/portal/components/Page';
 import { useToast } from '@/portal/components/Toast';
 import { KindCard } from '@/portal/features/dashboard/KindSwitch';
+import { SecurityCard } from '@/portal/features/two-factor/SecurityCard';
 import { DeactivateCard } from './DeactivateCard';
 import { ProfileForm } from './ProfileForm';
 import { useProfile, useSaveProfile } from './api';
@@ -94,6 +95,8 @@ export function ProfilePage(): JSX.Element {
       </div>
 
       <KindCard />
+
+      <SecurityCard />
 
       <DeactivateCard />
     </Page>

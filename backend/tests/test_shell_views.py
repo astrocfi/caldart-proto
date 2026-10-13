@@ -145,15 +145,3 @@ def test_home_page_includes_the_site_bundle(
     """The built home page references the site bundle's script file."""
     body = client.get("/").content.decode()
     assert manifest_entry("src/site/main.ts")["file"] in body
-
-
-def test_wagtail_admin_login_page(client: Client) -> None:
-    """The Wagtail admin login page answers 200."""
-    response = client.get("/admin/login/")
-    assert response.status_code == 200
-
-
-def test_django_admin_login_page(client: Client) -> None:
-    """The Django admin login page answers 200."""
-    response = client.get("/django-admin/login/")
-    assert response.status_code == 200

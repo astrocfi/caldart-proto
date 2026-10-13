@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from functools import cached_property
 from typing import Any
 
 from django.contrib.auth.password_validation import validate_password
@@ -11,6 +12,7 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from apps.accounts.email_change import FollowedLink
+from apps.accounts.mfa import has_two_factor, reset_refusal
 from apps.accounts.models import (
     PERSON_KIND_CHOICES,
     AccountChange,
@@ -21,6 +23,7 @@ from apps.accounts.models import (
 from apps.accounts.roles import ROLE_SLUGS
 from apps.accounts.services import (
     AccountChanges,
+    effective_roles,
     is_donor,
     normalized_email,
     update_account,
@@ -380,7 +383,10 @@ class AdminUserSerializer(UserSerializer):
     block, unblock).  ``email_bounced_at`` and ``email_bounce_detail`` say when and why
     the bounce check last found the address bouncing, null and blank with no bounce
     known; they are changed only by the bounce check, a new or verified address, and
-    the record's **Clear bounce** action.  ``phone``, ``dart`` (the DART's name),
+    the record's **Clear bounce** action.  ``two_factor_enabled`` is true while the
+    account has a confirmed authenticator device; it changes only by its owner and the
+    record's **Reset two-factor** action, which ``can_reset_two_factor`` says whether the
+    caller may take.  ``phone``, ``dart`` (the DART's name),
     ``city``, ``county``, and ``home_airport`` are read from the profile, for the
     columns the users list can show; blank, and a null DART, without a profile.
     """
@@ -399,6 +405,8 @@ class AdminUserSerializer(UserSerializer):
     city = serializers.SerializerMethodField()
     county = serializers.SerializerMethodField()
     home_airport = serializers.SerializerMethodField()
+    two_factor_enabled = serializers.SerializerMethodField()
+    can_reset_two_factor = serializers.SerializerMethodField()
 
     class Meta(UserSerializer.Meta):
         fields = [
@@ -407,6 +415,8 @@ class AdminUserSerializer(UserSerializer):
             "email_bounced_at",
             "email_bounce_detail",
             "reactivation_blocked",
+            "two_factor_enabled",
+            "can_reset_two_factor",
             "phone",
             "dart",
             "city",
@@ -459,6 +469,34 @@ class AdminUserSerializer(UserSerializer):
     def get_home_airport(self, obj: User) -> str:
         """The home airport's identifier, blank without a profile."""
         return self._profile_text(obj, "home_airport_identifier")
+
+    def get_two_factor_enabled(self, obj: User) -> bool:
+        """True when the account has a confirmed authenticator device.
+
+        Read from the ``two_factor_on`` annotation ``admin_user_queryset`` adds, so the
+        list costs no query per row; an account loaded without it is asked directly.
+        """
+        annotated = getattr(obj, "two_factor_on", None)
+        if isinstance(annotated, bool):
+            return annotated
+        return has_two_factor(obj)
+
+    def get_can_reset_two_factor(self, obj: User) -> bool:
+        """True when the caller may reset the account's two-factor sign-in.
+
+        The rule is :func:`apps.accounts.mfa.reset_refusal`'s: not your own account, not
+        a donor's, and a system administrator's only by a system administrator.  Whether
+        two-factor sign-in is on is ``two_factor_enabled``'s to say.
+        """
+        actor = self.context["request"].user
+        if not isinstance(actor, User):
+            return False
+        return reset_refusal(actor, obj, actor_roles=self._actor_roles) is None
+
+    @cached_property
+    def _actor_roles(self) -> set[str]:
+        """The caller's effective roles, read once for the whole list."""
+        return effective_roles(self.context["request"].user)
 
     @property
     def _actor(self) -> User:

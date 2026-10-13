@@ -86,7 +86,9 @@ The filters narrow the whole log, every page of it:
    *Renewal charged*, *Automatic renewal or recurring donation charge failed*, *Automatic
    renewal or recurring donation turned off*, *Receipt*, *Refund*, *Contribution statement*,
    *Invitation*, *Password reset*, *Email verification*, *Email change link*, *Email change
-   notice*, *Password changed*, *Account already exists*, *Bulk email*, *Bulk email test*,
+   notice*, *Password changed*, *Account already exists*, *Two-factor sign-in turned on*,
+   *Two-factor sign-in turned off*, *Two-factor sign-in reset*, *Backup code used*, *New
+   backup codes*, *Wrong two-factor code*, *Sign-in paused*, *Bulk email*, *Bulk email test*,
    *Scheduled report*, *DART roster*, or one of the notifications: *Notification: Sign-up*,
    *Notification: Member added by an administrator*, *Notification: Member became a friend*,
    *Notification: Friend became a member*, *Notification: Membership paid*, *Notification:

@@ -10,7 +10,7 @@ import { server } from '@test/server';
 import { AUTH_ME_KEY } from '@/portal/auth/useAuth';
 import type * as guide from '@/portal/guide';
 import { openGuide } from '@/portal/guide';
-import { LoginPage, safeNext } from './LoginPage';
+import { LoginPage, nextTarget, safeNext } from './LoginPage';
 
 vi.mock('@/portal/guide', async (importOriginal: () => Promise<typeof guide>) => ({
   ...(await importOriginal()),
@@ -46,6 +46,7 @@ function renderLogin(route = '/login') {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/" element={<Dashboard />} />
       <Route path="/profile" element={<Profile />} />
+      <Route path="/admin/users" element={<h1>Roles and status</h1>} />
     </Routes>,
     { route },
   );
@@ -60,6 +61,93 @@ describe('safeNext', () => {
     expect(safeNext(null)).toBe('/');
     expect(safeNext('https://evil.example')).toBe('/');
     expect(safeNext('//evil.example')).toBe('/');
+  });
+
+  it('refuses a backslash, which a browser reads as a slash', () => {
+    expect(safeNext('/\\evil.example')).toBe('/');
+  });
+});
+
+describe('nextTarget', () => {
+  it('strips the portal base from a full portal path', () => {
+    expect(nextTarget('/portal/admin/users')).toEqual({ kind: 'portal', path: '/admin/users' });
+  });
+
+  it('reads a Wagtail admin page that shares a portal word as a page of the site', () => {
+    expect(nextTarget('/admin/reports/locked/')).toEqual({
+      kind: 'site',
+      path: '/admin/reports/locked/',
+    });
+  });
+
+  it('reads a members-only page of the public site as a page of the site', () => {
+    expect(nextTarget('/members/')).toEqual({ kind: 'site', path: '/members/' });
+  });
+
+  it('reads no next as the dashboard', () => {
+    expect(nextTarget(null)).toEqual({ kind: 'portal', path: '/' });
+  });
+
+  it('reads a Wagtail admin page as a page of the site', () => {
+    expect(nextTarget('/admin/pages/3/')).toEqual({ kind: 'site', path: '/admin/pages/3/' });
+  });
+
+  it('reads a Django admin page as a page of the site', () => {
+    expect(nextTarget('/django-admin/')).toEqual({ kind: 'site', path: '/django-admin/' });
+  });
+});
+
+describe('LoginPage · where it goes next', () => {
+  async function signInHere() {
+    await userEvent.type(await screen.findByLabelText(/email address/i), 'marta@example.org');
+    await userEvent.type(screen.getByLabelText(/^password/i), 'correct-horse');
+    await userEvent.click(screen.getByRole('button', { name: /sign in/i }));
+  }
+
+  it('stays in the portal for its own users list, signed out first', async () => {
+    server.use(http.post(`${API}/auth/login`, () => HttpResponse.json(makeUser())));
+    renderLogin('/login?next=%2Fportal%2Fadmin%2Fusers');
+    await signInHere();
+
+    expect(await screen.findByRole('heading', { name: 'Roles and status' })).toBeInTheDocument();
+    expect(openGuide).not.toHaveBeenCalledWith('/portal/admin/users');
+  });
+
+  it('opens the users list for somebody already signed in', async () => {
+    server.use(http.get(`${API}/auth/me`, () => HttpResponse.json(makeUser())));
+    renderLogin('/login?next=%2Fportal%2Fadmin%2Fusers');
+
+    expect(await screen.findByRole('heading', { name: 'Roles and status' })).toBeInTheDocument();
+  });
+
+  it('returns to a members-only page of the public site after signing in', async () => {
+    server.use(http.post(`${API}/auth/login`, () => HttpResponse.json(makeUser())));
+    renderLogin('/login?next=%2Fmembers%2F');
+    await signInHere();
+
+    await waitFor(() => expect(openGuide).toHaveBeenCalledWith('/members/'));
+  });
+
+  it('sends somebody already signed in on to a members-only page', async () => {
+    server.use(http.get(`${API}/auth/me`, () => HttpResponse.json(makeUser())));
+    renderLogin('/login?next=%2Fmembers%2F');
+
+    await waitFor(() => expect(openGuide).toHaveBeenCalledWith('/members/'));
+  });
+
+  it('opens the Wagtail admin after signing in', async () => {
+    server.use(http.post(`${API}/auth/login`, () => HttpResponse.json(makeUser())));
+    renderLogin('/login?next=%2Fadmin%2F');
+    await signInHere();
+
+    await waitFor(() => expect(openGuide).toHaveBeenCalledWith('/admin/'));
+  });
+
+  it('sends somebody already signed in to the dashboard rather than back to the admin', async () => {
+    server.use(http.get(`${API}/auth/me`, () => HttpResponse.json(makeUser())));
+    renderLogin('/login?next=%2Fadmin%2Fpages%2F');
+
+    expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
   });
 });
 
@@ -118,7 +206,7 @@ describe('LoginPage', () => {
   it('returns to the page the guard came from', async () => {
     server.use(http.post(`${API}/auth/login`, () => HttpResponse.json(makeUser())));
 
-    renderLogin('/login?next=%2Fprofile');
+    renderLogin('/login?next=%2Fportal%2Fprofile');
     await userEvent.type(await screen.findByLabelText(/email address/i), 'marta@example.org');
     await userEvent.type(screen.getByLabelText(/password/i), 'correct-horse');
     await userEvent.click(screen.getByRole('button', { name: /sign in/i }));
@@ -294,7 +382,7 @@ describe('LoginPage', () => {
   it('redirects a visitor who is already signed in', async () => {
     server.use(http.get(`${API}/auth/me`, () => HttpResponse.json(makeUser())));
 
-    renderLogin('/login?next=%2Fprofile');
+    renderLogin('/login?next=%2Fportal%2Fprofile');
 
     expect(await screen.findByRole('heading', { name: 'My profile' })).toBeInTheDocument();
   });
@@ -355,7 +443,7 @@ describe('LoginPage reactivation', () => {
         return HttpResponse.json(makeUser());
       }),
     );
-    renderLogin('/login?next=%2Fprofile');
+    renderLogin('/login?next=%2Fportal%2Fprofile');
     await signInToDeactivated();
     await userEvent.click(await screen.findByRole('button', { name: 'Reactivate my account' }));
 

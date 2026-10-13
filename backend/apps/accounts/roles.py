@@ -75,3 +75,15 @@ STAFF_ROLE_LABELS: dict[str, str] = {slug: ROLE_LABELS[slug] for slug in STAFF_R
 #: The roles that may verify a member's pilot certificate, medical, and photo ID, and an
 #: aircraft's insurance.  A system administrator and a superuser pass as always.
 VERIFY_ROLES: tuple[str, ...] = (VERIFIER, DART_LEADER, USER_ADMIN, ACCOUNT_ADMIN)
+
+#: The roles that require two-factor sign-in: everyone who can see or change other
+#: people's accounts, money, or the public website.  A Django superuser is required
+#: too, since it counts as a system administrator.
+MFA_REQUIRED_ROLES: tuple[str, ...] = (
+    USER_ADMIN,
+    TREASURER,
+    ACCOUNT_ADMIN,
+    MANAGEMENT,
+    WEBSITE_ADMIN,
+    SYSTEM_ADMIN,
+)

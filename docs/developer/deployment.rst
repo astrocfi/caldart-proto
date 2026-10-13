@@ -962,7 +962,23 @@ With ``--admin-email`` the step creates the first real administrator::
 verified address, and prints one line: a password-reset link, which the
 installer's summary repeats.  Open it to set the password.  ``system_admin``
 plus ``is_superuser`` is what unlocks ``/portal/system/`` and the Wagtail
-admin.
+admin.  Both require two-factor sign-in, so the first sign-in after setting the
+password asks the administrator to set up an authenticator app and save the
+backup codes before it opens the portal (:ref:`api-two-factor`).  Keep those
+codes.  An administrator who loses both the phone and the codes asks another
+system administrator to reset two-factor sign-in from the user record or, when
+there is none, resets it from the server::
+
+  sudo deploy/manage.sh reset_two_factor --email you@example.org
+
+Every staff account -- a user administrator, the treasurer, an account
+administrator, CalDART management, a website administrator, and a system
+administrator -- that has no authenticator device sets one up at its next sign-in,
+and a staff session that has not passed the second factor is signed out.  An
+address locked out by somebody's guesses (:ref:`api-login-lockout`) opens again on
+its own; to open it at once::
+
+  sudo deploy/manage.sh clear_lockout --email you@example.org
 
 An existing account with that address gains the roles it lacks and keeps the
 rest, and is taken back from whoever set its password, since anybody can

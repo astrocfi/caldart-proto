@@ -194,12 +194,18 @@ def test_a_slug_longer_than_the_limit_is_refused() -> None:
 
 
 def test_an_actor_that_is_neither_a_user_nor_a_command_is_refused() -> None:
-    """A string actor other than ``audit.COMMAND_ACTOR`` raises ``TypeError``."""
+    """A string actor other than ``command`` or ``anonymous`` raises ``TypeError``."""
     with pytest.raises(TypeError) as excinfo:
         audit.record("thing.done", actor="somebody")
     assert str(excinfo.value) == (
-        "Audit actor takes a model instance or 'command', not 'somebody'."
+        "Audit actor takes a model instance, 'command' or 'anonymous', not 'somebody'."
     )
+
+
+def test_an_anonymous_actor_renders_as_anonymous(audit_log: pytest.LogCaptureFixture) -> None:
+    """A request nobody is signed in to is recorded under ``actor=anonymous``."""
+    audit.record("thing.done", actor=audit.ANONYMOUS_ACTOR)
+    assert one_message(audit_log) == "action=thing.done actor=anonymous target=-"
 
 
 def test_a_target_that_is_not_an_id_is_refused() -> None:

@@ -126,6 +126,16 @@ import type {
   LedgerMember,
   LedgerTotals,
   LoginPayload,
+  LoginResult,
+  MfaChallenge,
+  MfaDisablePayload,
+  MfaEnrollPayload,
+  MfaEnrollment,
+  MfaStatus,
+  MfaStep,
+  OtpPayload,
+  RecoveryCodes,
+  EnrolledSignIn,
   MailDeliveryCheck,
   MailDeliveryFinding,
   MandateProvider,
@@ -294,6 +304,16 @@ const bulkEmailRecipientStatus: Matches<
 const user: Matches<User, Schemas['User']> = true;
 const role: Matches<Role, Schemas['Role']> = true;
 const loginPayload: Matches<LoginPayload, Schemas['LoginRequest']> = true;
+const loginResult: Matches<LoginResult, Schemas['LoginResponse']> = true;
+const mfaChallenge: Matches<MfaChallenge, Schemas['MfaChallenge']> = true;
+const mfaStep: Matches<MfaStep, Schemas['MfaEnum']> = true;
+const otpPayload: Matches<OtpPayload, Schemas['OtpRequest']> = true;
+const mfaEnrollment: Matches<MfaEnrollment, Schemas['Enrollment']> = true;
+const recoveryCodes: Matches<RecoveryCodes, Schemas['RecoveryCodes']> = true;
+const enrolledSignIn: Matches<EnrolledSignIn, Schemas['EnrolledSignIn']> = true;
+const mfaStatus: Matches<MfaStatus, Schemas['MfaStatus']> = true;
+const mfaDisablePayload: Matches<MfaDisablePayload, Schemas['MfaDisableRequest']> = true;
+const mfaEnrollPayload: Matches<MfaEnrollPayload, Schemas['MfaEnrollRequest']> = true;
 const registerPayload: Matches<RegisterPayload, Schemas['RegisterRequest']> = true;
 const passwordChange: Matches<PasswordChangePayload, Schemas['PasswordChangeRequest']> = true;
 const passwordReset: Matches<PasswordResetRequestPayload, Schemas['PasswordResetRequest']> = true;
@@ -607,6 +627,16 @@ const assertions: readonly true[] = [
   user,
   role,
   loginPayload,
+  loginResult,
+  mfaChallenge,
+  mfaStep,
+  otpPayload,
+  mfaEnrollment,
+  recoveryCodes,
+  enrolledSignIn,
+  mfaStatus,
+  mfaDisablePayload,
+  mfaEnrollPayload,
   registerPayload,
   passwordChange,
   passwordReset,
@@ -837,6 +867,16 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'User',
   'Role',
   'LoginRequest',
+  'LoginResponse',
+  'MfaChallenge',
+  'MfaEnum',
+  'OtpRequest',
+  'Enrollment',
+  'RecoveryCodes',
+  'EnrolledSignIn',
+  'MfaStatus',
+  'MfaDisableRequest',
+  'MfaEnrollRequest',
   'RegisterRequest',
   'PasswordChangeRequest',
   'PasswordResetRequest',

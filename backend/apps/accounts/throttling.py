@@ -1,9 +1,10 @@
-"""Rate limits for the anonymous endpoints that mail someone, guess at a secret, or write.
+"""Rate limits for the endpoints that mail someone, guess at a secret, or write.
 
 Login, registration, password-reset, and email-verification requests are where a
-caller can burn server time, guess at a token, or spray an inbox, and a gift on the
-public donation page writes an account and a payment for a caller nobody signed in,
-so each gets its own scope.  Every scope counts by client address, signed in or not.
+caller can burn server time, guess at a token, or spray an inbox, every endpoint that
+takes a two-factor code is a place to guess one, and a gift on the public donation
+page writes an account and a payment for a caller nobody signed in, so each gets its
+own scope.  Every scope counts by client address, signed in or not.
 
 Rates come from the ``AUTH_THROTTLE_RATES`` setting rather than DRF's
 ``DEFAULT_THROTTLE_RATES`` so they can be switched off (or turned up for one
@@ -15,13 +16,7 @@ shared counter.
 
 from __future__ import annotations
 
-import math
-from collections.abc import Callable
-from functools import wraps
-from typing import Any
-
 from django.conf import settings
-from django.http import HttpRequest, HttpResponse, HttpResponseBase
 from rest_framework.request import Request
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
@@ -34,10 +29,7 @@ VERIFY_SCOPE = "auth_verify"
 VERIFY_RESEND_SCOPE = "auth_verify_resend"
 EMAIL_CHANGE_SCOPE = "auth_email_change"
 DONATE_SCOPE = "donate"
-
-#: What a login form that is not the portal's answers once the ``auth_login`` budget
-#: is spent, as plain text: the form's own page cannot show an API error.
-LOGIN_FORM_THROTTLED = "Too many sign-in attempts. Wait a minute and try again."
+MFA_SCOPE = "auth_mfa"
 
 
 class AuthScopedThrottle(AnonRateThrottle):
@@ -112,33 +104,11 @@ class DonateThrottle(AuthScopedThrottle):
     scope = DONATE_SCOPE
 
 
-def throttle_login_form(
-    view: Callable[..., HttpResponseBase],
-) -> Callable[..., HttpResponseBase]:
-    """Wrap a login view that is not the portal's in the ``auth_login`` rate limit.
+class MfaThrottle(AuthScopedThrottle):
+    """Throttles every endpoint that takes a two-factor code under the ``auth_mfa`` rate.
 
-    The Wagtail admin and the Django admin each serve their own login form, which would
-    otherwise take unlimited guesses.  Each ``POST`` to the wrapped view counts against
-    the same ``auth_login`` budget, by client address, as ``POST /auth/login``; once it
-    is spent the answer is a plain-text 429 carrying :data:`LOGIN_FORM_THROTTLED` and a
-    ``Retry-After`` header in whole seconds, and the view is not called.  Other methods
-    pass through uncounted, and a switched-off scope leaves the view alone.
+    The code steps of signing in and the signed-in two-factor endpoints share it, on
+    top of the per-sign-in cap on wrong codes and the per-address lockout.
     """
 
-    @wraps(view)
-    def throttled(request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponseBase:
-        """Refuse a ``POST`` past the budget, otherwise call the view."""
-        if request.method != "POST":
-            return view(request, *args, **kwargs)
-        throttle = LoginThrottle()
-        if throttle.allow_request(Request(request), APIView()):
-            return view(request, *args, **kwargs)
-        response = HttpResponse(
-            LOGIN_FORM_THROTTLED, status=429, content_type="text/plain; charset=utf-8"
-        )
-        wait = throttle.wait()
-        if wait is not None:
-            response["Retry-After"] = str(math.ceil(wait))
-        return response
-
-    return throttled
+    scope = MFA_SCOPE

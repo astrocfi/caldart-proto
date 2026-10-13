@@ -219,13 +219,6 @@ def test_wagtail_admin_avatar_comes_from_the_site_itself(
     assert [src for src in sources if "default-user-avatar" in src] != []
 
 
-def test_wagtail_admin_login_page_is_relaxed_too(client: Client) -> None:
-    """The relaxation follows the path, so the signed-out admin login page has it."""
-    response = client.get("/admin/login/")
-    assert response.status_code == 200
-    assert directives(response)["script-src"] == ["'self'", "'unsafe-inline'"]
-
-
 def test_user_guide_replaces_script_src_with_unsafe_inline(
     client: Client, member: User, tmp_path: Path, settings: Settings
 ) -> None:

@@ -1,16 +1,19 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { ApiError } from '@/portal/api/client';
-import { useAuth, useLogin, useReactivate } from '@/portal/auth/useAuth';
+import type { LoginResult } from '@/portal/api/types';
+import { isMfaChallenge, useAuth, useLogin, useReactivate } from '@/portal/auth/useAuth';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { Field } from '@/portal/components/Field';
-import { isGuidePath, openGuide } from '@/portal/guide';
+import { openGuide } from '@/portal/guide';
 import { MaskedInput } from '@/portal/components/MaskedInput';
 import { RefusedSubmitNote, useRefusedSubmit } from '@/portal/components/RefusedSubmit';
 import { addressProblem, maskEmail } from '@/portal/masks';
+import { PORTAL_BASENAME, sitePath } from '@/portal/urlPrefix';
+import { CodeStep, EnrollStep } from '@/portal/features/two-factor/SignInSteps';
 import { AuthShell } from './AuthShell';
 import { FormAlert, fieldError } from './form';
 
@@ -35,20 +38,67 @@ function isDeactivated(error: unknown): error is ApiError {
 /** Only same-site paths are followed, so `?next=` cannot bounce off-site. */
 export function safeNext(raw: string | null): string {
   if (!raw) return '/';
-  if (!raw.startsWith('/') || raw.startsWith('//')) return '/';
+  if (!raw.startsWith('/') || raw.startsWith('//') || raw.includes('\\')) return '/';
   return raw;
 }
+
+/** Where the Wagtail admin and the Django admin live, outside the portal. */
+const ADMIN_PREFIXES = [sitePath('/admin/'), sitePath('/django-admin/')];
+
+/** True when `path` starts with `prefix`, a directory ending in a slash, or is it. */
+function isUnder(path: string, prefix: string): boolean {
+  return (
+    path === prefix.slice(0, -1) ||
+    path.startsWith(prefix) ||
+    path.startsWith(`${prefix.slice(0, -1)}?`)
+  );
+}
+
+/** True when `path` is a page of the Wagtail or Django admin. */
+export function isAdminPath(path: string): boolean {
+  return ADMIN_PREFIXES.some((prefix) => isUnder(path, prefix));
+}
+
+/**
+ * Where `?next=` leads: a route of the portal, or a page Django serves outside it.
+ *
+ * Everything that sends a reader here names a full site path: the portal's own guard
+ * and links name a portal route under `PORTAL_BASENAME`, which is stripped to the
+ * route; Django names a page of the user guide, of an admin site, or of the public
+ * site.  So a path under the portal's base is a portal route and any other is a page of
+ * the site.  No `next`, or an unsafe one, is the dashboard.
+ */
+export type NextTarget = { kind: 'portal'; path: string } | { kind: 'site'; path: string };
+
+/** The target `raw` names, after `safeNext`. */
+export function nextTarget(raw: string | null): NextTarget {
+  const next = safeNext(raw);
+  if (raw === null || next !== raw) return { kind: 'portal', path: '/' };
+  if (isUnder(next, `${PORTAL_BASENAME}/`)) {
+    return { kind: 'portal', path: next.slice(PORTAL_BASENAME.length) || '/' };
+  }
+  return { kind: 'site', path: next };
+}
+
+/** Which step of signing in is on screen. */
+type Step = 'password' | 'verify' | 'enroll';
 
 /**
  * `/login` — email + password, honoring `?next=`, with the address prefilled from
  * `?email=` when it is given.
  *
- * A deactivated account whose password matched is offered reactivation: the same
- * credentials go to `POST /auth/reactivate`, which signs the person in.
+ * An account that needs a second factor is then asked for a code from its
+ * authenticator app or a backup code, or, when it must use one and has none, is taken
+ * through setting one up and saving its backup codes; only then is it signed in.
  *
- * `next` is a portal route, except when it names a page of the user guide:
- * Django sends a signed-out reader here with the guide page as `next`, and the
- * guide lives outside the SPA, so that one is a full-page navigation.
+ * A deactivated account whose password matched is offered reactivation: the same
+ * credentials go to `POST /auth/reactivate`, which signs the person in the same way.
+ *
+ * `next` is a portal route, or a page of the site -- the user guide, an admin site, or a
+ * members-only page -- that Django sent a signed-out reader here from (`nextTarget`);
+ * going to one of those is a full-page navigation.  Somebody already signed in who arrives with an admin page as
+ * `next` is taken to the dashboard instead, since the admin site sent them here because
+ * their account cannot open it.
  */
 export function LoginPage(): JSX.Element {
   const [params] = useSearchParams();
@@ -66,23 +116,69 @@ export function LoginPage(): JSX.Element {
   // says so beside the button.
   const refusal = useRefusedSubmit(formRef, login.error);
 
-  const next = safeNext(params.get('next'));
-  const isGuide = isGuidePath(next);
+  const [step, setStep] = useState<Step>('password');
+  const [expired, setExpired] = useState<string | null>(null);
+
+  const target = nextTarget(params.get('next'));
+  const next = target.path;
+  const isSite = target.kind === 'site';
   const isSignedIn = !isLoading && isAuthenticated;
 
+  // Somebody already signed in goes on to a page of the site, except an admin page: the
+  // admin sent them here because their account cannot open it.
+  const isOpenSitePage = isSite && !isAdminPath(next);
   useEffect(() => {
-    if (isSignedIn && isGuide) openGuide(next);
-  }, [isSignedIn, isGuide, next]);
+    if (isSignedIn && isOpenSitePage && step === 'password') openGuide(next);
+  }, [isSignedIn, isOpenSitePage, next, step]);
 
-  if (isSignedIn) return isGuide ? <></> : <Navigate to={next} replace />;
+  const handleExpired = useCallback((message: string) => {
+    setExpired(message);
+    setPassword('');
+    setStep('password');
+  }, []);
+
+  if (isSignedIn && step === 'password') {
+    if (isSite && !isAdminPath(next)) return <></>;
+    return <Navigate to={isSite ? '/' : next} replace />;
+  }
 
   const handleSignedIn = () => {
-    if (isGuide) {
+    if (isSite) {
+      // A full-page navigation, as the guide's own pages are opened.
       openGuide(next);
       return;
     }
     void navigate(next, { replace: true });
   };
+
+  const handleResult = (result: LoginResult) => {
+    if (!isMfaChallenge(result)) {
+      handleSignedIn();
+      return;
+    }
+    setExpired(null);
+    setStep(result.mfa);
+  };
+
+  const handleStartAgain = () => {
+    setPassword('');
+    setStep('password');
+  };
+
+  if (step === 'verify') {
+    return (
+      <CodeStep onSignedIn={handleSignedIn} onExpired={handleExpired} onCancel={handleStartAgain} />
+    );
+  }
+  if (step === 'enroll') {
+    return (
+      <EnrollStep
+        onSignedIn={handleSignedIn}
+        onExpired={handleExpired}
+        onCancel={handleStartAgain}
+      />
+    );
+  }
 
   return (
     <AuthShell
@@ -109,7 +205,8 @@ export function LoginPage(): JSX.Element {
             return;
           }
           reactivate.reset();
-          login.mutate({ email, password }, { onSuccess: handleSignedIn });
+          setExpired(null);
+          login.mutate({ email, password }, { onSuccess: handleResult });
         }}
       >
         <Field
@@ -151,6 +248,11 @@ export function LoginPage(): JSX.Element {
           )}
         </Field>
 
+        {expired !== null && login.error === null ? (
+          <p className="field__error" role="alert">
+            {expired}
+          </p>
+        ) : null}
         <FormAlert error={login.error} handled={['email', 'password', 'code']} />
 
         <div className="auth__actions">
@@ -169,7 +271,7 @@ export function LoginPage(): JSX.Element {
           <FormAlert error={reactivate.error} />
           <Button
             disabled={reactivate.isPending}
-            onClick={() => reactivate.mutate({ email, password }, { onSuccess: handleSignedIn })}
+            onClick={() => reactivate.mutate({ email, password }, { onSuccess: handleResult })}
           >
             {reactivate.isPending ? 'Reactivating…' : 'Reactivate my account'}
           </Button>

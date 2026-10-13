@@ -107,6 +107,59 @@ export interface LoginPayload {
   password: string;
 }
 
+/* ------------------------------------------------------- two-factor sign-in */
+/** What a right password still needs: a code (`verify`), or a device set up first. */
+export type MfaStep = 'verify' | 'enroll';
+
+/** `POST /auth/login` and `/auth/reactivate` for an account that needs a second factor. */
+export interface MfaChallenge {
+  mfa: MfaStep;
+}
+
+/** What `POST /auth/login` and `/auth/reactivate` answer: signed in, or a code to give. */
+export type LoginResult = User | MfaChallenge;
+
+/** A request carrying one two-factor code: an authenticator code or a backup code. */
+export interface OtpPayload {
+  otp: string;
+}
+
+/** What an authenticator app needs: the secret, its `otpauth://` address, and the QR. */
+export interface MfaEnrollment {
+  secret: string;
+  otpauth_uri: string;
+  /** The QR code of `otpauth_uri`, as an SVG document. */
+  qr_svg: string;
+}
+
+/** A fresh set of backup codes, shown this once. */
+export interface RecoveryCodes {
+  recovery_codes: string[];
+}
+
+/** `POST /auth/login/mfa/enroll/confirm`: signed in, with the backup codes. */
+export interface EnrolledSignIn extends RecoveryCodes {
+  user: User;
+}
+
+/** `GET /auth/mfa`: whether two-factor sign-in is on, and whether a role requires it. */
+export interface MfaStatus {
+  enabled: boolean;
+  required_by_role: boolean;
+  recovery_codes_remaining: number;
+}
+
+/** `POST /auth/mfa/enroll`: the password, before a secret is drawn. */
+export interface MfaEnrollPayload {
+  current_password: string;
+}
+
+/** `POST /auth/mfa/disable`. */
+export interface MfaDisablePayload {
+  current_password: string;
+  otp: string;
+}
+
 export interface RegisterPayload {
   email: string;
   password: string;
@@ -202,6 +255,10 @@ export interface AdminUser extends User {
   /** That report's status code and diagnostic, or `''`. */
   email_bounce_detail: string;
   reactivation_blocked: boolean;
+  /** True while the account has a confirmed authenticator device. */
+  two_factor_enabled: boolean;
+  /** True when the caller may reset it: not their own, and a system administrator's only by one. */
+  can_reset_two_factor: boolean;
   /** Read from the profile, blank without one, for the columns the users list can show. */
   phone: string;
   /** The DART's name, or null without one. */
@@ -221,7 +278,8 @@ export type AccountChangeKind =
   | 'unblocked'
   | 'new_password'
   | 'email_changed'
-  | 'email_change_undone';
+  | 'email_change_undone'
+  | 'mfa_reset';
 
 /**
  * One row of `GET /admin/users/{id}/history`, newest first.  `changed_by` is null for a

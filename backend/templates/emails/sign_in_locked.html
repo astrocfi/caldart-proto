@@ -1,0 +1,64 @@
+{% comment %}
+Sign-in paused after failed attempts: a security notice about the account's two-factor sign-in.  Every rule is
+inline and the palette is the `duty` theme's paper/ink/navy written out literally,
+as in the other account emails.
+{% endcomment %}<!doctype html>
+<html lang="en">
+  <body
+    style="margin: 0; padding: 24px 0; background: #eef2f7; color: #1d2530;
+           font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+           font-size: 16px; line-height: 1.55;"
+  >
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+      <tr>
+        <td align="center" style="padding: 0 16px;">
+          <table
+            role="presentation"
+            width="100%"
+            cellpadding="0"
+            cellspacing="0"
+            style="max-width: 34rem; border-collapse: collapse; background: #ffffff;
+                   border: 1px solid #ccd6e1; border-radius: 2px;"
+          >
+            <tr>
+              <td style="padding: 28px 32px 20px; border-bottom: 1px solid #ccd6e1;">
+                <p
+                  style="margin: 0 0 6px; font-size: 12px; font-weight: 600; letter-spacing: 0.12em;
+                         text-transform: uppercase; color: #55606d;"
+                >
+                  {{ org_name }}
+                </p>
+                <h1
+                  style="margin: 0; font-family: Fraunces, Georgia, 'Times New Roman', serif;
+                         font-size: 26px; font-weight: 600; line-height: 1.2; color: #1d2530;"
+                >
+                  Sign-in paused after failed attempts
+                </h1>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 24px 32px 8px;">
+                <p style="margin: 0 0 16px;">Hello{% if first_name %} {{ first_name }}{% endif %},</p>
+                <p style="margin: 0 0 16px;">
+                  Too many wrong passwords or two-factor codes have been tried for your account at {{ org_name }}, registered to {{ email }}, so signing in to it is paused for a while, whoever tries. Wait and try again later; nothing else has changed.
+                </p>
+                <p style="margin: 0 0 8px; font-size: 14px; color: #55606d;">
+                  If these attempts were not yours, somebody is guessing at your account: once you are back in, change your password, and tell {{ org_name }}{% if contact_email %}
+                  at <a href="mailto:{{ contact_email }}" style="color: #1f4e79;">{{ contact_email }}</a>{% endif %}.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 16px 32px 24px; border-top: 1px solid #ccd6e1;">
+                <p style="margin: 0; font-size: 13px; color: #55606d;">
+                  {{ org_name }} ·
+                  <a href="{{ site_url }}" style="color: #1f4e79;">{{ site_url }}</a>
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

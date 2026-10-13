@@ -465,6 +465,14 @@ Beyond Django's and Wagtail's own, this project adds:
        existing one, clearing its password and any reactivation block, ending its
        sessions, and mailing it a set-password link; either way print its
        password-reset link
+   * - ``reset_two_factor --email ADDRESS``
+     - take the account's two-factor sign-in away, as the user record's **Reset
+       two-factor** does, for an administrator who lost both the phone and the backup
+       codes when nobody else can reset it; ends its sessions, mails it, and clears
+       its sign-in lockout
+   * - ``clear_lockout --email ADDRESS``
+     - forget the failed sign-in attempts counted against the address, lifting its
+       lockout; changes nothing else
    * - ``seed_demo [--seed N]``
      - the demo data set; ``--seed`` is the *random* seed, default ``20260904``
    * - ``seed_content``

@@ -15,6 +15,7 @@ from typing import BinaryIO
 
 from csp.constants import SELF, UNSAFE_INLINE
 from django.conf import settings
+from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.auth.views import redirect_to_login
 from django.db.models import prefetch_related_objects
@@ -29,7 +30,7 @@ from django.http import (
 from django.shortcuts import render
 from django.urls import reverse
 from django.utils.cache import get_conditional_response
-from django.utils.http import http_date
+from django.utils.http import http_date, url_has_allowed_host_and_scheme
 
 from caldart.guide_search import (
     INDEX_DOCNAME,
@@ -93,6 +94,37 @@ def wagtail_account_page(request: HttpRequest) -> HttpResponse:
     where a person edits their own name, address, and password.
     """
     return HttpResponseRedirect(reverse("portal", kwargs={"path": "profile"}))
+
+
+def admin_login_redirect(request: HttpRequest) -> HttpResponseRedirect:
+    """Send the Wagtail and Django admins' sign-in to the portal's, keeping the way back.
+
+    Both admins are signed in to through the portal, which asks for the second factor,
+    so neither admin serves a login form of its own: ``/admin/login/``,
+    ``/django-admin/login/``, and the public site's ``/_util/login/`` answer a redirect
+    to ``LOGIN_URL``.  ``?next=`` rides along
+    only when it is a path on this site -- it starts with one ``/`` and passes
+    ``url_has_allowed_host_and_scheme`` for this request's host -- and is dropped
+    otherwise, so the portal opens its home page after signing in.
+    """
+    target = request.GET.get(REDIRECT_FIELD_NAME, "")
+    is_local = target.startswith("/") and not target.startswith("//")
+    is_safe = is_local and url_has_allowed_host_and_scheme(
+        target, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    )
+    if not is_safe:
+        return HttpResponseRedirect(settings.LOGIN_URL)
+    return redirect_to_login(target)
+
+
+def portal_password_change(request: HttpRequest) -> HttpResponseRedirect:
+    """Send the Django admin's own password change to the portal's **Change password**.
+
+    ``/django-admin/password_change/`` would change a password outside the portal's
+    rules (the current password, the validators, and the sessions they end), so it
+    answers a redirect.  The Django admin sets nobody else's password at all.
+    """
+    return HttpResponseRedirect(reverse("portal", kwargs={"path": "change-password"}))
 
 
 def portal_shell(request: HttpRequest, path: str = "") -> HttpResponse:

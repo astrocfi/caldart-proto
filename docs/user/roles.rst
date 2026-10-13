@@ -11,6 +11,11 @@ is missing, ask one.
 If you open a screen your roles do not reach, the portal shows **Not allowed** and
 names the role the screen needs.
 
+A user administrator, the treasurer, an account administrator, CalDART management, a
+website administrator, and a system administrator must use two-factor sign-in: a
+code from an authenticator app on their phone each time they sign in (see
+:doc:`member/two-factor`).
+
 This guide works the same way. It shows each reader the screens their roles reach:
 its menu and its contents list only the pages you can use, and the address of any
 other page brings you back to the guide's front page. A system administrator sees

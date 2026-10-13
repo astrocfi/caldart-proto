@@ -333,13 +333,15 @@ Flow E — a website administrator adds, edits, and deletes a page
 
 *Goal: change the public site without touching the code.*
 
-1. Sign out and sign in to the Wagtail admin at
-   http://localhost:8000/admin/ as ``webadmin@example.org`` /
-   ``caldart-demo``.  Wagtail has its own login form but shares the portal's
-   session and the same account, so signing in to ``/portal/`` first would
-   have let you straight in.  What decides the matter is the ``website_admin``
-   role: sign in as ``member@example.org`` and ``/admin/`` bounces you back to
-   the login form.
+1. Sign out and open the Wagtail admin at http://localhost:8000/admin/.
+   It sends you to the portal's sign-in, the one login page the site has: sign
+   in as ``webadmin@example.org`` / ``caldart-demo``.  The website
+   administrator role requires two-factor sign-in, so the first time you are
+   asked to scan a QR code with an authenticator app on your phone, type the
+   code it shows, and save the backup codes; after that each sign-in asks for a
+   code.  You land back in the admin.  What decides who gets in is the
+   ``website_admin`` role: sign in as ``member@example.org`` and the admin sends
+   you on to the portal's dashboard instead.
 2. Open **Pages** and walk down to *Home*.  The tree is: Home; About Us with
    History, the DART directory and its sixteen team pages, and Directors and
    Officers; News with three posts; Join CalDART; Donate; Sponsors; Contact

@@ -176,7 +176,7 @@ describe('<AccountStep/>', () => {
 
     expect(
       await screen.findByRole('link', { name: 'Already have an account? Sign in' }),
-    ).toHaveAttribute('href', '/login?next=%2Fjoin');
+    ).toHaveAttribute('href', '/login?next=%2Fportal%2Fjoin');
   });
 
   it('refuses an empty form before asking the server, and focuses its first box', async () => {

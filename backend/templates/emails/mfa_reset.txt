@@ -1,0 +1,17 @@
+{% autoescape off %}{{ org_name }} — two-factor sign-in was reset
+
+Hello{% if first_name %} {{ first_name }}{% endif %},
+
+A {{ org_name }} administrator has reset two-factor sign-in for your account,
+registered to {{ email }}, and signed it out everywhere. Your authenticator app's
+entry and your backup codes no longer work.
+
+The next time you sign in you can set two-factor sign-in up again with your phone;
+if your role requires it, the portal asks you to do so before you continue.
+
+If you did not ask for this, tell
+{{ org_name }}{% if contact_email %} at {{ contact_email }}{% endif %}.
+
+— {{ org_name }}
+{{ site_url }}
+{% endautoescape %}

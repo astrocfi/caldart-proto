@@ -107,7 +107,7 @@ test('signing out takes a button, and no address can do it', async ({ page }) =>
 
   // The session really ended: a guarded screen asks for a sign-in again.
   await page.goto('portal/profile');
-  await expect(page).toHaveURL(/\/portal\/login\?next=%2Fprofile/);
+  await expect(page).toHaveURL(/\/portal\/login\?next=\S*%2Fportal%2Fprofile$/);
 });
 
 test('an expired member is walled out and offered a renewal', async ({ page }) => {
@@ -134,7 +134,7 @@ test('a signed-out visitor is asked to sign in and comes back where they were', 
   await expect(wall.getByRole('link', { name: 'Join CalDART' })).toBeVisible();
 
   await page.goto('portal/profile');
-  await expect(page).toHaveURL(/\/portal\/login\?next=%2Fprofile/);
+  await expect(page).toHaveURL(/\/portal\/login\?next=\S*%2Fportal%2Fprofile$/);
   await page.getByRole('textbox', { name: 'Email address' }).fill(DEMO.member);
   await page.getByLabel(/^Password/).fill(DEMO_PASSWORD);
   await page.getByRole('button', { name: 'Sign in' }).click();

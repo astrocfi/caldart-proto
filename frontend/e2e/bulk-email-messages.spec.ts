@@ -11,6 +11,7 @@ import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
 import { DEMO, DEMO_PASSWORD, latestEmailTo, signIn } from './helpers';
+import { finishSecondFactor } from './twoFactor';
 
 /** The portal menu. */
 function menu(page: Page) {
@@ -68,6 +69,8 @@ test('a recipient reads a bulk email again under Email to me', async ({ page }) 
   await page.getByRole('textbox', { name: 'Email address' }).fill(DEMO.webadmin);
   await page.getByLabel(/^Password/).fill(DEMO_PASSWORD);
   await page.getByRole('button', { name: 'Sign in' }).click();
+  // A website administrator gives a code from the authenticator app too.
+  await finishSecondFactor(page, DEMO.webadmin);
   await expect(page.getByRole('heading', { level: 1, name: subject })).toBeVisible();
   await expect(page.getByTitle(`The email: ${subject}`)).toBeVisible();
 

@@ -16,7 +16,12 @@ import type {
   EmailChangeUndoResult,
   EmailVerifyPayload,
   EmailVerifyResult,
+  EnrolledSignIn,
   LoginPayload,
+  LoginResult,
+  MfaChallenge,
+  MfaEnrollment,
+  OtpPayload,
   PasswordChangePayload,
   PasswordResetConfirmPayload,
   PasswordResetRequestPayload,
@@ -94,24 +99,39 @@ export function useRoles(): UseQueryResult<Role[]> {
   });
 }
 
+/** True when signing in still needs a second factor rather than having signed in. */
+export function isMfaChallenge(result: LoginResult): result is MfaChallenge {
+  return 'mfa' in result;
+}
+
 /**
- * Posts credentials to `path`, which answers with the user it signed in; drops every
- * query cached for whoever was here before, and seeds the auth-me cache with the result.
+ * Starts the portal afresh for `user`, who has just signed in: drops every query cached
+ * for whoever was here before, and seeds the auth-me cache with the account.
  */
-function useCredentialsSignIn(path: string): UseMutationResult<User, Error, LoginPayload> {
+export function useAdoptSignedIn(): (user: User) => void {
   const queryClient = useQueryClient();
+  return (user: User) => {
+    queryClient.clear();
+    queryClient.setQueryData(AUTH_ME_KEY, user);
+  };
+}
+
+/**
+ * Posts credentials to `path`, which answers with the user it signed in or with the
+ * second factor still owed; a signed-in user starts a fresh cache.
+ */
+function useCredentialsSignIn(path: string): UseMutationResult<LoginResult, Error, LoginPayload> {
+  const adopt = useAdoptSignedIn();
   return useMutation({
-    mutationFn: (payload: LoginPayload) => api.post<User>(path, payload),
-    onSuccess: (user) => {
-      // Anything cached belonged to whoever was here before.
-      queryClient.clear();
-      queryClient.setQueryData(AUTH_ME_KEY, user);
+    mutationFn: (payload: LoginPayload) => api.post<LoginResult>(path, payload),
+    onSuccess: (result) => {
+      if (!isMfaChallenge(result)) adopt(result);
     },
   });
 }
 
 /** Signs in against `POST /auth/login`, starting a fresh cache for that user. */
-export function useLogin(): UseMutationResult<User, Error, LoginPayload> {
+export function useLogin(): UseMutationResult<LoginResult, Error, LoginPayload> {
   return useCredentialsSignIn('/auth/login');
 }
 
@@ -119,8 +139,37 @@ export function useLogin(): UseMutationResult<User, Error, LoginPayload> {
  * Brings a deactivated account back through `POST /auth/reactivate`, with the same
  * email address and password a sign-in takes, and signs it in as `useLogin` does.
  */
-export function useReactivate(): UseMutationResult<User, Error, LoginPayload> {
+export function useReactivate(): UseMutationResult<LoginResult, Error, LoginPayload> {
   return useCredentialsSignIn('/auth/reactivate');
+}
+
+/** Finishes a sign-in with a code through `POST /auth/login/mfa`, starting a fresh cache. */
+export function useLoginMfa(): UseMutationResult<User, Error, OtpPayload> {
+  const adopt = useAdoptSignedIn();
+  return useMutation({
+    mutationFn: (payload: OtpPayload) => api.post<User>('/auth/login/mfa', payload),
+    onSuccess: adopt,
+  });
+}
+
+/** Starts setting up a device while signing in, through `POST /auth/login/mfa/enroll`. */
+export function useLoginMfaEnroll(): UseMutationResult<MfaEnrollment, Error, void> {
+  return useMutation({
+    mutationFn: () => api.post<MfaEnrollment>('/auth/login/mfa/enroll'),
+  });
+}
+
+/**
+ * Confirms the new device and signs in through `POST /auth/login/mfa/enroll/confirm`.
+ *
+ * The cache is left alone: the sign-in screen shows the backup codes first, and adopts
+ * the user (`useAdoptSignedIn`) once the person says they saved them.
+ */
+export function useLoginMfaEnrollConfirm(): UseMutationResult<EnrolledSignIn, Error, OtpPayload> {
+  return useMutation({
+    mutationFn: (payload: OtpPayload) =>
+      api.post<EnrolledSignIn>('/auth/login/mfa/enroll/confirm', payload),
+  });
 }
 
 /**

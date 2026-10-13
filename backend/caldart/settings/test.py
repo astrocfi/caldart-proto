@@ -28,6 +28,11 @@ STATIC_ROOT = Path(tempfile.mkdtemp(prefix=STATIC_ROOT_PREFIX))
 # ``override_settings`` rather than every other test racing a shared counter.
 AUTH_THROTTLE_RATES = dict.fromkeys(AUTH_THROTTLE_RATES, None)
 
+# The sign-in lockout is off for the same reason; the lockout tests turn it on with the
+# ``settings`` fixture and clear the cache around themselves.
+LOGIN_LOCKOUT_ATTEMPTS = 0
+LOGIN_LOCKOUT_CODE_ATTEMPTS = 0
+
 # Address suggestions are off unless a test configures a key and mocks Geoapify, so a
 # real key in a developer's ``.env`` never sends a request from the suite.
 GEOAPIFY_API_KEY = ""

@@ -90,7 +90,7 @@ describe('<VerifyEmailPage/>', () => {
 
     expect(await screen.findByRole('link', { name: 'Continue' })).toHaveAttribute(
       'href',
-      '/login?next=/join&email=marta%40example.org',
+      '/login?next=%2Fportal%2Fjoin&email=marta%40example.org',
     );
   });
 

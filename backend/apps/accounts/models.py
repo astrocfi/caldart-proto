@@ -12,6 +12,7 @@ from django.utils import timezone
 
 from apps.accounts.roles import ROLE_SLUGS, STAFF_ROLE_SLUGS, SYSTEM_ADMIN
 from caldart.casing import person_last_name, person_name
+from caldart.models import TimestampedModel
 
 if TYPE_CHECKING:
     # Inline: members sits above accounts in the app order, so even a type-only
@@ -300,6 +301,7 @@ class AccountChangeKind(models.TextChoices):
     NEW_PASSWORD = "new_password", "New password required"
     EMAIL_CHANGED = "email_changed", "Email address changed"
     EMAIL_CHANGE_UNDONE = "email_change_undone", "Email address change undone"
+    MFA_RESET = "mfa_reset", "Two-factor reset"
 
 
 class AccountChange(models.Model):
@@ -308,11 +310,11 @@ class AccountChange(models.Model):
     The user record's **History** card reads these back.  An entry is written beside
     the audit line for the same change, for an account an administrator created, a
     role granted or taken away, an account deactivated, reactivated, blocked from
-    reactivating, or allowed to reactivate again, a new password required of it,
-    and a change of sign-in address completed or undone.  ``changed_by`` is the
-    account that acted, which is the account itself when its owner deactivated or
-    reactivated it or undid a change of address, the account that asked for a change
-    of address that its new owner completed,
+    reactivating, or allowed to reactivate again, a new password required of it, a
+    change of sign-in address completed or undone, and two-factor sign-in reset by an
+    administrator.  ``changed_by`` is the account that acted, which is the account
+    itself when its owner deactivated or reactivated it or undid a change of address,
+    the account that asked for a change of address that its new owner completed,
     and ``None`` for a management command (``by_command`` is then true) or an actor
     since deleted.  ``added`` and
     ``removed`` hold role slugs in privilege order, and are empty for every kind but
@@ -343,3 +345,76 @@ class AccountChange(models.Model):
     def __str__(self) -> str:
         """Return the account id and the kind, e.g. ``account 12 roles``."""
         return f"account {self.user_id} {self.kind}"
+
+
+class TotpDevice(TimestampedModel):
+    """The authenticator app an account signs in with as its second factor.
+
+    One per account.  ``secret`` is the RFC 6238 shared secret in base32, as the
+    authenticator app was given it.  ``confirmed_at`` is ``None`` while enrollment is
+    under way, and is set once the first code from the app has been accepted: only a
+    confirmed device asks for a code at sign-in.  ``last_used_step`` is the 30-second
+    time step of the last code accepted, so no code is accepted twice and no code from
+    an earlier step is accepted after a later one; ``None`` until a code is accepted.
+    """
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="totp_device")
+    secret = models.CharField(max_length=64)
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+    last_used_step = models.BigIntegerField(null=True, blank=True)
+
+    def __str__(self) -> str:
+        """Return the account id and whether the device is confirmed."""
+        state = "confirmed" if self.confirmed_at is not None else "unconfirmed"
+        return f"account {self.user_id} device ({state})"
+
+    @property
+    def is_confirmed(self) -> bool:
+        """True once a code from the authenticator app has been accepted."""
+        return self.confirmed_at is not None
+
+
+class RecoveryCode(models.Model):
+    """One single-use backup code an account may give in place of an authenticator code.
+
+    Only a keyed hash of the code is kept (``apps.accounts.mfa``), with the per-code
+    ``salt`` it was computed with.  ``used_at`` is set when the code is spent, after
+    which it is never accepted again.  A new set replaces every row of the old one.
+    """
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="recovery_codes")
+    salt = models.CharField(max_length=32)
+    code_hash = models.CharField(max_length=128)
+    created_at = models.DateTimeField(default=timezone.now)
+    used_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["user", "used_at"], name="recovery_code_user_idx")]
+
+    def __str__(self) -> str:
+        """Return the account id and whether the code is spent."""
+        state = "used" if self.used_at is not None else "unused"
+        return f"account {self.user_id} recovery code ({state})"
+
+
+class SignInFailureCount(models.Model):
+    """One running count behind the sign-in lockout (``apps.accounts.lockout``).
+
+    ``key`` is a SHA-256 digest naming what is counted -- the fifteen-minute count of
+    failed attempts, the day's count of wrong codes, or the day's lockout notice -- and
+    whose: an account, or an address no account holds.  ``count`` runs until ``until``,
+    after which the row reads as empty and the next failure starts it again.  The rows
+    live in the database, so no cache eviction can forget them, and each is updated
+    under a row lock.
+    """
+
+    key = models.CharField(max_length=64, unique=True)
+    count = models.PositiveIntegerField(default=0)
+    until = models.DateTimeField()
+
+    class Meta:
+        indexes = [models.Index(fields=["until"], name="sign_in_failure_until_idx")]
+
+    def __str__(self) -> str:
+        """Return the count and when its window ends."""
+        return f"{self.count} until {self.until:%Y-%m-%d %H:%M}"

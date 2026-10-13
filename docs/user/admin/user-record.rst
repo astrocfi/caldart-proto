@@ -14,7 +14,7 @@ What you see
 ============
 
 The person's name heads the page, with their address under it and **Back to Roles and
-status** beside it. Five cards follow.
+status** beside it. Six cards follow.
 
 **Membership**
    The kind of account (**Member**, **Friend**, or **Donor**), the membership status, and
@@ -39,19 +39,28 @@ status** beside it. Five cards follow.
    or **Reactivate account**, and **Block reactivation** or **Allow reactivation**, each
    with a line under it saying what it does. A donor's record leaves this card out.
 
+**Two-factor sign-in**
+   **On** beside a green dot when the person has an authenticator app set up, **Off** beside
+   a gray one when not. While it is on, **Reset two-factor** is for somebody who lost both
+   their phone and their backup codes: it asks first, and **Yes, reset two-factor** goes
+   ahead; :doc:`../member/two-factor` says what happens then. Only a system administrator
+   resets a system administrator's, and the button is grayed out for anybody else, with the
+   reason under it. A donor's record leaves this card out, and your own reads *Change your
+   own two-factor sign-in on your profile.*
+
 **Password**
    **Send password reset** and **Require a new password**, which a donor's record leaves
-   out. On your own record the card reads only *To change your own password, use Change
-   password.*
+   out; :doc:`user-password` covers both. On your own record the card reads only *To change
+   your own password, use Change password.*
 
 **History**
    Every change to the account's roles, status, and address, newest first, one a line: when,
    who, and what, such as *10/04/2026 at 3:12 PM · Nina Kowalski · gave DART leader*. It
    records an account an administrator created on :doc:`new-member`, each role given or taken
    away, each deactivation, reactivation, block, and lifted block, each new password
-   required, and each change of address confirmed or undone. The command line reads *The
-   system*, a deleted administrator *A deleted account*, and none at all *No change to this
-   account's roles or status is recorded.*
+   required, each change of address confirmed or undone, and each two-factor reset. The
+   command line reads *The system*, a deleted administrator *A deleted account*, and none at
+   all *No change to this account's roles or status is recorded.*
 
 No role change is saved until you press **Save changes**, and the message *Account saved.*
 confirms it. A refused save takes you to what the site refused. **Cancel** puts every box
@@ -185,44 +194,6 @@ exactly as **Deactivate account** does. While the block holds:
 Only a user administrator blocks an account or lifts the block. **Allow reactivation** lifts
 it and leaves the account deactivated, for the person or you to reactivate. Both changes are
 recorded under your name, in the **History** card.
-
-
-.. _user-record-new-password:
-
-Requiring a new password
-========================
-
-Press **Require a new password** when you think somebody other than the owner knows an
-account's password, say because they were tricked into typing it on a fake page. The link
-goes to the address at the top of the page, which somebody who took the account over may
-have changed, so check first that it is the owner's; if it is not, ask an account
-administrator to correct it on the :doc:`member-record`. It asks first and names that
-address; **Yes, require a new password** goes ahead. Then the old password stops working at
-once, for signing in and for reactivating, and so does any reset link sent earlier; every
-browser signed in to the account is signed out; the address is emailed a fresh link with the
-subject *CalDART: choose a new password*; and the **History** card records it under your
-name. The message at the top of the screen reads *The old password no longer works and every
-session is ended. A password reset email went to* and the address. Roles, membership, and
-status stay as they were.
-
-A deactivated account stays deactivated until its owner chooses a password from the link,
-which reactivates it as any reset does. A blocked account is sent no email, since the block
-refuses the link; once you allow reactivation, the owner uses **Forgot password** on the
-sign-in page. If the owner's mailbox itself was taken over, a new password does not help:
-block reactivation and reach the owner another way.
-
-
-Helping someone back in
-=======================
-
-**Send password reset** emails the person a one-time link to choose a new password. The
-subject reads *CalDART: reset your password*. You never see the password, and neither does
-anyone else. The message at the top of the screen reads *Password reset email sent to* and
-the address on the account, which may differ from the one they wrote to you from.
-
-The button is disabled on a deactivated account, whose card reads *Reactivate the account
-before sending a reset link.* The link stops working after three days, or once used; send
-another if they take too long. Nobody can read or set a password here.
 
 
 If something looks wrong

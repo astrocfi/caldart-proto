@@ -13,7 +13,8 @@ from django.utils import timezone
 from factory.django import DjangoModelFactory
 from wagtail.models import Page, Site
 
-from apps.accounts.models import AccountKind
+from apps.accounts import mfa
+from apps.accounts.models import AccountKind, TotpDevice
 from apps.accounts.roles import DART_LEADER, MANAGEMENT, MEMBER
 from apps.aircraft.models import (
     Aircraft,
@@ -815,3 +816,13 @@ def sent_callout(
     run_sender()
     bulk.refresh_from_db()
     return bulk
+
+
+def confirmed_device(user: UserModel) -> TotpDevice:
+    """Give ``user`` a confirmed authenticator device with a fresh random secret.
+
+    Its ``last_used_step`` is unset, so any code from its present step is accepted.
+    """
+    return TotpDevice.objects.create(
+        user=user, secret=mfa.new_secret(), confirmed_at=timezone.now()
+    )

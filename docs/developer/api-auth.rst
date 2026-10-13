@@ -17,9 +17,9 @@ browser's session cookie is the credential; there is no token to store.
 authentication class configured.
 
 **CSRF.**  Every unsafe method needs an ``X-CSRFToken`` header, including the
-anonymous ones on this page: register, login, logout, the two password-reset
-endpoints, and the email-verify endpoint all refuse a POST that carries no
-token.  Call
+anonymous ones on this page: register, login and its two-factor steps, logout,
+the two password-reset endpoints, and the email-verify endpoint all refuse a POST
+that carries no token.  Call
 ``GET /api/v1/auth/csrf`` whenever you have no ``csrftoken`` cookie to echo;
 the SPA's ``api/client.ts`` does this automatically before every POST, PUT,
 PATCH, or DELETE that finds the cookie missing.
@@ -301,7 +301,10 @@ nothing in the answer (:ref:`refused sends <api-refused-send>`).
 --------------------
 
 Starts a session and returns the user payload.  Email matching is
-case-insensitive (``UserManager.get_by_natural_key`` uses ``email__iexact``).
+case-insensitive (``UserManager.get_by_natural_key`` uses ``email__iexact``).  An
+account that needs a second factor is not signed in yet: the answer is
+``{"mfa": "verify"}`` or ``{"mfa": "enroll"}``, and the code step finishes the
+sign-in (:ref:`api-two-factor`).
 
 .. code-block:: json
 
@@ -334,17 +337,22 @@ case-insensitive (``UserManager.get_by_natural_key`` uses ``email__iexact``).
 A donor cannot sign in at all.  A donor's account holds no usable password, and
 even one that somehow does is answered with the same 400 as wrong credentials.
 The refusal is made by the authentication backend
-(``apps.accounts.backends.AccountBackend``), so it holds for every login form —
-this one, the Wagtail admin's and the Django admin's — and a session that names a
-donor reads as signed out.
+(``apps.accounts.backends.AccountBackend``), so it holds for every way into a
+session, and a session that names a donor reads as signed out.
 
 An account whose address is unverified signs in like any other and gets its
 session, but that session reaches only the endpoints listed under `Unverified
 sessions`_ until the address is verified.
 
-Statuses: **200** with the user payload and a session cookie; **400** for a
-missing field or wrong credentials; **403** for a deactivated or closed account
-whose password was correct; **429** when the ``auth_login`` throttle is exhausted.
+Every wrong password counts against the address (:ref:`api-login-lockout`),
+and a locked-out address is refused with **429** whatever the password, before it
+is checked.
+
+Statuses: **200** with the user payload and a session cookie, or with
+``{"mfa": ...}`` and a session holding the pending sign-in; **400** for a missing
+field or wrong credentials; **403** for a deactivated or closed account whose
+password was correct; **429** when the ``auth_login`` throttle is exhausted or the
+address is locked out.
 
 ``POST /auth/logout``
 ---------------------
@@ -364,6 +372,252 @@ everything that can change who you are writes or invalidates that key.  The
 body is the user payload above, unchanged.
 
 Statuses: **200**; **401** when anonymous.
+
+
+.. _api-two-factor:
+
+Two-factor sign-in
+==================
+
+An account signs in with a second factor -- a six-digit code from an
+authenticator app, or one of its backup codes -- when it **needs** one:
+
+* a role it holds requires it: ``user_admin``, ``treasurer``, ``account_admin``,
+  ``management``, ``website_admin``, or ``system_admin``
+  (``apps.accounts.roles.MFA_REQUIRED_ROLES``), read as effective roles, so a
+  Django superuser is required too;
+* or its owner turned two-factor sign-in on (a confirmed ``TotpDevice``, see
+  :doc:`data-model`).
+
+The code is RFC 6238: HMAC-SHA-1, six digits, 30-second steps, with one step of
+drift either way accepted.  The device remembers the step of the last code it
+accepted (``last_used_step``), and a code from that step or an earlier one is
+refused, so a code is never accepted twice.  The issuer an authenticator app
+shows is the organization's name from the site settings, and the account name is
+the email address.  The services live in ``apps.accounts.mfa``.
+
+**Backup codes.**  Turning two-factor sign-in on makes ten backup codes, each two
+groups of five characters from a 31-character alphabet without look-alikes
+(``abcde-fghjk``), drawn with ``secrets``.  They are shown once.  A backup code is
+accepted wherever a code is asked for, in any case, with or without its hyphen and
+spaces, and each works **once**.  Only a keyed hash is stored (``RecoveryCode``,
+:doc:`data-model`).  Making a new set replaces every code of the old one.
+
+**Nothing secret is logged.**  The secret, a code, and a backup code reach
+neither the application log nor the audit log.
+
+The sign-in
+-----------
+
+A right password for an account that needs a second factor does **not** start a
+session.  ``POST /auth/login`` (and ``POST /auth/reactivate`` -- every endpoint that
+signs somebody in goes through ``apps.accounts.api.sign_in.start_session``; a
+registration signs nobody in) stores
+a *pending sign-in* in the caller's session and answers **200** with what is still
+owed, and nothing about the account:
+
+.. code-block:: json
+
+   {"mfa": "verify"}
+
+``verify`` asks for a code; ``enroll`` means the account must use a second factor
+and has no device yet, so it sets one up first.  The pending sign-in holds the
+account's id, a fingerprint of its password (the session auth hash), when it
+started, how many wrong codes it has taken, and whether its owner has been warned
+of one.  It is refused, and cleared, five minutes after the password step, after the
+fifth wrong code, once the password has changed, and once the account can no longer
+sign in (a donor, blocked from reactivating, or deactivated).  It lives in the
+session of the browser that gave the password, so a code posted from anywhere else
+finishes nothing.  Storing it changes the session's key first
+(``cycle_key``), so a key somebody planted in the browser before the password was
+typed never carries the pending sign-in: whoever holds the old key can neither give
+the code nor enroll a device on it.  Signing in at the end changes the key again.
+
+``POST /auth/reactivate`` for an account that needs a second factor reactivates
+nothing yet: the account stays deactivated, and its pending sign-in is marked
+``reactivate``, the one case in which a pending sign-in may name a deactivated
+account.  The code step then reactivates it (as ``/auth/reactivate`` does for any
+other account) and signs it in, in one transaction; a block set in between refuses
+it with the closed sentence and a **403**.  A password alone therefore never brings a
+staff account back.
+
+The code steps act on the pending sign-in and on nothing else:
+
+``POST /auth/login/mfa``
+   ``{"otp": "123456"}`` -- an authenticator code or a backup code.  A right code
+   calls ``django.contrib.auth.login``, which gives the session a new key, marks
+   the session as having passed the second factor, clears the pending sign-in and
+   the address's short count of failed attempts, and answers the user payload a
+   sign-in gives.
+
+``POST /auth/login/mfa/enroll``
+   No body.  For a pending sign-in that must enroll: draws a fresh secret, keeps it
+   in this session (``_caldart_mfa_enrollment``, with the account's id, for ten
+   minutes) without writing anything to the database, and answers what the app
+   needs:
+
+   .. code-block:: json
+
+      {"secret": "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP",
+       "otpauth_uri": "otpauth://totp/CalDART:marta.reyes%40example.org?secret=...&issuer=CalDART",
+       "qr_svg": "<svg ...>...</svg>"}
+
+   ``qr_svg`` is the QR code of ``otpauth_uri``, drawn on the server by ``segno``
+   as an SVG document; ``secret`` is for typing in by hand.  Calling again replaces
+   the secret this session holds and no other: each browser confirms only the secret
+   it was shown, so a second sign-in at this step cannot spoil the first one's.  An
+   account that already has a confirmed device is never offered this: a password
+   alone cannot replace a working device.
+
+``POST /auth/login/mfa/enroll/confirm``
+   ``{"otp": "123456"}`` -- the first code from the new device.  A right code
+   stores the device, confirmed, with the session's secret (the account's row is
+   locked, so of two browsers confirming at once the second finds two-factor sign-in
+   on), makes ten backup codes, signs in and marks the session as
+   ``/auth/login/mfa`` does, and answers the user payload and the codes, the only
+   time they are shown:
+
+   .. code-block:: json
+
+      {"user": {"id": 12, "email": "marta.reyes@example.org", "...": "..."},
+       "recovery_codes": ["abcde-fghjk", "mnpqr-stuvw", "..."]}
+
+Each code step answers:
+
+* **400** ``{"otp": ["That code is not right. Enter the current code from your
+  app, or a backup code."]}`` for a wrong code, which counts against the pending
+  sign-in and against the address's lockout, both its fifteen-minute count and its
+  day's count of wrong codes; the first wrong code of a pending sign-in mails the
+  account (``mfa_wrong_code``), since only somebody who knows the password gets
+  that far.  ``{"otp": ["Enter the code from your authenticator app, or a backup
+  code."]}`` answers an empty one;
+* **400** ``{"detail": "Your sign-in has expired. Enter your email address and
+  password again.", "code": "mfa_expired"}`` when there is no pending sign-in to
+  finish -- none was started, it expired, it took its fifth wrong code (that code
+  is answered so), the password changed, or it is at the other step;
+* **429** when the address is locked out (:ref:`api-login-lockout`), which also
+  clears the pending sign-in, or when the ``auth_mfa`` throttle is exhausted.
+
+All three are open to anonymous callers, need the CSRF token like every unsafe
+method, and are on the unverified session's list (`Unverified sessions`_).
+
+The session mark
+----------------
+
+A session that passed the second factor carries a mark under the session key
+``_caldart_mfa_verified``: the account's id and the time, written by
+``apps.accounts.mfa.mark_session`` after ``login``.  ``login`` keeps the data of
+the session it rotates, and ``update_session_auth_hash`` after a password change
+keeps it too, so the mark survives both.  Sessions are stored on the server
+(Django's database session engine), so no client can write it, and it names the
+account, so it never vouches for another.  Turning two-factor sign-in on while
+signed in marks the session as well, and turning it off takes the mark away
+(``apps.accounts.mfa.unmark_session``), so a role that requires it later asks that
+session for it again.
+
+``apps.accounts.middleware.MfaSessionMiddleware``, installed right after
+``AuthenticationMiddleware``, signs out (``django.contrib.auth.logout``) every
+session of an account that needs a second factor and carries no mark for it,
+before the view runs, and the request carries on anonymous.  That covers a session
+from before two-factor sign-in, a session whose account was given a required role
+after it signed in, a session whose account's owner turned two-factor sign-in on
+elsewhere, and a session of the Wagtail or Django admin.  An anonymous request --
+a pending sign-in included -- passes untouched, as do ``POST /auth/logout`` and
+every path outside Django's sessions; static files are served by WhiteNoise before
+any session is read.
+
+The admin sites
+---------------
+
+The Wagtail admin, the Django admin, and the public site's private pages share
+the portal's session and serve no login form of their own, so there is one way to
+sign in.  ``/admin/login/``, ``/django-admin/login/``, and Wagtail's
+``/_util/login/`` (``caldart.views.admin_login_redirect``) redirect to the portal's
+sign-in, ``LOGIN_URL``, carrying ``?next=`` only when it is a path on this site --
+it starts with one ``/`` and passes ``url_has_allowed_host_and_scheme`` for the
+request's host -- and dropping it otherwise.  ``WAGTAILADMIN_LOGIN_URL`` and
+``WAGTAIL_FRONTEND_LOGIN_URL`` are ``LOGIN_URL`` too, so Wagtail sends a reader its
+admin or a private page refuses straight there, with the page as ``next``.  Every
+password is changed in the portal as well: ``/django-admin/password_change/``
+(``caldart.views.portal_password_change``) redirects to the portal's Change
+password, and the Django admin sets no other account's password.
+
+Everything that sends a reader to the sign-in names ``next`` as a full site path:
+the portal's guard and links a route under the portal's base (``/portal/admin/users``),
+and Django a page of the guide, an admin site, or the public site (a members-only
+page).  So the sign-in page (``nextTarget`` in ``LoginPage.tsx``) keeps a path under
+the portal's base in the SPA and opens any other as a full-page navigation once the
+person has signed in.  A reader who arrives already signed in goes straight on, except
+with an admin page as ``next`` -- the admin sent them because their account cannot
+open it -- when they are taken to the portal's dashboard.
+
+Your own two-factor sign-in
+---------------------------
+
+These need a session; an anonymous caller gets **401**.
+
+``GET /auth/mfa``
+   .. code-block:: json
+
+      {"enabled": true, "required_by_role": false, "recovery_codes_remaining": 9}
+
+   ``enabled`` is true with a confirmed device; ``required_by_role`` is true when
+   a role the account holds requires two-factor sign-in, which then cannot be
+   turned off.
+
+``POST /auth/mfa/enroll``
+   ``{"current_password": "..."}``, so a session left open on somebody else's
+   screen cannot attach a stranger's phone.  Answers the same ``{"secret",
+   "otpauth_uri", "qr_svg"}`` as the sign-in's enroll step, the secret kept in this
+   session the same way.  **400** ``{"current_password": ["That is not your current
+   password."]}``; **400** ``{"detail": "Two-factor sign-in is already on for this
+   account."}`` when it is.
+
+``POST /auth/mfa/enroll/confirm``
+   ``{"otp": "123456"}``.  Confirms the device, marks the session, and answers
+   ``{"recovery_codes": [...]}``.  **400** under ``otp`` for a wrong code;
+   **400** ``{"detail": "Start setting up two-factor sign-in first."}`` before
+   ``/enroll`` in this session, and the *already on* sentence after confirming.
+
+``POST /auth/mfa/recovery-codes``
+   ``{"otp": "123456"}`` -- an authenticator code, or one of the backup codes
+   being replaced.  Replaces every backup code and answers ``{"recovery_codes":
+   [...]}``.  **400** under ``otp`` for a wrong code; **400** ``{"detail":
+   "Two-factor sign-in is not on for this account."}`` without a device.
+
+``POST /auth/mfa/disable``
+   ``{"current_password": "...", "otp": "123456"}``.  Deletes the device and every
+   backup code, and answers **204**.  A role that requires two-factor sign-in is
+   refused before the body is read::
+
+      403 {"detail": "Your role requires two-factor sign-in, so it cannot be turned off. If you have lost your phone, ask a user administrator to reset it."}
+
+   and recorded at WARNING as ``action=account.mfa_disable ... reason=mfa_required``.
+   **400** ``{"current_password": ["That is not your current password."]}``,
+   **400** under ``otp`` for a wrong code, and **400** ``{"detail": "Two-factor
+   sign-in is not on for this account."}`` without a device.
+
+A wrong code at any of these counts against the address's lockout, and a
+locked-out address is answered **429**.  Every ``POST`` here is throttled under
+``auth_mfa``.
+
+The administrator's reset is ``POST /admin/users/{id}/reset-two-factor``
+(:ref:`api-reset-two-factor`).
+
+What is mailed and recorded
+---------------------------
+
+The account is mailed a short notice once each change commits
+(``templates/emails/mfa_*.{txt,html}``, :doc:`email`): two-factor sign-in turned
+on (``mfa_enabled``) or off (``mfa_disabled``), reset by an administrator
+(``mfa_reset``), a backup code used, with how many remain
+(``mfa_recovery_code_used``), new backup codes made
+(``mfa_recovery_codes_regenerated``), a wrong code after a right password
+(``mfa_wrong_code``, once per pending sign-in), and a lockout (``sign_in_locked``,
+once per window).  A refused send leaves the change standing
+(:ref:`refused sends <api-refused-send>`).  The audit log records
+``account.mfa_enable``, ``account.mfa_disable``, ``account.mfa_recovery_used``,
+``account.mfa_recovery_codes``, and ``account.mfa_reset``, ids only.
 
 
 Passwords
@@ -585,8 +839,9 @@ concurrent requests the second finds the account active and is refused.  Then:
    once the transaction commits.
 
 Canceled mandates stay canceled.  This works for an account an administrator
-deactivated as well as one its owner deactivated.  The answer is the user
-payload, as a sign-in gives it, with ``is_active`` true:
+deactivated as well as one its owner deactivated.  The answer is what a sign-in
+gives: ``{"mfa": ...}`` for an account that needs a second factor
+(:ref:`api-two-factor`), and otherwise the user payload with ``is_active`` true:
 
 .. code-block:: json
 
@@ -603,7 +858,8 @@ same way, each ``membership.correct`` recorded under the administrator.
 
 * **400** ``{"detail": "Incorrect email address or password."}`` — a wrong
   password, an active account, an unknown address, or a donor, all answered
-  with the body a failed sign-in gives.
+  with the body a failed sign-in gives, and counted against the address as a
+  failed sign-in is (:ref:`api-login-lockout`).
 * **403** ``{"detail": "This account has been closed. Contact CalDART to reopen
   it."}`` — the password matched, but a user administrator has blocked the
   account from reactivating (:ref:`api-reactivation-block`); it stays
@@ -612,7 +868,7 @@ same way, each ``membership.correct`` recorded under the administrator.
 
 Statuses: **200** with the user payload and a session cookie, also when the mail
 server refuses the verification link (:ref:`refused sends <api-refused-send>`);
-**400** as above or for a missing field; **403** for a closed account; **429** when the ``auth_login`` throttle is exhausted.
+**400** as above or for a missing field; **403** for a closed account; **429** when the ``auth_login`` throttle is exhausted or the address is locked out.
 
 
 Email verification
@@ -918,8 +1174,8 @@ Unverified sessions
 A signed-in account whose ``email_verified`` is false may call only these:
 
 * the endpoints an anonymous visitor may call: ``GET /auth/csrf``,
-  ``POST /auth/login``, ``POST /auth/register``, ``POST /auth/password/reset``, and
-  ``POST /auth/password/reset/confirm``;
+  ``POST /auth/login`` and its three two-factor steps, ``POST /auth/register``,
+  ``POST /auth/password/reset``, and ``POST /auth/password/reset/confirm``;
 * ``GET /auth/me`` and ``POST /auth/logout``;
 * ``POST /auth/email/verify``, ``POST /auth/email/resend``,
   ``POST /auth/email/change``, and ``POST /auth/email/undo``;
@@ -969,7 +1225,7 @@ Statuses: **200**; **401** when anonymous.
 Users admin
 ===========
 
-All eleven endpoints require the ``user_admin`` role.  ``system_admin`` passes
+All twelve endpoints require the ``user_admin`` role.  ``system_admin`` passes
 every role check, so system administrators have them too; every other role gets
 403.
 
@@ -983,7 +1239,12 @@ address, as an ISO datetime, or ``null`` while it is unverified; and
 from reactivating (:ref:`api-reactivation-block`).  ``email_bounced_at`` is when
 the bounce check last found the address bouncing, as an ISO datetime, or ``null``
 while no bounce is known, and ``email_bounce_detail`` that report's status code and
-diagnostic, or ``""`` (:ref:`email-bounces`).  ``phone``, ``dart`` (the DART's
+diagnostic, or ``""`` (:ref:`email-bounces`).  ``two_factor_enabled`` is true
+while the account has a confirmed authenticator device (:ref:`api-two-factor`),
+read from an ``Exists`` annotation so the page costs no query per row, and
+``can_reset_two_factor`` is true when the caller may reset it
+(:ref:`api-reset-two-factor`), which the user record reads to gray its button out.
+``phone``, ``dart`` (the DART's
 name), ``city``, ``county``, and ``home_airport`` (the home airport's identifier) are
 read from the profile for the columns the Roles list can show; each is
 ``""``, and ``dart`` is ``null``, for an account with no profile or no DART.
@@ -1004,7 +1265,8 @@ read from the profile for the columns the Roles list can show; each is
         "friend_on": null,
         "email_verified_at": "2026-09-01T10:14:02.100522-07:00",
         "email_bounced_at": null, "email_bounce_detail": "",
-        "reactivation_blocked": false, "phone": "415-555-0100",
+        "reactivation_blocked": false, "two_factor_enabled": false,
+        "phone": "415-555-0100",
         "dart": "Palo Alto", "city": "Palo Alto", "county": "Santa Clara",
         "home_airport": "PAO"}
      ]
@@ -1083,7 +1345,8 @@ is ``DELETE /admin/members/{user_id}``, behind ``account_admin`` — see
     "reactivation_blocked": false}
 
 ``email_verified_at``, ``email_bounced_at``, ``email_bounce_detail``, ``kind``,
-``friend_on``, ``is_active`` and ``reactivation_blocked`` are read-only here: an
+``friend_on``, ``is_active``, ``reactivation_blocked`` and ``two_factor_enabled``
+are read-only here: an
 ``is_active`` sent in the body is ignored.  The kind is the account administrator's to change (:doc:`api-members`),
 never the user administrator's, and the two flags change only through the
 account status actions (:ref:`api-account-status`).
@@ -1275,6 +1538,41 @@ The flag comes back if the next message to the address bounces too.
 Statuses: **200** with the user payload; **401** when anonymous; **403** without
 ``user_admin``; **404** for an unknown id.
 
+.. _api-reset-two-factor:
+
+``POST /admin/users/{id}/reset-two-factor``
+-------------------------------------------
+
+Takes away the account's two-factor sign-in, for a person who lost their phone and
+their backup codes.  No body.  In one transaction holding a lock on the account's
+row (``accounts.api.account_actions.reset_two_factor_for``), the device and every
+backup code are deleted, every unexpired session signed in to the account is
+deleted (``accounts.status.end_sessions``), the reset is recorded as
+``action=account.mfa_reset actor=<admin> target=<id>`` and as an ``mfa_reset``
+history entry, and once it commits the person is mailed a notice
+(``mfa_reset``).  The answer is the user payload as it stands afterwards, with
+``two_factor_enabled`` false.  The person sets two-factor sign-in up again at
+their next sign-in, which insists on it when a role requires it
+(:ref:`api-two-factor`).  An account with nothing set up is reset all the same:
+its sessions end and the reset is recorded.
+
+Refused with **400** ``{"detail": ...}``, changing nothing, in this order: a
+tombstone (the member record's sentence, :ref:`api-members-tombstone`), a donor
+("A donor has no portal account to reset."), your own account ("You cannot reset
+your own two-factor sign-in. Turn it off or on yourself."), and an account
+holding the System administrator role, or a superuser's, when you are not a system
+administrator ("Only a system administrator can reset a system administrator's
+two-factor sign-in.").  Any other account may be reset whatever roles it holds: a
+user administrator resets a treasurer's lost phone.  Each refusal is recorded at
+WARNING as ``action=account.mfa_reset`` with the reason ``tombstone``,
+``donor_account``, ``self_deactivation``, or ``system_admin_target``.
+``manage.py reset_two_factor --email ADDRESS`` does the same from the server, as a
+system administrator would, and also forgets the address's counted failed sign-ins
+(:ref:`api-login-lockout`).
+
+Statuses: **200** with the user payload; **400** for a refusal; **401** when
+anonymous; **403** without ``user_admin``; **404** for an unknown id.
+
 
 ``GET /admin/users/{id}/history``
 ---------------------------------
@@ -1286,9 +1584,10 @@ cannot be read back.  A row is written for an account created on New member
 (``created``), a role list that really changes (``roles``), each deactivation,
 reactivation, block, and lifted block (``deactivated``, ``reactivated``, ``blocked``,
 ``unblocked``), including the owner's own deactivation and reactivation, each new
-password required (``new_password``), and each change of address completed or undone (``email_changed``, under the account that asked for it,
-and ``email_change_undone``, under the account itself; see `Changing the address`_).
-Neither address is stored.
+password required (``new_password``), each change of address completed or undone
+(``email_changed``, under the account that asked for it, and ``email_change_undone``,
+under the account itself; see `Changing the address`_), and each two-factor reset
+(``mfa_reset``).  Neither address is stored.
 
 .. code-block:: json
 
@@ -1487,6 +1786,10 @@ A blocked account   A user administrator has blocked this account from
                     reactivating. Allow reactivation on its user record first.
 No change           That account is already deactivated. (or *That account is
                     already active.*)
+A system admin's    Only a system administrator can reset a system
+two-factor          administrator's two-factor sign-in.
+Own two-factor      You cannot reset your own two-factor sign-in. Turn it off or
+                    on yourself.
 ==================  ==============================================================
 
 Every refusal but the last also writes one WARNING record to the audit log
@@ -1515,7 +1818,8 @@ Rate limiting
 
 Login, reactivation, registration, both password-reset endpoints, the
 email-verify and email-undo endpoints, the verification resend, a change of one's own
-address, and the public donation checkout are throttled by client address.  The classes are in
+address, every endpoint that takes a two-factor code, and the public donation checkout
+are throttled by client address.  The classes are in
 ``apps.accounts.throttling``; they subclass
 ``AnonRateThrottle`` but override ``get_cache_key`` so a session does not exempt
 the caller — a signed-in caller's requests would otherwise carry a cookie and go
@@ -1535,6 +1839,7 @@ Scope                    Default                    Environment variable
 ``auth_verify_resend``   5/hour                     ``AUTH_THROTTLE_VERIFY_RESEND``
 ``auth_email_change``    10/hour                    ``AUTH_THROTTLE_EMAIL_CHANGE``
 ``donate``               10/hour                    ``AUTH_THROTTLE_DONATE``
+``auth_mfa``             10/min                     ``AUTH_THROTTLE_MFA``
 =======================  =========================  ===========================
 
 ``donate`` guards only ``POST /donations/checkout``: the calls that finish or
@@ -1548,13 +1853,59 @@ races a shared counter; the throttling tests turn one back on with
 
 An exceeded throttle is DRF's usual **429** with a ``Retry-After`` header.
 
-The Wagtail admin (``/admin/login/``) and the Django admin (``/django-admin/login/``)
-serve login forms of their own.  ``caldart/urls.py`` routes both through
-``apps.accounts.throttling.throttle_login_form``, so every ``POST`` to either counts
-against the same ``auth_login`` budget as ``POST /auth/login``, by client address.
-Past the budget the form is not shown: the answer is a plain-text **429**, "Too many
-sign-in attempts. Wait a minute and try again.", with ``Retry-After`` in whole
-seconds.  Opening either form is not counted.
+``auth_mfa`` covers the code steps of signing in and the signed-in two-factor
+endpoints alike; a pending sign-in also ends after five wrong codes.  The Wagtail
+and Django admins serve no login form to throttle: both send the reader to the
+portal's sign-in (:ref:`api-two-factor`).
+
+.. _api-login-lockout:
+
+The sign-in lockout
+-------------------
+
+The throttles count by client address; ``apps.accounts.lockout`` also counts by
+the account signed in *to*.  A wrong password at ``POST /auth/login`` or
+``POST /auth/reactivate`` and a wrong code at any two-factor endpoint each count
+one failure.  The address is resolved as sign-in resolves it (``email__iexact``), so
+every spelling the database matches to an account counts against that account; an
+address no account holds is counted under the database's own ``UPPER()`` of it, the
+comparison ``email__iexact`` makes, so no spelling of an address is counted apart
+from the account it would sign in to, and the answers never say which addresses are
+registered.  Once ``LOGIN_LOCKOUT_ATTEMPTS`` (10) failures fall within
+``LOGIN_LOCKOUT_SECONDS`` (900) of the first, every attempt at that account, from
+anywhere and with the right password too, is refused until that window has passed::
+
+    429 {"detail": "Too many failed sign-in attempts for this email address. Try again later. Expected available in 812 seconds."}
+
+with ``Retry-After`` in whole seconds.  Wrong codes are also counted over a day:
+``LOGIN_LOCKOUT_CODE_ATTEMPTS`` (30) within ``LOGIN_LOCKOUT_CODE_SECONDS`` (86400)
+lock the account out the same way, so somebody who holds the password cannot try
+codes all day a few at a time.  A completed sign-in clears the fifteen-minute count
+and leaves the day's.
+
+The counts are rows of ``SignInFailureCount`` (:doc:`data-model`), keyed by SHA-256
+digests so no address is stored.  They live in the database because the production
+cache culls entries once it holds a few hundred, and a forgotten count would let
+guesses through.  Each is updated under a row lock (``select_for_update``), so
+concurrent failures are all counted; a row past its window reads as empty, and rows
+whose window ended a day ago are deleted as failures are counted.
+
+The failure that reaches a limit writes one WARNING line to the audit log, naming
+the account when there is one and never the address::
+
+    action=account.lockout actor=anonymous target=12 attempts=10 reason=too_many_failures
+
+and mails the account (``sign_in_locked``), at most once a day.  Either setting of a
+pair at ``0`` turns that count off (:ref:`configuration-login-lockout`).
+
+**The trade-off.**  Anybody who knows an address can keep its sign-in paused by
+guessing wrong every fifteen minutes, whoever owns it; that is the price of a limit
+no spread of client addresses escapes.  The owner is mailed, and waits for the window
+to pass, or asks a system administrator, who lifts the lockout at once with
+``manage.py clear_lockout --email ADDRESS``; it forgets both counts and changes
+nothing else.  ``reset_two_factor`` clears them too, and so does ``create_admin`` when
+it takes an existing account back, along with the account's authenticator device and
+backup codes.
 
 
 How the portal uses this
@@ -1562,7 +1913,8 @@ How the portal uses this
 
 ``src/portal/auth/useAuth.ts`` wraps the whole surface in TanStack Query hooks:
 ``useMe`` and ``useAuth`` for identity, ``useRoles`` for the catalog, and
-``useLogin``, ``useReactivate``, ``useRegister``, ``useLogout``, ``usePasswordChange``,
+``useLogin``, ``useReactivate``, ``useLoginMfa``, ``useLoginMfaEnroll``,
+``useLoginMfaEnrollConfirm``, ``useRegister``, ``useLogout``, ``usePasswordChange``,
 ``usePasswordResetRequest``, ``usePasswordResetConfirm``, ``useEmailVerify``,
 ``useResendVerification``, ``useEmailChange``, and ``useEmailChangeUndo`` for the
 mutations.  ``useRegister`` touches no cache, since nobody is signed in: the join
@@ -1573,7 +1925,18 @@ show as the change waiting; ``useEmailVerify`` invalidates it, so a signed-in me
 own payload says verified, or moved, straight away.  ``useEmailChangeUndo`` backs the
 public ``/undo-email-change`` page and empties the cache, since every session of the
 account has ended.  Login, reactivation, and logout all call ``queryClient.clear()`` so
-no screen can show the previous user's data.  The sign-in page reads a 403 whose
+no screen can show the previous user's data.  ``useLogin`` and ``useReactivate``
+answer ``LoginResult``, the user or ``{"mfa": ...}`` (``isMfaChallenge`` tells
+them apart), and only a user is put in the cache.  The sign-in page then shows the
+second-factor step from ``features/two-factor/SignInSteps.tsx``: ``CodeStep``,
+or ``EnrollStep``, which shows the QR code and the key, confirms a code, and shows
+the backup codes (``RecoveryCodesPanel``, with **Copy** and **Download as .txt**)
+before adopting the signed-in user (``useAdoptSignedIn``) once the person presses
+**I saved these**.  A refusal carrying ``code: "mfa_expired"`` returns the page to
+the password step with the server's sentence.  The profile's **Two-factor
+sign-in** card (``features/two-factor/SecurityCard.tsx``) reads ``GET /auth/mfa``
+through ``useMfaStatus`` in that feature's ``api.ts``, and the user record's
+``TwoFactorCard`` posts the reset through ``useAccountStatusAction``.  The sign-in page reads a 403 whose
 ``code`` is ``deactivated`` as an offer: it shows a **Reactivate my account**
 panel whose button sends the same credentials through ``useReactivate`` and then
 continues as a sign-in would.  The profile page's **Deactivate my account** card
@@ -1686,6 +2049,26 @@ Tests
 ``backend/tests/test_account_services.py``
    ``accounts.services`` on its own: creating an account, and each edit rule
    both allowed and refused, down to the field the refusal names.
+
+``backend/tests/test_two_factor.py``
+   ``apps.accounts.mfa`` on its own: who needs a second factor, enrolling, the
+   authenticator code's window and replay, backup codes, turning it off, the reset,
+   the pending sign-in, and that nothing secret is logged.
+
+``backend/tests/test_two_factor_login.py``
+   The password step's challenge, the code step, enrolling while signing in, and
+   every way a pending sign-in is refused.
+
+``backend/tests/test_two_factor_session.py``
+   ``MfaSessionMiddleware``, the session mark, and the admin login routes'
+   redirects, an unsafe ``next`` dropped.
+
+``backend/tests/test_two_factor_self_service.py`` and ``test_two_factor_admin_reset.py``
+   The ``/auth/mfa`` endpoints, and the user record's reset with its role matrix.
+
+``backend/tests/test_login_lockout.py``
+   The per-address lockout: its count, its window, the client address it ignores,
+   unknown addresses, wrong codes, and its audit line.
 
 ``backend/tests/test_account_kinds.py``
    Members, friends, and donors: the effective kind in Python and SQL, the
