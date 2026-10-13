@@ -2,16 +2,19 @@
 
 Hello{% if first_name %} {{ first_name }}{% endif %},
 
-An account has been created for you at {{ org_name }}, registered to
-{{ user.email }}. Choose a password to finish setting it up:
+{% if taken_back %}An administrator account has been set up for you at {{ org_name }} on the
+account registered to {{ user.email }}. Any password the account had has been
+cleared and everyone signed in to it has been signed out. Choose a password to
+finish setting it up:{% else %}An account has been created for you at {{ org_name }}, registered to
+{{ user.email }}. Choose a password to finish setting it up:{% endif %}
 
 {{ reset_url }}
 
 The link can be used once and expires in {{ expiry_days }} day{{ expiry_days|pluralize }}.
 Using the link also confirms that this address is yours.
 
-If you were not expecting this you can ignore this message — no account of
-yours changes until the link is used.{% if contact_email %} Anything that looks wrong, write to {{ contact_email }}.{% endif %}
+{% if taken_back %}Nobody can sign in to the account until the link is used.{% else %}If you were not expecting this you can ignore this message — no account of
+yours changes until the link is used.{% endif %}{% if contact_email %} Anything that looks wrong, write to {{ contact_email }}.{% endif %}
 
 — {{ org_name }}
 {{ site_url }}

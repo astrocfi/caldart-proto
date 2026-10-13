@@ -20,7 +20,8 @@ from __future__ import annotations
 from typing import TypedDict
 
 from django.conf import settings
-from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.hashers import make_password
+from django.contrib.auth.password_validation import password_changed, validate_password
 from django.contrib.auth.tokens import default_token_generator
 from django.core import signing
 from django.db import transaction
@@ -256,7 +257,11 @@ def update_account(actor: User | str, target: User, changes: AccountChanges) -> 
     stored in privilege order however they arrive.
 
     Everything the save really writes is recorded in the audit log, by field name
-    and role slug: an edit that alters nothing records nothing.
+    and role slug: an edit that alters nothing records nothing.  The save writes only
+    the columns the edit carries (plus the verification and bounce columns a new
+    address clears, the Django flags a role write rebuilds, and ``updated_at``), so an
+    edit made from a copy of the account read before another change committed -- a
+    password cleared or roles granted meanwhile -- never writes the stale values back.
 
     A ``kind`` other than the stored one goes through :func:`set_kind`: the account
     becomes that kind at once, any pending ``friend_on`` date is cleared, and the
@@ -296,17 +301,19 @@ def update_account(actor: User | str, target: User, changes: AccountChanges) -> 
     records = _change_records(target, fields, roles)
     is_new_address = len(_altered_fields(target, fields, ("email",))) > 0
     old_email = target.email
-    for field in ACCOUNT_FIELDS:
-        if field in fields:
-            setattr(target, field, fields[field])
+    written = [field for field in ACCOUNT_FIELDS if field in fields]
+    for field in written:
+        setattr(target, field, fields[field])
     if is_new_address:
         target.email_verified_at = None
         target.email_bounced_at = None
         target.email_bounce_detail = ""
+        written += ["email_verified_at", "email_bounced_at", "email_bounce_detail"]
     if roles is not None and _writes_roles(target, set(roles)):
         target.set_roles(roles)
         sync_django_flags(target)
-    target.save()
+        written += ["is_superuser", "is_staff"]
+    target.save(update_fields=[*written, "updated_at"])
     if kind is not None and kind != target.kind and set_kind(target, kind, actor=actor):
         became = "became_friend" if kind == AccountKind.FRIEND else "became_member"
         events.emit(became, user=target, how="administrator")
@@ -527,6 +534,30 @@ def normalized_email(value: AccountFieldValue | None) -> str:
 # --------------------------------------------------------------------------
 # Password reset
 # --------------------------------------------------------------------------
+def replace_password(user: User, raw_password: str) -> bool:
+    """Make ``raw_password`` ``user``'s password unless the stored one moved meanwhile.
+
+    The write is conditional on the stored hash still being the one ``user`` carries,
+    the hash the caller checked the request against (the current password, or the
+    reset link, which is signed over it).  When another change committed in between --
+    ``create_admin`` clearing the password, or a second change or reset -- nothing is
+    written and the return is False; the caller refuses the request.  Otherwise the new
+    hash and ``updated_at`` are written, copied onto ``user``, the password validators'
+    ``password_changed`` hooks run, and the return is True.
+    """
+    new_hash = make_password(raw_password)
+    now = timezone.now()
+    written = User.objects.filter(pk=user.pk, password=user.password).update(
+        password=new_hash, updated_at=now
+    )
+    if written == 0:
+        return False
+    user.password = new_hash
+    user.updated_at = now
+    password_changed(raw_password, user)
+    return True
+
+
 def make_reset_token(user: User) -> tuple[str, str]:
     """``(uid, token)`` for ``user``, using Django's default generator."""
     return urlsafe_base64_encode(force_bytes(user.pk)), default_token_generator.make_token(user)
@@ -619,7 +650,9 @@ def send_password_reset_email(user: User, *, request: HttpRequest | None = None)
     return True
 
 
-def send_password_invitation(user: User, *, request: HttpRequest | None = None) -> None:
+def send_password_invitation(
+    user: User, *, request: HttpRequest | None = None, taken_back: bool = False
+) -> None:
     """Mail ``user`` the link that sets the first password on their account.
 
     An administrator may create a member without a password; the account holds
@@ -628,10 +661,16 @@ def send_password_invitation(user: User, *, request: HttpRequest | None = None) 
     ``emails/member_invitation.{txt,html}``.  The link is the ordinary reset
     link, so ``/auth/password/reset/confirm`` accepts it unchanged.  A donor, who
     cannot sign in, is sent nothing.
+
+    With ``taken_back`` the bodies say instead that an administrator account was set
+    up on the existing account at this address, that any earlier password was cleared
+    and every session ended, and that nobody can sign in until the link is used; this
+    is the email ``create_admin`` sends when it promotes an existing account.
     """
     if is_donor(user):
         return
     context = _password_link_context(user, request=request)
+    context["taken_back"] = taken_back
     _send_password_link_email(
         user,
         template="member_invitation",
@@ -856,7 +895,7 @@ def _verification_target(payload: object) -> User | None:
     return user
 
 
-def confirm_email_address(user: User) -> bool:
+def confirm_email_address(user: User, *, actor: User | str | None = None) -> bool:
     """Record that ``user``'s owner has proved the address, unless that is known already.
 
     Following a verification link and following a password link both prove it, for the
@@ -866,9 +905,10 @@ def confirm_email_address(user: User) -> bool:
     ``email_bounce_detail`` are cleared on ``user`` too.  Then the account is stamped
     verified now, in one conditional update, only while it is unverified; the stamp is
     copied onto ``user``, recorded in the audit log as ``account.email_verified`` with
-    the account as actor and target, and the return is True.  An account already
-    verified, or moved to another address since ``user`` was read, is not stamped and
-    the return is False.
+    the account as target and ``actor`` as actor (the account itself when ``actor`` is
+    ``None``, as when its owner follows a link), and the return is True.  An account
+    already verified, or moved to another address since ``user`` was read, is not
+    stamped and the return is False.
     """
     now = timezone.now()
     same_address = User.objects.filter(pk=user.pk, email__iexact=user.email)
@@ -885,7 +925,7 @@ def confirm_email_address(user: User) -> bool:
         return False
     user.email_verified_at = now
     user.updated_at = now
-    audit.record(audit.ACCOUNT_EMAIL_VERIFIED, actor=user, target=user)
+    audit.record(audit.ACCOUNT_EMAIL_VERIFIED, actor=user if actor is None else actor, target=user)
     return True
 
 

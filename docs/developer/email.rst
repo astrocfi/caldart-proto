@@ -54,7 +54,9 @@ from the stored reminder schedule, so the mail app never imports it:
      - the yearly statement run, with the PDF attached (:doc:`statements`)
    * - ``member_invitation``, ``password_reset``, ``email_verification``
      - Invitation, Password reset, Email verification
-     - the account flows (:doc:`api-auth`)
+     - the account flows (:doc:`api-auth`), and ``create_admin`` when it promotes
+       an existing account: an invitation worded to say the account's earlier
+       password was cleared and its sessions ended (:ref:`deploy-database`)
    * - ``scheduled_report``, ``dart_roster``
      - Scheduled report, DART roster
      - the daily report run (:doc:`scheduled-reports`)

@@ -40,8 +40,13 @@ written out literally — CSS custom properties do not survive here.
               <td style="padding: 24px 32px 8px;">
                 <p style="margin: 0 0 16px;">Hello{% if first_name %} {{ first_name }}{% endif %},</p>
                 <p style="margin: 0 0 16px;">
-                  An account has been created for you at {{ org_name }}, registered to
-                  <strong>{{ user.email }}</strong>. Choose a password to finish setting it up:
+                  {% if taken_back %}An administrator account has been set up for you at
+                  {{ org_name }} on the account registered to <strong>{{ user.email }}</strong>. Any
+                  password the account had has been cleared and everyone signed in to it has been
+                  signed out. Choose a password to finish setting it up:{% else %}An account has
+                  been created for you at {{ org_name }}, registered to
+                  <strong>{{ user.email }}</strong>. Choose a password to finish setting it
+                  up:{% endif %}
                 </p>
                 <p style="margin: 0 0 20px;">
                   <a
@@ -64,8 +69,9 @@ written out literally — CSS custom properties do not survive here.
                   <a href="{{ reset_url }}" style="color: #1f4e79;">{{ reset_url }}</a>
                 </p>
                 <p style="margin: 0 0 8px; font-size: 14px; color: #55606d;">
-                  If you were not expecting this you can ignore this message — no account of yours
-                  changes until the link is used.{% if contact_email %}
+                  {% if taken_back %}Nobody can sign in to the account until the link is
+                  used.{% else %}If you were not expecting this you can ignore this message — no
+                  account of yours changes until the link is used.{% endif %}{% if contact_email %}
                   Anything that looks wrong, write to
                   <a href="mailto:{{ contact_email }}" style="color: #1f4e79;">{{ contact_email }}</a>.{% endif %}
                 </p>

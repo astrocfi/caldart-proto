@@ -462,7 +462,9 @@ Beyond Django's and Wagtail's own, this project adds:
        by a data migration
    * - ``create_admin --email ADDRESS [--first-name NAME] [--last-name NAME]``
      - create the account at ``ADDRESS`` as a system administrator, or promote an
-       existing one; either way print its password-reset link
+       existing one, clearing its password and any reactivation block, ending its
+       sessions, and mailing it a set-password link; either way print its
+       password-reset link
    * - ``seed_demo [--seed N]``
      - the demo data set; ``--seed`` is the *random* seed, default ``20260904``
    * - ``seed_content``

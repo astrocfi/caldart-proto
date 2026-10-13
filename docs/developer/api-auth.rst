@@ -362,13 +362,19 @@ password does not sign you out of the browser you changed it from.  Other
 sessions are invalidated, because the session auth hash is derived from the
 password.
 
+The new password is written only while the stored one is still the one the
+request checked ``current_password`` against.  When something else replaced it
+in the meantime (another change, a reset, or ``create_admin`` clearing it), the
+change writes nothing, leaves the session alone, and answers **401** with
+``{"detail": "This account's password was changed elsewhere. Sign in again."}``.
+
 * ``{"current_password": [...]}`` — did not match, or *Enter your current
   password.* when it was left empty.
 * ``{"new_password": [...]}`` — refused by a password validator, or *Choose a new
   password.* when it was left empty.
 
 Statuses: **204**; **400** for either rejection above or a missing field;
-**401** when anonymous.
+**401** when anonymous, or when the stored password changed during the request.
 
 ``POST /auth/password/reset``
 -----------------------------
@@ -417,7 +423,10 @@ body.
 
 Every way a link can be unusable — a mangled ``uid``, an unknown user, a
 donor's account, a token that has expired or has already been spent — returns the same ``{"token": ["That password reset link is invalid or has
-expired. Request a new one."]}``.  A weak new password is reported separately
+expired. Request a new one."]}``.  So does a link whose account's password
+changed between the check and the write (another reset, or ``create_admin``
+clearing it): the new password is written only while the stored one is still
+the one the link was signed over.  A weak new password is reported separately
 under ``new_password``.
 
 The endpoint does not sign the user in; the portal sends them to ``/login``.

@@ -57,6 +57,7 @@ from apps.accounts.services import (
     clear_email_bounce,
     confirm_email_address,
     is_donor,
+    replace_password,
     send_email_verification,
     send_password_reset_email,
     verify_email,
@@ -275,6 +276,10 @@ class MeView(APIView):
         return Response(UserSerializer(signed_in_user(request)).data)
 
 
+#: The 401 a password change gets when the stored password moved under it.
+CHANGED_ELSEWHERE = "This account's password was changed elsewhere. Sign in again."
+
+
 class PasswordChangeView(APIView):
     """``POST /auth/password/change`` -- 204, session kept alive."""
 
@@ -290,13 +295,16 @@ class PasswordChangeView(APIView):
         The body carries ``current_password`` and ``new_password``.  A wrong current
         password or a new one Django's validators reject is a 400 naming the field.  The
         session survives the change, so the caller stays signed in.  An anonymous caller
-        gets 401.
+        gets 401.  So does a change whose stored password moved after the request
+        checked the current one (another change, a reset, or ``create_admin`` clearing
+        it): nothing is written, the session is left as it was, and the 401 carries
+        :data:`CHANGED_ELSEWHERE`.
         """
         serializer = PasswordChangeSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         user = signed_in_user(request)
-        user.set_password(serializer.validated_data["new_password"])
-        user.save(update_fields=["password", "updated_at"])
+        if not replace_password(user, serializer.validated_data["new_password"]):
+            raise NotAuthenticated(CHANGED_ELSEWHERE)
         # Rotating the password rotates the session auth hash; without this the
         # caller is logged out by their own request.
         update_session_auth_hash(request, user)
@@ -363,15 +371,21 @@ class PasswordResetConfirmView(APIView):
         address and chose to come back -- though nobody is signed in: the new password
         does that.  A link for an account a user administrator has blocked from
         reactivating is a 400 under ``token`` with "This account has been closed. Contact
-        <organization name> to reopen it.", and nothing changes.
+        <organization name> to reopen it.", and nothing changes.  A link whose account's
+        password moved after the link was checked (another reset, or ``create_admin``
+        clearing it) is spent: a 400 under ``token`` like any other spent link, and
+        nothing changes.
         """
         serializer = PasswordResetConfirmSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
         try:
             with transaction.atomic():
-                user.set_password(serializer.validated_data["new_password"])
-                user.save(update_fields=["password", "updated_at"])
+                if not replace_password(user, serializer.validated_data["new_password"]):
+                    return Response(
+                        {"token": [PasswordResetConfirmSerializer.INVALID_LINK]},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
                 confirm_email_address(user)
                 if not user.is_active:
                     reactivate(user)

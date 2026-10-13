@@ -958,11 +958,28 @@ With ``--admin-email`` the step creates the first real administrator::
   sudo deploy/manage.sh create_admin --email you@example.org
 
 ``create_admin`` makes the account a superuser with the ``member``,
-``system_admin``, and ``website_admin`` roles and no usable password (an
-existing account with that address gains what it lacks), and prints one line:
-a password-reset link, which the installer's summary repeats.  Open it to set
-the password.  ``system_admin`` plus ``is_superuser`` is what unlocks
-``/portal/system/`` and the Wagtail admin.
+``system_admin``, and ``website_admin`` roles, no usable password, and a
+verified address, and prints one line: a password-reset link, which the
+installer's summary repeats.  Open it to set the password.  ``system_admin``
+plus ``is_superuser`` is what unlocks ``/portal/system/`` and the Wagtail
+admin.
+
+An existing account with that address gains the roles it lacks and keeps the
+rest, and is taken back from whoever set its password, since anybody can
+register any address through the portal: its password is cleared, any block on
+reactivating it is lifted, every session signed in to it is ended, its address
+is marked verified, ``--first-name`` and ``--last-name`` replace its names when
+given, and the address is mailed a set-password link, as valid as the printed
+one, in an invitation that says the earlier password was cleared.  The audit
+log records ``account.password_cleared``.  A line on standard error says the
+link was mailed, or that the mail server refused it, in which case pass on the
+printed link instead; a refused email does not fail the command.  A password
+change or reset already under way when the command runs is refused rather
+than writing over the cleared password (:doc:`api-auth`).  This happens on
+every run for an existing address, so running ``create_admin`` again for a
+working administrator signs them out and makes them choose a new password.  A
+deactivated account is reactivated when the link is used, as a password reset
+reactivates one.
 
 
 .. _deploy-web-service:
@@ -1909,6 +1926,10 @@ Action                        Fields beyond actor and target
 ``account.unblock``           --
 ``account.bounce_cleared``    -- (a user administrator cleared the bounce
                               recorded against the account's address)
+``account.password_cleared``  ``sessions``, ``unblocked`` -- the sessions
+                              ended, and whether a block on reactivating was
+                              lifted (``create_admin`` took an existing
+                              account back from whoever set its password)
 ``member.create``             ``invited`` -- whether an invitation was mailed
 ``member.delete``             ``payments``, ``owner`` -- when the member had
                               paid, how many payments moved and the
