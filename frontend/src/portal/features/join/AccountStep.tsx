@@ -12,6 +12,7 @@ import { Field } from '@/portal/components/Field';
 import { MaskedInput } from '@/portal/components/MaskedInput';
 import { RefusedSubmitNote, useRefusedSubmit } from '@/portal/components/RefusedSubmit';
 import { addressProblem, maskEmail } from '@/portal/masks';
+import { PORTAL_BASENAME } from '@/portal/urlPrefix';
 import './join.css';
 
 /** What each box says when it is left empty, in the server's own words. */
@@ -241,7 +242,9 @@ export function AccountStep({ onDone: handleDone }: AccountStepProps): JSX.Eleme
           <Button type="submit" disabled={register.isPending}>
             {register.isPending ? 'Creating…' : 'Create account'}
           </Button>
-          <Link to="/login?next=%2Fjoin">Already have an account? Sign in</Link>
+          <Link to={`/login?next=${encodeURIComponent(`${PORTAL_BASENAME}/join`)}`}>
+            Already have an account? Sign in
+          </Link>
           <RefusedSubmitNote count={refusal.count} />
         </div>
       </form>

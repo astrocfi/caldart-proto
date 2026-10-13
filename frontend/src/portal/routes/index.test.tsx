@@ -389,7 +389,7 @@ describe('the guarded paths', () => {
 
       await waitFor(() =>
         expect(`${router.state.location.pathname}${router.state.location.search}`).toBe(
-          `/login?next=${encodeURIComponent(path)}`,
+          `/login?next=${encodeURIComponent(`/portal${path}`)}`,
         ),
       );
     },

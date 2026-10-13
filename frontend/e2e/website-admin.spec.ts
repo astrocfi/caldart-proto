@@ -92,11 +92,13 @@ test('a website administrator creates, edits and deletes a page', async ({ page 
 });
 
 test('a plain member cannot open the Wagtail admin', async ({ page }) => {
-  await page.goto('admin/login/');
-  await page.getByLabel(/email/i).fill(DEMO.member);
-  await page.getByLabel(/password/i).fill(DEMO_PASSWORD);
-  await page.getByRole('button', { name: /sign in/i }).click();
+  await page.goto('admin/');
+  // The admin's sign-in is the portal's.
+  await expect(page).toHaveURL(/\/portal\/login\?next=/);
+  await page.getByRole('textbox', { name: 'Email address' }).fill(DEMO.member);
+  await page.getByLabel(/^Password/).fill(DEMO_PASSWORD);
+  await page.getByRole('button', { name: 'Sign in' }).click();
 
-  // Wagtail refuses the sign-in rather than showing the dashboard.
-  await expect(page).toHaveURL(/\/admin\/login/);
+  // Wagtail refuses the member, and the portal opens its dashboard instead.
+  await expect(page).toHaveURL(/\/portal\/?$/);
 });

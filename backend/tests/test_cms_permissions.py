@@ -101,11 +101,11 @@ def test_website_admin_reaches_the_wagtail_admin(client: Client, website_admin: 
 
 
 def test_plain_member_is_bounced_from_the_wagtail_admin(client: Client, member: User) -> None:
-    """A plain member is redirected to the admin login page."""
+    """A plain member is redirected to the portal's sign-in, the one login page."""
     client.force_login(member)
     response = client.get("/admin/")
     assert response.status_code == 302
-    assert "/admin/login/" in response["Location"]
+    assert response["Location"] == "/portal/login?next=/admin/"
 
 
 def test_dart_leader_is_bounced_from_the_wagtail_admin(client: Client, dart_leader: User) -> None:

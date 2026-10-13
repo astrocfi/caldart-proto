@@ -2,7 +2,7 @@
 
 from django.urls import path
 
-from apps.accounts.api import views
+from apps.accounts.api import mfa_views, views
 
 app_name = "accounts"
 
@@ -11,6 +11,13 @@ urlpatterns = [
     path("auth/csrf", views.CsrfView.as_view(), name="csrf"),
     path("auth/register", views.RegisterView.as_view(), name="register"),
     path("auth/login", views.LoginView.as_view(), name="login"),
+    path("auth/login/mfa", mfa_views.LoginMfaView.as_view(), name="login-mfa"),
+    path("auth/login/mfa/enroll", mfa_views.LoginMfaEnrollView.as_view(), name="login-mfa-enroll"),
+    path(
+        "auth/login/mfa/enroll/confirm",
+        mfa_views.LoginMfaEnrollConfirmView.as_view(),
+        name="login-mfa-enroll-confirm",
+    ),
     path("auth/logout", views.LogoutView.as_view(), name="logout"),
     path("auth/me", views.MeView.as_view(), name="me"),
     path("auth/password/change", views.PasswordChangeView.as_view(), name="password-change"),
@@ -26,6 +33,19 @@ urlpatterns = [
     path("auth/email/undo", views.EmailChangeUndoView.as_view(), name="email-change-undo"),
     path("auth/deactivate", views.DeactivateView.as_view(), name="deactivate"),
     path("auth/reactivate", views.ReactivateView.as_view(), name="reactivate"),
+    path("auth/mfa", mfa_views.MfaStatusView.as_view(), name="mfa"),
+    path("auth/mfa/enroll", mfa_views.MfaEnrollView.as_view(), name="mfa-enroll"),
+    path(
+        "auth/mfa/enroll/confirm",
+        mfa_views.MfaEnrollConfirmView.as_view(),
+        name="mfa-enroll-confirm",
+    ),
+    path(
+        "auth/mfa/recovery-codes",
+        mfa_views.MfaRecoveryCodesView.as_view(),
+        name="mfa-recovery-codes",
+    ),
+    path("auth/mfa/disable", mfa_views.MfaDisableView.as_view(), name="mfa-disable"),
     # -- users admin ------------------------------------------------------
     path("admin/users", views.AdminUserListView.as_view(), name="admin-user-list"),
     path("admin/users/<int:pk>", views.AdminUserDetailView.as_view(), name="admin-user-detail"),
@@ -64,6 +84,11 @@ urlpatterns = [
         "admin/users/<int:pk>/unblock",
         views.AdminUserUnblockView.as_view(),
         name="admin-user-unblock",
+    ),
+    path(
+        "admin/users/<int:pk>/reset-two-factor",
+        views.AdminUserResetTwoFactorView.as_view(),
+        name="admin-user-reset-two-factor",
     ),
     path(
         "admin/users/<int:pk>/clear-bounce",

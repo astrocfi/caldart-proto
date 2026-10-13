@@ -66,7 +66,7 @@ describe('RequireAuth', () => {
       { route: '/secret' },
     );
     expect(await screen.findByText('login page')).toBeInTheDocument();
-    expect(screen.getByText('next=/secret')).toBeInTheDocument();
+    expect(screen.getByText('next=/portal/secret')).toBeInTheDocument();
     expect(screen.queryByText('secret content')).not.toBeInTheDocument();
   });
 });
@@ -216,7 +216,7 @@ describe('a failed sign-in check', () => {
 describe('loginRedirect', () => {
   it('carries the whole location, query string included', () => {
     expect(loginRedirect({ pathname: '/admin/users', search: '?role=user_admin' })).toBe(
-      '/login?next=%2Fadmin%2Fusers%3Frole%3Duser_admin',
+      '/login?next=%2Fportal%2Fadmin%2Fusers%3Frole%3Duser_admin',
     );
   });
 });

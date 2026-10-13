@@ -176,7 +176,7 @@ Core
 Authentication rate limits
 ==========================
 
-Five groups of auth endpoints, and the start of a gift on the public donation
+Six groups of auth endpoints, and the start of a gift on the public donation
 page, are throttled per client address, signed in or not, counted as described
 below.  Each takes a DRF rate as ``<count>/<period>``, where the
 period is ``second``, ``minute``, ``hour``, or ``day`` (or their initials).
@@ -190,8 +190,9 @@ rate is a **429**.
 ``None`` in Python, so no test races a shared counter.
 
 ``AUTH_THROTTLE_LOGIN``
-   ``POST /auth/login``, ``POST /auth/reactivate``, and the Wagtail and Django admin
-   login forms, all drawing on one budget per client address.
+   ``POST /auth/login`` and ``POST /auth/reactivate``, drawing on one budget per
+   client address.  The Wagtail and Django admins have no login form of their own:
+   both send the reader to the portal's sign-in.
 
    :Development: ``20/min``
    :Production: ``20/min``.  Generous enough for a household behind one
@@ -244,6 +245,16 @@ rate is a **429**.
    :Production: ``10/hour``.  Plenty for a household giving more than once,
       tight enough that a script cannot fill the books with donors.
 
+``AUTH_THROTTLE_MFA``
+   Every endpoint that takes a two-factor code: the code steps of signing in
+   (``POST /auth/login/mfa``, ``…/mfa/enroll``, and ``…/mfa/enroll/confirm``) and
+   the signed-in ``POST /auth/mfa/…`` endpoints (:ref:`api-two-factor`).  A
+   pending sign-in also ends after five wrong codes, and wrong codes count toward
+   the lockout below.
+
+   :Development: ``10/min``
+   :Production: ``10/min``
+
 The rates land in the ``AUTH_THROTTLE_RATES`` setting, one key per scope, and
 are read by ``apps.accounts.throttling``.  A scope mapped to ``None``, mapped
 to an empty string, or missing from that dict is off, so an
@@ -252,6 +263,63 @@ the environment was set.  There is no project-wide throttle: apart from these
 and the per-account limit on :ref:`address suggestions
 <configuration-address-suggestions>`, every endpoint is unlimited.  See
 :doc:`api-reference`.
+
+.. _configuration-login-lockout:
+
+The sign-in lockout
+-------------------
+
+The throttles count by client address, which a guesser spread over many
+addresses never exhausts, so sign-in is also limited by the email address
+signed in *to* (``apps.accounts.lockout``).  Every failed attempt at an address
+-- a wrong password at ``POST /auth/login`` or ``POST /auth/reactivate``, or a
+wrong two-factor code at sign-in or on the signed-in two-factor endpoints -- is
+counted in the database, under the account the address resolves to, or under the
+address as the database upper-cases it when no account holds it, so the answers
+never tell a caller which addresses are registered.  Once
+``LOGIN_LOCKOUT_ATTEMPTS`` failures fall within ``LOGIN_LOCKOUT_SECONDS`` of the
+first, every attempt at that address is refused with a **429** and a
+``Retry-After`` header until that window has passed, even with the right
+password.  A completed sign-in clears the count.  Reaching the limit writes one
+``account.lockout`` line to the audit log (:ref:`api-login-lockout`).
+
+The counts are rows of the ``SignInFailureCount`` table (:doc:`data-model`), each
+updated under a row lock, so every gunicorn worker shares them, no cache eviction
+can forget them, and concurrent failures are all counted.
+
+``LOGIN_LOCKOUT_ATTEMPTS``
+   Failed attempts at one address that lock it out.  ``0`` turns the lockout off.
+
+   :Development: ``10``
+   :Production: ``10``
+
+``LOGIN_LOCKOUT_SECONDS``
+   The window, in seconds from the first failure, the attempts are counted in and
+   the lockout lasts for.  ``0`` turns the lockout off.
+
+   :Development: ``900`` (fifteen minutes)
+   :Production: ``900``
+
+``LOGIN_LOCKOUT_CODE_ATTEMPTS``
+   Wrong two-factor codes at one address within the next setting that lock it out,
+   on top of the fifteen-minute count; a completed sign-in does not clear this one.
+   ``0`` turns this count off.
+
+   :Development: ``30``
+   :Production: ``30``
+
+``LOGIN_LOCKOUT_CODE_SECONDS``
+   The window, in seconds from the first wrong code, the codes are counted in.
+
+   :Development: ``86400`` (a day)
+   :Production: ``86400``
+
+Reaching either limit mails the account, at most once a day.  An operator lifts a
+lockout early with ``manage.py clear_lockout --email ADDRESS``.
+
+``caldart.settings.test`` sets ``LOGIN_LOCKOUT_ATTEMPTS`` and
+``LOGIN_LOCKOUT_CODE_ATTEMPTS`` to ``0``, as it switches the throttles off; the
+lockout tests turn them back on with the ``settings`` fixture.
 
 Which address is counted
 ------------------------

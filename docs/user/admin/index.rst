@@ -21,6 +21,7 @@ administrator uses.
    notifications
    users
    user-record
+   user-password
    health-database
    sent-emails
    scheduled

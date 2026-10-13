@@ -5,11 +5,11 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
+from django.contrib.auth import authenticate, logout, update_session_auth_hash
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
-from django.db.models import QuerySet
+from django.db.models import Exists, OuterRef, QuerySet
 from django.middleware.csrf import get_token
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -23,14 +23,17 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.accounts import lockout, mfa
 from apps.accounts.api.account_actions import (
     block_for,
     deactivate_for,
     reactivate_for,
     require_new_password_for,
+    reset_two_factor_for,
     unblock_for,
 )
 from apps.accounts.api.filters import UserFilter
+from apps.accounts.api.mfa_serializers import LoginResponseSerializer
 from apps.accounts.api.serializers import (
     AccountChangeSerializer,
     AdminUserDetailSerializer,
@@ -51,6 +54,7 @@ from apps.accounts.api.serializers import (
     UserSerializer,
     VerificationSentSerializer,
 )
+from apps.accounts.api.sign_in import refuse_if_locked_out, start_session
 from apps.accounts.email_change import (
     Mailing,
     follow_verification_link,
@@ -58,7 +62,7 @@ from apps.accounts.email_change import (
     send_email_change_link,
     undo_email_change,
 )
-from apps.accounts.models import AccountChange, AccountKind, User
+from apps.accounts.models import AccountChange, AccountKind, TotpDevice, User
 from apps.accounts.notices import send_password_changed_notice
 from apps.accounts.permissions import IsUserAdmin
 from apps.accounts.roles import ROLE_DESCRIPTIONS
@@ -245,11 +249,17 @@ class LoginView(APIView):
     permission_classes = [AllowAny]
     throttle_classes = [LoginThrottle]
 
-    @extend_schema(request=LoginSerializer, responses={200: UserSerializer})
+    @extend_schema(request=LoginSerializer, responses={200: LoginResponseSerializer})
     def post(self, request: Request) -> Response:
         """Sign in by ``email`` and ``password``, answering 200 with the ``user`` payload.
 
-        Open to anonymous callers and throttled under the ``auth_login`` scope.  Wrong
+        An account that needs a second factor is not signed in yet: the answer is
+        ``{"mfa": "verify"}`` or ``{"mfa": "enroll"}`` and the session holds a pending
+        sign-in for the code step (``apps.accounts.api.sign_in.start_session``).
+
+        Open to anonymous callers and throttled under the ``auth_login`` scope.  An
+        address locked out by too many failed attempts is a 429 whatever the password
+        (``apps.accounts.lockout``), and each wrong password counts against it.  Wrong
         credentials are a 400 with "Incorrect email address or password."  A deactivated
         account is answered with that same 400 unless the password is correct, in which
         case it is a 403 ``{"detail": "This account is deactivated. You can reactivate
@@ -266,6 +276,7 @@ class LoginView(APIView):
         serializer.is_valid(raise_exception=True)
         email = serializer.validated_data["email"]
         password = serializer.validated_data["password"]
+        refuse_if_locked_out(email)
         user = authenticate(request, username=email, password=password)
         if user is None:
             # `authenticate` also returns None for a deactivated account and for a
@@ -279,12 +290,12 @@ class LoginView(APIView):
                     {"detail": DEACTIVATED_MESSAGE, "code": DEACTIVATED_CODE},
                     status=status.HTTP_403_FORBIDDEN,
                 )
+            lockout.record_failure(email)
             return Response(
                 {"detail": WRONG_CREDENTIALS_MESSAGE},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        login(request, user)
-        return Response(UserSerializer(user).data)
+        return start_session(request, user)
 
 
 class LogoutView(APIView):
@@ -558,7 +569,7 @@ class ReactivateView(APIView):
     permission_classes = [AllowAny]
     throttle_classes = [LoginThrottle]
 
-    @extend_schema(request=LoginSerializer, responses={200: UserSerializer})
+    @extend_schema(request=LoginSerializer, responses={200: LoginResponseSerializer})
     def post(self, request: Request) -> Response:
         """Reactivate the account ``email`` and ``password`` name, sign it in, answer 200.
 
@@ -572,27 +583,32 @@ class ReactivateView(APIView):
         403 ``{"detail": "This account has been closed. Contact <organization name> to
         reopen it."}`` and stays deactivated.  Anything else -- a wrong password, an
         active account, an unknown address, a donor -- is the 400 "Incorrect email
-        address or password." a sign-in gives.
+        address or password." a sign-in gives, and counts against the address as a
+        failed sign-in does; a locked-out address is a 429.  An account that needs a
+        second factor stays deactivated and is answered ``{"mfa": ...}`` exactly as a
+        sign-in is: the code step reactivates it once the second factor is passed.
         """
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = deactivated_account(
-            serializer.validated_data["email"], serializer.validated_data["password"]
-        )
+        email = serializer.validated_data["email"]
+        refuse_if_locked_out(email)
+        user = deactivated_account(email, serializer.validated_data["password"])
         if user is not None and user.reactivation_blocked:
             return _closed()
+        if user is not None and mfa.needs_second_factor(user):
+            return start_session(request, user, reactivate=True)
         try:
             is_reactivated = user is not None and reactivate(user)
         except DomainError:
             # Blocked between the read above and the row lock.
             return _closed()
         if user is None or not is_reactivated:
+            lockout.record_failure(email)
             return Response(
                 {"detail": WRONG_CREDENTIALS_MESSAGE},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        login(request, user)
-        return Response(UserSerializer(user).data)
+        return start_session(request, user)
 
 
 # --------------------------------------------------------------------------
@@ -798,11 +814,20 @@ class RolesView(APIView):
 def admin_user_queryset() -> QuerySet[User]:
     """Every user, with the rows the ``user`` payload needs already loaded.
 
+    ``two_factor_on`` is annotated too: whether the account has a confirmed
+    authenticator device, which the users list and the user record show.
+
     The membership annotations are worked out for the date this is called, so
     both views below build the queryset per request rather than once at import.
     """
     return with_membership(
-        User.objects.select_related("profile", "profile__dart").prefetch_related("groups")
+        User.objects.select_related("profile", "profile__dart")
+        .prefetch_related("groups")
+        .annotate(
+            two_factor_on=Exists(
+                TotpDevice.objects.filter(user=OuterRef("pk"), confirmed_at__isnull=False)
+            )
+        )
     )
 
 
@@ -1136,6 +1161,27 @@ class AdminUserUnblockView(APIView):
         ``system_admin`` by implication.
         """
         return _admin_user_action(request, pk, unblock_for)
+
+
+class AdminUserResetTwoFactorView(APIView):
+    """``POST /admin/users/{id}/reset-two-factor``."""
+
+    permission_classes = [IsUserAdmin]
+
+    @extend_schema(request=None, responses={200: AdminUserDetailSerializer})
+    def post(self, request: Request, pk: int) -> Response:
+        """Reset the account ``pk``'s two-factor sign-in, for a lost phone, answering 200.
+
+        The authenticator device and every backup code are deleted, every session
+        signed in to the account is ended, the reset is recorded as
+        ``account.mfa_reset`` and in the account's history, and the person is mailed a
+        notice.  They set two-factor sign-in up again at their next sign-in, which
+        insists on it when a role requires it.  Your own account, a donor, a tombstone,
+        and -- unless you are one -- a system administrator's account or a superuser's
+        are each a 400 ``{"detail": ...}``; any other account may be reset whatever roles
+        it holds.  Restricted to ``user_admin``, and to ``system_admin`` by implication.
+        """
+        return _admin_user_action(request, pk, reset_two_factor_for)
 
 
 class AdminUserClearBounceView(APIView):

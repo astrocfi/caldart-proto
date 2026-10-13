@@ -19,6 +19,7 @@ const DID: Record<Exclude<AccountChangeKind, 'roles'>, string> = {
   new_password: 'required a new password',
   email_changed: 'changed the email address',
   email_change_undone: 'undid a change of email address',
+  mfa_reset: 'reset two-factor sign-in',
 };
 
 /**

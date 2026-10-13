@@ -109,6 +109,12 @@ webadmin@example.org           member, website_admin
 sysadmin@example.org           member, system_admin (superuser)
 =============================  ====================================
 
+The accounts holding user_admin, treasurer, account_admin, management,
+website_admin, or system_admin must use two-factor sign-in, and the seed gives
+them none, so the first sign-in to each asks you to set up an authenticator app
+on your phone (any app that reads a QR code, such as Google Authenticator) and
+shows ten backup codes; every later sign-in asks for a code from the app.
+
 Plus about 40 generated members and friends with mixed membership, certificate, and
 medical states, 25 aircraft with varied insurance currency, and two years of
 payment history.  The demo DART leader has verified the documents of about seven

@@ -17,8 +17,9 @@ Every line has the same shape, which is what makes the journal greppable::
 
     action=account.roles actor=12 target=34 added=dart_leader removed=-
 
-``actor`` is the id of the account that acted, or ``command`` for a management
-command and the reminder timer; ``target`` is the id of the account or record
+``actor`` is the id of the account that acted, ``command`` for a management
+command and the reminder timer, or ``anonymous`` for a request nobody is signed in
+to; ``target`` is the id of the account or record
 acted on, or ``-`` when the action has none.
 """
 
@@ -35,6 +36,10 @@ LOGGER_NAME = "caldart.audit"
 
 #: The actor a management command and the reminder timer log under.
 COMMAND_ACTOR = "command"
+
+#: The actor a request nobody is signed in to logs under, such as a run of failed
+#: sign-in attempts that locks an address out.
+ANONYMOUS_ACTOR = "anonymous"
 
 #: What a missing target, an empty list and an empty name render as.
 EMPTY = "-"
@@ -66,6 +71,12 @@ ACCOUNT_REQUIRE_RESET = "account.new_password"
 ACCOUNT_EMAIL_CHANGE_REQUEST = "account.email_change_request"
 ACCOUNT_EMAIL_CHANGE_UNDO = "account.email_change_undo"
 ACCOUNT_PASSWORD_CHANGE = "account.password_change"  # noqa: S105 - an audit event name
+ACCOUNT_MFA_ENABLE = "account.mfa_enable"
+ACCOUNT_MFA_DISABLE = "account.mfa_disable"
+ACCOUNT_MFA_RESET = "account.mfa_reset"
+ACCOUNT_MFA_RECOVERY_USED = "account.mfa_recovery_used"
+ACCOUNT_MFA_RECOVERY_CODES = "account.mfa_recovery_codes"
+ACCOUNT_LOCKOUT = "account.lockout"
 MEMBER_CREATE = "member.create"
 MEMBER_DELETE = "member.delete"
 MEMBER_VERIFY = "member.verify"
@@ -144,6 +155,8 @@ REASON_TYPE_NOT_SENDABLE = "type_not_sendable"
 REASON_NO_TYPE = "no_type"
 REASON_NO_DART = "no_dart"
 REASON_DART_CHANGED = "dart_changed"
+REASON_MFA_REQUIRED = "mfa_required"
+REASON_TOO_MANY_FAILURES = "too_many_failures"
 
 log = logging.getLogger(LOGGER_NAME)
 
@@ -158,7 +171,8 @@ def record(
 ) -> None:
     """Write one audit line for ``action``, at INFO unless ``level`` says otherwise.
 
-    ``actor`` is the account that acted, or the string ``command``; ``target``
+    ``actor`` is the account that acted, or the string ``command`` or ``anonymous``;
+    ``target``
     is the account or record acted on, given as a model instance or an id, and
     renders as ``-`` when there is none.  Each keyword in ``fields`` becomes one
     ``key=value`` pair, in the order given, after ``action``, ``actor``, and
@@ -210,12 +224,15 @@ def safe_slug(value: str) -> str:
 
 
 def _actor_id(actor: Model | str) -> str:
-    """``actor``'s id, or ``command``."""
+    """``actor``'s id, ``command``, or ``anonymous``."""
     if isinstance(actor, Model):
         return str(actor.pk)
-    if actor == COMMAND_ACTOR:
-        return COMMAND_ACTOR
-    raise TypeError(f"Audit actor takes a model instance or {COMMAND_ACTOR!r}, not {actor!r}.")
+    if actor in (COMMAND_ACTOR, ANONYMOUS_ACTOR):
+        return actor
+    raise TypeError(
+        f"Audit actor takes a model instance, {COMMAND_ACTOR!r} or {ANONYMOUS_ACTOR!r}, "
+        f"not {actor!r}."
+    )
 
 
 def _target_id(target: Model | int | None) -> str:

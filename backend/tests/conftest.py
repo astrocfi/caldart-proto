@@ -35,12 +35,14 @@ from django.core import mail
 from django.core.mail import EmailMessage, EmailMultiAlternatives
 from django.core.mail.backends.locmem import EmailBackend
 from django.http import HttpResponse, HttpResponseBase
+from django.test import Client
 from django.utils import timezone
 from django_vite.core.asset_loader import DjangoViteAssetLoader
 from pytest_django import Settings
 from rest_framework.test import APIClient
 
-from apps.accounts.models import AccountKind
+from apps.accounts import mfa
+from apps.accounts.models import AccountKind, TotpDevice
 from apps.accounts.roles import (
     ACCOUNT_ADMIN,
     DART_LEADER,
@@ -293,6 +295,40 @@ def _no_live_http(request: pytest.FixtureRequest) -> Iterator[None]:
         return
     with respx.mock(assert_all_mocked=True, assert_all_called=False):
         yield
+
+
+@pytest.fixture(autouse=True)
+def _force_login_passes_second_factor(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Make ``force_login`` sign in as somebody who has also passed the second factor.
+
+    A session of an account that needs a second factor is ended unless it carries the
+    mark that factor leaves (``apps.accounts.mfa.mark_session``), so a test that signs a
+    staff account in by hand marks the session the way the code step would.  The
+    two-factor tests take the mark off again with :func:`without_second_factor`.
+    """
+    original = Client.force_login
+
+    def login_with_mark(self: Client, user: UserModel, backend: str | None = None) -> None:
+        """Sign ``user`` in as ``force_login`` does, then mark the session."""
+        original(self, user, backend)
+        session = self.session
+        mfa.mark_session(session, user)
+        session.save()
+
+    monkeypatch.setattr(Client, "force_login", login_with_mark)
+
+
+def without_second_factor(client: Client) -> None:
+    """Take the second factor's mark off ``client``'s signed-in session."""
+    session = client.session
+    session.pop(mfa.VERIFIED_SESSION_KEY, None)
+    session.save()
+
+
+def totp_code(device: TotpDevice | str, *, offset: int = 0) -> str:
+    """The code for the present step plus ``offset`` steps, of a device or a secret."""
+    totp = mfa.totp_generator(device if isinstance(device, str) else device.secret)
+    return totp.generate_otp(totp.timecode(timezone.now()) + offset)
 
 
 @pytest.fixture

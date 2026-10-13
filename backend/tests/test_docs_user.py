@@ -293,6 +293,7 @@ ADMIN_PAGE_ROLES: dict[str, frozenset[str]] = {
     "admin/subscriptions": frozenset({ACCOUNT_ADMIN, TREASURER}),
     "admin/users": frozenset({USER_ADMIN}),
     "admin/user-record": frozenset({USER_ADMIN}),
+    "admin/user-password": frozenset({USER_ADMIN}),
     "admin/health-database": frozenset({SYSTEM_ADMIN}),
     "admin/sent-emails": frozenset({SYSTEM_ADMIN}),
     "admin/scheduled": frozenset({SYSTEM_ADMIN}),
@@ -515,6 +516,7 @@ SIGNED_OUT_PAGES = frozenset(
         "member/join",
         "member/verify-email",
         "member/undo-email-change",
+        "member/two-factor",
     }
 )
 

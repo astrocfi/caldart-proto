@@ -108,6 +108,9 @@ Accounts, members, DARTs, and aircraft
           AbstractUser [label="auth.AbstractUser\n(abstract)", style="rounded,dashed"];
           User [label="accounts.User"];
           AccountChange [label="accounts.AccountChange"];
+          Device [label="accounts.TotpDevice"];
+          Recovery [label="accounts.RecoveryCode"];
+          Failures [label="accounts.SignInFailureCount\n(no relation)"];
           Group [label="auth.Group\n(a role)"];
           Permission [label="auth.Permission"];
           Profile [label="members.MemberProfile"];
@@ -126,6 +129,8 @@ Accounts, members, DARTs, and aircraft
 
           User -> AbstractUser [arrowhead=empty];
           AccountChange -> User [label="user CASCADE\nchanged_by SET_NULL"];
+          Device -> User [label="user 1--1\nCASCADE", arrowhead=none];
+          Recovery -> User [label="user\nCASCADE"];
           User -> Group [label="groups\n(m2m)", dir=none, color="black:black"];
           User -> Permission [label="user_permissions\n(m2m)", dir=none, color="black:black"];
           Profile -> User [label="user 1--1\nCASCADE", arrowhead=none];
@@ -157,6 +162,9 @@ Accounts, members, DARTs, and aircraft
       -------------------
       accounts.User             the account; inherits auth.AbstractUser (abstract)
       accounts.AccountChange    one change to an account's roles, status, or address
+      accounts.TotpDevice       the authenticator app of an account's second factor
+      accounts.RecoveryCode     one single-use backup code
+      accounts.SignInFailureCount one count behind the sign-in lockout
       auth.Group                a role, named by its slug
       auth.Permission           Django's per-model permissions
       members.MemberProfile     everything the join form collects
@@ -183,6 +191,8 @@ Accounts, members, DARTs, and aircraft
       accounts.User                     inherits auth.AbstractUser
       accounts.AccountChange.user       -> accounts.User           FK, CASCADE
       accounts.AccountChange.changed_by -> accounts.User           FK, SET_NULL, nullable
+      accounts.TotpDevice.user          -> accounts.User           1--1, CASCADE
+      accounts.RecoveryCode.user        -> accounts.User           FK, CASCADE
       members.MemberProfile.user        -> accounts.User           1--1, CASCADE
       members.MemberProfile.dart        -> darts.Dart              FK, SET_NULL, nullable
       members.MemberProfile.aircraft    -> aircraft.Aircraft       m2m, related name pilots
@@ -584,6 +594,8 @@ administrator may choose.
      - Email address changed
    * - ``email_change_undone``
      - Email address change undone
+   * - ``mfa_reset``
+     - Two-factor reset
 
 .. _choices-membership-state:
 
@@ -1626,7 +1638,7 @@ to the rows already stored (:doc:`setup`).
 
 - ``groups``: many-to-many to ``auth.Group``; the reverse accessor is ``user_set``.
 - ``user_permissions``: many-to-many to ``auth.Permission``; the reverse accessor is ``user_set``.
-- Referenced by ``accounts.AccountChange.changed_by``, ``accounts.AccountChange.user``, ``aircraft.Aircraft.created_by``, ``aircraft.Aircraft.insurance_verified_by``, ``aircraft.Aircraft.updated_by``, ``aircraft.AircraftChange.changed_by``, ``aircraft.AircraftCoveragePolicy.updated_by``, ``aircraft.RegistryImport.started_by``, ``mail.EmailLog.user``, ``mail.EmailOptOut.user``, ``members.MemberProfile.certificate_verified_by``, ``members.MemberProfile.medical_verified_by``, ``members.MemberProfile.photo_id_verified_by``, ``members.MemberProfile.user``, ``members.Membership.granted_by``, ``members.Membership.user``, ``payments.Payment.reconciled_by``, ``payments.Payment.recorded_by``, ``payments.Payment.user``, ``payments.Refund.requested_by``, ``payments.RenewalMandate.canceled_by``, ``payments.RenewalMandate.user``, ``payments.YearStatement.user``, ``reminders.ReminderLog.user``, ``reminders.ReminderSchedule.updated_by``, ``reports.ReportSubscription.created_by``, ``reports.ReportSubscription.recipient_user``, ``reports.SavedColumnSet.user``.
+- Referenced by ``accounts.AccountChange.changed_by``, ``accounts.AccountChange.user``, ``accounts.RecoveryCode.user``, ``accounts.TotpDevice.user``, ``aircraft.Aircraft.created_by``, ``aircraft.Aircraft.insurance_verified_by``, ``aircraft.Aircraft.updated_by``, ``aircraft.AircraftChange.changed_by``, ``aircraft.AircraftCoveragePolicy.updated_by``, ``aircraft.RegistryImport.started_by``, ``mail.EmailLog.user``, ``mail.EmailOptOut.user``, ``members.MemberProfile.certificate_verified_by``, ``members.MemberProfile.medical_verified_by``, ``members.MemberProfile.photo_id_verified_by``, ``members.MemberProfile.user``, ``members.Membership.granted_by``, ``members.Membership.user``, ``payments.Payment.reconciled_by``, ``payments.Payment.recorded_by``, ``payments.Payment.user``, ``payments.Refund.requested_by``, ``payments.RenewalMandate.canceled_by``, ``payments.RenewalMandate.user``, ``payments.YearStatement.user``, ``reminders.ReminderLog.user``, ``reminders.ReminderSchedule.updated_by``, ``reports.ReportSubscription.created_by``, ``reports.ReportSubscription.recipient_user``, ``reports.SavedColumnSet.user``.
 
 **Invariants.**
 
@@ -1820,9 +1832,170 @@ A row is written by ``members.services.create_member`` (``created``),
 ``accounts.services.update_account`` for a role list that really changes
 (``roles``), the four status functions in ``accounts.status`` (``deactivated``,
 ``reactivated``, ``blocked``, ``unblocked``), the owner's own deactivation and
-reactivation included, and ``accounts.api.account_actions.require_new_password_for``
-(``new_password``).  :doc:`api-auth` covers ``GET /admin/users/{id}/history``, which
-is ``user_admin`` only.
+reactivation included, ``accounts.api.account_actions.require_new_password_for``
+(``new_password``), and ``accounts.mfa.reset_two_factor`` (``mfa_reset``).
+:doc:`api-auth` covers ``GET /admin/users/{id}/history``, which is ``user_admin`` only.
+
+``TotpDevice``
+--------------
+
+The authenticator app an account signs in with as its second factor
+(``apps.accounts.mfa``; :ref:`api-two-factor`).  One per account.  It inherits
+``TimestampedModel``.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 26 18 34
+
+   * - Field
+     - Type
+     - Null, default
+     - Meaning
+   * - ``id``
+     - ``BigAutoField``
+     - not null; assigned by the database
+     - primary key
+   * - ``user``
+     - ``OneToOneField`` to ``accounts.User``, ``CASCADE``
+     - not null; required
+     - the account; related name ``totp_device``
+   * - ``secret``
+     - ``CharField(64)``
+     - not null; required
+     - the RFC 6238 shared secret, 20 random bytes in base32 without padding, as the
+       authenticator app was given it
+   * - ``confirmed_at``
+     - ``DateTimeField``
+     - null; default ``NULL``
+     - when the first code from the app was accepted; the device is stored only
+       then, so it is always set, and sign-in asks for a code only from a confirmed
+       device
+   * - ``last_used_step``
+     - ``BigIntegerField``
+     - null; default ``NULL``
+     - the 30-second time step of the last code accepted; a code from that step or an
+       earlier one is refused, so no code is accepted twice
+   * - ``created_at``
+     - ``DateTimeField``
+     - not null; set on insert
+     - when the device was made (from ``TimestampedModel``)
+   * - ``updated_at``
+     - ``DateTimeField``
+     - not null; set on every save
+     - when it last changed (from ``TimestampedModel``)
+
+**Relationships.**
+
+- ``user``: one-to-one to ``accounts.User``, ``CASCADE``; the reverse accessor is ``totp_device``.
+
+**Invariants.**
+
+- While enrolling, the secret waits in the session that asked for it, and the row is
+  written only when a code from it is accepted, with the account's row locked; a
+  confirmed device is never replaced, only deleted (turned off by its owner, reset by
+  an administrator, or taken away by ``create_admin``).
+- The secret is never logged, and is shown only while enrolling.
+
+``SignInFailureCount``
+----------------------
+
+One running count behind the sign-in lockout (``apps.accounts.lockout``;
+:ref:`api-login-lockout`): an account's (or an unknown address's) failed attempts
+in the last fifteen minutes, its wrong codes in the last day, or the mark that its
+owner was mailed about a lockout within the day.  It does not inherit
+``TimestampedModel``.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 26 18 34
+
+   * - Field
+     - Type
+     - Null, default
+     - Meaning
+   * - ``id``
+     - ``BigAutoField``
+     - not null; assigned by the database
+     - primary key
+   * - ``key``
+     - ``CharField(64)``, unique
+     - not null; required
+     - the SHA-256 digest of which count it is and whose: ``account:<id>``, or
+       ``address:<the address upper-cased by the database>``; no address is stored
+   * - ``count``
+     - ``PositiveIntegerField``
+     - not null; default ``0``
+     - the failures counted in the window
+   * - ``until``
+     - ``DateTimeField``
+     - not null; required
+     - when the window ends; after it the row reads as empty and the next failure
+       starts it again
+
+**Constraints, indexes, and ordering.**
+
+- Unique ``key``; index ``sign_in_failure_until_idx`` on ``until``.
+
+**Invariants.**
+
+- Each row is updated under a row lock, so concurrent failures are all counted.
+- Rows whose window ended a day ago are deleted as failures are counted.
+
+``RecoveryCode``
+----------------
+
+One single-use backup code an account may give in place of an authenticator code.
+Ten are made at a time, and a new set deletes every row of the old one.  Only a keyed
+hash is kept: ``salted_hmac`` over the code with the site's ``SECRET_KEY`` (or one of
+``SECRET_KEY_FALLBACKS``) and the row's own salt, compared in constant time.  A code
+carries about 50 random bits, so a fast keyed hash is enough; keying it means a copy
+of the table alone cannot be searched offline.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 26 18 34
+
+   * - Field
+     - Type
+     - Null, default
+     - Meaning
+   * - ``id``
+     - ``BigAutoField``
+     - not null; assigned by the database
+     - primary key
+   * - ``user``
+     - ``ForeignKey`` to ``accounts.User``, ``CASCADE``
+     - not null; required
+     - the account; related name ``recovery_codes``
+   * - ``salt``
+     - ``CharField(32)``
+     - not null; required
+     - 16 random bytes in hex, hashed with this code alone
+   * - ``code_hash``
+     - ``CharField(128)``
+     - not null; required
+     - the SHA-256 HMAC of the salt and the code, lowercased with its hyphen taken out
+   * - ``created_at``
+     - ``DateTimeField``
+     - not null; default now
+     - when the set was made
+   * - ``used_at``
+     - ``DateTimeField``
+     - null; default ``NULL``
+     - when the code was spent; a spent code is never accepted again
+
+**Constraints, indexes, and ordering.**
+
+- Index ``recovery_code_user_idx`` on (``user``, ``used_at``).
+
+**Relationships.**
+
+- ``user``: foreign key to ``accounts.User``, ``CASCADE``; the reverse accessor is ``recovery_codes``.
+
+**Invariants.**
+
+- A code is spent with a conditional update (``used_at`` still null), so of two
+  requests giving one code at once only one succeeds.
 
 Roles
 -----

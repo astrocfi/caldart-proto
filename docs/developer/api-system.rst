@@ -275,7 +275,10 @@ reminder run's ``failed`` count reports it as well.
    ``reminder_lapsed``, ``renewal_enabled``, ``renewal_notice``,
    ``renewal_card_expiring``, ``renewal_charged``, ``renewal_failed``,
    ``renewal_canceled``, ``receipt``, ``refund``, ``member_invitation``,
-   ``password_reset``, ``scheduled_report`` or ``dart_roster``.
+   ``password_reset``, ``email_verification``, ``mfa_enabled``, ``mfa_disabled``,
+   ``mfa_reset``, ``mfa_recovery_code_used``, ``mfa_recovery_codes_regenerated``,
+   ``mfa_wrong_code``, ``sign_in_locked``,
+   ``scheduled_report`` or ``dart_roster``.
 
 ``purpose_label``
    The purpose in words, such as ``Second reminder (30 days before)`` for

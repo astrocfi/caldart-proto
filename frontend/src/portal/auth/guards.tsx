@@ -21,11 +21,16 @@ import { Loading } from '../components/Loading';
 import { Page } from '../components/Page';
 import { furthestJoinStep, isOnboarded } from '../features/join/steps';
 import { hasAnyRole } from '../nav';
+import { PORTAL_BASENAME } from '../urlPrefix';
 import { useAuth } from './useAuth';
 
-/** `/login?next=<where they were heading>`. */
+/**
+ * `/login?next=<where they were heading>`, as its full site path under `PORTAL_BASENAME`,
+ * so the sign-in page can tell a portal route under `/admin/` from the Wagtail admin.
+ */
 export function loginRedirect(location: Pick<Location, 'pathname' | 'search'>): string {
-  return `/login?next=${encodeURIComponent(`${location.pathname}${location.search}`)}`;
+  const heading = `${PORTAL_BASENAME}${location.pathname}${location.search}`;
+  return `/login?next=${encodeURIComponent(heading)}`;
 }
 
 interface AuthUnavailableProps {

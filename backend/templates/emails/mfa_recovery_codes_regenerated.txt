@@ -1,0 +1,13 @@
+{% autoescape off %}{{ org_name }} — new backup codes
+
+Hello{% if first_name %} {{ first_name }}{% endif %},
+
+A new set of backup codes was made for your account at {{ org_name }}, registered to
+{{ email }}. Every earlier backup code has stopped working.
+
+If this was not you, reset your password straight away and tell
+{{ org_name }}{% if contact_email %} at {{ contact_email }}{% endif %}.
+
+— {{ org_name }}
+{{ site_url }}
+{% endautoescape %}

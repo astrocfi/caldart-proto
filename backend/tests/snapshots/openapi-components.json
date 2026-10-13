@@ -39,7 +39,8 @@
       "unblocked",
       "new_password",
       "email_changed",
-      "email_change_undone"
+      "email_change_undone",
+      "mfa_reset"
     ]
   },
   "AccountKindEnum": {
@@ -225,6 +226,7 @@
   "AdminUser": {
     "properties": {
       "admin_created": "boolean",
+      "can_reset_two_factor": "boolean",
       "can_use_aircraft": "boolean",
       "city": "string",
       "county": "string",
@@ -246,10 +248,12 @@
       "phone": "string",
       "profile_complete": "boolean",
       "reactivation_blocked": "boolean",
-      "roles": "array<ref:RolesEnum>"
+      "roles": "array<ref:RolesEnum>",
+      "two_factor_enabled": "boolean"
     },
     "required": [
       "admin_created",
+      "can_reset_two_factor",
       "can_use_aircraft",
       "city",
       "county",
@@ -270,12 +274,14 @@
       "pending_email",
       "phone",
       "profile_complete",
-      "reactivation_blocked"
+      "reactivation_blocked",
+      "two_factor_enabled"
     ]
   },
   "AdminUserDetail": {
     "properties": {
       "admin_created": "boolean",
+      "can_reset_two_factor": "boolean",
       "can_use_aircraft": "boolean",
       "city": "string",
       "county": "string",
@@ -299,10 +305,12 @@
       "phone": "string",
       "profile_complete": "boolean",
       "reactivation_blocked": "boolean",
-      "roles": "array<ref:RolesEnum>"
+      "roles": "array<ref:RolesEnum>",
+      "two_factor_enabled": "boolean"
     },
     "required": [
       "admin_created",
+      "can_reset_two_factor",
       "can_use_aircraft",
       "city",
       "county",
@@ -325,7 +333,8 @@
       "pending_email",
       "phone",
       "profile_complete",
-      "reactivation_blocked"
+      "reactivation_blocked",
+      "two_factor_enabled"
     ]
   },
   "Aircraft": {
@@ -1904,6 +1913,28 @@
       "token"
     ]
   },
+  "EnrolledSignIn": {
+    "properties": {
+      "recovery_codes": "array<string>",
+      "user": "ref:User"
+    },
+    "required": [
+      "recovery_codes",
+      "user"
+    ]
+  },
+  "Enrollment": {
+    "properties": {
+      "otpauth_uri": "string",
+      "qr_svg": "string",
+      "secret": "string"
+    },
+    "required": [
+      "otpauth_uri",
+      "qr_svg",
+      "secret"
+    ]
+  },
   "FinanceMember": {
     "properties": {
       "email": "string(email)",
@@ -2295,6 +2326,13 @@
       "password"
     ]
   },
+  "LoginResponse": {
+    "discriminator": "",
+    "one_of": [
+      "MfaChallenge",
+      "User"
+    ]
+  },
   "MailDeliveryCheck": {
     "properties": {
       "checked_at": "string(date-time)",
@@ -2615,6 +2653,50 @@
       "suspended"
     ]
   },
+  "MfaChallenge": {
+    "properties": {
+      "mfa": "ref:MfaEnum"
+    },
+    "required": [
+      "mfa"
+    ]
+  },
+  "MfaDisableRequest": {
+    "properties": {
+      "current_password": "string",
+      "otp": "string"
+    },
+    "required": [
+      "current_password",
+      "otp"
+    ]
+  },
+  "MfaEnrollRequest": {
+    "properties": {
+      "current_password": "string"
+    },
+    "required": [
+      "current_password"
+    ]
+  },
+  "MfaEnum": {
+    "enum": [
+      "verify",
+      "enroll"
+    ]
+  },
+  "MfaStatus": {
+    "properties": {
+      "enabled": "boolean",
+      "recovery_codes_remaining": "integer",
+      "required_by_role": "boolean"
+    },
+    "required": [
+      "enabled",
+      "recovery_codes_remaining",
+      "required_by_role"
+    ]
+  },
   "MockCheckoutResponse": {
     "properties": {
       "client": "object",
@@ -2757,6 +2839,14 @@
       "profile",
       "unsubscribe",
       "admin"
+    ]
+  },
+  "OtpRequest": {
+    "properties": {
+      "otp": "string"
+    },
+    "required": [
+      "otp"
     ]
   },
   "OwnerTypeEnum": {
@@ -3584,6 +3674,14 @@
       "reconciled_count",
       "refunded_cents",
       "unreconciled_count"
+    ]
+  },
+  "RecoveryCodes": {
+    "properties": {
+      "recovery_codes": "array<string>"
+    },
+    "required": [
+      "recovery_codes"
     ]
   },
   "Refund": {

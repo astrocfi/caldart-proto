@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from django.db import transaction
 
+from apps.accounts import mfa
 from apps.accounts.history import record_account_change
 from apps.accounts.models import AccountChangeKind, User
 from apps.accounts.services import is_donor, may_edit_protected_fields
@@ -24,7 +25,7 @@ from apps.accounts.status import (
     reactivate_account,
     set_reactivation_blocked,
 )
-from apps.members.services import restore_terms, suspend_terms
+from apps.members.services import refuse_tombstone_change, restore_terms, suspend_terms
 from apps.payments.renewals.mandates import cancel_all_mandates, switch_to_friend
 from caldart import audit
 from caldart.exceptions import DomainError
@@ -159,4 +160,20 @@ def unblock_for(actor: User, target: User) -> User:
     """
     user = _locked(target)
     set_reactivation_blocked(actor, user, blocked=False)
+    return user
+
+
+@transaction.atomic
+def reset_two_factor_for(actor: User, target: User) -> User:
+    """Reset ``target``'s two-factor sign-in on ``actor``'s behalf, for a lost phone.
+
+    A tombstone is refused first, as every edit of one is
+    (:func:`apps.members.services.refuse_tombstone_change`, audited as
+    ``account.mfa_reset``); then :func:`apps.accounts.mfa.reset_two_factor` refuses or
+    resets: the device and backup codes are deleted, every session signed in to the
+    account is ended, and the person is mailed.  Returns the account as stored.
+    """
+    user = _locked(target)
+    refuse_tombstone_change(actor, user, audit.ACCOUNT_MFA_RESET)
+    mfa.reset_two_factor(actor, user)
     return user

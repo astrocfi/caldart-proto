@@ -20,6 +20,7 @@ from django.core.management.base import CommandError
 from pytest_django.fixtures import DjangoCaptureOnCommitCallbacks
 from rest_framework.test import APIClient
 
+from apps.accounts import mfa
 from apps.accounts.api.serializers import PasswordChangeSerializer, PasswordResetConfirmSerializer
 from apps.accounts.api.views import CHANGED_ELSEWHERE
 from apps.accounts.management.commands.create_admin import PROMOTED_NOTICE, PROMOTED_UNMAILED_NOTICE
@@ -34,7 +35,7 @@ from apps.accounts.services import (
 )
 from caldart import audit
 from tests.conftest import CHANGE_URL, GOOD_PASSWORD, ME_URL, RESET_CONFIRM_URL, RecordedEvents
-from tests.factories import DEFAULT_PASSWORD, UserFactory
+from tests.factories import DEFAULT_PASSWORD, UserFactory, confirmed_device
 
 if TYPE_CHECKING:
     # rest_framework.test.APIClient.post() is typed to return this class, but it
@@ -332,7 +333,7 @@ def test_promoting_an_existing_account_is_recorded_in_the_audit_log(
 
     assert _audit_lines(audit_log, "account.password_cleared") == [
         f"action=account.password_cleared actor=command target={existing.pk} "
-        "sessions=1 unblocked=false"
+        "sessions=1 unblocked=false two_factor_removed=false"
     ]
 
 
@@ -427,7 +428,7 @@ def test_promoting_a_blocked_account_lifts_the_block(
     assert existing.reactivation_blocked is False
     assert _audit_lines(audit_log, "account.password_cleared") == [
         f"action=account.password_cleared actor=command target={existing.pk} "
-        "sessions=0 unblocked=true"
+        "sessions=0 unblocked=true two_factor_removed=false"
     ]
 
 
@@ -744,3 +745,20 @@ def test_a_stale_edit_after_the_take_back_keeps_the_roles(
     fresh = User.objects.get(pk=stale.pk)
 
     assert set(fresh.roles) == {MEMBER, SYSTEM_ADMIN, WEBSITE_ADMIN}
+
+
+def test_promoting_takes_away_a_device_somebody_else_set_up(
+    capsys: pytest.CaptureFixture[str], audit_log: pytest.LogCaptureFixture
+) -> None:
+    """A squatter's authenticator cannot keep the real administrator out."""
+    existing = UserFactory(email="squatted@example.test", roles=[MEMBER])
+    confirmed_device(existing)
+    mfa.replace_recovery_codes(existing)
+
+    call_command("create_admin", email="squatted@example.test")
+
+    assert mfa.has_two_factor(existing) is False
+    assert mfa.recovery_codes_remaining(existing) == 0
+    assert _audit_lines(audit_log, "account.password_cleared")[0].endswith(
+        "two_factor_removed=true"
+    )

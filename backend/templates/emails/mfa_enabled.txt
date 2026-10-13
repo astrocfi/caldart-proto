@@ -1,0 +1,18 @@
+{% autoescape off %}{{ org_name }} — two-factor sign-in is on
+
+Hello{% if first_name %} {{ first_name }}{% endif %},
+
+Two-factor sign-in is on for your account at {{ org_name }}, registered to
+{{ email }}. Each time you sign in you will be asked for a code from your
+authenticator app, or one of your backup codes.
+
+Keep your backup codes somewhere safe: each one works once, in place of a code from
+your phone.
+
+If this was not you, reset your password straight away, and ask a {{ org_name }}
+user administrator to reset two-factor sign-in on your account{% if contact_email %}
+(write to {{ contact_email }}){% endif %}: somebody else's phone may now be the one it asks for.
+
+— {{ org_name }}
+{{ site_url }}
+{% endautoescape %}

@@ -4,7 +4,8 @@ My profile
 
 **My profile** holds the details CalDART uses to reach you during an activation
 and to check that you are current to fly. It also says whether you are a member
-or a friend, lets you switch, and lets you deactivate your account.
+or a friend, lets you switch, sets up two-factor sign-in, and lets you deactivate
+your account.
 
 
 What you see
@@ -12,7 +13,11 @@ What you see
 
 The form is the one the join wizard used, with your first and last name added at
 the top, filled in with what CalDART has on file. The **My aircraft** link, at the top right, opens :doc:`my-aircraft`. Below the form
-come the **Your kind of account** card and the **Deactivate my account** card.
+come the **Your kind of account** card, the **Two-factor sign-in** card, and the
+**Deactivate my account** card. The **Two-factor sign-in** card says whether a code
+from your phone is asked for when you sign in and how many backup codes you have
+left, and offers **Turn on**, **New backup codes**, and **Turn off**; see
+:doc:`two-factor`.
 
 Contact
 ~~~~~~~

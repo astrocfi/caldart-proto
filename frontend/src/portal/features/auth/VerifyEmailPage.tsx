@@ -8,6 +8,7 @@ import { useAuth, useEmailVerify } from '@/portal/auth/useAuth';
 import { Button, ButtonLink } from '@/portal/components/Button';
 import { Field } from '@/portal/components/Field';
 import { isOnboarded } from '@/portal/features/join/steps';
+import { PORTAL_BASENAME } from '@/portal/urlPrefix';
 import { AuthShell } from './AuthShell';
 import { FormAlert, fieldError } from './form';
 
@@ -99,7 +100,10 @@ export function VerifyEmailPage(): JSX.Element {
  * session until now, goes on to the profile step.
  */
 function continueTo(user: User | null, email: string): string {
-  if (user === null) return `/login?next=/join&email=${encodeURIComponent(email)}`;
+  if (user === null) {
+    const next = encodeURIComponent(`${PORTAL_BASENAME}/join`);
+    return `/login?next=${next}&email=${encodeURIComponent(email)}`;
+  }
   return isOnboarded(user) ? '/' : '/join';
 }
 

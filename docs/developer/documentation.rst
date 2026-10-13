@@ -266,8 +266,10 @@ Signed-out pages
 
 A visitor who cannot sign in still needs help, so the pages the signed-out
 screens' **Help** opens are served without sign-in: ``member/sign-in``,
-``member/forgot-password``, ``member/reset-password``, ``member/join``, and
-``member/verify-email``.  Every other page of the guide needs a session.
+``member/forgot-password``, ``member/reset-password``, ``member/join``,
+``member/verify-email``, and ``member/two-factor``, which a person setting up
+two-factor sign-in at their first sign-in reads before they have a session.  Every
+other page of the guide needs a session.
 
 **The field.**  Each of those pages opens with a ``:signed-out:`` field, before
 its title::
@@ -457,7 +459,7 @@ against the code on every run.
   small project in a temporary directory, it writes each restricted page and
   a group index's union into ``roles.json``, leaves an index open when a page
   it lists is open, and fails a ``-W`` build on an unknown slug;
-- exactly the five pages of :ref:`documentation-signed-out-pages` carry
+- exactly the six pages of :ref:`documentation-signed-out-pages` carry
   ``:signed-out: yes``, and the extension writes them and every page into
   ``signed-out.json`` and fails a ``-W`` build on another value or on a page
   that carries both fields.

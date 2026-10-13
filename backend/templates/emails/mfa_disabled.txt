@@ -1,0 +1,14 @@
+{% autoescape off %}{{ org_name }} — two-factor sign-in is off
+
+Hello{% if first_name %} {{ first_name }}{% endif %},
+
+Two-factor sign-in has been turned off for your account at {{ org_name }},
+registered to {{ email }}. You will sign in with your password alone, and your
+backup codes no longer work.
+
+If this was not you, reset your password straight away and tell
+{{ org_name }}{% if contact_email %} at {{ contact_email }}{% endif %}.
+
+— {{ org_name }}
+{{ site_url }}
+{% endautoescape %}

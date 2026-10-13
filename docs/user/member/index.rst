@@ -25,6 +25,7 @@ your home page, and the menu down its left leads to the rest.
    become-a-member
    change-email
    change-password
+   two-factor
    messages
    callouts
    email-preferences

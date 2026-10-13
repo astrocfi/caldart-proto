@@ -1,0 +1,16 @@
+{% autoescape off %}{{ org_name }} — a wrong two-factor code was entered
+
+Hello{% if first_name %} {{ first_name }}{% endif %},
+
+Somebody signing in to your account at {{ org_name }}, registered to {{ email }},
+gave the right password and then a wrong two-factor code. Only somebody who knows
+your password gets that far.
+
+If that was you, mistyping the code from your app, there is nothing to do.
+
+If this was not you, change your password straight away, and tell
+{{ org_name }}{% if contact_email %} at {{ contact_email }}{% endif %}.
+
+— {{ org_name }}
+{{ site_url }}
+{% endautoescape %}

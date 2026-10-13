@@ -68,11 +68,16 @@ E2E_PROXY := frontend/e2e/prefix_proxy.py
 #                      follows a verification link by reading the file.  Four
 #                      slashes, because django-environ drops the first slash of
 #                      the path.
-#   AUTH_THROTTLE_*    the specs sign in, register, follow verification links
-#                      and give on the donation page far more often in an hour
-#                      than a person ever would; every anonymous rate is
-#                      lifted, since one run registers more than ten accounts
-#                      from one address.
+#   AUTH_THROTTLE_*    the specs sign in, give two-factor codes, register,
+#                      follow verification links and give on the donation page
+#                      far more often in an hour than a person ever would; every
+#                      rate is lifted, since one run registers more than ten
+#                      accounts from one address.
+#   LOGIN_LOCKOUT_ATTEMPTS, LOGIN_LOCKOUT_CODE_ATTEMPTS
+#                      lifted too, since the specs that test a refused sign-in
+#                      try the demo addresses more often than a person would.
+#                      Two-factor sign-in itself is not relaxed: the specs set
+#                      it up and give codes (frontend/e2e/twoFactor.ts).
 #   GEOAPIFY_*         a key, so address suggestions are on, and the stub's
 #                      URL in place of Geoapify's; the stub answers every query
 #                      with frontend/e2e/geoapify/autocomplete.json.  The
@@ -105,6 +110,9 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
            AUTH_THROTTLE_VERIFY_RESEND=1000/min \
            AUTH_THROTTLE_EMAIL_CHANGE=1000/min \
            AUTH_THROTTLE_DONATE=1000/min \
+           AUTH_THROTTLE_MFA=1000/min \
+           LOGIN_LOCKOUT_ATTEMPTS=1000 \
+           LOGIN_LOCKOUT_CODE_ATTEMPTS=1000 \
            GEOAPIFY_API_KEY=e2e-stub-key \
            GEOAPIFY_URL="http://127.0.0.1:$(E2E_GEOAPIFY_PORT)/autocomplete.json" \
            ADDRESS_SUGGEST_THROTTLE_RATE=1000/min \
@@ -131,7 +139,10 @@ SCREENSHOTS_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
                    EMAIL_URL=dummymail:// \
                    DJANGO_VITE_DEV_MODE=false \
                    PAYMENTS_MOCK_ENABLED=true \
-                   AUTH_THROTTLE_LOGIN=1000/min
+                   AUTH_THROTTLE_LOGIN=1000/min \
+                   AUTH_THROTTLE_MFA=1000/min \
+                   LOGIN_LOCKOUT_ATTEMPTS=1000 \
+                   LOGIN_LOCKOUT_CODE_ATTEMPTS=1000
 
 # `make rehearse-deploy` runs the real installer in a throwaway systemd
 # container: deploy/bootstrap.sh, with every scheduled job started once after
@@ -338,8 +349,9 @@ e2e: ## Playwright end-to-end tests (own database, own server, mock payments; E2
 	@# CI creates the database with psql, having no compose services to exec into.
 	@test -n "$(SKIP_CREATEDB)" \
 	  || $(MAKE) --no-print-directory createdb DATABASE_URL="$(E2E_DATABASE_URL)"
-	@# Every run starts with an empty mailbox, so a spec only ever reads its own mail.
-	rm -rf "$(E2E_MAIL_DIR)" && mkdir -p "$(E2E_MAIL_DIR)"
+	@# Every run starts with an empty mailbox, so a spec only ever reads its own mail, and
+	@# with no two-factor keys, since the reseeded staff accounts set theirs up again.
+	rm -rf "$(E2E_MAIL_DIR)" frontend/e2e/.two-factor.json && mkdir -p "$(E2E_MAIL_DIR)"
 	$(E2E_ENV) $(MANAGE) db_reset --seed --noinput
 	@# The specs read this instead of copying the seed's own values into a spec.
 	$(E2E_ENV) $(MANAGE) seed_facts > frontend/e2e/seed-facts.json
