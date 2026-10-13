@@ -52,6 +52,7 @@ from apps.accounts.api.serializers import (
     VerificationSentSerializer,
 )
 from apps.accounts.email_change import (
+    Mailing,
     follow_verification_link,
     request_email_change,
     send_email_change_link,
@@ -662,25 +663,31 @@ class EmailVerifyResendView(APIView):
         """Mail the signed-in account a fresh link and answer 202.
 
         While a change of address is waiting, the link that completes it goes to the
-        pending address (:func:`apps.accounts.email_change.send_email_change_link`);
-        otherwise a verification link goes to the account's own address.  The answer is
-        ``{"detail": "Verification message sent to <address>."}``, naming the address
-        mailed.  A verified address with no change waiting is a 400 with "Your email
-        address is already verified." and nothing is mailed.  A mail server that refuses
-        the message changes nothing in the answer: the failed send is in the email log,
-        and the refusal is logged.  Throttled under the ``auth_verify_resend`` scope; an
-        anonymous caller gets 401.
+        pending address once the answer has gone
+        (:func:`apps.accounts.email_change.send_email_change_link`, which sends nothing to
+        an address another account holds, the answer the same either way); otherwise a
+        verification link goes to the account's own address.  The answer is ``{"detail":
+        "Verification message sent to <address>."}``, naming the address mailed.  A
+        verified address with no change waiting is a 400 with "Your email address is
+        already verified." and nothing is mailed.  A mail server that refuses the message
+        changes nothing in the answer: the failed send is in the email log, and the
+        refusal is logged.  Throttled under the ``auth_verify_resend`` scope; an anonymous
+        caller gets 401.
         """
         user = signed_in_user(request)
         if user.pending_email != "":
-            send_logging_refusal(
-                lambda: send_email_change_link(user, requested_by=user.pk),
-                what=f"the email change link for account {user.pk}",
-            )
-            return Response(
+            response = Response(
                 {"detail": f"Verification message sent to {user.pending_email}."},
                 status=status.HTTP_202_ACCEPTED,
             )
+            # After the answer, and sending nothing for an address another account
+            # holds, so neither the answer nor its timing says which it was.
+            send_after_response(
+                response,
+                lambda: send_email_change_link(user, requested_by=user.pk),
+                what=f"the email change link for account {user.pk}",
+            )
+            return response
         if user.email_verified:
             return Response(
                 {"detail": "Your email address is already verified."},
@@ -710,22 +717,25 @@ class EmailChangeView(APIView):
         yet: the address becomes the account's ``pending_email``, the new address is
         mailed a link that completes the change, and the current address, when verified
         (or the recovery address), a notice with a link that undoes it
-        (:func:`apps.accounts.email_change.request_email_change`).  The answer is the
-        ``user`` payload, ``email`` as it was and ``pending_email`` the address asked
-        for.  An address another account holds is answered exactly the same way, so
-        the endpoint cannot be used to find out who has an account, but nothing is
-        stored and nothing is mailed.  The request is recorded in the audit log as the
-        account's own ``account.email_change_request``.  Throttled under the
-        ``auth_email_change`` scope; an anonymous caller gets 401.
+        (:func:`apps.accounts.email_change.request_email_change`); both are sent after
+        the answer has gone.  The answer is the ``user`` payload, ``email`` as it was and
+        ``pending_email`` the address asked for.  An address another account holds is
+        handled exactly the same way -- stored as pending, shown by ``/auth/me``, resent
+        by ``/auth/email/resend`` -- except that no link is ever mailed to it, so neither
+        this answer nor any later one says who has an account.  The request is recorded
+        in the audit log as the account's own ``account.email_change_request``.
+        Throttled under the ``auth_email_change`` scope; an anonymous caller gets 401.
         """
         serializer = EmailChangeSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         user = signed_in_user(request)
         address = serializer.validated_data["email"]
-        request_email_change(user, user, address, quiet_if_taken=True)
-        payload = dict(UserSerializer(user).data)
-        payload["pending_email"] = address
-        return Response(payload)
+        mailings: list[Mailing] = []
+        request_email_change(user, user, address, quiet_if_taken=True, mailings=mailings)
+        response = Response(UserSerializer(user).data)
+        for mailing in mailings:
+            send_after_response(response, mailing.send, what=mailing.what)
+        return response
 
 
 class EmailChangeUndoView(APIView):
@@ -754,6 +764,11 @@ class EmailChangeUndoView(APIView):
         serializer.is_valid(raise_exception=True)
         undone = undo_email_change(serializer.validated_data["token"])
         user = undone["user"]
+        if undone["taken"]:
+            # The account was closed: withdraw what runs on, as any deactivation does.
+            with transaction.atomic():
+                cancel_all_mandates(user)
+                suspend_terms(user)
         if request.user.is_authenticated and request.user.pk == user.pk:
             logout(request)
         return Response({"email": user.email, "taken": undone["taken"]})

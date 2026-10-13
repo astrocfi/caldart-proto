@@ -609,7 +609,10 @@ case-insensitively — does not change the address: it asks for the change
 (:ref:`api-email-change`).  The record answers with ``email`` as it was and
 ``pending_email`` the new address; the new address is mailed a link that completes
 the change, and the member's address, when verified, a notice with a link that undoes
-it.  Until the link is followed the member signs in as before.  A donor's address,
+it.  Until the link is followed the member signs in as before.  An administrator's
+own record does not change its address here, where no password is asked for: that is a
+**400** ``{"email": ["Change your own address from Change email, which asks for your
+password."]}``.  A donor's address,
 which signs nothing in, changes at once and nothing is mailed.  A refused message
 leaves the request standing and the answer unchanged
 (:ref:`refused sends <api-refused-send>`).

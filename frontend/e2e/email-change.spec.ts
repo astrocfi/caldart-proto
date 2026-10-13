@@ -30,10 +30,13 @@ test('a joiner corrects the address from the verify step', async ({ page }) => {
   await page.getByRole('button', { name: 'Change email' }).click();
 
   await expect(page).toHaveURL(/\/portal\/join\/verify/);
+  // The step's own card, not the toast that says the same as the page changes.
   await expect(
-    page.getByText(
-      `We sent a link to ${right}. Your sign-in address stays ${typo} until you follow it.`,
-    ),
+    page
+      .locator('.join-card')
+      .getByText(
+        `We sent a link to ${right}. Your sign-in address stays ${typo} until you follow it.`,
+      ),
   ).toBeVisible();
 });
 

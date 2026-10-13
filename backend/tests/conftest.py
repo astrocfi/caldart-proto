@@ -24,14 +24,15 @@ import zlib
 from collections.abc import Callable, Iterator, Mapping
 from datetime import date, timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Protocol, cast
 
 import freezegun
 import pytest
 import respx
 from django.conf import settings as django_settings
 from django.contrib.auth import get_user_model
-from django.core.mail import EmailMessage
+from django.core import mail
+from django.core.mail import EmailMessage, EmailMultiAlternatives
 from django.core.mail.backends.locmem import EmailBackend
 from django.http import HttpResponse, HttpResponseBase
 from django.utils import timezone
@@ -1112,3 +1113,71 @@ def fake_mailbox(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> FakeMai
         return fake
 
     return install
+
+
+# --------------------------------------------------------------------------
+# Changing the sign-in address
+# --------------------------------------------------------------------------
+EMAIL_CHANGE_URL = "/api/v1/auth/email/change"
+EMAIL_VERIFY_URL = "/api/v1/auth/email/verify"
+EMAIL_UNDO_URL = "/api/v1/auth/email/undo"
+EMAIL_RESEND_URL = "/api/v1/auth/email/resend"
+
+VERA_OLD = "vera@example.test"
+VERA_NEW = "vera.new@example.test"
+
+
+@pytest.fixture
+def vera(db: None) -> UserModel:
+    """A member whose address was verified a week ago."""
+    user = UserFactory(email=VERA_OLD, first_name="Vera", last_name="Quill", roles=["member"])
+    user.email_verified_at = timezone.now() - timedelta(days=7)
+    user.save(update_fields=["email_verified_at"])
+    return user
+
+
+@pytest.fixture
+def signed_in_client(api_client: APIClient) -> Callable[[UserModel], APIClient]:
+    """Sign ``user`` in on the shared API client and return the client."""
+
+    def sign_in(user: UserModel) -> APIClient:
+        api_client.force_login(user)
+        return api_client
+
+    return sign_in
+
+
+def ask(client: APIClient, email: str = VERA_NEW) -> int:
+    """Post a change of address to ``email`` with the right password; the status."""
+    response = client.post(EMAIL_CHANGE_URL, {"email": email, "current_password": DEFAULT_PASSWORD})
+    return response.status_code
+
+
+def mails_to(address: str) -> list[EmailMultiAlternatives]:
+    """Every message in the outbox addressed to ``address``, oldest first."""
+    return [
+        cast(EmailMultiAlternatives, message) for message in mail.outbox if message.to == [address]
+    ]
+
+
+def link_token(message: EmailMultiAlternatives, path: str) -> str:
+    """The ``token`` of the link to ``path`` in ``message``'s text body."""
+    match = re.search(rf"{re.escape(path)}\?token=(\S+)", str(message.body))
+    assert match, f"no {path} link in:\n{message.body}"
+    return match.group(1)
+
+
+def confirm_token(address: str = VERA_NEW) -> str:
+    """The token of the newest link that completes a change, mailed to ``address``."""
+    return link_token(mails_to(address)[-1], "/portal/verify-email")
+
+
+def undo_token(address: str = VERA_OLD) -> str:
+    """The token of the newest undo link mailed to ``address``."""
+    return link_token(mails_to(address)[-1], "/portal/undo-email-change")
+
+
+def change_and_confirm(vera: UserModel, client: APIClient) -> None:
+    """Ask to move ``vera`` to :data:`VERA_NEW` and follow the link mailed there."""
+    ask(client)
+    client.post(EMAIL_VERIFY_URL, {"token": confirm_token()})

@@ -4,7 +4,12 @@ Hello{% if first_name %} {{ first_name }}{% endif %},
 
 Somebody, perhaps you, tried to open a {{ org_name }} account with {{ email }}.
 This address already has one, so nothing was changed.
-{% if state == "closed" %}
+{% if state == "reserved" %}
+This address was moved off a {{ org_name }} account in the last seven days, and it is
+kept for that account until then. If the move was not yours, use the link in the
+message we sent to this address about the change, or contact {{ org_name }}.{% if contact_email %} Write to
+{{ contact_email }}.{% endif %}
+{% elif state == "closed" %}
 That account has been closed. Contact {{ org_name }} to reopen it.{% if contact_email %} Write to
 {{ contact_email }}.{% endif %}
 {% elif state == "deactivated" %}

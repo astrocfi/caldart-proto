@@ -18,7 +18,7 @@ const INVALID_LINK = 'That link is invalid, has expired, or has been used.';
  * change**: a mail scanner that opens the link undoes nothing.  It then says what was
  * done and sends the visitor to sign in once they have chosen a new password from the
  * link the server mails.  When the previous address could not be put back, because
- * another account holds it, the page says the account was secured all the same and
+ * another account holds it, the account is closed instead, and the page says so and
  * asks the visitor to contact the office.
  */
 export function UndoEmailChangePage(): JSX.Element {
@@ -32,14 +32,17 @@ export function UndoEmailChangePage(): JSX.Element {
     const { email, taken } = undo.data;
     if (taken) {
       return (
-        <AuthShell title="Account secured">
+        <AuthShell title="Account closed">
           <p>
-            Everybody has been signed out of the account, and its password no longer works, but your
-            previous address could not be put back because another account uses it. We sent your
-            previous address a link to choose a new password; the account signs in with {email}{' '}
-            until the office helps you move it.
+            Your previous address could not be put back, because another account uses it. To keep
+            the account safe from whoever moved it to {email}, it has been closed: everybody is
+            signed out, its password no longer works, and nobody can sign in, reset its password, or
+            reactivate it.
           </p>
-          <p>Please contact the office, using the address at the bottom of every public page.</p>
+          <p>
+            Please contact the office, using the address at the bottom of every public page, to get
+            it back.
+          </p>
         </AuthShell>
       );
     }

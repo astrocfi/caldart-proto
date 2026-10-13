@@ -10,6 +10,9 @@ Membership: {{ plan_name }}{% if term_detail %} ({{ term_detail }}){% endif %} â
 
 {{ org_name }} is a 501(c)(3) organization. No goods or services were provided
 in exchange for this contribution.
+{% endif %}{% if public_gift %}
+This gift was made on the public donation page with your email address. If it
+wasn't you, contact {{ org_name }}{% if contact_email %} at {{ contact_email }}{% endif %}.
 {% endif %}{% if user.kind != "donor" %}
 Your payments, receipts and annual contribution statements are here:
 {{ payments_url }}

@@ -14,8 +14,9 @@ from urllib.parse import urlencode
 from django.conf import settings
 from django.utils import timezone
 
+from apps.accounts.email_change import UNDO_PATH, make_undo_token, recovery_address
 from apps.accounts.models import User
-from apps.accounts.services import is_donor
+from apps.accounts.services import is_donor, normalized_email
 from caldart.mail import contact_email, org_name, send_templated
 
 #: Where the SPA serves the sign-in form.
@@ -29,6 +30,7 @@ FORGOT_PASSWORD_PATH = "/portal/forgot-password"  # noqa: S105 - a URL path, not
 ACTIVE = "active"
 DEACTIVATED = "deactivated"
 CLOSED = "closed"
+RESERVED = "reserved"
 
 
 def send_password_changed_notice(user: User) -> None:
@@ -38,25 +40,43 @@ def send_password_changed_notice(user: User) -> None:
     are ``emails/password_changed.{txt,html}``, which say when and point to the
     forgot-password page (``/portal/forgot-password``) for an owner who did not make the
     change.  The context carries ``first_name``, ``email``, ``changed_at`` (now),
-    ``forgot_url``, ``site_url``, ``org_name`` and ``contact_email``.  A donor, who holds
-    no password, is sent nothing.
+    ``forgot_url``, ``undo_url`` (``""`` here), ``site_url``, ``org_name`` and
+    ``contact_email``.  A donor, who holds no password, is sent nothing.
+
+    While the account keeps a recovery address after a change of address
+    (``apps.accounts.email_change``), the same notice goes to that address too, carrying
+    an ``undo_url`` that undoes the change: whoever moved the account may be whoever just
+    changed its password.
     """
     if is_donor(user):
         return
     name = org_name()
+    context: dict[str, object] = {
+        **_letterhead(name),
+        "first_name": user.first_name or user.display_name,
+        "email": user.email,
+        "changed_at": timezone.localtime(),
+        "forgot_url": f"{_site_url()}{FORGOT_PASSWORD_PATH}",
+        "undo_url": "",
+    }
+    subject = f"{name}: your password was changed"
     send_templated(
         to=user.email,
-        subject=f"{name}: your password was changed",
+        subject=subject,
         template="password_changed",
-        context={
-            **_letterhead(name),
-            "first_name": user.first_name or user.display_name,
-            "email": user.email,
-            "changed_at": timezone.localtime(),
-            "forgot_url": f"{_site_url()}{FORGOT_PASSWORD_PATH}",
-        },
+        context=context,
         user_id=user.pk,
     )
+    recovery = recovery_address(user)
+    if recovery:
+        token = make_undo_token(user, previous_email=recovery, new_email=user.email)
+        send_templated(
+            to=recovery,
+            subject=subject,
+            template="password_changed",
+            context={**context, "undo_url": f"{_site_url()}{UNDO_PATH}?token={token}"},
+            user_id=user.pk,
+        )
 
 
 def account_state(user: User) -> str:
@@ -84,9 +104,11 @@ def send_account_exists_notice(user: User, *, to: str | None = None) -> None:
     ``first_name``, ``email``, ``state``, ``sign_in_url`` (the sign-in page with the
     address filled in), ``forgot_url``, ``site_url``, ``org_name`` and ``contact_email``.
     Nothing about the account changes.  The notice goes to ``to`` when given, the
-    address somebody registered, which may be one the account keeps as its recovery
-    address rather than the one it signs in with; to the account's own address
-    otherwise.
+    address somebody registered; to the account's own address otherwise.  When that is
+    not the address the account signs in with -- it is one the account keeps as its
+    recovery address after a change of address -- the state is :data:`RESERVED`
+    instead, and the message points to the undo link sent about the change and to the
+    office rather than to signing in, since that address signs nothing in.
     """
     name = org_name()
     address = to or user.email
@@ -98,7 +120,11 @@ def send_account_exists_notice(user: User, *, to: str | None = None) -> None:
             **_letterhead(name),
             "first_name": user.first_name or user.display_name,
             "email": address,
-            "state": account_state(user),
+            "state": (
+                account_state(user)
+                if normalized_email(address) == normalized_email(user.email)
+                else RESERVED
+            ),
             "sign_in_url": f"{_site_url()}{SIGN_IN_PATH}?{urlencode({'email': address})}",
             "forgot_url": f"{_site_url()}{FORGOT_PASSWORD_PATH}",
         },

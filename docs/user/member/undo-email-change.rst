@@ -68,12 +68,11 @@ The screen says **Change not undone**, with the reason:
 
 Under the reason, **Forgot your password?** opens :doc:`forgot-password`.
 
-If the screen says **Account secured** instead, another account already held your
-previous address, so it could not be put back. Everything else was done: everybody is
-signed out, the password no longer works, and the link to choose a new one went to
-your previous address. The account still signs in with the address it was moved to.
-Write to the office, using the contact address at the bottom of every public page,
-and they will help you move it back.
+If the screen says **Account closed** instead, another account already held your
+previous address, so it could not be put back. To keep the account from whoever moved
+it, it has been closed: everybody is signed out, its password no longer works, and
+nobody can sign in, reset its password, or reactivate it. Write to the office, using
+the contact address at the bottom of every public page, to get it back.
 
 
 If something looks wrong

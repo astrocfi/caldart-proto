@@ -138,7 +138,7 @@ describe('<UndoEmailChangePage/>', () => {
     );
   });
 
-  it('says the account was secured when the previous address is taken', async () => {
+  it('says the account was closed when the previous address is taken', async () => {
     server.use(
       http.post(`${API}/auth/email/undo`, () =>
         HttpResponse.json({ email: 'moved@example.org', taken: true }),
@@ -147,7 +147,7 @@ describe('<UndoEmailChangePage/>', () => {
     renderPage();
     await userEvent.setup().click(await screen.findByRole('button', { name: 'Undo the change' }));
 
-    expect(await screen.findByRole('heading', { name: 'Account secured' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Account closed' })).toBeInTheDocument();
   });
 
   it('refuses a link with no token without asking the server', () => {

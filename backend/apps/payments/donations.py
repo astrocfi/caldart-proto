@@ -26,7 +26,7 @@ import logging
 from typing import Any, TypedDict, cast
 
 from django.core import signing
-from django.db import transaction
+from django.db import IntegrityError, transaction
 
 from apps.accounts.models import AccountKind, User
 from apps.accounts.services import address_holder, create_account, lock_address
@@ -134,9 +134,19 @@ def donor_for(fields: DonorFields) -> User:
     email = fields["email"].strip()
     lock_address(email)
     user = address_holder(email)
-    if user is None:
-        user = create_account(email=email, kind=AccountKind.DONOR)
-        log.info("Donor account %s created for a gift on the public site", user.pk)
+    if user is not None:
+        return user
+    try:
+        with transaction.atomic():
+            user = create_account(email=email, kind=AccountKind.DONOR)
+    except IntegrityError:
+        # Taken between the lookup and the write by a path that took no address lock:
+        # the gift is that account's, as for any address that has one.
+        holder = address_holder(email)
+        if holder is None:
+            raise
+        return holder
+    log.info("Donor account %s created for a gift on the public site", user.pk)
     return user
 
 

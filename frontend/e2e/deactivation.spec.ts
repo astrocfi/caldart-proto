@@ -174,5 +174,5 @@ test('a user administrator blocks an account, and its owner cannot bring it back
   await page.getByLabel(/^Password/).fill(PASSWORD);
   await page.getByRole('button', { name: 'Create account' }).click();
   await expect(page.getByRole('heading', { name: 'Check your email' })).toBeVisible();
-  await expect.poll(() => latestEmailTo(email)).toMatch(/This account has been closed\./);
+  await expect.poll(() => latestEmailTo(email)).toMatch(/account has been closed\./);
 });

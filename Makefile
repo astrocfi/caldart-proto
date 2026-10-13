@@ -103,6 +103,7 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
            AUTH_THROTTLE_PASSWORD_RESET=1000/min \
            AUTH_THROTTLE_VERIFY=1000/min \
            AUTH_THROTTLE_VERIFY_RESEND=1000/min \
+           AUTH_THROTTLE_EMAIL_CHANGE=1000/min \
            AUTH_THROTTLE_DONATE=1000/min \
            GEOAPIFY_API_KEY=e2e-stub-key \
            GEOAPIFY_URL="http://127.0.0.1:$(E2E_GEOAPIFY_PORT)/autocomplete.json" \

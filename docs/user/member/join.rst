@@ -82,10 +82,9 @@ signed in, the step says **Your account** with your address, and offers **Contin
 and **Use a different account**, which signs you out.
 
 Once the boxes are filled in right, the step changes to **Check your email**: *We
-sent a message to marta.reyes@example.org. Follow the link in it to continue.* and
-*If the address already has an account, the message says how to sign in instead.*
-Nobody is signed in yet, and the screen reads the same whatever the address, so
-nobody can use it to find out who has an account. The message says what to do:
+sent a message to marta.reyes@example.org. Follow the link in it to continue.* Nobody
+is signed in yet, and the screen reads the same whatever the address, so nobody can
+use it to find out who has an account. The message says what to do:
 
 * **A new address** gets *CalDART: verify your email address*. Its link opens
   :doc:`verify-email`; press **Continue**, sign in with your address and password,
@@ -99,8 +98,7 @@ nobody can use it to find out who has an account. The message says what to do:
   account changes. A deactivated account is told to sign in and press **Reactivate
   my account** (see :doc:`sign-in`), and a closed one to contact CalDART.
 
-No message? Look in your spam folder, then sign in: **Check your email** below can
-send it again.
+No message? Look in your spam folder, then sign in to send it again.
 
 
 Step 2: Verify

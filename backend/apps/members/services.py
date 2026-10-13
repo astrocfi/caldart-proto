@@ -88,6 +88,7 @@ from apps.accounts.services import (
     effective_roles,
     is_donor,
     lock_address,
+    normalized_email,
     send_email_verification,
     send_password_invitation,
     set_kind,
@@ -104,7 +105,7 @@ from apps.members.models import (
     MembershipStatusChoices,
 )
 from caldart import audit, events
-from caldart.exceptions import DomainError, DomainPermissionError
+from caldart.exceptions import DomainError, DomainPermissionError, DomainValidationError
 from caldart.mail import send_on_commit
 
 if TYPE_CHECKING:
@@ -180,6 +181,12 @@ def touch_profile(profile: MemberProfile) -> None:
 # --------------------------------------------------------------------------
 # The member record: account plus profile
 # --------------------------------------------------------------------------
+#: What an administrator is told who edits their own address on their member record.
+OWN_ADDRESS_ON_RECORD_REFUSED = (
+    "Change your own address from Change email, which asks for your password."
+)
+
+
 @dataclass(frozen=True)
 class Registration:
     """What one registration did: the account the address belongs to, and its message.
@@ -247,7 +254,18 @@ def register_member(
         return Registration(existing, lambda: send_email_verification(existing, upgrade=upgrade))
     if existing is not None:
         return Registration(existing, lambda: send_account_exists_notice(existing, to=address))
-    user = create_account(email=address, first_name=first_name, last_name=last_name, kind=kind)
+    try:
+        with transaction.atomic():
+            user = create_account(
+                email=address, first_name=first_name, last_name=last_name, kind=kind
+            )
+    except IntegrityError:
+        # Taken between the lookup and the write by a path that took no address lock:
+        # answer as for any account that holds the address.
+        holder = address_holder(address)
+        if holder is None:
+            raise
+        return Registration(holder, lambda: send_account_exists_notice(holder, to=address))
     user.password = hashed
     user.save(update_fields=["password", "updated_at"])
     profile, _ = MemberProfile.objects.get_or_create(user=user)
@@ -313,7 +331,9 @@ def update_member(
     ``email`` goes first to :func:`apps.accounts.email_change.request_email_change`, so
     a new address waits for its owner to follow the link mailed to it while the
     account keeps signing in with the one it has, and an address the guard refuses
-    leaves everything else unwritten.
+    leaves everything else unwritten.  An administrator's own address is not changed
+    here, where no password is asked for: :data:`OWN_ADDRESS_ON_RECORD_REFUSED` against
+    ``email`` sends them to Change email.
     ``profile`` is written over the member's profile row, creating it if the account
     somehow has none.  Both halves are written together, so a refused account edit
     leaves the profile alone.  A profile write that moves a field a verified item covers
@@ -334,7 +354,11 @@ def update_member(
     names = {key: value for key, value in (account or {}).items() if key in NAME_FIELDS}
     changed = changed_field_labels(target, names)
     if account is not None and "email" in account:
-        request_email_change(actor, target, account["email"])
+        address = account["email"].strip()
+        is_own = actor.pk == target.pk
+        if is_own and normalized_email(address) != normalized_email(target.email):
+            raise DomainValidationError("email", OWN_ADDRESS_ON_RECORD_REFUSED)
+        request_email_change(actor, target, address)
     update_account(actor, target, account or {})
     if profile is not None:
         row, _ = MemberProfile.objects.get_or_create(user=target)

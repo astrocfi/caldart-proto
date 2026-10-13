@@ -522,7 +522,8 @@ concurrent request waits and then finds the account already inactive and does
 nothing:
 
 #. a system administrator or a donor is refused (below), which changes nothing;
-   otherwise ``is_active`` is cleared, ``account.deactivate`` is recorded with
+   otherwise ``is_active`` is cleared (and any change of address still waiting
+   dropped), ``account.deactivate`` is recorded with
    ``self_service=true``, and the ``account_deactivated`` event is raised with no
    actor (``accounts.status.deactivate_own_account``);
 #. every active or paused renewal mandate — automatic renewal or recurring
@@ -698,9 +699,10 @@ is exhausted.
 ---------------------------
 
 Mails the signed-in account a fresh link.  No body.  While a change of address is
-waiting, the link that completes it goes to ``pending_email``
-(``apps.accounts.email_change.send_email_change_link``); otherwise a verification
-link goes to the account's own address.  The answer names the address mailed:
+waiting, the link that completes it goes to ``pending_email`` once the answer has gone
+(``apps.accounts.email_change.send_email_change_link``, which sends nothing to an
+address another account holds, the answer the same either way); otherwise a
+verification link goes to the account's own address.  The answer names the address:
 
 .. code-block:: json
 
@@ -736,25 +738,33 @@ whole flow.
    address (below); then an address another account holds, or keeps as its recovery
    address (``apps.accounts.services.address_taken``), is refused with *Another
    account already uses that email address.* -- except on the account's own request,
-   which answers exactly as for a free address, stores nothing, and mails nothing, so
-   that a session cannot be used to find out who has an account.
+   which goes on exactly as for a free address (stored as pending, shown by
+   ``/auth/me``, resent by ``/auth/email/resend``, the old address told) except that
+   no link is ever mailed to an address another account holds, so that a session
+   cannot be used to find out who has an account.  An account administrator's own
+   address is not changed on the member record, which asks for no password: that is
+   refused against ``email`` with *Change your own address from Change email, which
+   asks for your password.*
    ``POST /auth/email/change`` below asks for the account itself, and
    ``PATCH /admin/members/{user_id}`` for an account administrator
    (:doc:`api-members`).
-#. **The link to the new address.**  Once the request commits, ``pending_email`` is
-   mailed *confirm your new email address*
+#. **The link to the new address.**  Once the request commits -- or, for
+   ``POST /auth/email/change``, once its answer has gone
+   (:ref:`mail after the answer <api-after-response>`), as for the notice below --
+   ``pending_email`` is mailed *confirm your new email address*
    (``templates/emails/email_change_confirm.{txt,html}``) with a link to
    ``/portal/verify-email``; the message does not show the address the account signs
    in with.  Its token is ``django.core.signing.dumps({"user": <id>, "email": <current
    address>, "change_to": <new address>, "by": <id of who asked>, "pw": <password
    fingerprint>}, salt="accounts.email-change")``, the addresses normalized, read with
-   the same ``EMAIL_VERIFICATION_TIMEOUT``.  The fingerprint is a keyed HMAC of the
+   the same ``EMAIL_VERIFICATION_TIMEOUT``.  Nothing is sent to an address another
+   account holds or keeps for recovery (``send_email_change_link``).  The fingerprint is a keyed HMAC of the
    stored password hash (``email_change.password_fingerprint``), as Django signs a
    password reset link over it, so any new password spends the link.  Every write of a
    new or unusable password also empties ``pending_email``:
    ``accounts.services.replace_password`` (a change and a reset) and
    ``accounts.status.clear_password_and_end_sessions`` (``create_admin`` taking an
-   account back, and **Require a new password**).
+   account back, and **Require a new password**), and so does every deactivation.
 #. **The notice.**  The recovery address, while the account keeps one, or else the
    current address when it is verified, is mailed *your email address is changing*
    (``templates/emails/email_change_notice.{txt,html}``), naming the new address and
@@ -774,16 +784,22 @@ whole flow.
    old address (:doc:`notification-events`).  The answer's ``changed`` is true.  An
    address another account took meanwhile, checked first and caught again as the
    unique constraint's ``IntegrityError`` when two complete at once, is a 400 and
-   changes nothing.  Sessions are left alone.
+   changes nothing; completing takes the address lock registration and the donation
+   checkout take (``accounts.services.lock_address``), so neither makes an account
+   with the address meanwhile.  Sessions are left alone.
 #. **The recovery address.**  A completed change keeps the verified address it left
    as ``recovery_email`` until ``recovery_until``, ``EMAIL_CHANGE_UNDO_TIMEOUT``
    seconds (seven days, as long as an undo link lasts); while one is kept already, it
    stays and is kept that long from now.  Meanwhile the address is reserved for the
-   account: registration (``POST /auth/register`` treats it as the account's own),
-   the public donation checkout (the gift goes to the account), and every other
-   account's change of address treat it as taken.  The account's own address cannot
-   change again by self-service; an account administrator may still change it, and
-   the notices go to the recovery address.  Once it commits, the recovery address is
+   account: registration (``POST /auth/register`` treats it as the account's own,
+   and its notice points to the undo link and the office rather than to signing in),
+   the public donation checkout (the gift goes to the account, its receipt to the
+   recovery address), every other account's change of address and New member, and
+   ``create_admin`` treat it as taken.  The account's own address cannot change again
+   by self-service; an account administrator may still change it, and the notices go
+   to the recovery address, as does a copy of the *your password was changed* notice,
+   with an undo link.  The Django admin shows ``email`` read-only, and the Wagtail
+   account screens are closed, so no form changes an address around this flow.  Once it commits, the recovery address is
    mailed *your email address has changed*, with a fresh undo link.
 #. **Undo.**  `POST /auth/email/undo`_ below.
 
@@ -814,9 +830,12 @@ the first failure is reported, each a 400 keyed on its field:
   change again until 10/19/2026."]}`` — while the account keeps a recovery address,
   naming the day it stops being kept.
 
-An address another account holds is not refused: the answer is the same as for a free
-address, ``pending_email`` included, but nothing is stored and nothing is mailed, so
-no link ever arrives and the Change email screen shows no change waiting afterwards.
+An address another account holds is not refused, and is handled exactly as a free one:
+the same answer, ``pending_email`` stored and shown by ``GET /auth/me``, the same
+answer from ``POST /auth/email/resend``, the same notice to the current address.  The
+only difference is that no link is ever mailed to it, and both messages are sent after
+the answer has gone, so its timing does not differ either.  The change simply never
+completes.
 
 The request goes through ``request_email_change`` with the account as both actor
 and target, described under `Changing the address`_; it is audited as
@@ -855,8 +874,7 @@ In one transaction, holding a lock on the account's row
 
 #. when the account no longer holds the old address, it is put back and stamped
    verified, since the link could only have reached its owner, and any bounce is
-   cleared.  When another account holds that address by then, the address stays as
-   it is and ``taken`` is true, but everything below happens all the same;
+   cleared;
 #. any change still waiting is dropped, and the recovery address is forgotten;
 #. the password is made unusable, so whoever asked for the change, who knew it,
    cannot sign in again, and every session signed in to the account is ended
@@ -867,6 +885,18 @@ In one transaction, holding a lock on the account's row
 #. once it commits, the address the undo link was mailed to is sent a password reset
    link, which is how the owner signs in again.  The account's active flag is left
    alone; completing that reset reactivates a deactivated account, as any reset does.
+
+When another account holds the old address by then -- the reservation makes this rare
+-- it cannot be put back, and the account still signs in with an address whose holder
+could reset its password.  The answer's ``taken`` is true, and the account is closed
+instead of being handed back: everything above is done except putting the address
+back and mailing the reset link, and the account is also deactivated and blocked from
+reactivating (its mandates canceled and terms suspended, as any deactivation does),
+audited as ``account.deactivate`` and ``account.block`` under the account, recorded in
+its history, and raised as ``account_deactivated``, which reaches the user
+administrators subscribed to it.  No sign-in, reset, or registration brings it back
+until a user administrator lifts the block; the page asks the owner to contact the
+office.
 
 Each link works once: an undo spends every undo link made before it, because a token
 older than ``email_change_undone_at`` is refused.  While the account keeps a recovery
@@ -1295,7 +1325,8 @@ sentences are listed under :ref:`account-edit-guard`.
 
 ``POST /admin/users/{id}/deactivate``
    Everything ``POST /auth/deactivate`` does, under the administrator
-   (``accounts.status.deactivate_account``): ``is_active`` is cleared,
+   (``accounts.status.deactivate_account``): ``is_active`` is cleared and any change
+   of address waiting dropped,
    ``account.deactivate`` is recorded with the administrator as actor, the
    ``account_deactivated`` event is raised naming them, and every unexpired
    session signed in to the account is deleted (``accounts.status.end_sessions``);

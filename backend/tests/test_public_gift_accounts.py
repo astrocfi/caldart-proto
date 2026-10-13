@@ -12,6 +12,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
+from django.core import mail
 from django.core.cache import cache
 from django.utils import timezone
 from rest_framework.test import APIClient
@@ -130,12 +131,36 @@ def test_the_receipt_names_the_giver(api_client: APIClient, member: User) -> Non
     assert receipt_data(payment).payer_name == "Pat Giver"
 
 
-def test_the_statement_line_names_the_giver(api_client: APIClient, member: User) -> None:
-    """The member's year statement says in whose name the gift was given."""
+def test_the_statement_lists_the_gift_apart_naming_the_giver(
+    api_client: APIClient, member: User
+) -> None:
+    """The member's year statement lists the gift on its own, in the giver's name."""
     settle(api_client, start_gift(api_client, member.email))
 
-    lines = statement_data(member, timezone.localdate().year).contributions
+    lines = statement_data(member, timezone.localdate().year).public_gifts
     assert [line.given_as for line in lines] == ["Pat Giver"]
+
+
+def test_the_statement_total_leaves_the_gift_out(api_client: APIClient, member: User) -> None:
+    """Somebody else's gift in the member's name is not the member's giving."""
+    settle(api_client, start_gift(api_client, member.email))
+
+    assert statement_data(member, timezone.localdate().year).total_cents == 0
+
+
+def test_the_receipt_greets_the_account_holder(api_client: APIClient, member: User) -> None:
+    """The email is to the member, so it greets the member, not the name typed."""
+    settle(api_client, start_gift(api_client, member.email))
+
+    assert f"Hello {member.first_name}," in str(mail.outbox[-1].body)
+
+
+def test_the_receipt_says_how_the_gift_was_made(api_client: APIClient, member: User) -> None:
+    """The member is told the gift came from the public page, and whom to ask."""
+    settle(api_client, start_gift(api_client, member.email))
+
+    body = " ".join(str(mail.outbox[-1].body).split())
+    assert "made on the public donation page with your email address" in body
 
 
 def test_a_members_own_payment_names_nobody_else(member: User) -> None:

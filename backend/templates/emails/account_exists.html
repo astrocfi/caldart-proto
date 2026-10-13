@@ -11,7 +11,13 @@ the account's `state`: `active`, `deactivated`, or `closed`.
     Somebody, perhaps you, tried to open a {{ org_name }} account with
     <strong>{{ email }}</strong>. This address already has one, so nothing was changed.
   </p>
-  {% if state == "closed" %}
+  {% if state == "reserved" %}
+    <p style="margin: 0 0 16px;">
+      This address was moved off a {{ org_name }} account in the last seven days, and it is
+      kept for that account until then. If the move was not yours, use the link in the
+      message we sent to this address about the change, or contact {{ org_name }}.
+    </p>
+  {% elif state == "closed" %}
     <p style="margin: 0 0 16px;">
       That account has been closed. Contact {{ org_name }} to reopen it.
     </p>
@@ -34,7 +40,7 @@ the account's `state`: `active`, `deactivated`, or `closed`.
 {% endblock %}
 
 {% block button %}
-  {% if state != "closed" %}
+  {% if state != "closed" and state != "reserved" %}
     {% include "emails/account_button.html" with url=sign_in_url label="Sign in" %}
   {% endif %}
 {% endblock %}

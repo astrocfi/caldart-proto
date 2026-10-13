@@ -61,6 +61,12 @@ CONTRIBUTION_NOTICE = "No goods or services were provided in exchange for this c
 #: The same, for a statement covering a year of them.
 CONTRIBUTIONS_NOTICE = "No goods or services were provided in exchange for these contributions."
 
+#: What a statement says above the public-page gifts made with the member's address.
+PUBLIC_GIFTS_NOTICE = (
+    "These gifts were made on the public donation page with your email address, perhaps by "
+    "somebody else, so they are not counted in your total above."
+)
+
 #: Style for the one-line heading above a block of detail.
 HEADING_STYLE = ParagraphStyle(
     "CalDartReceiptHeading",
@@ -181,7 +187,9 @@ class StatementData:
 
     ``contributions`` are in the order they are printed, which is the order
     they were paid.  A year with none renders a page whose total is zero rather
-    than an empty document.
+    than an empty document.  ``public_gifts`` are gifts made on the public donation
+    page with the member's address, perhaps by somebody else: they are listed apart
+    and are not in the total.
     """
 
     org: OrgDetails
@@ -189,6 +197,7 @@ class StatementData:
     member_name: str
     member_email: str
     contributions: Sequence[StatementLine] = field(default_factory=tuple)
+    public_gifts: Sequence[StatementLine] = field(default_factory=tuple)
 
     @property
     def total_cents(self) -> int:
@@ -296,6 +305,8 @@ def build_statement_pdf(buffer: IO[bytes], statement: StatementData) -> None:
         ]
     )
     story.append(_money_table(rows, widths=[1.2, 1.7, 1.4, 1.3, 1.4]))
+    if statement.public_gifts:
+        story.extend(_public_gifts(statement.public_gifts))
 
     story.append(Spacer(1, 12))
     story.append(Paragraph(CONTRIBUTIONS_NOTICE, TEXT_STYLE))
@@ -306,6 +317,40 @@ def build_statement_pdf(buffer: IO[bytes], statement: StatementData) -> None:
 def _described(line: ReceiptLine) -> str:
     """The receipt's description cell: the label, and the detail when there is one."""
     return f"{line.label} ({line.detail})" if line.detail else line.label
+
+
+def _public_gifts(lines: Sequence[StatementLine]) -> list[Flowable]:
+    """The statement's section for public-page gifts made with the member's address.
+
+    A heading, a sentence saying they are not counted above, and a row per gift with
+    its date, receipt (and the name it was given in), amount, refund and net.
+    """
+    rows: list[list[Paragraph]] = [
+        [
+            Paragraph("Date", HEADER_CELL_STYLE),
+            Paragraph("Receipt", HEADER_CELL_STYLE),
+            Paragraph("Gift", AMOUNT_HEADER_STYLE),
+            Paragraph("Refunded", AMOUNT_HEADER_STYLE),
+            Paragraph("Net", AMOUNT_HEADER_STYLE),
+        ]
+    ]
+    rows.extend(
+        [
+            Paragraph(line.paid_on.isoformat(), CELL_STYLE),
+            Paragraph(_receipt_cell(line), CELL_STYLE),
+            Paragraph(money_label(line.amount_cents), AMOUNT_STYLE),
+            Paragraph(money_label(line.refunded_cents), AMOUNT_STYLE),
+            Paragraph(money_label(line.net_cents), AMOUNT_STYLE),
+        ]
+        for line in lines
+    )
+    return [
+        Spacer(1, 14),
+        Paragraph("Gifts made on the public donation page with your address", HEADING_STYLE),
+        Paragraph(PUBLIC_GIFTS_NOTICE, TEXT_STYLE),
+        Spacer(1, 6),
+        _money_table(rows, widths=[1.2, 1.7, 1.4, 1.3, 1.4]),
+    ]
 
 
 def _receipt_cell(line: StatementLine) -> str:

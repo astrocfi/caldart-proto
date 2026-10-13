@@ -81,12 +81,11 @@ If something looks wrong
 
 If the message to the new address does not arrive, look in your spam folder, then
 press **Resend verification message** in the **Change waiting** card. If you typed the
-new address wrong, change it again to the right one. If the screen showed the change
-waiting but no **Change waiting** card is there when you come back, and no message
-arrives, the address already belongs to another account: each address belongs to one
-account, so choose another, or sign in to the other account if it is yours. If the link
-says *Another account already uses that email address.*, somebody took the address
-after you asked for it; choose another.
+new address wrong, change it again to the right one. If no message ever arrives, the
+address may already belong to another account, which is never sent a link: each
+address belongs to one account, so choose another, or sign in to the other account if
+it is yours. If the link says *Another account already uses that email address.*,
+somebody took the address after you asked for it; choose another.
 
 Changing your password drops a change still waiting, and its link stops working; ask
 again if you still want it.

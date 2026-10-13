@@ -389,10 +389,15 @@ PayPal account against the account, and Stripe creates its intent with no custom
 Until it settles it is left out of the account holder's ``GET /me/payments``
 (:doc:`api-profile`); it counts in no report or statement before then, as no unsettled
 payment does.  Its receipt is made out to the name the giver typed
-(``Payment.payer_name``), and a contribution statement line for it names the giver when
-that differs from the account holder (``given as …`` under the receipt number).  An
-address an account keeps as its recovery address after a change of address
-(:ref:`api-email-change`) gives to that account too.  Nothing is mailed to the donor but the receipt.  The page's
+(``Payment.payer_name``), while the receipt email greets the account holder and adds
+*This gift was made on the public donation page with your email address. If it wasn't
+you, contact <organization>.*  On the account holder's year statement such a gift is
+not counted in the total: it is listed apart, under *Gifts made on the public donation
+page with your address*, with the name it was given in when that differs from the
+holder's (``StatementData.public_gifts``; ``given as …`` under the receipt number).
+An address an account keeps as its recovery address after a change of address
+(:ref:`api-email-change`) gives to that account too, and the receipt goes to that
+address (``receipts.receipt_address``).  Nothing is mailed to the donor but the receipt.  The page's
 Stripe tab starts a checkout as soon as it shows, to load Stripe's card form, and
 again each time the giver comes back to it with changed details; each one counts
 against the ``donate`` rate.  A visitor who opens the Stripe tab and leaves is

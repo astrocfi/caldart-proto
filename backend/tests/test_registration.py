@@ -16,6 +16,7 @@ from django.core.mail import EmailMultiAlternatives
 from rest_framework.test import APIClient
 
 from apps.accounts.models import AccountKind, User
+from apps.accounts.services import address_holder
 from apps.cms.models import SiteSettings
 from tests.conftest import ME_URL, REGISTER_URL, register_payload
 from tests.factories import UserFactory
@@ -216,3 +217,35 @@ def test_a_closed_account_is_offered_no_sign_in(api_client: APIClient) -> None:
     api_client.post(REGISTER_URL, register_payload())
 
     assert "/portal/login" not in str(only_mail().body)
+
+
+def test_an_address_taken_while_registering_is_answered_alike(
+    api_client: APIClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An account made between the lookup and the write is answered as a taken address."""
+    hold("member")
+    found = iter([None])
+    monkeypatch.setattr(
+        "apps.members.services.address_holder",
+        lambda address: next(found, address_holder(address)),
+    )
+
+    response = api_client.post(REGISTER_URL, register_payload())
+
+    assert (response.status_code, response.json()) == (202, SENT)
+
+
+def test_an_address_taken_while_registering_is_told_it_has_an_account(
+    api_client: APIClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The holder of the address is mailed the notice, not a verification link."""
+    hold("member")
+    found = iter([None])
+    monkeypatch.setattr(
+        "apps.members.services.address_holder",
+        lambda address: next(found, address_holder(address)),
+    )
+
+    api_client.post(REGISTER_URL, register_payload())
+
+    assert only_mail().subject == "CalDART: you already have an account"

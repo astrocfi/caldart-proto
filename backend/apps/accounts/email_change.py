@@ -29,8 +29,9 @@ once, with nothing mailed.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime, timedelta
-from typing import TypedDict
+from typing import NamedTuple, TypedDict
 
 from django.conf import settings
 from django.core import signing
@@ -47,6 +48,7 @@ from apps.accounts.services import (
     address_taken,
     check_account_edit,
     is_donor,
+    lock_address,
     normalized_email,
     send_password_reset_email,
     verify_email,
@@ -150,8 +152,28 @@ def _notice_address(user: User) -> str:
 # Asking for a change
 # --------------------------------------------------------------------------
 @transaction.atomic
+class Mailing(NamedTuple):
+    """One message a change of address sends: the send itself, and what to log it as."""
+
+    send: Callable[[], object]
+    what: str
+
+
+def _queue(mailings: list[Mailing] | None, send: Callable[[], object], what: str) -> None:
+    """Hand ``send`` to ``mailings`` for the caller to send, or send it on commit."""
+    if mailings is None:
+        send_on_commit(send, what=what)
+    else:
+        mailings.append(Mailing(send, what))
+
+
 def request_email_change(
-    actor: User | str, target: User, email: str, *, quiet_if_taken: bool = False
+    actor: User | str,
+    target: User,
+    email: str,
+    *,
+    quiet_if_taken: bool = False,
+    mailings: list[Mailing] | None = None,
 ) -> User:
     """Ask for ``target``'s sign-in address to become ``email`` on ``actor``'s behalf.
 
@@ -166,20 +188,23 @@ def request_email_change(
        address is refused against ``email`` with :func:`recent_change_refused`;
     #. an address another account holds, or keeps as its recovery address
        (:func:`apps.accounts.services.address_taken`), is refused against ``email``
-       with :data:`ADDRESS_TAKEN` -- unless ``quiet_if_taken``, when nothing is
-       written, nothing is mailed, and the account is returned as it was, so the
-       caller can answer as for a free address.
+       with :data:`ADDRESS_TAKEN` -- unless ``quiet_if_taken``, when the request goes
+       on exactly as for a free address, so that nothing the caller can see afterwards
+       says whether the address was taken.
 
     A refusal changes nothing.  A donor's address is then written at once, audited as
     ``account.update`` of ``email``, and nothing is mailed.  For anybody else the
     address is stored as ``pending_email``, replacing any earlier one, and the request
-    is audited as ``account.email_change_request``; once the transaction commits the
-    new address is mailed a link that completes the change
-    (:func:`send_email_change_link`), and a notice with a link that undoes it goes to
-    the recovery address while one is kept, or else to the account's address when its
-    owner verified it (:func:`send_email_change_notice`).  A mail server that refuses
-    either is logged and the request stands.  The account still signs in with its
-    current address.
+    is audited as ``account.email_change_request``.  Two messages follow: the link that
+    completes the change, to the new address (:func:`send_email_change_link`, which
+    sends nothing when another account holds the address, and whose link could never
+    complete the change then), and a notice with a link that undoes it, to the
+    recovery address while one is kept, or else to the account's address when its owner
+    verified it (:func:`send_email_change_notice`).  They are sent once the transaction
+    commits, or, given ``mailings``, appended to it for the caller to send, as
+    ``POST /auth/email/change`` does after its answer has gone.  A mail server that
+    refuses either is logged and the request stands.  The account still signs in with
+    its current address.
     """
     address = email.strip()
     if normalized_email(address) == normalized_email(target.email):
@@ -188,9 +213,7 @@ def request_email_change(
     recovery_until = target.recovery_until
     if actor == target and recovery_address(target) and recovery_until is not None:
         raise DomainValidationError("email", recent_change_refused(recovery_until))
-    if address_taken(address, by_other_than=target):
-        if quiet_if_taken:
-            return target
+    if not quiet_if_taken and address_taken(address, by_other_than=target):
         raise DomainValidationError("email", ADDRESS_TAKEN)
     if is_donor(target):
         target.email = address
@@ -201,17 +224,19 @@ def request_email_change(
     target.save(update_fields=["pending_email", "updated_at"])
     audit.record(audit.ACCOUNT_EMAIL_CHANGE_REQUEST, actor=actor, target=target)
     requester = actor.pk if isinstance(actor, User) else None
-    send_on_commit(
+    _queue(
+        mailings,
         lambda: send_email_change_link(target, requested_by=requester),
-        what=f"the email change link for account {target.pk}",
+        f"the email change link for account {target.pk}",
     )
     notice_to = _notice_address(target)
     if notice_to:
-        send_on_commit(
+        _queue(
+            mailings,
             lambda: send_email_change_notice(
                 target, previous_email=notice_to, new_email=address, completed=False
             ),
-            what=f"the email change notice for account {target.pk}",
+            f"the email change notice for account {target.pk}",
         )
     return target
 
@@ -258,9 +283,11 @@ def send_email_change_link(user: User, *, requested_by: int | None = None) -> No
     ``expiry_days`` (``EMAIL_VERIFICATION_TIMEOUT`` in whole days, at least one),
     ``site_url``, ``org_name`` and ``contact_email``; the address the account signs in
     with now is not shown to the new address's holder.  An account with no pending
-    address is sent nothing.
+    address is sent nothing, and neither is a pending address another account holds or
+    keeps for recovery: its holder did not ask for anything, and the link could never
+    complete the change.
     """
-    if user.pending_email == "":
+    if user.pending_email == "" or address_taken(user.pending_email, by_other_than=user):
         return
     token = make_email_change_token(user, requested_by=requested_by)
     name = org_name()
@@ -338,6 +365,10 @@ def _complete(payload: object) -> FollowedLink:
     user = User.objects.select_for_update().filter(pk=claim["user"], is_active=True).first()
     if user is None:
         raise EmailVerificationError(EMAIL_VERIFICATION_INVALID)
+    if user.pending_email:
+        # The same lock registration and the donation checkout take on an address, so
+        # neither can make an account with it while this change moves to it.
+        lock_address(user.pending_email)
     if normalized_email(user.email) == claim["change_to"] and user.pending_email == "":
         return {"email": user.email, "changed": True}
     is_waiting = normalized_email(user.pending_email) == claim["change_to"]
@@ -492,16 +523,24 @@ def undo_email_change(token: str) -> UndoneChange:
 
     When the account no longer holds the address the link was mailed to, that address
     is put back, as signed, and stamped verified, since the link could only have
-    reached its owner.  When another account holds it by then, the address stays as it
-    is and ``taken`` is true, but the account is secured all the same.  Either way any
-    change still waiting is dropped, the recovery address is forgotten, the account's
-    password is made unusable, every session signed in to it is ended, the undo is
-    audited as ``account.email_change_undo`` (with ``restored`` true when an address
-    was put back) and recorded in the account's history as ``email_change_undone``,
-    and once the transaction commits a password reset link is mailed to the address the
-    undo link was mailed to (``send_password_reset_email``), which is how the owner
-    signs in again.  The account's active flag is left alone: completing the reset
-    reactivates a deactivated account, as any reset does.
+    reached its owner.  Either way any change still waiting is dropped, the recovery
+    address is forgotten, the account's password is made unusable, every session signed
+    in to it is ended, the undo is audited as ``account.email_change_undo`` (with
+    ``restored`` true when an address was put back) and recorded in the account's
+    history as ``email_change_undone``.  Once the transaction commits a password reset
+    link is mailed to the address the undo link was mailed to
+    (``send_password_reset_email``), which is how the owner signs in again; the active
+    flag is left alone, and completing the reset reactivates a deactivated account, as
+    any reset does.
+
+    When another account holds the address by then, it cannot be put back, and the
+    account still signs in with an address its owner may not control, whose holder
+    could reset its password.  ``taken`` is true, and the account is closed instead:
+    besides everything above it is deactivated and blocked from reactivating
+    (:func:`_close`), so no password, reset, or registration brings it back until a
+    user administrator lifts the block, and no reset link is mailed.  The caller
+    cancels the account's mandates and suspends its terms, as for any deactivation.
+    Its owner is told to contact the office.
     """
     try:
         payload = signing.loads(
@@ -551,11 +590,35 @@ def undo_email_change(token: str) -> UndoneChange:
     end_sessions(user)
     audit.record(audit.ACCOUNT_EMAIL_CHANGE_UNDO, actor=user, target=user, restored=restored)
     record_account_change(AccountChangeKind.EMAIL_CHANGE_UNDONE, actor=user, target=user)
-    send_on_commit(
-        lambda: send_password_reset_email(user, to=previous),
-        what=f"the password reset for account {user.pk}",
-    )
+    if taken:
+        _close(user)
+    else:
+        send_on_commit(
+            lambda: send_password_reset_email(user, to=previous),
+            what=f"the password reset for account {user.pk}",
+        )
     return {"user": user, "taken": taken}
+
+
+def _close(user: User) -> None:
+    """Deactivate ``user`` and block it from reactivating, as an undo that cannot finish.
+
+    The caller cancels its standing payment authorities and suspends its membership
+    terms, as for any deactivation.  The deactivation and the block are audited as
+    ``account.deactivate`` and ``account.block`` with the account as actor, recorded in
+    its history, and the ``account_deactivated`` event is raised with no actor, which
+    is how the people subscribed to it, the user administrators among them, hear of it.
+    """
+    was_active = user.is_active
+    user.is_active = False
+    user.reactivation_blocked = True
+    user.save(update_fields=["is_active", "reactivation_blocked", "updated_at"])
+    if was_active:
+        audit.record(audit.ACCOUNT_DEACTIVATE, actor=user, target=user, self_service=True)
+        record_account_change(AccountChangeKind.DEACTIVATED, actor=user, target=user)
+        events.emit("account_deactivated", user=user, actor=None)
+    audit.record(audit.ACCOUNT_BLOCK, actor=user, target=user)
+    record_account_change(AccountChangeKind.BLOCKED, actor=user, target=user)
 
 
 class _UndoClaim(TypedDict):
