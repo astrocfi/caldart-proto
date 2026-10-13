@@ -153,6 +153,7 @@ def test_a_profile_edit_that_arrives_mid_verify_clears_the_stamp_it_raced(
     assert profile.certificate_is_verified is False
 
 
+@pytest.mark.usefixtures("member_is_current")
 def test_an_aircraft_edit_that_arrives_mid_verify_clears_the_stamp_it_raced(
     dart_leader: User,
     member: User,

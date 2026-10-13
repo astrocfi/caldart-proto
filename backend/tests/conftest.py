@@ -62,6 +62,7 @@ from tests.factories import (
     DartFactory,
     LifetimePlanFactory,
     MemberProfileFactory,
+    MembershipFactory,
     MembershipPlanFactory,
     PaymentFactory,
     UserFactory,
@@ -74,7 +75,7 @@ if TYPE_CHECKING:
     from apps.aircraft.models import Aircraft
     from apps.cms.models import HomePage, SiteSettings
     from apps.darts.models import Dart
-from apps.members.models import MemberProfile, MembershipPlan
+from apps.members.models import MemberProfile, Membership, MembershipPlan
 
 User = get_user_model()
 
@@ -500,6 +501,19 @@ def fixed_name_admin(account_admin: UserModel) -> UserModel:
 def annual_plan(db: None) -> MembershipPlan:
     """Return a saved annual ``MembershipPlan`` built by ``MembershipPlanFactory``."""
     return MembershipPlanFactory()
+
+
+@pytest.fixture
+def member_is_current(member: UserModel, annual_plan: MembershipPlan) -> Membership:
+    """Give the ``member`` fixture's account a term covering today.
+
+    The aircraft register and a member's own aircraft are for current members
+    (``apps.aircraft.access``), and ``member`` holds no term, so a test that uses
+    aircraft as that member requests this, or a module marks itself with
+    ``pytest.mark.usefixtures("member_is_current")``.
+    """
+    term: Membership = MembershipFactory(user=member, plan=annual_plan)
+    return term
 
 
 @pytest.fixture

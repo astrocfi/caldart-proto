@@ -504,8 +504,9 @@ and the public catalogs) exactly as a ``member`` does, and gets **403** from
 every role-gated endpoint and from the Wagtail admin.
 
 The aircraft rows below are narrower in the ``member`` column: the register and
-``/me/profile/aircraft`` admit a member whose membership is current or not yet paid,
-and answer a friend, or a member whose membership has expired, with **403**; the
+``/me/profile/aircraft`` admit a member whose membership is current, and answer a
+friend, a member who has not yet paid, or one whose membership has expired with
+**403**; the
 verifying roles and ``system_admin`` pass whatever their own membership (see
 :ref:`api-aircraft-access`).
 

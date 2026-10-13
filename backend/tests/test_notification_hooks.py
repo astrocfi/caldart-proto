@@ -998,6 +998,7 @@ def test_an_administrator_changing_only_the_kind_raises_no_profile_change(
 # --------------------------------------------------------------------------
 # aircraft_added, aircraft_changed and aircraft_removed
 # --------------------------------------------------------------------------
+@pytest.mark.usefixtures("member_is_current")
 def test_adding_an_aircraft_raises_aircraft_added(
     api_client: APIClient, member: User, recorded: Recorded
 ) -> None:

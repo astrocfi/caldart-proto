@@ -89,8 +89,9 @@ export interface User {
   admin_created: boolean;
   /**
    * True when the account may use the aircraft register and its own aircraft: a
-   * member whose membership is current or not yet paid, or a checking role. A friend
-   * and an expired member are refused, so the portal hides the aircraft screens.
+   * member whose membership is current, or a checking role. A friend, a member who
+   * has not yet paid, and an expired member are refused, so the portal hides the
+   * aircraft screens.
    */
   can_use_aircraft: boolean;
 }

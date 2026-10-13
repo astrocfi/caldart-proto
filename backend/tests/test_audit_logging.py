@@ -671,6 +671,7 @@ def test_a_correction_that_changes_nothing_records_no_field(
 # --------------------------------------------------------------------------
 # The aircraft register
 # --------------------------------------------------------------------------
+@pytest.mark.usefixtures("member_is_current")
 def test_adding_an_aircraft_records_the_record(
     api_client: APIClient,
     member: UserModel,

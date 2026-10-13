@@ -520,6 +520,23 @@ describe('<JoinWizard/> returning from a redirect payment', () => {
     expect(screen.getByRole('heading', { name: 'Almost there' })).toBeInTheDocument();
   });
 
+  it('offers no planes to add before the membership is current', async () => {
+    const user = makeUser({ profile_complete: true, membership: UNPAID });
+    server.use(
+      signedInAs(user),
+      http.get(`${API}/me/membership`, () => HttpResponse.json({ ...UNPAID, history: [] })),
+      http.get(`${API}/site/config`, () => HttpResponse.json(SITE_CONFIG)),
+      http.post(`${API}/payments/stripe/confirm`, () =>
+        HttpResponse.json({ status: 'succeeded', membership: CURRENT }),
+      ),
+    );
+
+    renderWizard(RETURN);
+
+    await screen.findByText('Your membership is not active yet.');
+    expect(screen.queryByRole('link', { name: 'Add the planes I fly' })).not.toBeInTheDocument();
+  });
+
   it('offers a way back to paying when the payment was declined', async () => {
     server.use(
       signedInAs(makeUser({ profile_complete: true, membership: UNPAID })),

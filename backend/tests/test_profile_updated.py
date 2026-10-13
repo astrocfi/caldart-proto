@@ -116,6 +116,7 @@ def test_admin_patch_carrying_a_name_or_email_stamps_it(
     assert target.profile.profile_updated_at == timezone.now()
 
 
+@pytest.mark.usefixtures("member_is_current")
 def test_attaching_an_aircraft_stamps_the_profile(
     api_client: APIClient, member: User, profile: MemberProfile, aircraft: Aircraft, today: date
 ) -> None:
@@ -130,6 +131,7 @@ def test_attaching_an_aircraft_stamps_the_profile(
     assert profile.profile_updated_at == timezone.now()
 
 
+@pytest.mark.usefixtures("member_is_current")
 def test_detaching_an_aircraft_stamps_the_profile(
     api_client: APIClient, member: User, profile: MemberProfile, aircraft: Aircraft, today: date
 ) -> None:

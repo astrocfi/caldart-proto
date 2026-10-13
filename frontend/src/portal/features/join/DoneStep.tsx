@@ -52,11 +52,13 @@ export function DoneStep({ joiningAs, hasPaid }: DoneStepProps): JSX.Element {
         footer={
           <>
             <ButtonLink to="/">Go to my dashboard</ButtonLink>
-            {isFriend ? null : (
+            {/* Aircraft are for current members: a friend, and a member whose payment
+                has not settled, are not offered them. */}
+            {status?.status === 'current' ? (
               <ButtonLink to="/profile/aircraft" variant="secondary">
                 Add the planes I fly
               </ButtonLink>
-            )}
+            ) : null}
           </>
         }
       >

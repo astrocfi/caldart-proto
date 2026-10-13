@@ -168,9 +168,9 @@ Every endpoint that returns an account returns the same object:
 
 ``can_use_aircraft``
    True when the account may use the aircraft register and its own aircraft: a member
-   whose membership is current or not yet paid, or a holder of a verifying role or
-   ``system_admin``.  False for a friend and for a member whose membership has
-   expired; the portal hides My aircraft and its links then, and the server refuses
+   whose membership is current, or a holder of a verifying role or ``system_admin``.
+   False for a friend, a member who has not yet paid, and a member whose membership
+   has expired; the portal hides My aircraft and its links then, and the server refuses
    the requests (:ref:`api-aircraft-access`).  Read-only everywhere.
 
 The payload is read-only everywhere except ``PATCH /admin/users/{id}``, whose

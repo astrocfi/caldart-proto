@@ -12,9 +12,9 @@ copy. Open the screen from **My aircraft** in the menu, from the **My aircraft**
 the top of :doc:`profile`, or from **Add the planes I fly** at the end of :doc:`join`.
 **Back to My profile**, a link at the top right, returns to :doc:`profile`.
 
-My aircraft is for members whose membership is current, or who have joined and not
-yet paid. A friend of CalDART has no **My aircraft** in the menu and no aircraft on
-their profile. If your membership expires, the airplanes stay on your profile, but
+My aircraft is for members whose membership is current. A friend of CalDART has no
+**My aircraft** in the menu and no aircraft on their profile, and a new member has
+none until their first dues are paid. If your membership expires, the airplanes stay on your profile, but
 the screen says *Aircraft are for members with a current membership.* in their
 place until you renew; then they are back.
 

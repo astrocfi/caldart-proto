@@ -29,7 +29,8 @@ from apps.aircraft.registry import (
 from tests.conftest import read_csv
 from tests.factories import AircraftFactory, AircraftTypeFactory
 
-pytestmark = pytest.mark.django_db
+# Aircraft are for current members, so the `member` these tests act as holds a term.
+pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("member_is_current")]
 
 LIST_URL = "/api/v1/aircraft"
 CSV_URL = "/api/v1/reports/aircraft/export.csv"

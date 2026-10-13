@@ -236,6 +236,7 @@ def test_checkout_ignores_the_owner_status_and_amount(
 # --------------------------------------------------------------------------
 # The aircraft register's provenance
 # --------------------------------------------------------------------------
+@pytest.mark.usefixtures("member_is_current")
 def test_adding_an_aircraft_ignores_a_supplied_last_writer(
     api_client: APIClient, member: UserModel, other_member: UserModel
 ) -> None:

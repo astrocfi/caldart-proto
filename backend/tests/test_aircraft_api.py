@@ -23,6 +23,7 @@ from tests.factories import (
     AircraftFactory,
     AircraftTypeFactory,
     MemberProfileFactory,
+    MembershipFactory,
     UserFactory,
 )
 
@@ -32,7 +33,8 @@ if TYPE_CHECKING:
     # at runtime rather than defining a real subclass.
     from rest_framework.response import _MonkeyPatchedResponse as ApiResponse
 
-pytestmark = pytest.mark.django_db
+# Aircraft are for current members, so the `member` these tests act as holds a term.
+pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("member_is_current")]
 
 LIST_URL = "/api/v1/aircraft"
 LOOKUP_URL = "/api/v1/aircraft/lookup"
@@ -132,6 +134,7 @@ def test_a_plain_member_never_learns_who_else_flies_an_aircraft(
     """``pilots`` carries email, membership and medical: that is leader-check data."""
     profile.aircraft.add(aircraft)
     other = UserFactory(email="other@example.test", roles=[MEMBER])
+    MembershipFactory(user=other)
     api_client.force_login(other)
     response = api_client.get(url_for(aircraft))
     assert response.status_code == 200
