@@ -10,16 +10,19 @@ import freezegun
 import pytest
 from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
+from django.contrib.sessions.models import Session
 from django.core.mail import EmailMessage
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from pytest_django.fixtures import DjangoCaptureOnCommitCallbacks
+from rest_framework.test import APIClient
 
+from apps.accounts.management.commands.create_admin import PROMOTED_NOTICE
 from apps.accounts.models import AccountKind, User
 from apps.accounts.roles import MEMBER, SYSTEM_ADMIN, TREASURER, WEBSITE_ADMIN
-from apps.accounts.services import RESET_PATH, make_reset_token, user_from_uid
+from apps.accounts.services import RESET_PATH, build_reset_url, make_reset_token, user_from_uid
 from caldart import audit
-from tests.conftest import RecordedEvents
+from tests.conftest import ME_URL, RecordedEvents
 from tests.factories import UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -113,17 +116,135 @@ def test_promoting_an_existing_account_keeps_the_roles_it_already_held(
     assert set(existing.roles) == {MEMBER, TREASURER, SYSTEM_ADMIN, WEBSITE_ADMIN}
 
 
-def test_promoting_an_existing_account_leaves_its_password_untouched(
+def test_promoting_an_existing_account_clears_its_password(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    """Promoting an account never rewrites its password hash."""
+    """Whoever set the existing account's password can no longer sign in with it."""
     existing = UserFactory(email="already.here@example.test", roles=[MEMBER])
-    password_hash = existing.password
 
     call_command("create_admin", email="already.here@example.test")
     existing.refresh_from_db()
 
-    assert existing.password == password_hash
+    assert existing.has_usable_password() is False
+
+
+def test_promoting_an_existing_account_ends_its_sessions(
+    capsys: pytest.CaptureFixture[str], api_client: APIClient
+) -> None:
+    """A session the account held before the promotion is deleted."""
+    existing = UserFactory(email="already.here@example.test", roles=[MEMBER])
+    api_client.force_login(existing)
+    session_key = api_client.cookies[settings.SESSION_COOKIE_NAME].value
+
+    call_command("create_admin", email="already.here@example.test")
+
+    assert Session.objects.filter(session_key=session_key).exists() is False
+
+
+def test_a_session_held_before_the_promotion_no_longer_authenticates(
+    capsys: pytest.CaptureFixture[str], api_client: APIClient
+) -> None:
+    """A client signed in to the account before the promotion is signed out after it."""
+    existing = UserFactory(email="already.here@example.test", roles=[MEMBER])
+    api_client.force_login(existing)
+    assert api_client.get(ME_URL).status_code == 200
+
+    call_command("create_admin", email="already.here@example.test")
+
+    assert api_client.get(ME_URL).status_code == 401
+
+
+def test_promoting_an_existing_account_leaves_other_sessions_alone(
+    capsys: pytest.CaptureFixture[str], api_client: APIClient
+) -> None:
+    """Another account's session survives the promotion."""
+    UserFactory(email="already.here@example.test", roles=[MEMBER])
+    bystander = UserFactory(email="bystander@example.test", roles=[MEMBER])
+    api_client.force_login(bystander)
+    session_key = api_client.cookies[settings.SESSION_COOKIE_NAME].value
+
+    call_command("create_admin", email="already.here@example.test")
+
+    assert Session.objects.filter(session_key=session_key).exists() is True
+
+
+def test_promoting_an_existing_account_mails_it_the_set_password_link(
+    capsys: pytest.CaptureFixture[str],
+    mailoutbox: list[EmailMessage],
+    django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
+) -> None:
+    """The address is mailed the same link the command prints, and nothing else."""
+    UserFactory(email="already.here@example.test", roles=[MEMBER])
+
+    with (
+        freezegun.freeze_time("2026-09-27 12:00:00"),
+        django_capture_on_commit_callbacks(execute=True),
+    ):
+        call_command("create_admin", email="already.here@example.test")
+    printed = capsys.readouterr().out.strip()
+
+    assert [message.to for message in mailoutbox] == [["already.here@example.test"]]
+    assert printed in mailoutbox[0].body
+
+
+def test_promoting_an_existing_account_says_so_on_standard_error(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Standard error says the password was cleared and the link mailed."""
+    UserFactory(email="already.here@example.test", roles=[MEMBER])
+
+    call_command("create_admin", email="already.here@example.test")
+
+    expected = PROMOTED_NOTICE.format(email="already.here@example.test")
+    assert capsys.readouterr().err == f"{expected}\n"
+
+
+def test_promoting_an_existing_account_still_prints_only_the_link(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Standard output stays the one reset link the install scripts capture."""
+    existing = UserFactory(email="already.here@example.test", roles=[MEMBER])
+
+    with freezegun.freeze_time("2026-09-27 12:00:00"):
+        call_command("create_admin", email="already.here@example.test")
+        existing.refresh_from_db()
+        expected = build_reset_url(existing)
+
+    assert capsys.readouterr().out == f"{expected}\n"
+
+
+def test_promoting_an_existing_account_is_recorded_in_the_audit_log(
+    capsys: pytest.CaptureFixture[str],
+    api_client: APIClient,
+    audit_log: pytest.LogCaptureFixture,
+) -> None:
+    """``account.password_cleared`` names the command actor and the sessions ended."""
+    existing = UserFactory(email="already.here@example.test", roles=[MEMBER])
+    api_client.force_login(existing)
+
+    call_command("create_admin", email="already.here@example.test")
+
+    cleared_lines = [
+        record.getMessage()
+        for record in audit_log.records
+        if record.name == audit.LOGGER_NAME
+        and "action=account.password_cleared" in record.getMessage()
+    ]
+    assert cleared_lines == [
+        f"action=account.password_cleared actor=command target={existing.pk} sessions=1"
+    ]
+
+
+def test_creating_a_new_account_mails_nothing(
+    capsys: pytest.CaptureFixture[str],
+    mailoutbox: list[EmailMessage],
+    django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
+) -> None:
+    """A freshly created account has no password to take back, so nothing is mailed."""
+    with django_capture_on_commit_callbacks(execute=True):
+        call_command("create_admin", email="new.admin@example.test")
+
+    assert mailoutbox == []
 
 
 def test_promoting_an_existing_account_leaves_its_names_untouched(
@@ -143,10 +264,10 @@ def test_promoting_an_existing_account_leaves_its_names_untouched(
     assert existing.last_name == "Okoye"
 
 
-def test_promoting_an_existing_account_does_not_mark_its_email_verified(
+def test_promoting_an_existing_account_marks_its_email_verified(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    """Only account creation marks the email verified; promoting one does not."""
+    """An unverified address is marked verified, as it is for a newly created account."""
     existing = UserFactory(
         email="already.here@example.test", roles=[MEMBER], email_verified_at=None
     )
@@ -155,7 +276,7 @@ def test_promoting_an_existing_account_does_not_mark_its_email_verified(
     call_command("create_admin", email="already.here@example.test")
     existing.refresh_from_db()
 
-    assert existing.email_verified is False
+    assert existing.email_verified is True
 
 
 # --------------------------------------------------------------------------

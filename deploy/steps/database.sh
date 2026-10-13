@@ -7,8 +7,8 @@
 # loads the demo accounts (the same data development seeds with make seed),
 # with --seed-content it loads the example pages, and with --admin-email it
 # creates the first administrator (or gives an existing account the
-# administrator's roles) and keeps the one-time password-reset link
-# create_admin prints for the summary.
+# administrator's roles, clearing its password and ending its sessions) and
+# keeps the one-time password-reset link create_admin prints for the summary.
 #
 # Usage:
 #   sudo deploy/steps/database.sh [options]

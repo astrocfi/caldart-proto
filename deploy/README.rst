@@ -333,9 +333,16 @@ with the ``member``, ``system_admin``, and ``website_admin`` roles and no
 usable password, and prints one line: a one-time password-reset link.  Open it,
 signed out, to set the administrator's password.  It expires with any
 password-reset link, after ``PASSWORD_RESET_TIMEOUT`` (three days by default).
-To make another link later::
+When an account with that address already exists, because somebody registered
+it through the portal, ``create_admin`` clears its password, ends its sessions,
+mails the address a set-password link, and says so; only the person who reads
+that mailbox, or holds the printed link, can sign in.  To make another link
+later::
 
   sudo /opt/caldart/caldart/deploy/manage.sh create_admin --email you@example.org
+
+That run also clears the administrator's password and signs them out until
+they use the link.
 
 With a self-signed certificate the summary adds that browsers warn until a
 real certificate replaces it.

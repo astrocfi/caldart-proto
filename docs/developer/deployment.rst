@@ -958,11 +958,21 @@ With ``--admin-email`` the step creates the first real administrator::
   sudo deploy/manage.sh create_admin --email you@example.org
 
 ``create_admin`` makes the account a superuser with the ``member``,
-``system_admin``, and ``website_admin`` roles and no usable password (an
-existing account with that address gains what it lacks), and prints one line:
-a password-reset link, which the installer's summary repeats.  Open it to set
-the password.  ``system_admin`` plus ``is_superuser`` is what unlocks
-``/portal/system/`` and the Wagtail admin.
+``system_admin``, and ``website_admin`` roles, no usable password, and a
+verified address, and prints one line: a password-reset link, which the
+installer's summary repeats.  Open it to set the password.  ``system_admin``
+plus ``is_superuser`` is what unlocks ``/portal/system/`` and the Wagtail
+admin.
+
+An existing account with that address gains the roles it lacks and keeps the
+rest, and is taken back from whoever set its password, since anybody can
+register any address through the portal: its password is cleared, every
+session signed in to it is ended, its address is marked verified, and the
+address is mailed a set-password link (the same link the command prints).  A
+line on standard error says so, and the audit log records
+``account.password_cleared``.  This happens on every run for an existing
+address, so running ``create_admin`` again for a working administrator signs
+them out and makes them choose a new password.
 
 
 .. _deploy-web-service:
@@ -1909,6 +1919,9 @@ Action                        Fields beyond actor and target
 ``account.unblock``           --
 ``account.bounce_cleared``    -- (a user administrator cleared the bounce
                               recorded against the account's address)
+``account.password_cleared``  ``sessions`` -- the sessions ended
+                              (``create_admin`` took an existing account
+                              back from whoever set its password)
 ``member.create``             ``invited`` -- whether an invitation was mailed
 ``member.delete``             ``payments``, ``owner`` -- when the member had
                               paid, how many payments moved and the
