@@ -576,16 +576,21 @@ def replace_password(user: User, raw_password: str) -> bool:
     ``password_changed`` hooks run, and the return is True.  Any change of address
     waiting for its link is dropped with it (``pending_email`` emptied): a new password
     is the owner taking the account in hand, and the link was asked for under the old.
+    For the same reason the demo mark is cleared (``is_demo``): the account no longer
+    signs in with the published demo password, so a role that requires two-factor
+    sign-in requires it again, and the session that changed the password is signed out
+    at its next request unless it has passed a second factor.
     """
     new_hash = make_password(raw_password)
     now = timezone.now()
     written = User.objects.filter(pk=user.pk, password=user.password).update(
-        password=new_hash, pending_email="", updated_at=now
+        password=new_hash, pending_email="", is_demo=False, updated_at=now
     )
     if written == 0:
         return False
     user.password = new_hash
     user.pending_email = ""
+    user.is_demo = False
     user.updated_at = now
     password_changed(raw_password, user)
     return True

@@ -155,8 +155,8 @@ class User(AbstractUser):
     #: which signs in with the published demo password.  While
     #: ``DEMO_ACCOUNTS_SKIP_TWO_FACTOR`` is on, no role makes such an account set up
     #: two-factor sign-in (``apps.accounts.mfa.mfa_required``).  Only the seed sets it;
-    #: ``create_admin`` taking the account back and a completed change of address clear
-    #: it, and nothing else writes it.
+    #: ``create_admin`` taking the account back, a new password (changed or reset), and
+    #: a completed change of address clear it, and nothing else writes it.
     is_demo = models.BooleanField(default=False, help_text="Seeded demo account")
 
     USERNAME_FIELD = "email"

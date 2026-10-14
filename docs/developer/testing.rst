@@ -1076,8 +1076,9 @@ needs to be running first, and nothing it started is left behind.
 The script signs in as each demo account in ``backend/apps/accounts/seed.py`` and
 visits every route its roles admit.  The target sets
 ``DEMO_ACCOUNTS_SKIP_TWO_FACTOR=false``, so each staff account sets up two-factor
-sign-in at its first sign-in, and the screens show what a production site shows.  The routes are not listed anywhere: the paths and
-the roles each one needs are read from ``frontend/src/portal/routes/*.tsx`` and
+sign-in at its first sign-in, and the screens show what a production site shows.
+The routes are not listed anywhere: the paths and the roles each one needs are read
+from ``frontend/src/portal/routes/*.tsx`` and
 ``frontend/src/portal/nav.ts``, so a new route is shot the first time it is run.  A
 route with an id in it opens at the first record that a screen the account already
 visited links to, and is skipped, with a note, when there is none.

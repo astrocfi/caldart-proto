@@ -331,7 +331,9 @@ The demo accounts ``seed_demo`` writes (:doc:`setup`) carry a demo mark
 requires a demo account to use two-factor sign-in, so the demo staff accounts sign
 in with the demo password alone; a demo account that sets up an authenticator app
 is still asked for a code, and may turn two-factor sign-in off again
-(:ref:`api-two-factor`).
+(:ref:`api-two-factor`).  ``create_admin`` taking the account back, a new
+password, and a completed change of address clear the mark, after which the
+account's roles require two-factor sign-in as for anybody.
 
 ``DEMO_ACCOUNTS_SKIP_TWO_FACTOR``
    ``true`` lets the demo accounts sign in without a second factor, whatever roles
@@ -350,10 +352,14 @@ sets it, which suits a demonstration server installed with ``--seed-demo``
 
 .. warning::
 
-   The demo password is published in this repository.  On a server anybody can
-   reach, turning the setting on lets anybody sign in as every demo staff account,
-   the system administrator among them, with that password alone.  Turn it on only
-   for a demonstration server that holds no real person's data.
+   The demo password is published in this repository.  On any machine others can
+   reach, turning the setting on lets them sign in as every demo staff account, the
+   system administrator among them, with that password alone.  That includes a
+   production server and a development checkout: ``make run`` listens on every
+   interface, so a seeded development database answers the whole network the
+   machine is on.  Turn it
+   on only for a demonstration server that holds no real person's data, and set it
+   to ``false`` in ``.env`` on a development machine others can reach.
 
 Which address is counted
 ------------------------

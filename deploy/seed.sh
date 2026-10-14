@@ -9,8 +9,8 @@
 # rows it made rather than duplicating them.  That also means a second run puts
 # back what it seeds: --plans resets a plan's price and description, --content
 # overwrites and republishes the example pages (pages made in the CMS are left
-# alone), and --demo resets the demo accounts' names, roles, and password.  The
-# site keeps running throughout.
+# alone), and --demo resets the demo accounts' names, kinds, roles, password, and
+# demo mark.  The site keeps running throughout.
 #
 # The demo accounts share the password README.rst documents: a server seeded
 # with them is a demonstration server, never one holding real member data.

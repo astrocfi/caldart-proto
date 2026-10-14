@@ -786,7 +786,9 @@ in with the demo password alone, set ``DEMO_ACCOUNTS_SKIP_TWO_FACTOR=true`` in
 With that set, the published password is all anybody needs to sign in as the
 demo system administrator, so set it only on a demonstration server that
 anybody may change.  ``create_admin`` taking a demo account back for a real
-administrator clears its mark, and so does a completed change of its address.
+administrator clears its mark, and so do a new password and a completed change
+of its address; the account then needs two-factor sign-in as any staff account
+does.
 
 In development, ``seed_demo`` gives two generated members an automatic renewal
 due the day it runs and a third an overdue one, its paused renewal a card
