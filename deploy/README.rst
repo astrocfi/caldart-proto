@@ -262,7 +262,10 @@ These are every option ``install.sh`` accepts (``sudo deploy/install.sh
    Load the demo accounts and their records (members, DARTs, aircraft,
    payments), sharing the password this repository's ``README.rst`` documents.
    A server seeded with them is a demonstration server, never one holding real
-   member data.  Independent of ``--seed-content``.
+   member data.  The demo staff accounts must use two-factor sign-in, as every
+   staff account does, unless ``/etc/caldart/caldart.env`` sets
+   ``DEMO_ACCOUNTS_SKIP_TWO_FACTOR=true`` (`Seeding`_).  Independent of
+   ``--seed-content``.
 ``--seed-content``
    Load the example website: the public pages and the members-only area, with
    no accounts.  Give it alone to see the website by itself.  Independent of
@@ -768,13 +771,22 @@ want its values back:
 * ``--content`` overwrites the example pages' text and publishes them again,
   reusing the photograph it uploaded the first time.  Pages made in the CMS
   are left alone.
-* ``--demo`` resets the demo accounts' names, kinds, roles, and password, and
+* ``--demo`` resets the demo accounts' names, kinds, roles, password, and demo mark, and
   their profiles and aircraft.  A payment, a refund, or a renewal mandate is
   created only when missing, so nothing is charged or recorded twice.
 
 **Caution:** the demo accounts ``seed_demo`` creates share the password
 documented in this repository's ``README.rst``, so a server seeded with them
 is a demonstration server, never one holding real member data.
+
+The seed marks those accounts as demo accounts.  On a server the demo staff
+accounts must use two-factor sign-in like any staff account.  To let them sign
+in with the demo password alone, set ``DEMO_ACCOUNTS_SKIP_TWO_FACTOR=true`` in
+``/etc/caldart/caldart.env`` and run ``sudo systemctl restart caldart-web``.
+With that set, the published password is all anybody needs to sign in as the
+demo system administrator, so set it only on a demonstration server that
+anybody may change.  ``create_admin`` taking a demo account back for a real
+administrator clears its mark, and so does a completed change of its address.
 
 In development, ``seed_demo`` gives two generated members an automatic renewal
 due the day it runs and a third an overdue one, its paused renewal a card

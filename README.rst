@@ -109,11 +109,19 @@ webadmin@example.org           member, website_admin
 sysadmin@example.org           member, system_admin (superuser)
 =============================  ====================================
 
-The accounts holding user_admin, treasurer, account_admin, management,
-website_admin, or system_admin must use two-factor sign-in, and the seed gives
-them none, so the first sign-in to each asks you to set up an authenticator app
-on your phone (any app that reads a QR code, such as Google Authenticator) and
-shows ten backup codes; every later sign-in asks for a code from the app.
+In development every one of them signs in with the password alone, the staff
+accounts included, since ``DEMO_ACCOUNTS_SKIP_TWO_FACTOR`` is on under the
+development settings.  Anywhere it is off, the accounts holding user_admin,
+treasurer, account_admin, management, website_admin, or system_admin must use
+two-factor sign-in, as every staff account does: the first sign-in to each asks
+you to set up an authenticator app on your phone (any app that reads a QR code,
+such as Google Authenticator) and shows ten backup codes, and every later
+sign-in asks for a code from the app.  ``make e2e`` and ``make screenshots``
+turn it off, and so does a server: on a demonstration server installed with
+``--seed-demo``, set ``DEMO_ACCOUNTS_SKIP_TWO_FACTOR=true`` in
+``/etc/caldart/caldart.env`` to let the demo staff accounts skip it.  Never do
+that on a server real people use: the password above is public, and with the
+setting on it is all anybody needs to sign in as the system administrator.
 
 Plus about 40 generated members and friends with mixed membership, certificate, and
 medical states, 25 aircraft with varied insurance currency, and two years of

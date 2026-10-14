@@ -389,6 +389,16 @@ authenticator app, or one of its backup codes -- when it **needs** one:
 * or its owner turned two-factor sign-in on (a confirmed ``TotpDevice``, see
   :doc:`data-model`).
 
+No role requires it of a demo account (``User.is_demo``, the accounts
+``seed_demo`` writes) while ``DEMO_ACCOUNTS_SKIP_TWO_FACTOR`` is on, which it is
+in development and off in production unless the server's environment turns it on
+(:ref:`configuration-demo-two-factor`).  Such an account signs in with its
+password alone, keeps a session that never passed a second factor, reads
+``required_by_role`` as false, and may turn two-factor sign-in off.  A demo
+account with a confirmed device is still asked for a code.  ``create_admin``
+taking an account back clears the mark, and so does a completed change of the
+account's address.
+
 The code is RFC 6238: HMAC-SHA-1, six digits, 30-second steps, with one step of
 drift either way accepted.  The device remembers the step of the last code it
 accepted (``last_used_step``), and a code from that step or an earlier one is
@@ -563,7 +573,8 @@ These need a session; an anonymous caller gets **401**.
 
    ``enabled`` is true with a confirmed device; ``required_by_role`` is true when
    a role the account holds requires two-factor sign-in, which then cannot be
-   turned off.
+   turned off; it is false for a demo account while
+   ``DEMO_ACCOUNTS_SKIP_TWO_FACTOR`` is on.
 
 ``POST /auth/mfa/enroll``
    ``{"current_password": "..."}``, so a session left open on somebody else's
