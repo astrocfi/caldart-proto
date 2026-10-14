@@ -188,7 +188,7 @@ Treat the rule files (`.claude/rules/*.md`, always loaded) and standards skills 
 | 1 Structure and layout, 2 Best practices alignment, 3 Types and static checks, 9 Technical debt | `python.md` |
 | 4 Testing | `python_testing.md`; or run the `critique-test-suite` skill for a deep test audit |
 | 6 Maintainability (documentation quality) | `doc_python.md`; skills `doc-readme`, `doc-user-guide`, `doc-dev-guide`, `doc-how-to` — or run the `critique-documentation` skill for a deep documentation audit |
-| 7 Security and robustness | `security.md` |
+| 7 Security and robustness | `security.md`; or run the `security-audit` skill for a full security audit |
 | 8 Dependencies and tooling, 10 Deployment and configuration | `dependency_management.md`, `environment.md` |
 | Process (commits, pull requests, bug reports) | skills `git-workflow`, `pull-request`, `bug-report` |
 | Frontend (only when the user asks) | `javascript_typescript_best_practices.md` |
