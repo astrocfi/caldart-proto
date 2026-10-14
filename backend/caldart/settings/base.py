@@ -476,6 +476,13 @@ LOGIN_LOCKOUT_SECONDS = env.int("LOGIN_LOCKOUT_SECONDS", default=15 * 60)
 LOGIN_LOCKOUT_CODE_ATTEMPTS = env.int("LOGIN_LOCKOUT_CODE_ATTEMPTS", default=30)
 LOGIN_LOCKOUT_CODE_SECONDS = env.int("LOGIN_LOCKOUT_CODE_SECONDS", default=24 * 60 * 60)
 
+# Whether the accounts ``seed_demo`` writes (``User.is_demo``) sign in without a second
+# factor whatever roles they hold, read by ``apps.accounts.mfa.mfa_required``.  Off here
+# and in production; ``dev.py`` and ``test.py`` turn it on.  The demo password is
+# published, so on a server anybody can reach this makes the demo staff accounts sign
+# in with that password alone.
+DEMO_ACCOUNTS_SKIP_TWO_FACTOR = env.bool("DEMO_ACCOUNTS_SKIP_TWO_FACTOR", default=False)
+
 # How often one account may run a bulk email's checks, read by
 # ``apps.bulk_email.throttling``: each run fetches every link in the message.
 # Empty is off.

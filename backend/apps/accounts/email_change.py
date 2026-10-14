@@ -338,10 +338,12 @@ def complete_email_change(payload: object) -> FollowedLink:
     its recovery address, or takes it while this one is completing,
     ``EmailVerificationError`` says :data:`ADDRESS_TAKEN` and nothing changes.
 
-    Completing the change writes the pending address as the account's ``email``, as it
-    was typed, empties ``pending_email``, stamps the address verified now, and clears
-    any bounce recorded against the old one.  An old address its owner had verified
-    becomes the account's recovery address for :data:`EMAIL_CHANGE_UNDO_TIMEOUT`
+    Completing the change writes the pending address as the account's ``email``, as it was
+    typed, empties ``pending_email``, stamps the address verified now, clears any bounce
+    recorded against the old one, and clears the demo mark (``User.is_demo``): an account
+    that moved off its seeded address is no longer the published demo login, and an undo
+    that puts the address back does not mark it again.  An old address its owner had
+    verified becomes the account's recovery address for :data:`EMAIL_CHANGE_UNDO_TIMEOUT`
     seconds; while one is kept already, it stays the recovery address and is kept that
     long from now.  The change is audited as ``account.update`` of ``email`` and
     ``account.email_verified`` with the account as actor, recorded in the account's
@@ -388,6 +390,8 @@ def _complete(payload: object) -> FollowedLink:
     user.email_bounce_detail = ""
     user.recovery_email = recovery
     user.recovery_until = now + timedelta(seconds=EMAIL_CHANGE_UNDO_TIMEOUT) if recovery else None
+    # An account that moved off its seeded address is no longer the published demo login.
+    user.is_demo = False
     user.save(
         update_fields=[
             "email",
@@ -397,6 +401,7 @@ def _complete(payload: object) -> FollowedLink:
             "email_bounce_detail",
             "recovery_email",
             "recovery_until",
+            "is_demo",
             "updated_at",
         ]
     )

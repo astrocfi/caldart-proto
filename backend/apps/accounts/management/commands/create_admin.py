@@ -71,7 +71,9 @@ class Command(BaseCommand):
     anybody can register any address, the account is first taken back from whoever
     set its password, with its row locked for the length of the command: the password
     is made unusable, any block on reactivating it is lifted (so the link can reopen a
-    deactivated account, as a password reset does), every session signed in to the
+    deactivated account, as a password reset does), its demo mark (``User.is_demo``) is
+    cleared, so a seeded demo account made a real administrator's is never exempt from
+    two-factor sign-in, every session signed in to the
     account is ended (:func:`apps.accounts.status.clear_password_and_end_sessions`), and
     the audit log
     records ``account.password_cleared`` with ``actor=command``, ``sessions`` (how many
@@ -171,18 +173,21 @@ class Command(BaseCommand):
 
 
 def _take_back(user: User) -> None:
-    """Clear ``user``'s password, reactivation block, and two-factor; end its sessions.
+    """Clear ``user``'s password, block, demo mark, and two-factor; end its sessions.
 
     Any change of address waiting for its link is dropped with the password
     (``clear_password_and_end_sessions``): whoever asked for it may be whoever set the
     password being cleared.  The authenticator device and backup codes go too, so one
     somebody else set up on the account cannot keep the real owner out, and so do the
-    address's counted failed sign-ins.  Runs inside the caller's transaction, on a row
-    it has locked.
+    address's counted failed sign-ins.  The demo mark (``User.is_demo``) is cleared, so
+    the account is required to use two-factor sign-in by its roles whatever
+    ``DEMO_ACCOUNTS_SKIP_TWO_FACTOR`` says.  Runs inside the caller's transaction, on a
+    row it has locked.
     """
     is_blocked = user.reactivation_blocked
     user.reactivation_blocked = False
-    user.save(update_fields=["reactivation_blocked", "updated_at"])
+    user.is_demo = False
+    user.save(update_fields=["reactivation_blocked", "is_demo", "updated_at"])
     ended = clear_password_and_end_sessions(user)
     had_device = remove_two_factor(user)
     lockout.clear_all_failures(user.email)

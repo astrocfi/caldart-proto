@@ -69,8 +69,9 @@ class MfaStatusSerializer(serializers.Serializer[dict[str, object]]):
     """``GET /auth/mfa``: whether two-factor sign-in is on, and whether it must be.
 
     ``enabled`` is true with a confirmed device; ``required_by_role`` is true when a role
-    the account holds requires it, when it cannot be turned off; and
-    ``recovery_codes_remaining`` counts the unused backup codes.
+    the account holds requires it (``apps.accounts.mfa.mfa_required``: never for a demo
+    account while ``DEMO_ACCOUNTS_SKIP_TWO_FACTOR`` is on), when it cannot be turned off;
+    and ``recovery_codes_remaining`` counts the unused backup codes.
     """
 
     enabled = serializers.BooleanField()

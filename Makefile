@@ -78,6 +78,11 @@ E2E_PROXY := frontend/e2e/prefix_proxy.py
 #                      try the demo addresses more often than a person would.
 #                      Two-factor sign-in itself is not relaxed: the specs set
 #                      it up and give codes (frontend/e2e/twoFactor.ts).
+#   DEMO_ACCOUNTS_SKIP_TWO_FACTOR
+#                      false, so the demo staff accounts are asked for a second
+#                      factor as on a production site, rather than signing in
+#                      with the password alone as the development settings let
+#                      them.
 #   GEOAPIFY_*         a key, so address suggestions are on, and the stub's
 #                      URL in place of Geoapify's; the stub answers every query
 #                      with frontend/e2e/geoapify/autocomplete.json.  The
@@ -113,6 +118,7 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
            AUTH_THROTTLE_MFA=1000/min \
            LOGIN_LOCKOUT_ATTEMPTS=1000 \
            LOGIN_LOCKOUT_CODE_ATTEMPTS=1000 \
+           DEMO_ACCOUNTS_SKIP_TWO_FACTOR=false \
            GEOAPIFY_API_KEY=e2e-stub-key \
            GEOAPIFY_URL="http://127.0.0.1:$(E2E_GEOAPIFY_PORT)/autocomplete.json" \
            ADDRESS_SUGGEST_THROTTLE_RATE=1000/min \
@@ -142,7 +148,8 @@ SCREENSHOTS_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
                    AUTH_THROTTLE_LOGIN=1000/min \
                    AUTH_THROTTLE_MFA=1000/min \
                    LOGIN_LOCKOUT_ATTEMPTS=1000 \
-                   LOGIN_LOCKOUT_CODE_ATTEMPTS=1000
+                   LOGIN_LOCKOUT_CODE_ATTEMPTS=1000 \
+                   DEMO_ACCOUNTS_SKIP_TWO_FACTOR=false
 
 # `make rehearse-deploy` runs the real installer in a throwaway systemd
 # container: deploy/bootstrap.sh, with every scheduled job started once after

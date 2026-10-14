@@ -177,6 +177,13 @@ Sign in with any of the demo accounts, all of which use the password
    * - ``sysadmin@example.org``
      - ``member``, ``system_admin``, Django superuser
 
+In development every demo account signs in with the password alone, the staff
+accounts included: the seed marks them as demo accounts, and the development
+settings turn ``DEMO_ACCOUNTS_SKIP_TWO_FACTOR`` on
+(:ref:`configuration-demo-two-factor`).  Set it to ``false`` in ``.env`` to sign
+them in with two-factor sign-in, as every staff account must use on a production
+site.
+
 The list, the names attached to it and the password all live in
 ``backend/apps/accounts/seed.py``.  The seeded DART leader has verified the
 pilot certificate, medical, and photo ID of about seven in ten members, the

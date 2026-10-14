@@ -151,7 +151,10 @@ The flags:
      - none
    * - ``--seed-demo``
      - load the demo accounts alone, sharing the password ``README.rst``
-       documents (:ref:`deploy-database`)
+       documents (:ref:`deploy-database`); the demo staff accounts must use
+       two-factor sign-in unless the environment file sets
+       ``DEMO_ACCOUNTS_SKIP_TWO_FACTOR=true``
+       (:ref:`configuration-demo-two-factor`)
      - off
    * - ``--seed-content``
      - load the example website alone, with no accounts

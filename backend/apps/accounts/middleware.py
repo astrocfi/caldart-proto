@@ -103,7 +103,8 @@ class MfaSessionMiddleware:
 
     An account needs one when a role it holds requires it, when it is a Django
     superuser, or when it has a confirmed authenticator device
-    (``apps.accounts.mfa.needs_second_factor``).  A session signed in to such an
+    (``apps.accounts.mfa.needs_second_factor``); no role requires it of a seeded demo
+    account while ``DEMO_ACCOUNTS_SKIP_TWO_FACTOR`` is on.  A session signed in to such an
     account without the mark the code step leaves (``apps.accounts.mfa.mark_session``)
     is signed out before the view runs, and the request carries on anonymous: so a
     session from before two-factor sign-in, one whose account was given a required role

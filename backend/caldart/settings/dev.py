@@ -16,6 +16,10 @@ DEBUG = env.bool("DEBUG", default=True)
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"])
 INTERNAL_IPS = ["127.0.0.1"]
 
+# The seeded demo accounts sign in with the demo password alone, whatever their roles;
+# `make e2e` and `make screenshots` set it false to exercise two-factor sign-in.
+DEMO_ACCOUNTS_SKIP_TWO_FACTOR = env.bool("DEMO_ACCOUNTS_SKIP_TWO_FACTOR", default=True)
+
 # Django's default, DENY, also blocks an <object> that embeds a same-origin SVG, which
 # is how the user guide draws a diagram (docs/_static/figure-zoom.js).
 X_FRAME_OPTIONS = "SAMEORIGIN"

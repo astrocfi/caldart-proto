@@ -155,6 +155,10 @@ What ``caldart.settings.test`` changes
   ``None``, so address suggestions are off and unthrottled whatever ``.env``
   says.  ``test_address_suggestions.py`` sets a key with the ``settings``
   fixture and answers Geoapify with ``respx``, so no test reaches the network.
+- ``DEMO_ACCOUNTS_SKIP_TWO_FACTOR`` is ``True`` whatever ``.env`` says, as in
+  development, so no role requires a demo account to use two-factor sign-in;
+  ``test_demo_two_factor.py`` turns it off with the ``settings`` fixture
+  (:ref:`configuration-demo-two-factor`).
 - ``BULK_EMAIL_CHECKS_THROTTLE_RATE`` is ``None``, so a bulk email's checks are
   unthrottled; ``test_bulk_checks.py`` turns it on with the ``settings`` fixture,
   answers every link with ``respx``, and fakes name lookups, so no check reaches the
@@ -969,6 +973,12 @@ reports on: the export carries every payment, while the by-period summary counts
 only the succeeded ones, so the spec counts periods over the export's
 ``succeeded`` rows and the ledger's caption over all of them.
 
+**Give the staff accounts their second factor.**  ``make e2e`` runs the
+development settings with ``DEMO_ACCOUNTS_SKIP_TWO_FACTOR=false``
+(:ref:`configuration-demo-two-factor`), so a demo staff account signs in with a
+second factor as on a production site, and ``e2e/twoFactor.ts`` sets it up and gives
+the codes.
+
 **Follow an emailed link from the mail directory.**  ``make e2e`` sends mail
 through Django's file backend (``EMAIL_URL=filemail:///<repo>/frontend/e2e/.mail``),
 so every message the server sends lands as a file in ``frontend/e2e/.mail/``,
@@ -1064,8 +1074,11 @@ needs to be running first, and nothing it started is left behind.
    $ make screenshots SCREENSHOTS_ROLES=member,leader   # only these accounts
 
 The script signs in as each demo account in ``backend/apps/accounts/seed.py`` and
-visits every route its roles admit.  The routes are not listed anywhere: the paths and
-the roles each one needs are read from ``frontend/src/portal/routes/*.tsx`` and
+visits every route its roles admit.  The target sets
+``DEMO_ACCOUNTS_SKIP_TWO_FACTOR=false``, so each staff account sets up two-factor
+sign-in at its first sign-in, and the screens show what a production site shows.
+The routes are not listed anywhere: the paths and the roles each one needs are read
+from ``frontend/src/portal/routes/*.tsx`` and
 ``frontend/src/portal/nav.ts``, so a new route is shot the first time it is run.  A
 route with an id in it opens at the first record that a screen the account already
 visited links to, and is skipped, with a note, when there is none.

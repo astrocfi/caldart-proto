@@ -336,10 +336,12 @@ Flow E — a website administrator adds, edits, and deletes a page
 1. Sign out and open the Wagtail admin at http://localhost:8000/admin/.
    It sends you to the portal's sign-in, the one login page the site has: sign
    in as ``webadmin@example.org`` / ``caldart-demo``.  The website
-   administrator role requires two-factor sign-in, so the first time you are
-   asked to scan a QR code with an authenticator app on your phone, type the
-   code it shows, and save the backup codes; after that each sign-in asks for a
-   code.  You land back in the admin.  What decides who gets in is the
+   administrator role requires two-factor sign-in, but in development the demo
+   accounts skip it, so the password alone signs you in.  With
+   ``DEMO_ACCOUNTS_SKIP_TWO_FACTOR=false`` in ``.env``, as on a production site,
+   the first sign-in asks you to scan a QR code with an authenticator app on your
+   phone, type the code it shows, and save the backup codes; after that each
+   sign-in asks for a code.  You land back in the admin.  What decides who gets in is the
    ``website_admin`` role: sign in as ``member@example.org`` and the admin sends
    you on to the portal's dashboard instead.
 2. Open **Pages** and walk down to *Home*.  The tree is: Home; About Us with

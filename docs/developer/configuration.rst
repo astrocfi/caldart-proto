@@ -321,6 +321,46 @@ lockout early with ``manage.py clear_lockout --email ADDRESS``.
 ``LOGIN_LOCKOUT_CODE_ATTEMPTS`` to ``0``, as it switches the throttles off; the
 lockout tests turn them back on with the ``settings`` fixture.
 
+.. _configuration-demo-two-factor:
+
+Demo accounts and two-factor sign-in
+------------------------------------
+
+The demo accounts ``seed_demo`` writes (:doc:`setup`) carry a demo mark
+(``User.is_demo``, :doc:`data-model`).  While the setting below is on, no role
+requires a demo account to use two-factor sign-in, so the demo staff accounts sign
+in with the demo password alone; a demo account that sets up an authenticator app
+is still asked for a code, and may turn two-factor sign-in off again
+(:ref:`api-two-factor`).  ``create_admin`` taking the account back, a new
+password, and a completed change of address clear the mark, after which the
+account's roles require two-factor sign-in as for anybody.
+
+``DEMO_ACCOUNTS_SKIP_TWO_FACTOR``
+   ``true`` lets the demo accounts sign in without a second factor, whatever roles
+   they hold.
+
+   :Development: ``true``
+   :Production: ``false``
+
+``caldart.settings.dev`` reads it with ``true`` as the default and
+``caldart.settings.test`` sets it to ``true``; the tests that need it off use the
+``settings`` fixture.  ``make e2e`` and ``make screenshots`` set it to ``false``,
+so they sign the demo staff accounts in with a second factor as a production site
+does.  Under ``caldart.settings.prod`` it is off unless the server's environment
+sets it, which suits a demonstration server installed with ``--seed-demo``
+(:doc:`deployment`).
+
+.. warning::
+
+   The demo password is published in this repository.  On any machine others can
+   reach, turning the setting on lets them sign in as every demo staff account, the
+   system administrator among them, with that password alone.  That includes a
+   production server and a development checkout: ``make run`` listens on every
+   interface, so a seeded development database answers the whole network the
+   machine is on.  Turn it
+   on only for a demonstration server that holds no real person's data, and set it
+   to ``false`` in ``.env`` on a development machine others can reach.
+
 Which address is counted
 ------------------------
 

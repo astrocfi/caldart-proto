@@ -389,6 +389,20 @@ authenticator app, or one of its backup codes -- when it **needs** one:
 * or its owner turned two-factor sign-in on (a confirmed ``TotpDevice``, see
   :doc:`data-model`).
 
+No role requires it of a demo account (``User.is_demo``, the accounts
+``seed_demo`` writes) while ``DEMO_ACCOUNTS_SKIP_TWO_FACTOR`` is on, which it is
+in development and off in production unless the server's environment turns it on
+(:ref:`configuration-demo-two-factor`).  Such an account signs in with its
+password alone, keeps a session that never passed a second factor, reads
+``required_by_role`` as false, and may turn two-factor sign-in off.  A demo
+account with a confirmed device is still asked for a code.  ``create_admin``
+taking an account back clears the mark, and so do a new password, changed
+(`POST /auth/password/change`_) or set from a reset link
+(`POST /auth/password/reset/confirm`_), and a completed change of the account's
+address.  Once the mark is gone, a role that requires two-factor sign-in requires
+it again: a session that never passed a second factor is signed out at its next
+request, and the next sign-in asks the account to set one up.
+
 The code is RFC 6238: HMAC-SHA-1, six digits, 30-second steps, with one step of
 drift either way accepted.  The device remembers the step of the last code it
 accepted (``last_used_step``), and a code from that step or an earlier one is
@@ -563,7 +577,8 @@ These need a session; an anonymous caller gets **401**.
 
    ``enabled`` is true with a confirmed device; ``required_by_role`` is true when
    a role the account holds requires two-factor sign-in, which then cannot be
-   turned off.
+   turned off; it is false for a demo account while
+   ``DEMO_ACCOUNTS_SKIP_TWO_FACTOR`` is on.
 
 ``POST /auth/mfa/enroll``
    ``{"current_password": "..."}``, so a session left open on somebody else's
@@ -636,7 +651,10 @@ Requires a session.
 The view calls ``update_session_auth_hash`` afterwards, so changing your
 password does not sign you out of the browser you changed it from.  Other
 sessions are invalidated, because the session auth hash is derived from the
-password.
+password.  A new password clears a demo account's mark (:ref:`api-two-factor`),
+so a demo account a role requires two-factor sign-in of, signed in without one, is
+signed out at its next request instead, and its next sign-in asks it to set up an
+authenticator app.
 
 The new password is written only while the stored one is still the one the
 request checked ``current_password`` against.  When something else replaced it
@@ -722,7 +740,7 @@ The link could only have reached the owner of the address, so spending it also
 marks an unverified address verified (``email_verified_at`` is set to now, and
 an ``account.email_verified`` audit line is written); an address already
 verified keeps its original time.  Either way, any bounce recorded against the
-address is cleared.
+address is cleared, and so is a demo account's mark (:ref:`api-two-factor`).
 
 A link for a deactivated account is accepted, and spending it reactivates the
 account exactly as ``POST /auth/reactivate`` does — the person proved the address

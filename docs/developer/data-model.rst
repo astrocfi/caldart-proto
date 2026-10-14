@@ -1598,6 +1598,10 @@ and ``PermissionsMixin`` classes it builds on.
      - ``BooleanField``
      - not null; default ``False``
      - set by a user administrator to keep a deactivated account deactivated: while it is true, sign-in, reactivation, a password reset and registering again with the address are all refused (:ref:`api-reactivation-block`); setting it deactivates an active account first, so a blocked account is never active
+   * - ``is_demo``
+     - ``BooleanField``
+     - not null; default ``False``
+     - true for a demo account ``seed_demo`` writes, which no role requires to use two-factor sign-in while ``DEMO_ACCOUNTS_SKIP_TWO_FACTOR`` is on (:ref:`configuration-demo-two-factor`); only the seed sets it, and ``create_admin`` taking the account back, a new password (changed or set from a reset link), and a completed change of address clear it; no endpoint or admin form writes it
    * - ``groups``
      - ``ManyToManyField`` to ``auth.Group``
      - not null; empty by default
