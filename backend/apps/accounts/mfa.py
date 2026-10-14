@@ -2,9 +2,11 @@
 
 An account signs in with a second factor when a role it holds requires one
 (:data:`apps.accounts.roles.MFA_REQUIRED_ROLES`, or the Django superuser flag) or when
-its owner has turned two-factor sign-in on.  The second factor is a six-digit code from
-an authenticator app (RFC 6238: SHA-1, 30-second steps, one step of drift either way),
-or one of ten single-use backup codes in its place.
+its owner has turned two-factor sign-in on.  No role requires it of a seeded demo
+account (``User.is_demo``) while ``settings.DEMO_ACCOUNTS_SKIP_TWO_FACTOR`` is on.
+The second factor is a six-digit code from an authenticator app (RFC 6238: SHA-1,
+30-second steps, one step of drift either way), or one of ten single-use backup codes
+in its place.
 
 Signing in is two steps.  A right password for an account that needs a second factor
 does not start a session: it stores a *pending sign-in* in the anonymous session,
@@ -142,8 +144,14 @@ def mfa_required(user: User) -> bool:
     """True when a role ``user`` holds requires two-factor sign-in.
 
     Effective roles are read (``accounts.services.effective_roles``), so a Django
-    superuser counts as a system administrator and is required too.
+    superuser counts as a system administrator and is required too.  A seeded demo
+    account (``user.is_demo``) is never required while
+    ``settings.DEMO_ACCOUNTS_SKIP_TWO_FACTOR`` is on, whatever roles it holds; it may
+    still turn two-factor sign-in on, and off again, as any account a role does not
+    require it of.
     """
+    if user.is_demo and settings.DEMO_ACCOUNTS_SKIP_TWO_FACTOR:
+        return False
     return bool(effective_roles(user) & set(MFA_REQUIRED_ROLES))
 
 
@@ -158,7 +166,11 @@ def has_two_factor(user: User) -> bool:
 
 
 def needs_second_factor(user: User) -> bool:
-    """True when signing in as ``user`` takes a code: a required role, or a device."""
+    """True when signing in as ``user`` takes a code: :func:`mfa_required`, or a device.
+
+    A confirmed device asks for a code whether or not a role requires one, so a demo
+    account that turned two-factor sign-in on is asked for it like anybody else.
+    """
     return mfa_required(user) or has_two_factor(user)
 
 

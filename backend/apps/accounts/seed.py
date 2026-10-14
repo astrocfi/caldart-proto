@@ -1,7 +1,9 @@
 """Seed the demo accounts.
 
 Idempotent: re-running updates the existing rows rather than duplicating them.
-Every seeded account uses the password ``caldart-demo``.
+Every seeded account uses the password ``caldart-demo``.  The named demo accounts carry
+the demo mark (``User.is_demo``), which lets them sign in without a second factor while
+``DEMO_ACCOUNTS_SKIP_TWO_FACTOR`` is on.
 """
 
 from __future__ import annotations
@@ -105,12 +107,14 @@ def upsert_user(
     is_superuser: bool = False,
     password: str = DEMO_PASSWORD,
     kind: AccountKind = AccountKind.MEMBER,
+    is_demo: bool = False,
 ) -> tuple[User, bool]:
     """Create or refresh the demo user with ``email``, returning ``(user, created)``.
 
-    The names, the password, the kind and the role list are written every time, the
-    account is left active with no pending change of kind, and the Django staff and
-    superuser flags both follow ``is_superuser``.  ``created`` is True only on the
+    The names, the password, the kind, the demo mark (``User.is_demo``, from
+    ``is_demo``) and the role list are written every time, the account is left active
+    with no pending change of kind, and the Django staff and superuser flags both
+    follow ``is_superuser``.  ``created`` is True only on the
     call that first inserted the row.
     """
     user, created = User.objects.get_or_create(
@@ -124,6 +128,7 @@ def upsert_user(
     user.friend_on = None
     user.is_superuser = is_superuser
     user.is_staff = is_superuser
+    user.is_demo = is_demo
     user.set_password(password)
     user.save()
     user.set_roles(list(roles))
@@ -132,6 +137,9 @@ def upsert_user(
 
 def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, Any]:
     """Create the named demo accounts plus ``GENERATED_MEMBER_COUNT`` members.
+
+    Every account in ``DEMO_ACCOUNTS`` is marked a demo account (``User.is_demo``) on
+    every run; the generated members are not.
 
     Reads ``faker`` from ``ctx`` to invent the generated members' names, and adds
     ``demo_users`` (keyed by the short name in ``DEMO_ACCOUNTS``), ``generated_users``,
@@ -151,6 +159,7 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
             roles,
             is_superuser=is_superuser,
             kind=DEMO_KINDS.get(key, AccountKind.MEMBER),
+            is_demo=True,
         )
         demo[key] = user
 

@@ -210,6 +210,39 @@ def test_production_mock_payments_need_their_own_variable(
     assert prod.PAYMENTS_MOCK_ENABLED is True
 
 
+# --------------------------------------------------------------- demo accounts
+def test_production_leaves_the_demo_accounts_two_factor_exemption_off(
+    prod_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Unless the environment says otherwise, demo staff accounts need a second factor."""
+    monkeypatch.delenv("DEMO_ACCOUNTS_SKIP_TWO_FACTOR", raising=False)
+
+    prod = import_prod_over_a_fresh_base()
+    assert prod.DEMO_ACCOUNTS_SKIP_TWO_FACTOR is False
+
+
+def test_production_takes_the_demo_accounts_two_factor_exemption_from_the_environment(
+    prod_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A demonstration server turns the exemption on with the variable."""
+    monkeypatch.setenv("DEMO_ACCOUNTS_SKIP_TWO_FACTOR", "true")
+
+    prod = import_prod_over_a_fresh_base()
+    assert prod.DEMO_ACCOUNTS_SKIP_TWO_FACTOR is True
+
+
+def test_no_environment_template_turns_the_demo_accounts_two_factor_exemption_on() -> None:
+    """A copied template, of either kind, never exempts the demo staff accounts."""
+    exported = [
+        key
+        for template in (REPO_ROOT / ".env.example", PRODUCTION_TEMPLATE)
+        for key in uncommented_variables(template)
+        if key == "DEMO_ACCOUNTS_SKIP_TWO_FACTOR"
+    ]
+
+    assert exported == []
+
+
 # --------------------------------------------------------------- entry points
 @pytest.mark.parametrize("entry_point", ["caldart.wsgi", "caldart.asgi"])
 def test_the_application_servers_require_the_settings_module(

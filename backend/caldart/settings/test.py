@@ -33,6 +33,10 @@ AUTH_THROTTLE_RATES = dict.fromkeys(AUTH_THROTTLE_RATES, None)
 LOGIN_LOCKOUT_ATTEMPTS = 0
 LOGIN_LOCKOUT_CODE_ATTEMPTS = 0
 
+# The seeded demo accounts sign in without a second factor, as in development, whatever
+# a developer's ``.env`` says; the tests that need it off use the ``settings`` fixture.
+DEMO_ACCOUNTS_SKIP_TWO_FACTOR = True
+
 # Address suggestions are off unless a test configures a key and mocks Geoapify, so a
 # real key in a developer's ``.env`` never sends a request from the suite.
 GEOAPIFY_API_KEY = ""
