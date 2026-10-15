@@ -4,7 +4,7 @@ A live scan charges every renewal that is due, and each charge waits on a provid
 that may take seconds to answer, so a scan run inside a web request can outlast the
 proxy and worker timeouts and be cut off mid-charge.  ``POST /system/renewals/run``
 therefore writes a :class:`~apps.payments.models.RenewalScan` row, starts
-``manage.py run_auto_renewals --scan-id <row>`` in its own process, and answers at
+``manage.py run_job run_auto_renewals --scan-id <row>`` in its own process, and answers at
 once; the command fills the row in when the scan ends, and the Scheduled tasks page
 reads it back with ``GET /system/renewals/runs/{id}``.  A dry run charges nobody and
 calls no provider, so it still runs inside the request.
@@ -14,10 +14,7 @@ from __future__ import annotations
 
 import logging
 import subprocess
-import sys
-from pathlib import Path
 
-from django.conf import settings
 from django.db import connection, transaction
 from django.utils import timezone
 
@@ -25,6 +22,7 @@ from apps.accounts.models import User
 from apps.payments.models import RenewalScan
 from apps.payments.renewals.charge import stale_after
 from apps.payments.renewals.scan import RenewalRun
+from caldart.jobs import run_job_argv
 
 log = logging.getLogger(__name__)
 
@@ -87,16 +85,19 @@ def start_scan(actor: User) -> RenewalScan:
 def launch_scan(scan: RenewalScan) -> None:
     """Start ``manage.py run_auto_renewals --scan-id <scan>`` and return at once.
 
-    The command runs in its own session under the server's Python, so it outlives
+    It runs through ``manage.py run_job``, so the run is recorded with the scan's
+    ``started_by`` as the administrator who started it.  The command runs in its own
+    session under the server's Python, so it outlives
     the request, and writes to the server's own output.  The child is never waited
     on; the row it was given is the only trace of it, and the stale rule
     (:func:`close_if_stale`) is what notices a child that never finishes.  Raises
     ``OSError`` when the subprocess itself cannot be started.
     """
-    manage = Path(settings.BASE_DIR) / "manage.py"
+    argv = run_job_argv(
+        "run_auto_renewals", ["--scan-id", str(scan.pk)], started_by_id=scan.started_by_id
+    )
     subprocess.Popen(  # noqa: S603 - the server's own Python running the project's manage.py
-        [sys.executable, str(manage), "run_auto_renewals", "--scan-id", str(scan.pk)],
-        start_new_session=True,
+        argv, start_new_session=True
     )
 
 

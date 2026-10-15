@@ -21,7 +21,6 @@ import csv
 import io
 import logging
 import subprocess
-import sys
 import tempfile
 import zipfile
 from collections.abc import Callable, Iterator
@@ -53,6 +52,7 @@ from apps.aircraft.models import (
 )
 from apps.aircraft.naming import display_make, display_model
 from caldart.casing import business_name, person_name
+from caldart.jobs import run_job_argv
 
 log = logging.getLogger(__name__)
 
@@ -685,16 +685,19 @@ def start_import(actor: User) -> RegistryImport:
 def launch_import(run: RegistryImport) -> None:
     """Start ``manage.py import_faa_registry --import-id <run>`` and return at once.
 
-    The command runs in its own session under the server's Python, so it outlives the
-    request, and writes to the server's own output.  The child is never waited on: it
+    It runs through ``manage.py run_job``, so the run is recorded with the row's
+    ``started_by`` as the administrator who started it.  The command runs in its own
+    session under the server's Python, so it outlives the request, and writes to the
+    server's own output.  The child is never waited on: it
     is a child of the web service, not of the request, so it dies if the service
     restarts mid-import, and either way its own exit is not reaped here.  When it
     finishes normally, or is killed, the row it was given is the only trace of it; the
     stale rule (:data:`DID_NOT_FINISH`) is what notices a child that never finishes.
     Raises ``OSError`` when the subprocess itself cannot be started.
     """
-    manage = Path(settings.BASE_DIR) / "manage.py"
+    argv = run_job_argv(
+        "import_faa_registry", ["--import-id", str(run.pk)], started_by_id=run.started_by_id
+    )
     subprocess.Popen(  # noqa: S603 - the server's own Python running the project's manage.py
-        [sys.executable, str(manage), "import_faa_registry", "--import-id", str(run.pk)],
-        start_new_session=True,
+        argv, start_new_session=True
     )

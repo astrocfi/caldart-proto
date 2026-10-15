@@ -2157,6 +2157,7 @@
       "disk_free_mb": "integer",
       "last_backup": "string(date-time)|null",
       "pending_migrations": "integer",
+      "scheduled_jobs": "array<ref:JobStatus>",
       "version": "string"
     },
     "required": [
@@ -2165,6 +2166,7 @@
       "disk_free_mb",
       "last_backup",
       "pending_migrations",
+      "scheduled_jobs",
       "version"
     ]
   },
@@ -2180,6 +2182,99 @@
     },
     "required": [
       "verified"
+    ]
+  },
+  "JobRun": {
+    "properties": {
+      "arguments": "string",
+      "error": "string",
+      "exit_status": "integer|null",
+      "finished_at": "string(date-time)|null",
+      "id": "integer",
+      "job": "string",
+      "name": "string",
+      "outcome": "ref:JobRunOutcomeEnum",
+      "started_at": "string(date-time)",
+      "started_by_name": "string"
+    },
+    "required": [
+      "arguments",
+      "error",
+      "exit_status",
+      "finished_at",
+      "id",
+      "job",
+      "name",
+      "outcome",
+      "started_at",
+      "started_by_name"
+    ]
+  },
+  "JobRunDetail": {
+    "properties": {
+      "arguments": "string",
+      "error": "string",
+      "exit_status": "integer|null",
+      "finished_at": "string(date-time)|null",
+      "id": "integer",
+      "job": "string",
+      "name": "string",
+      "outcome": "ref:JobRunOutcomeEnum",
+      "output": "string",
+      "output_truncated": "boolean",
+      "started_at": "string(date-time)",
+      "started_by_name": "string",
+      "traceback": "string"
+    },
+    "required": [
+      "arguments",
+      "error",
+      "exit_status",
+      "finished_at",
+      "id",
+      "job",
+      "name",
+      "outcome",
+      "output",
+      "output_truncated",
+      "started_at",
+      "started_by_name",
+      "traceback"
+    ]
+  },
+  "JobRunOutcomeEnum": {
+    "enum": [
+      "running",
+      "succeeded",
+      "failed",
+      "stopped"
+    ]
+  },
+  "JobStateEnum": {
+    "enum": [
+      "ok",
+      "running",
+      "waiting",
+      "failed",
+      "stopped",
+      "overdue",
+      "never_run"
+    ]
+  },
+  "JobStatus": {
+    "properties": {
+      "job": "string",
+      "last_run": "ref:JobRun|null",
+      "missed_at": "string(date-time)|null",
+      "name": "string",
+      "state": "ref:JobStateEnum"
+    },
+    "required": [
+      "job",
+      "last_run",
+      "missed_at",
+      "name",
+      "state"
     ]
   },
   "LeaderCertificate": {
@@ -2909,6 +3004,18 @@
       "next": "string(uri)|null",
       "previous": "string(uri)|null",
       "results": "array<ref:FinancePayment>"
+    },
+    "required": [
+      "count",
+      "results"
+    ]
+  },
+  "PaginatedJobRunList": {
+    "properties": {
+      "count": "integer",
+      "next": "string(uri)|null",
+      "previous": "string(uri)|null",
+      "results": "array<ref:JobRun>"
     },
     "required": [
       "count",

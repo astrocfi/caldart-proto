@@ -12,6 +12,9 @@ urlpatterns = [
     path("system/renewals/runs/<int:pk>", views.RenewalScanView.as_view(), name="renewals-scan"),
     path("system/statements/run", views.StatementsRunView.as_view(), name="statements-run"),
     path("system/backups", views.BackupListCreateView.as_view(), name="backups"),
+    path("system/jobs", views.JobListView.as_view(), name="jobs"),
+    path("system/jobs/runs/<int:pk>", views.JobRunDetailView.as_view(), name="job-run"),
+    path("system/jobs/<str:job>/runs", views.JobRunListView.as_view(), name="job-runs"),
     path(
         "admin/system/registry-import",
         views.RegistryImportRunView.as_view(),

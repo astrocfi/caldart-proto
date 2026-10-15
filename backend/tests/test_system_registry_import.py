@@ -189,3 +189,18 @@ def test_the_launcher_starts_the_command_in_its_own_session(
         True,
         True,
     )
+
+
+def test_the_launcher_records_the_import_as_the_administrators(
+    monkeypatch: pytest.MonkeyPatch, system_admin: User
+) -> None:
+    """The import runs through ``run_job``, naming who pressed **Run now**."""
+    calls: list[list[str]] = []
+
+    def record(argv: list[str], *, start_new_session: bool) -> None:
+        calls.append(argv)
+
+    monkeypatch.setattr(subprocess, "Popen", record)
+    run = RegistryImport.objects.create(started_by=system_admin)
+    registry.launch_import(run)
+    assert calls[0][2:5] == ["run_job", "--started-by", str(system_admin.pk)]

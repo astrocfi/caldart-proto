@@ -8,11 +8,15 @@ is not something to do from a browser tab.
 
 from __future__ import annotations
 
+from typing import Any
+
+from django.db.models import QuerySet
 from django.http import FileResponse
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import status
 from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -37,7 +41,15 @@ from apps.payments.renewals.background import (
 from apps.payments.renewals.scan import run_auto_renewals
 from apps.payments.statements import send_year_statements
 from apps.sysadmin import services
-from apps.sysadmin.api.serializers import BackupSerializer, HealthSerializer
+from apps.sysadmin.api.serializers import (
+    BackupSerializer,
+    HealthSerializer,
+    JobRunDetailSerializer,
+    JobRunSerializer,
+    JobStatusSerializer,
+)
+from apps.sysadmin.jobs import JOBS_BY_KEY, job_statuses
+from apps.sysadmin.models import JobRun
 from caldart import audit
 from caldart.reports import download_responses
 
@@ -75,8 +87,9 @@ class HealthView(APIView):
         ``db`` is not ``"ok"``; ``disk_free_mb`` is the free space on the backup
         directory's filesystem in whole mebibytes; ``last_backup`` is the
         modification time of the newest dump, or ``null`` when there is none;
-        ``version`` is the project version; and ``debug`` reports whether the
-        server runs with ``DEBUG`` on.
+        ``version`` is the project version; ``debug`` reports whether the
+        server runs with ``DEBUG`` on; and ``scheduled_jobs`` is what
+        ``GET /system/jobs`` answers, or empty when ``db`` is not ``"ok"``.
         """
         return Response(HealthSerializer(services.health()).data)
 
@@ -290,3 +303,52 @@ class RegistryImportRunView(APIView):
             return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
         audit.record(audit.REGISTRY_IMPORT, actor=actor, target=run)
         return Response(RegistryImportSerializer(run).data, status=status.HTTP_202_ACCEPTED)
+
+
+class JobListView(APIView):
+    """``GET /system/jobs`` -- every scheduled job and how it stands."""
+
+    permission_classes = [IsSystemAdmin]
+
+    @extend_schema(responses={200: JobStatusSerializer(many=True)})
+    def get(self, request: Request) -> Response:
+        """200 with one ``{job, name, state, last_run, missed_at}`` per job, unpaginated.
+
+        The jobs come in the order the server runs them through a day, and each is
+        judged as :func:`~apps.sysadmin.jobs.job_statuses` describes.
+        """
+        return Response(JobStatusSerializer(job_statuses(), many=True).data)
+
+
+class JobRunListView(ListAPIView[JobRun]):
+    """``GET /system/jobs/{job}/runs`` -- one job's recorded runs, newest first.
+
+    Paginated; each row is a run without its output.  Answers 404 with
+    ``No such scheduled job.``
+    for a ``job`` that is not a key of the table of jobs.
+    """
+
+    permission_classes = [IsSystemAdmin]
+    serializer_class = JobRunSerializer
+
+    def get_queryset(self) -> QuerySet[JobRun]:
+        """The runs of the job the URL names, newest first, with who started them."""
+        job = self.kwargs["job"]
+        if job not in JOBS_BY_KEY:
+            raise NotFound("No such scheduled job.")
+        return JobRun.objects.filter(job=job).select_related("started_by")
+
+    def get_serializer_context(self) -> dict[str, Any]:
+        """The standard context plus ``now``, so every row is judged at one moment."""
+        return {**super().get_serializer_context(), "now": timezone.now()}
+
+
+class JobRunDetailView(RetrieveAPIView[JobRun]):
+    """``GET /system/jobs/runs/{id}`` -- one recorded run with its whole output.
+
+    Answers 404 for an id no run has, including one pruned for its age.
+    """
+
+    permission_classes = [IsSystemAdmin]
+    serializer_class = JobRunDetailSerializer
+    queryset = JobRun.objects.select_related("started_by")

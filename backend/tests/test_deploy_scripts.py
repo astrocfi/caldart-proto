@@ -1407,7 +1407,7 @@ def test_render_vhost_points_self_signed_at_the_local_certificate(vhost: str, ro
 def test_the_backup_unit_prunes_by_the_retention_variable() -> None:
     """``caldart-backup.service`` prunes by ``BACKUP_RETENTION_DAYS``, not a literal."""
     unit = (DEPLOY_DIR / "systemd" / "caldart-backup.service").read_text()
-    assert "-mtime +${BACKUP_RETENTION_DAYS} -delete" in unit
+    assert "manage.py run_job db_backup --prune-days ${BACKUP_RETENTION_DAYS}\n" in unit
 
 
 def test_the_template_sets_the_backup_retention() -> None:

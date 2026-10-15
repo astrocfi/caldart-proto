@@ -37,7 +37,10 @@ Environment=PYTHONDONTWRITEBYTECODE=1
 # Sends the first / second / final / expired / lapsed emails and flips memberships
 # whose ends_on has passed to "expired". Add --dry-run to rehearse, or
 # --today=YYYY-MM-DD to scan as of another date.
-ExecStart=/opt/caldart/caldart/.venv/bin/python /opt/caldart/caldart/backend/manage.py send_renewal_reminders
+# run_job runs the command and keeps a record of the run, with its output and
+# how it ended, for the System pages; the journal still gets all the output, and
+# the exit status is the command's own.
+ExecStart=/opt/caldart/caldart/.venv/bin/python /opt/caldart/caldart/backend/manage.py run_job send_renewal_reminders
 
 # A slow SMTP server should not leave this hanging until the next trigger.
 TimeoutStartSec=900

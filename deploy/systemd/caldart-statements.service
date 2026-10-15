@@ -36,7 +36,10 @@ Environment=PYTHONDONTWRITEBYTECODE=1
 # Sends the previous calendar year's contribution statements to every active
 # account that gave. Add --dry-run to rehearse, or --year=YYYY to name another
 # year, or --today=YYYY-MM-DD to run as of another date.
-ExecStart=/opt/caldart/caldart/.venv/bin/python /opt/caldart/caldart/backend/manage.py send_year_statements
+# run_job runs the command and keeps a record of the run, with its output and
+# how it ended, for the System pages; the journal still gets all the output, and
+# the exit status is the command's own.
+ExecStart=/opt/caldart/caldart/.venv/bin/python /opt/caldart/caldart/backend/manage.py run_job send_year_statements
 
 # A slow SMTP server, or a year with many givers, should not leave this
 # hanging until the next trigger.

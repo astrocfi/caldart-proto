@@ -13,7 +13,7 @@ import shutil
 import subprocess
 import tomllib
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import lru_cache
 from pathlib import Path
 from tempfile import TemporaryFile
@@ -25,6 +25,7 @@ from django.db import connection
 from django.utils import timezone
 
 from apps.aircraft.models import Registration
+from apps.sysadmin.jobs import job_statuses
 from caldart import audit
 
 if TYPE_CHECKING:
@@ -40,6 +41,10 @@ STREAM_CHUNK_BYTES = 1024 * 1024
 #: leading dot, and the suffix we write -- which is what makes
 #: ``GET /system/backups/<name>/download`` safe against path traversal.
 BACKUP_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*\.sql\.gz$")
+
+#: The dumps a prune may delete: the names :func:`create_backup` generates.  A dump
+#: given its own ``--name`` matches only if that name has the same shape.
+GENERATED_BACKUP_GLOB = f"caldart-*{BACKUP_SUFFIX}"
 
 
 class BackupError(RuntimeError):
@@ -298,6 +303,25 @@ def create_backup(name: str | None = None) -> BackupFile:
     return _backup_file(target)
 
 
+def prune_backups(days: int, *, now: datetime | None = None) -> list[str]:
+    """Delete the generated dumps more than ``days`` days old; return their names.
+
+    Age is read from each file's modification time, against ``now`` (the current
+    time).  Only names matching :data:`GENERATED_BACKUP_GLOB` are considered, and the
+    names come back oldest first.  Raises ``ValueError`` for a negative ``days``.
+    """
+    if days < 0:
+        raise ValueError(f"days must be zero or more, not {days}")
+    cutoff = (now or timezone.now()) - timedelta(days=days)
+    generated = [
+        _backup_file(path) for path in backup_dir().glob(GENERATED_BACKUP_GLOB) if path.is_file()
+    ]
+    expired = sorted((f for f in generated if f.created_at < cutoff), key=lambda f: f.created_at)
+    for backup in expired:
+        backup.path.unlink(missing_ok=True)
+    return [backup.name for backup in expired]
+
+
 def restore_backup(path: Path, *, drop_first: bool = True) -> None:
     """Restore a gzipped dump over the current database.
 
@@ -380,6 +404,8 @@ def health() -> dict[str, Any]:
 
     Disk space is measured on ``BACKUP_DIR``: that is the filesystem that fills
     up first, and the one that has to have room for the next ``pg_dump``.
+    ``scheduled_jobs`` is :func:`~apps.sysadmin.jobs.job_statuses`, read only while the
+    database answers, and empty when it does not.
     """
     try:
         with connection.cursor() as cursor:
@@ -399,4 +425,5 @@ def health() -> dict[str, Any]:
         "last_backup": backups[0].created_at.isoformat() if backups else None,
         "version": app_version(),
         "debug": settings.DEBUG,
+        "scheduled_jobs": job_statuses() if db_status == "ok" else [],
     }

@@ -185,7 +185,7 @@ def test_only_a_system_administrator_runs_the_sender(
 def test_the_service_runs_the_command_with_no_time_limit() -> None:
     """The oneshot runs ``send_bulk_emails``, and a long send is never cut short."""
     service = (SYSTEMD_DIR / "caldart-bulk-email.service").read_text()
-    assert "manage.py send_bulk_emails" in service
+    assert "manage.py run_job send_bulk_emails" in service
     assert "Type=oneshot" in service
     assert "TimeoutStartSec=0" in service
 
