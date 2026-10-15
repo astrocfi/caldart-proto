@@ -69,7 +69,7 @@ class EmailLogListView(ListAPIView[EmailLog]):
         links of the whole page are read in one pass rather than row by row.
         """
         # A caller that hands its own context, as drf-spectacular does while it builds
-        # the schema with no database, gets the serializer without one being read.
+        # the schema without a database, gets the serializer without one being read.
         if "context" in kwargs:
             return self.get_serializer_class()(*args, **kwargs)
         context = self.get_serializer_context()
@@ -98,7 +98,7 @@ class EmailLogListView(ListAPIView[EmailLog]):
 class EmailLogDetailView(RetrieveAPIView[EmailLog]):
     """``GET /system/emails/{id}`` -- one email of the log, as its list row reads.
 
-    Answers 404 for an id no row has.  The log keeps no copy of a message's body; a
+    Answers 404 for an id no row has.  The log doesn't keep a copy of a message's body; a
     message that belongs to a record, such as a copy of a bulk email, carries ``link``
     to the page that shows it.
     """
@@ -158,8 +158,8 @@ class BounceRunView(APIView):
     def post(self, request: Request) -> Response:
         """Run the check and return what it found with status 200.
 
-        The body takes ``dry_run``, defaulting to ``False``; a dry run marks no email
-        and no account and leaves every message in the mailbox unseen, and reports
+        The body takes ``dry_run``, defaulting to ``False``; a dry run doesn't mark an
+        email or an account and leaves every message in the mailbox unseen, and reports
         exactly what a live run would find.  The answer is ``{enabled, bounced,
         unmatched, ignored, skipped, actions}``; ``enabled`` is false when
         ``BOUNCE_IMAP_URL`` is empty.  The caller is recorded as the actor on the

@@ -1,8 +1,8 @@
 """The unsubscribe page a bulk email's link opens, in the public site's shell.
 
 ``GET /mail/unsubscribe/<token>`` shows the type the link turns off and one
-**Unsubscribe** button, and records nothing: a mail scanner that follows every link in
-a message must not unsubscribe anybody.  ``POST`` to the same address records the
+**Unsubscribe** button, and doesn't record anything: a mail scanner that follows every
+link in a message must not unsubscribe anybody.  ``POST`` to the same address records the
 opt-out, from the button or straight from a mail program's own one-click unsubscribe
 (RFC 8058), and answers 200 with a page saying so.  A token that does not read is a
 400 page in both cases.
@@ -28,7 +28,7 @@ TEMPLATE = "mail/unsubscribe.html"
 
 
 # A one-click unsubscribe is a POST a mail provider sends on the recipient's behalf,
-# with no session and no CSRF token to send; the signed token in the address is what
+# without a session or a CSRF token to send; the signed token in the address is what
 # authorizes it, so the CSRF check would refuse exactly the request this view exists
 # to accept.
 @csrf_exempt
@@ -40,10 +40,10 @@ def unsubscribe(request: HttpRequest, token: str) -> HttpResponse:
     **Unsubscribe** button posting back here), ``already`` on a GET when the person has
     turned the type off already, ``done`` once a POST has recorded the opt-out with the
     source ``unsubscribe`` (or found it recorded), and ``not_allowed`` on either
-    method for a type that no longer allows opting out, which records nothing.  Every
-    state but ``expired`` names the address the link unsubscribes, as ``address``.  A
-    tampered, expired, or orphaned token renders ``expired`` with status 400 and
-    records nothing.  Every state but ``expired`` answers 200.
+    method for a type that no longer allows opting out, which doesn't record anything.
+    Every state but ``expired`` names the address the link unsubscribes, as ``address``.
+    A tampered, expired, or orphaned token renders ``expired`` with status 400 and
+    doesn't record anything.  Every state but ``expired`` answers 200.
     """
     try:
         user, email_type = read_token(token)

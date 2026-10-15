@@ -20,7 +20,7 @@ from caldart.mail import BOUNCE_LOCAL_PART_MAX_LENGTH
 #: The check id of a ``BOUNCE_ADDRESS`` that is not a bare ``local@domain`` address.
 NOT_BARE_ID = "mail.E001"
 
-#: The check id of a ``BOUNCE_ADDRESS`` whose local part leaves no room for the tag.
+#: The check id of a ``BOUNCE_ADDRESS`` whose local part doesn't leave room for the tag.
 LOCAL_PART_TOO_LONG_ID = "mail.E002"
 
 
@@ -30,7 +30,7 @@ def check_bounce_address(
     """Errors for a ``BOUNCE_ADDRESS`` the signed bounce address cannot be made from.
 
     An empty setting is fine and answers ``[]``: bounce checking is simply off.
-    Otherwise the setting must be a bare address, ``local@domain`` with no display name,
+    Otherwise the setting must be a bare address, ``local@domain`` without a display name,
     angle brackets, or spaces, else :data:`NOT_BARE_ID`; and its local part may have at
     most ``caldart.mail.BOUNCE_LOCAL_PART_MAX_LENGTH`` (28) characters, so the signed
     form fits an address's 64, else :data:`LOCAL_PART_TOO_LONG_ID`.
@@ -43,7 +43,7 @@ def check_bounce_address(
     if not is_bare or at == "" or local == "" or domain == "":
         return [
             Error(
-                "BOUNCE_ADDRESS must be a bare address, local@domain, with no display name.",
+                "BOUNCE_ADDRESS must be a bare address, local@domain, without a display name.",
                 hint="Write it as bounces@caldart.example.org.",
                 id=NOT_BARE_ID,
             )

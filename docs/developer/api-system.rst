@@ -487,7 +487,7 @@ the same report (:ref:`deploy-mail-dns`).
         "detail": "SPF is a list, kept with your domain name, ... The list for caldart.example.org includes the mail server (smtp.relay.example) and tells receivers to treat mail from anywhere else as suspect.",
         "fix": ""},
        {"name": "Message signature (DKIM)", "status": "warn",
-        "detail": "DKIM is a digital signature ... No DKIM selector is configured, so this check has no signature record to look for.",
+        "detail": "DKIM is a digital signature ... No DKIM selector is configured, so this check doesn't have a signature record to look for.",
         "fix": "Ask the person who runs the server for the name (the selector) the mail server signs with, and have them set it as DKIM_SELECTOR."},
        {"name": "Handling of forged mail (DMARC)", "status": "fail", "detail": "...", "fix": "..."},
        {"name": "Bounce address", "status": "pass", "detail": "...", "fix": ""}

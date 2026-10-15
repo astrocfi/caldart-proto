@@ -131,7 +131,7 @@ class SendableEmailTypeListView(APIView):
     def get(self, request: Request) -> Response:
         """200 with the types whose ``sender_roles`` name one of the caller's roles.
 
-        Every type for a system administrator; an empty list for a caller with no
+        Every type for a system administrator; an empty list for a caller without a
         sending role.  Unpaginated, in ``position`` order and then by name.
         """
         types = sendable_types(signed_in_user(request))
@@ -271,6 +271,6 @@ def _resolve(data: object) -> list[tuple[EmailType, bool]]:
 def _apply(
     user: User, resolved: list[tuple[EmailType, bool]], *, source: OptOutSource, actor: User
 ) -> None:
-    """Make each of the ``resolved`` changes to ``user``'s opt-outs, or none of them."""
+    """Make every one of the ``resolved`` changes to ``user``'s opt-outs, or not one."""
     for email_type, opted_out in resolved:
         set_opt_out(user, email_type, opted_out=opted_out, source=source, actor=actor)

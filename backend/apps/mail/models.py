@@ -43,7 +43,7 @@ class EmailLog(TimestampedModel):
     ``renewal_notice``, ``receipt``, ``refund``, ``member_invitation``,
     ``password_reset`` and the rest -- so a row says what kind of message it
     was without reading the subject.  ``user`` is the account the email
-    concerned, and is null for a message sent to an address with no account and
+    concerned, and is null for a message sent to an address without an account and
     for one whose account has since been deleted.  ``to_name`` is the
     recipient's name as it was at send time -- a DART contact's name, or an
     account holder's display name -- and is blank for a message sent to a bare
@@ -98,7 +98,7 @@ class EmailLog(TimestampedModel):
         """The name to show for this row: ``to_name``, or the account's own name.
 
         Falls back to the linked account's current ``display_name`` when ``to_name``
-        is blank, and to ``""`` when there is no account either.
+        is blank, and to ``""`` without an account either.
         """
         if self.to_name:
             return self.to_name

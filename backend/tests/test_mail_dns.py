@@ -304,7 +304,7 @@ def test_a_negated_term_does_not_authorize(dns_zone: Zone) -> None:
     [
         ("v=spf1 +all", "accepting mail from any server"),
         ("v=spf1 all", "accepting mail from any server"),
-        ("v=spf1 ip4:192.0.2.25 ?all", "tells receivers to make no judgment"),
+        ("v=spf1 ip4:192.0.2.25 ?all", "tells receivers not to make a judgment"),
         ("v=spf1 ip4:192.0.2.25", "does not say what to do"),
     ],
     ids=["plus-all", "bare-all", "neutral-all", "no-all"],
@@ -482,7 +482,8 @@ def test_a_bounce_address_without_a_domain_fails_as_not_valid(
     report = run()
 
     assert finding(report, ALIGNMENT_NAME).status == DnsStatus.FAIL
-    assert "is not a valid address: it has no domain." in finding(report, ALIGNMENT_NAME).detail
+    detail = finding(report, ALIGNMENT_NAME).detail
+    assert "is not a valid address: it doesn't have a domain." in detail
     assert finding(report, SPF_NAME).status == DnsStatus.PASS
 
 
@@ -637,7 +638,7 @@ def test_a_dkim_record_without_a_key_fails(dns_zone: Zone, record: str) -> None:
     result = finding(run(), DKIM_NAME)
 
     assert result.status == DnsStatus.FAIL
-    assert "has no usable key" in result.detail
+    assert "doesn't have a usable key" in result.detail
 
 
 # --------------------------------------------------------------------------
@@ -702,7 +703,7 @@ def test_two_dmarc_records_fail_because_receivers_apply_neither(dns_zone: Zone) 
     result = finding(run(), DMARC_NAME)
 
     assert result.status == DnsStatus.FAIL
-    assert "publishes 2 policies; receiving servers apply none of them" in result.detail
+    assert "publishes 2 policies; receiving servers don't apply any of them" in result.detail
 
 
 def test_a_missing_dmarc_record_fails_with_a_record_to_publish(dns_zone: Zone) -> None:

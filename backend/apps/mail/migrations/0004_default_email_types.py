@@ -1,7 +1,7 @@
 """Create the three email types every installation starts with.
 
 Operational, Fundraising, and Mission, all of which recipients may turn off.  They are
-created only when the table holds no type at all: once any type exists the list belongs
+created only when the table doesn't hold a type at all: once any type exists the list belongs
 to the system administrator, so running the migration again after a rollback neither
 brings back a deleted type nor adds a second copy of one that was renamed (a type's slug
 follows its name).  Reversing the migration leaves the rows alone: by then a system
@@ -40,7 +40,7 @@ DEFAULT_TYPES: tuple[tuple[str, str, str, list[str], int], ...] = (
 
 
 def create_default_types(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -> None:
-    """Create the default types when there is no type yet; otherwise change nothing."""
+    """Create the default types before any type exists; otherwise leave the table alone."""
     email_type = apps.get_model("mail", "EmailType")
     if email_type.objects.exists():
         return

@@ -44,7 +44,7 @@ TYPE_IN_USE = (
 #: The refusal for a second type whose name, or whose slug, another type holds.
 NAME_TAKEN = "Another email type already has this name."
 
-#: The refusal for a name with nothing in it to make a slug from.
+#: The refusal for a name without anything in it to make a slug from.
 NAME_NEEDS_LETTERS = "Use at least one letter or digit in the name."
 
 #: The refusal to rename the Mission type, the one a mission callout goes as.
@@ -87,7 +87,7 @@ def create_type(fields: EmailTypeFields, *, actor: User) -> EmailType:
 
     A blank ``position`` puts the type after every existing one.  A name another type
     holds, ignoring case, or one whose slug another type's name shares, raises
-    ``DomainValidationError`` on ``name`` with :data:`NAME_TAKEN`, and a name with no
+    ``DomainValidationError`` on ``name`` with :data:`NAME_TAKEN`, and a name without a
     letter or digit with :data:`NAME_NEEDS_LETTERS`; a role outside
     :data:`SENDER_ROLES` raises it on ``sender_roles``.
     """
@@ -136,7 +136,8 @@ def delete_type(email_type: EmailType, *, actor: User) -> None:
     """Delete ``email_type`` and every opt-out of it, auditing ``email_type.delete``.
 
     A type a bulk email names is protected: the delete raises ``DomainError`` with
-    :data:`TYPE_IN_USE` naming the type, deletes nothing, and writes no audit line.  The
+    :data:`TYPE_IN_USE` naming the type, doesn't delete anything, and doesn't write an
+    audit line.  The
     Mission type is never deleted, used or not: the delete raises ``DomainError`` with
     :data:`MISSION_DELETE_REFUSED`.
     """
@@ -155,8 +156,8 @@ def sendable_types(user: User | AnonymousUser) -> list[EmailType]:
     """The types ``user`` may send, in the screens' order.
 
     A system administrator and a superuser may send every type; anybody else the types
-    whose ``sender_roles`` name one of their roles, which is none for an account with
-    no sending role and for an anonymous visitor.
+    whose ``sender_roles`` name one of their roles, which is an empty list for an account
+    without a sending role and for an anonymous visitor.
     """
     types = list_types()
     return [
@@ -213,7 +214,7 @@ def set_opt_out(
     ``opted_out`` true records an opt-out from ``source`` and false removes it.  A real
     change writes one audit line, ``email.opt_out`` or ``email.opt_in``, naming
     ``actor``, the person as the target, the type as ``email_type`` and ``source``;
-    asking for the state the person is already in changes nothing and writes nothing.
+    asking for the state the person is already in doesn't change or write anything.
     A type that does not allow opting out raises ``DomainValidationError`` on
     ``email_type`` with :data:`OPT_OUT_NOT_ALLOWED` naming it, whichever way
     ``opted_out`` points.

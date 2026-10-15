@@ -36,7 +36,7 @@ def register_log_links(source: LinkSource) -> None:
 
 
 def log_links(rows: Sequence[EmailLog]) -> dict[int, str]:
-    """The portal path each of ``rows`` leads to, by row id; a row with none is absent.
+    """The portal path each of ``rows`` leads to, by row id; a row without one is absent.
 
     Every registered source is asked once about all of ``rows``, in registration order,
     and a later source's answer for a row wins.  A source may read the database, so a
