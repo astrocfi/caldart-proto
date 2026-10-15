@@ -674,14 +674,30 @@ verifies whichever of the keys below are set before you open a browser.
    :Production: ``live``
 
 ``PAYPAL_WEBHOOK_ID``
-   Optional.  Set it and ``POST /payments/paypal/webhook`` verifies each
-   notification's signature with PayPal before acting on it; leave it blank and
-   the webhook files the payload against the payment and changes nothing.
-   Either way the *capture* call is what activates a membership, so a missing
-   webhook id costs you a safety net rather than the flow.
+   Required for ``POST /payments/paypal/webhook``, which verifies each
+   notification's signature with PayPal against it before reading or recording
+   anything.  Blank, the route answers 404 to every delivery.  The *capture*
+   call is what activates a membership, so a missing webhook id costs the
+   safety net and the record of refunds taken in PayPal's dashboard, not the
+   checkout.
 
    :Development: blank
    :Production: the webhook id from the PayPal dashboard
+
+``PAYPAL_WEBHOOK_THROTTLE_RATE``
+   How many deliveries one client address may make to
+   ``POST /payments/paypal/webhook``, as a DRF rate read and checked like the
+   authentication rates: empty turns the limit off, and an unreadable value stops
+   start-up.  An IPv6 address is counted by its ``/64``.  Past the rate a
+   delivery is answered 429, which PayPal sends again later; the limit keeps a
+   caller who is not PayPal from spending the server, and PayPal's verification
+   calls, on deliveries without end.  The Stripe webhook is not limited, because
+   its signature is checked locally.  Read by
+   ``apps.payments.webhook_throttling``; ``caldart.settings.test`` sets it to
+   ``None``.
+
+   :Development: ``120/min``
+   :Production: ``120/min``
 
 ``PAYMENTS_MOCK_ENABLED``
    Enables the mock provider, which renders "Succeed" and "Fail" buttons

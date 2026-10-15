@@ -52,6 +52,7 @@ from apps.payments.providers.base import (
     card_label,
     register,
 )
+from apps.payments.receipts import SETTLED_STATUSES
 from apps.payments.refunds import record_dashboard_refund
 from apps.payments.services import fees_are_known, mark_failed, mark_succeeded, record_fees
 
@@ -340,13 +341,20 @@ class StripeProvider(Provider):
 
         ``payment_intent_id`` defaults to the payment's own ``provider_ref``.
         Returns ``True`` once Stripe reports ``succeeded`` and the payment has been
-        marked succeeded; returns ``False``, having marked the payment failed, when
+        marked succeeded, and ``True`` without asking Stripe for a payment whose
+        money already arrived -- succeeded, partly refunded, or refunded -- which is
+        left exactly as it is; returns ``False``, having marked the payment failed, when
         Stripe reports ``canceled`` or ``requires_payment_method``.  Raises
         :class:`PaymentVerificationError` when there is no intent to confirm, when
         the intent belongs to another payment, when :meth:`verify` disagrees, and
         when Stripe reports any other status.  Raises
         :class:`ProviderUnavailableError` when Stripe cannot be reached.
         """
+        if payment.status in SETTLED_STATUSES:
+            # A second click, a webhook that beat the browser back, or a refund
+            # since: nothing Stripe says now changes where the money went.
+            return True
+
         intent_id = payment_intent_id or payment.provider_ref
         if not intent_id:
             raise PaymentVerificationError("No PaymentIntent to confirm.")

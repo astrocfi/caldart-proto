@@ -7,8 +7,9 @@ can go wrong) and the webhook's deliberately cautious behavior.
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import Iterator
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import httpx
@@ -23,6 +24,7 @@ from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.members.models import Membership, MembershipPlan
+from apps.payments.api.serializers import PAYPAL_ORDER_ID_MESSAGE
 from apps.payments.models import (
     Payment,
     PaymentProvider,
@@ -40,6 +42,7 @@ from apps.payments.providers.base import (
 )
 from apps.payments.refunds import issue_refund
 from apps.payments.services import create_checkout, fees_are_known
+from tests.conftest import PAYPAL_TRANSMISSION_HEADERS
 from tests.factories import UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -78,7 +81,7 @@ def token_route(mock: respx.MockRouter, expires_in: int = 32_400) -> respx.Route
     )
 
 
-def order_payload(order_id: str = "ORDER-1", status: str = "CREATED") -> dict[str, Any]:
+def order_payload(order_id: str = "ORDER1", status: str = "CREATED") -> dict[str, Any]:
     """A PayPal order creation response body."""
     return {"id": order_id, "status": status, "links": []}
 
@@ -86,7 +89,7 @@ def order_payload(order_id: str = "ORDER-1", status: str = "CREATED") -> dict[st
 def capture_payload(
     payment: Payment,
     *,
-    order_id: str = "ORDER-1",
+    order_id: str = "ORDER1",
     status: str = "COMPLETED",
     capture_status: str = "COMPLETED",
     value: str | None = None,
@@ -219,7 +222,7 @@ def test_checkout_creates_a_paypal_order(
     """Checkout creates a PayPal order for the full amount, signed with a bearer token."""
     token_route(respx.mock)
     route = respx.post(ORDERS_URL).mock(
-        return_value=httpx.Response(201, json=order_payload("ORDER-XYZ"))
+        return_value=httpx.Response(201, json=order_payload("ORDERXYZ"))
     )
 
     api_client.force_login(member)
@@ -228,10 +231,10 @@ def test_checkout_creates_a_paypal_order(
     )
 
     assert response.status_code == 201
-    assert response.json()["client"] == {"order_id": "ORDER-XYZ"}
+    assert response.json()["client"] == {"order_id": "ORDERXYZ"}
 
     payment = Payment.objects.get(pk=response.json()["payment_id"])
-    assert payment.provider_ref == "ORDER-XYZ"
+    assert payment.provider_ref == "ORDERXYZ"
 
     body = json.loads(route.calls[0].request.content)
     unit = body["purchase_units"][0]
@@ -265,7 +268,7 @@ def test_a_rejected_order_leaves_no_payment_behind(
 # --------------------------------------------------------------------------
 # capture
 # --------------------------------------------------------------------------
-def pending_paypal_payment(member: User, order_id: str = "ORDER-1") -> Payment:
+def pending_paypal_payment(member: User, order_id: str = "ORDER1") -> Payment:
     """Start a pending PayPal checkout with ``order_id`` already attached."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.PAYPAL)
     payment.provider_ref = order_id
@@ -280,12 +283,12 @@ def test_capture_activates_the_membership(
     """Capturing a completed order succeeds the payment and grants a membership."""
     payment = pending_paypal_payment(member)
     token_route(respx.mock)
-    route = respx.post(f"{ORDERS_URL}/ORDER-1/capture").mock(
+    route = respx.post(f"{ORDERS_URL}/ORDER1/capture").mock(
         return_value=httpx.Response(201, json=capture_payload(payment))
     )
 
     api_client.force_login(member)
-    response = api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER-1"})
+    response = api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER1"})
 
     assert response.status_code == 200
     assert response.json()["status"] == "succeeded"
@@ -305,14 +308,14 @@ def test_capture_that_is_not_completed_grants_nothing(
     """A capture whose status is not COMPLETED fails the payment and grants nothing."""
     payment = pending_paypal_payment(member)
     token_route(respx.mock)
-    respx.post(f"{ORDERS_URL}/ORDER-1/capture").mock(
+    respx.post(f"{ORDERS_URL}/ORDER1/capture").mock(
         return_value=httpx.Response(
             201, json=capture_payload(payment, status="PAYER_ACTION_REQUIRED")
         )
     )
 
     api_client.force_login(member)
-    response = api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER-1"})
+    response = api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER1"})
 
     assert response.status_code == 400
     payment.refresh_from_db()
@@ -327,12 +330,12 @@ def test_capture_of_the_wrong_amount_is_refused(
     """A capture whose amount does not match the payment is refused."""
     payment = pending_paypal_payment(member)
     token_route(respx.mock)
-    respx.post(f"{ORDERS_URL}/ORDER-1/capture").mock(
+    respx.post(f"{ORDERS_URL}/ORDER1/capture").mock(
         return_value=httpx.Response(201, json=capture_payload(payment, value="1.00"))
     )
 
     api_client.force_login(member)
-    response = api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER-1"})
+    response = api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER1"})
 
     assert response.status_code == 400
     payment.refresh_from_db()
@@ -347,13 +350,13 @@ def test_capture_in_another_currency_is_refused(
     """A capture in the wrong currency is refused."""
     payment = pending_paypal_payment(member)
     token_route(respx.mock)
-    respx.post(f"{ORDERS_URL}/ORDER-1/capture").mock(
+    respx.post(f"{ORDERS_URL}/ORDER1/capture").mock(
         return_value=httpx.Response(201, json=capture_payload(payment, currency="CAD"))
     )
 
     api_client.force_login(member)
     assert (
-        api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER-1"}).status_code
+        api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER1"}).status_code
         == 400
     )
     assert Membership.objects.count() == 0
@@ -367,15 +370,33 @@ def test_capture_for_another_payment_is_refused(
     payment = pending_paypal_payment(member)
     other = create_checkout(member, "annual", 0, PaymentProvider.PAYPAL)
     token_route(respx.mock)
-    respx.post(f"{ORDERS_URL}/ORDER-1/capture").mock(
+    respx.post(f"{ORDERS_URL}/ORDER1/capture").mock(
         return_value=httpx.Response(201, json=capture_payload(payment, custom_id=str(other.pk)))
     )
 
     api_client.force_login(member)
     assert (
-        api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER-1"}).status_code
+        api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER1"}).status_code
         == 400
     )
+    assert Membership.objects.count() == 0
+
+
+@respx.mock
+def test_capture_answered_for_another_order_is_refused(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A capture response naming an order other than the payment's own grants nothing."""
+    payment = pending_paypal_payment(member)
+    token_route(respx.mock)
+    respx.post(f"{ORDERS_URL}/ORDER1/capture").mock(
+        return_value=httpx.Response(201, json=capture_payload(payment, order_id="ORDEROTHER"))
+    )
+
+    api_client.force_login(member)
+    response = api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER1"})
+
+    assert response.status_code == 400
     assert Membership.objects.count() == 0
 
 
@@ -386,13 +407,13 @@ def test_completed_order_without_a_capture_is_refused(
     """An order without a completed capture is refused and marks the payment failed."""
     payment = pending_paypal_payment(member)
     token_route(respx.mock)
-    respx.post(f"{ORDERS_URL}/ORDER-1/capture").mock(
+    respx.post(f"{ORDERS_URL}/ORDER1/capture").mock(
         return_value=httpx.Response(201, json=capture_payload(payment, capture_status="DECLINED"))
     )
 
     api_client.force_login(member)
     assert (
-        api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER-1"}).status_code
+        api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER1"}).status_code
         == 400
     )
     payment.refresh_from_db()
@@ -405,8 +426,86 @@ def test_capture_of_an_order_id_we_did_not_issue_is_refused(
     """Capturing with an order id that does not match the payment's own is refused."""
     payment = pending_paypal_payment(member)
     api_client.force_login(member)
-    response = api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER-OTHER"})
+    response = api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDEROTHER"})
     assert response.status_code == 400
+
+
+#: Order ids that are not PayPal's shape: path segments, query and fragment
+#: delimiters, lower case, spaces, and hyphens.
+MALFORMED_ORDER_IDS = [
+    "../../v2/payments/captures/CAPTURE1/refund",
+    "ORDER1/../../v1/notifications",
+    "ORDER1?x=1",
+    "ORDER1#frag",
+    "order1",
+    "ORDER 1",
+    "ORDER-1",
+]
+
+
+@pytest.mark.parametrize("order_id", MALFORMED_ORDER_IDS)
+def test_capture_refuses_an_order_id_that_is_not_paypals_shape(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, order_id: str
+) -> None:
+    """An order id of anything but upper-case letters and digits is refused by field."""
+    payment = pending_paypal_payment(member)
+    api_client.force_login(member)
+
+    response = api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": order_id})
+
+    assert response.json() == {"order_id": [PAYPAL_ORDER_ID_MESSAGE]}
+
+
+@pytest.mark.parametrize("status", [PaymentStatus.PENDING, PaymentStatus.FAILED])
+@respx.mock
+def test_capture_of_a_payment_with_no_order_is_refused(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, status: str
+) -> None:
+    """A payment PayPal never gave an order is not captured under one the caller names."""
+    payment = create_checkout(member, "annual", 0, PaymentProvider.PAYPAL)
+    payment.status = status
+    payment.save(update_fields=["status"])
+    token_route(respx.mock)
+    route = respx.post(f"{ORDERS_URL}/ORDERELSE/capture").mock(
+        return_value=httpx.Response(201, json=capture_payload(payment, order_id="ORDERELSE"))
+    )
+
+    api_client.force_login(member)
+    response = api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDERELSE"})
+
+    assert response.status_code == 400
+    assert route.call_count == 0
+
+
+@respx.mock
+def test_capture_without_an_order_id_captures_the_stored_order(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """Leaving ``order_id`` out captures the order PayPal gave the payment at checkout."""
+    payment = pending_paypal_payment(member, order_id="ORDERSTORED")
+    token_route(respx.mock)
+    route = respx.post(f"{ORDERS_URL}/ORDERSTORED/capture").mock(
+        return_value=httpx.Response(201, json=capture_payload(payment, order_id="ORDERSTORED"))
+    )
+
+    api_client.force_login(member)
+    api_client.post(CAPTURE, {"payment_id": payment.pk})
+
+    assert route.call_count == 1
+
+
+@respx.mock
+def test_a_stored_order_id_is_sent_as_one_path_segment(
+    member: User, annual_plan: MembershipPlan
+) -> None:
+    """A reference holding a slash is escaped as one segment, not followed as a path."""
+    payment = pending_paypal_payment(member, order_id="ORDER1/../../v1/x")
+    token_route(respx.mock)
+    route = respx.get(url__regex=r".*").mock(return_value=httpx.Response(200, json={}))
+
+    paypal.PayPalProvider().fetch_fees(payment)
+
+    assert route.calls.last.request.url.raw_path == b"/v2/checkout/orders/ORDER1%2F..%2F..%2Fv1%2Fx"
 
 
 @respx.mock
@@ -416,18 +515,89 @@ def test_capturing_twice_grants_one_term(
     """Capturing the same payment twice grants exactly one membership term."""
     payment = pending_paypal_payment(member)
     token_route(respx.mock)
-    route = respx.post(f"{ORDERS_URL}/ORDER-1/capture").mock(
+    route = respx.post(f"{ORDERS_URL}/ORDER1/capture").mock(
         return_value=httpx.Response(201, json=capture_payload(payment))
     )
 
     api_client.force_login(member)
-    body = {"payment_id": payment.pk, "order_id": "ORDER-1"}
+    body = {"payment_id": payment.pk, "order_id": "ORDER1"}
     assert api_client.post(CAPTURE, body).status_code == 200
     assert api_client.post(CAPTURE, body).status_code == 200
 
     # The second call short-circuits before PayPal is asked again.
     assert route.call_count == 1
     assert Membership.objects.filter(user=member).count() == 1
+
+
+# --- a payment already refunded ---------------------------------------------
+#: When the refunded payments below settled, well before any test runs.
+SETTLED_AT = datetime(2025, 3, 14, 12, 0, tzinfo=UTC)
+
+REFUNDED_STATUSES = [PaymentStatus.REFUNDED, PaymentStatus.PARTIALLY_REFUNDED]
+
+
+def refunded_paypal_payment(member: User, status: str) -> Payment:
+    """A PayPal payment for ``ORDER1``, settled at :data:`SETTLED_AT`, now ``status``."""
+    payment = pending_paypal_payment(member)
+    payment.status = status
+    payment.completed_at = SETTLED_AT
+    payment.save(update_fields=["status", "completed_at"])
+    return payment
+
+
+@pytest.mark.parametrize("status", REFUNDED_STATUSES)
+@respx.mock
+def test_capture_leaves_a_refunded_payment_refunded(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, status: str
+) -> None:
+    """Capturing a refunded payment answers its refunded status."""
+    payment = refunded_paypal_payment(member, status)
+    token_route(respx.mock)
+    respx.post(f"{ORDERS_URL}/ORDER1/capture").mock(
+        return_value=httpx.Response(201, json=capture_payload(payment))
+    )
+
+    api_client.force_login(member)
+    response = api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER1"})
+
+    assert response.json()["status"] == status
+
+
+@pytest.mark.parametrize("status", REFUNDED_STATUSES)
+@respx.mock
+def test_capture_of_a_refunded_payment_asks_paypal_nothing(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, status: str
+) -> None:
+    """A payment whose money arrived is not captured again."""
+    payment = refunded_paypal_payment(member, status)
+    token_route(respx.mock)
+    route = respx.post(f"{ORDERS_URL}/ORDER1/capture").mock(
+        return_value=httpx.Response(201, json=capture_payload(payment))
+    )
+
+    api_client.force_login(member)
+    api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER1"})
+
+    assert route.call_count == 0
+
+
+@pytest.mark.parametrize("status", REFUNDED_STATUSES)
+@respx.mock
+def test_capture_keeps_a_refunded_payments_completion_date(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, status: str
+) -> None:
+    """Capturing a refunded payment does not move it into the current period."""
+    payment = refunded_paypal_payment(member, status)
+    token_route(respx.mock)
+    respx.post(f"{ORDERS_URL}/ORDER1/capture").mock(
+        return_value=httpx.Response(201, json=capture_payload(payment))
+    )
+
+    api_client.force_login(member)
+    api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER1"})
+
+    payment.refresh_from_db()
+    assert payment.completed_at == SETTLED_AT
 
 
 def test_capture_requires_a_session(
@@ -448,7 +618,7 @@ def test_capture_rejects_someone_elses_payment(
     payment = pending_paypal_payment(member)
     thief = user_factory(email="thief@example.test", roles=["member"])
     api_client.force_login(thief)
-    response = api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER-1"})
+    response = api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER1"})
     assert response.status_code == 404
 
 
@@ -458,7 +628,11 @@ def test_capture_rejects_someone_elses_payment(
 def webhook_event(
     payment: Payment, event_type: str = "PAYMENT.CAPTURE.COMPLETED"
 ) -> dict[str, Any]:
-    """A PayPal webhook payload of ``event_type`` for ``payment``."""
+    """A PayPal webhook payload of ``event_type`` for ``payment``.
+
+    The resource is a capture of the payment's own order, as PayPal sends it: it names
+    the payment in ``custom_id`` and the order in ``supplementary_data``.
+    """
     return {
         "id": "WH-1",
         "event_type": event_type,
@@ -467,30 +641,112 @@ def webhook_event(
             "custom_id": str(payment.pk),
             "status": "COMPLETED",
             "amount": {"currency_code": "USD", "value": f"{payment.amount_cents / 100:.2f}"},
+            "supplementary_data": {"related_ids": {"order_id": payment.provider_ref}},
         },
     }
 
 
-def post_webhook(client: APIClient, body: dict[str, Any]) -> Response:
-    """POST the body to the PayPal webhook endpoint as JSON, with no signature headers."""
-    return client.post(WEBHOOK, data=json.dumps(body), content_type="application/json")
+def post_webhook(client: APIClient, body: dict[str, Any], *, signed: bool = True) -> Response:
+    """POST the body to the PayPal webhook endpoint as JSON.
+
+    The delivery carries PayPal's transmission headers unless ``signed`` is false;
+    whether they verify is up to the mocked verification call.
+    """
+    headers = PAYPAL_TRANSMISSION_HEADERS if signed else {}
+    return client.post(
+        WEBHOOK, data=json.dumps(body), content_type="application/json", headers=headers
+    )
 
 
-def test_an_unverified_webhook_only_records(
+@respx.mock(assert_all_called=False)
+def test_the_webhook_is_refused_while_no_webhook_id_is_set(
     api_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """With no webhook id configured, the event is recorded but never verified."""
+    """With no ``PAYPAL_WEBHOOK_ID`` the route answers 404."""
     payment = pending_paypal_payment(member)
+
     response = post_webhook(api_client, webhook_event(payment))
 
-    assert response.status_code == 200
-    body = json.loads(response.content)
-    assert body == {"received": True, "verified": False, "handled": False}
+    assert response.status_code == 404
+
+
+def test_the_webhook_without_a_webhook_id_says_so(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """The 404 names the missing configuration."""
+    payment = pending_paypal_payment(member)
+
+    response = post_webhook(api_client, webhook_event(payment))
+
+    assert json.loads(response.content) == {"detail": paypal.WEBHOOK_NOT_CONFIGURED_MESSAGE}
+
+
+@respx.mock(assert_all_called=False)
+def test_the_webhook_without_a_webhook_id_asks_paypal_nothing(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """Neither a token nor a verification is asked for while the route is refused."""
+    payment = pending_paypal_payment(member)
+    token = token_route(respx.mock)
+    verify = verification_route(respx.mock)
+
+    post_webhook(api_client, webhook_event(payment))
+
+    assert token.call_count + verify.call_count == 0
+
+
+@pytest.mark.parametrize(
+    "case",
+    ["no headers", "no id", "no event type", "empty body"],
+)
+@respx.mock(assert_all_called=False)
+def test_an_unsigned_delivery_is_refused_without_asking_paypal(
+    api_client: APIClient,
+    member: User,
+    annual_plan: MembershipPlan,
+    settings: Settings,
+    case: str,
+) -> None:
+    """A delivery missing what PayPal signs is a 400, and no verification call is made."""
+    settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
+    payment = pending_paypal_payment(member)
+    token_route(respx.mock)
+    route = verification_route(respx.mock)
+    event = webhook_event(payment)
+    if case == "no id":
+        del event["id"]
+    elif case == "no event type":
+        del event["event_type"]
+    elif case == "empty body":
+        event = {}
+
+    post_webhook(api_client, event, signed=case != "no headers")
+
+    assert route.call_count == 0
+
+
+def test_an_unsigned_delivery_is_answered_as_unverified(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, settings: Settings
+) -> None:
+    """A delivery with no transmission headers is the unverified 400."""
+    settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
+    payment = pending_paypal_payment(member)
+
+    response = post_webhook(api_client, webhook_event(payment), signed=False)
+
+    assert json.loads(response.content) == {"detail": paypal.UNVERIFIED_MESSAGE}
+
+
+def test_without_a_webhook_id_nothing_is_recorded(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A notification the route refuses is not filed against the payment it names."""
+    payment = pending_paypal_payment(member)
+
+    post_webhook(api_client, webhook_event(payment))
 
     payment.refresh_from_db()
-    assert payment.status == PaymentStatus.PENDING
-    assert payment.raw["last_webhook"]["event_type"] == "PAYMENT.CAPTURE.COMPLETED"
-    assert Membership.objects.count() == 0
+    assert "last_webhook" not in payment.raw
 
 
 @respx.mock
@@ -526,9 +782,92 @@ def test_a_failed_verification_does_not_activate(
     )
 
     response = post_webhook(api_client, webhook_event(payment))
-    assert json.loads(response.content)["verified"] is False
+    assert response.status_code == 400
     payment.refresh_from_db()
     assert payment.status == PaymentStatus.PENDING
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        httpx.Response(200, json={"verification_status": "FAILURE"}),
+        httpx.Response(500, json={"name": "INTERNAL_SERVICE_ERROR"}),
+    ],
+    ids=["failure", "error"],
+)
+@respx.mock
+def test_an_unverified_webhook_records_nothing(
+    api_client: APIClient,
+    member: User,
+    annual_plan: MembershipPlan,
+    settings: Settings,
+    answer: httpx.Response,
+) -> None:
+    """A notification PayPal does not vouch for leaves the payment's stored response."""
+    settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
+    payment = pending_paypal_payment(member)
+    token_route(respx.mock)
+    respx.post(f"{SANDBOX}/v1/notifications/verify-webhook-signature").mock(return_value=answer)
+
+    post_webhook(api_client, webhook_event(payment))
+
+    payment.refresh_from_db()
+    assert "last_webhook" not in payment.raw
+
+
+@respx.mock
+def test_an_unverified_webhook_is_logged_with_its_type_quoted(
+    api_client: APIClient,
+    member: User,
+    annual_plan: MembershipPlan,
+    settings: Settings,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """The caller's ``event_type`` reaches the log quoted, never as a line of its own."""
+    settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
+    payment = pending_paypal_payment(member)
+    token_route(respx.mock)
+    verification_route(respx.mock, status="FAILURE")
+    event = webhook_event(payment, "PAYMENT.CAPTURE.COMPLETED\nFORGED LINE")
+
+    with caplog.at_level(logging.INFO, logger=paypal.__name__):
+        post_webhook(api_client, event)
+
+    assert "'PAYMENT.CAPTURE.COMPLETED\\nFORGED LINE'" in caplog.text
+
+
+@respx.mock
+def test_a_verified_webhook_is_filed_against_its_payment(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, settings: Settings
+) -> None:
+    """A notification PayPal vouches for is kept on the payment as its last one."""
+    settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
+    payment = pending_paypal_payment(member)
+    token_route(respx.mock)
+    verification_route(respx.mock)
+
+    post_webhook(api_client, webhook_event(payment, "PAYMENT.CAPTURE.PENDING"))
+
+    payment.refresh_from_db()
+    assert payment.raw["last_webhook"]["event_type"] == "PAYMENT.CAPTURE.PENDING"
+
+
+@respx.mock
+def test_a_body_over_the_cap_is_refused_before_paypal_is_asked(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, settings: Settings
+) -> None:
+    """A body larger than the webhook's cap is a 413, and no verification call is made."""
+    settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
+    payment = pending_paypal_payment(member)
+    token_route(respx.mock)
+    route = verification_route(respx.mock)
+    event = webhook_event(payment)
+    event["padding"] = "x" * paypal.MAX_WEBHOOK_BYTES
+
+    response = post_webhook(api_client, event)
+
+    assert response.status_code == 413
+    assert route.call_count == 0
 
 
 @respx.mock
@@ -553,6 +892,163 @@ def test_a_verified_webhook_of_the_wrong_amount_is_ignored(
 
 
 @respx.mock
+def test_a_verified_capture_in_another_currency_is_ignored(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, settings: Settings
+) -> None:
+    """A verified capture of the right number in another currency activates nothing."""
+    settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
+    payment = pending_paypal_payment(member)
+    token_route(respx.mock)
+    verification_route(respx.mock)
+    event = webhook_event(payment)
+    event["resource"]["amount"]["currency_code"] = "JPY"
+
+    post_webhook(api_client, event)
+
+    payment.refresh_from_db()
+    assert payment.status == PaymentStatus.PENDING
+
+
+@pytest.mark.parametrize(
+    "related_ids",
+    [{"order_id": "ORDERSOMEONEELSE"}, {}],
+    ids=["another order", "no order"],
+)
+@respx.mock
+def test_a_verified_capture_of_another_order_is_ignored(
+    api_client: APIClient,
+    member: User,
+    annual_plan: MembershipPlan,
+    settings: Settings,
+    related_ids: dict[str, str],
+) -> None:
+    """A verified capture naming the payment but not its own order activates nothing."""
+    settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
+    payment = pending_paypal_payment(member)
+    token_route(respx.mock)
+    verification_route(respx.mock)
+    event = webhook_event(payment)
+    event["resource"]["supplementary_data"] = {"related_ids": related_ids}
+
+    post_webhook(api_client, event)
+
+    payment.refresh_from_db()
+    assert payment.status == PaymentStatus.PENDING
+
+
+@respx.mock
+def test_a_verified_capture_of_another_order_is_reported_unhandled(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, settings: Settings
+) -> None:
+    """The notification is acknowledged, so PayPal stops retrying it, but not handled."""
+    settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
+    payment = pending_paypal_payment(member)
+    token_route(respx.mock)
+    verification_route(respx.mock)
+    event = webhook_event(payment)
+    event["resource"]["supplementary_data"] = {"related_ids": {"order_id": "ORDERSOMEONEELSE"}}
+
+    response = post_webhook(api_client, event)
+
+    assert json.loads(response.content)["handled"] is False
+
+
+@respx.mock
+def test_a_webhook_settled_payment_can_be_refunded_through_caldart(
+    api_client: APIClient,
+    member: User,
+    annual_plan: MembershipPlan,
+    settings: Settings,
+    account_admin: User,
+) -> None:
+    """A payment settled by the capture notification is refunded against that capture."""
+    settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
+    payment = pending_paypal_payment(member)
+    token_route(respx.mock)
+    verification_route(respx.mock)
+    post_webhook(api_client, webhook_event(payment))
+    payment.refresh_from_db()
+    route = refund_route(respx.mock, "CAPTURE-1", "REFUND-AFTER-WEBHOOK")
+
+    refund = issue_refund(
+        payment, amount_cents=1_000, reason=RefundReason.ERROR, actor=account_admin
+    )
+
+    assert refund.status == RefundStatus.SUCCEEDED
+    assert route.call_count == 1
+
+
+@respx.mock
+def test_a_webhook_settled_payment_keeps_its_stored_order(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, settings: Settings
+) -> None:
+    """Settling by notification keeps what checkout stored, with the capture beside it."""
+    settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
+    payment = pending_paypal_payment(member)
+    payment.raw = order_payload("ORDER1")
+    payment.save(update_fields=["raw"])
+    token_route(respx.mock)
+    verification_route(respx.mock)
+
+    post_webhook(api_client, webhook_event(payment))
+
+    payment.refresh_from_db()
+    assert payment.raw["id"] == "ORDER1"
+
+
+def someone_elses_order_event(victim: Payment, event_type: str) -> dict[str, Any]:
+    """A verified ``event_type`` for an order the payer made in their own browser.
+
+    The resource names ``victim`` in ``custom_id``, which a browser-created order may
+    carry, but belongs to another order entirely.
+    """
+    event = webhook_event(victim, event_type)
+    event["resource"]["supplementary_data"] = {"related_ids": {"order_id": "ORDERBROWSER"}}
+    return event
+
+
+@pytest.mark.parametrize("event_type", sorted(paypal.CAPTURE_FAILED))
+@respx.mock
+def test_a_reversal_of_someone_elses_order_leaves_the_payment_pending(
+    api_client: APIClient,
+    member: User,
+    annual_plan: MembershipPlan,
+    settings: Settings,
+    event_type: str,
+) -> None:
+    """A verified denial or reversal of another order does not fail this payment."""
+    settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
+    payment = pending_paypal_payment(member)
+    token_route(respx.mock)
+    verification_route(respx.mock)
+
+    post_webhook(api_client, someone_elses_order_event(payment, event_type))
+
+    payment.refresh_from_db()
+    assert payment.status == PaymentStatus.PENDING
+
+
+@pytest.mark.parametrize("event_type", sorted(paypal.CAPTURE_FAILED))
+@respx.mock
+def test_a_reversal_of_someone_elses_order_is_reported_unhandled(
+    api_client: APIClient,
+    member: User,
+    annual_plan: MembershipPlan,
+    settings: Settings,
+    event_type: str,
+) -> None:
+    """The notification is acknowledged but not handled."""
+    settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
+    payment = pending_paypal_payment(member)
+    token_route(respx.mock)
+    verification_route(respx.mock)
+
+    response = post_webhook(api_client, someone_elses_order_event(payment, event_type))
+
+    assert json.loads(response.content)["handled"] is False
+
+
+@respx.mock
 def test_a_verified_denial_marks_the_payment_failed(
     api_client: APIClient, member: User, annual_plan: MembershipPlan, settings: Settings
 ) -> None:
@@ -569,36 +1065,115 @@ def test_a_verified_denial_marks_the_payment_failed(
     assert payment.status == PaymentStatus.FAILED
 
 
+@pytest.mark.parametrize("status", REFUNDED_STATUSES)
+@respx.mock
+def test_a_replayed_capture_leaves_a_refunded_payment_refunded(
+    api_client: APIClient,
+    member: User,
+    annual_plan: MembershipPlan,
+    settings: Settings,
+    status: str,
+) -> None:
+    """A verified capture-completed delivered again after a refund changes no status."""
+    settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
+    payment = refunded_paypal_payment(member, status)
+    token_route(respx.mock)
+    verification_route(respx.mock)
+
+    post_webhook(api_client, webhook_event(payment))
+
+    payment.refresh_from_db()
+    assert payment.status == status
+
+
+@pytest.mark.parametrize("status", REFUNDED_STATUSES)
+@respx.mock
+def test_a_replayed_capture_keeps_a_refunded_payments_completion_date(
+    api_client: APIClient,
+    member: User,
+    annual_plan: MembershipPlan,
+    settings: Settings,
+    status: str,
+) -> None:
+    """A verified capture-completed delivered again after a refund moves no date."""
+    settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
+    payment = refunded_paypal_payment(member, status)
+    token_route(respx.mock)
+    verification_route(respx.mock)
+
+    post_webhook(api_client, webhook_event(payment))
+
+    payment.refresh_from_db()
+    assert payment.completed_at == SETTLED_AT
+
+
+@pytest.mark.parametrize("event_type", sorted(paypal.CAPTURE_FAILED))
+@pytest.mark.parametrize("status", REFUNDED_STATUSES)
+@respx.mock
+def test_a_verified_reversal_leaves_a_refunded_payment_refunded(
+    api_client: APIClient,
+    member: User,
+    annual_plan: MembershipPlan,
+    settings: Settings,
+    status: str,
+    event_type: str,
+) -> None:
+    """A verified denial or reversal after a refund does not mark the payment failed."""
+    settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
+    payment = refunded_paypal_payment(member, status)
+    token_route(respx.mock)
+    verification_route(respx.mock)
+
+    post_webhook(api_client, webhook_event(payment, event_type))
+
+    payment.refresh_from_db()
+    assert payment.status == status
+
+
+@respx.mock
 def test_a_webhook_for_an_unknown_payment_is_accepted(
-    api_client: APIClient, member: User, annual_plan: MembershipPlan
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, settings: Settings
 ) -> None:
     """A webhook naming a payment id that does not exist is accepted but unhandled."""
+    settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
+    token_route(respx.mock)
+    verification_route(respx.mock)
     response = post_webhook(
         api_client,
-        {"event_type": "PAYMENT.CAPTURE.COMPLETED", "resource": {"custom_id": "9999"}},
+        {
+            "id": "WH-2",
+            "event_type": "PAYMENT.CAPTURE.COMPLETED",
+            "resource": {"custom_id": "9999"},
+        },
     )
     assert response.status_code == 200
     assert json.loads(response.content)["handled"] is False
 
 
-def test_a_malformed_webhook_is_a_400(api_client: APIClient) -> None:
+def test_a_malformed_webhook_is_a_400(api_client: APIClient, settings: Settings) -> None:
     """A body that is not valid JSON is refused with a 400."""
+    settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
     response = api_client.post(WEBHOOK, data="not json", content_type="application/json")
     assert response.status_code == 400
 
 
+@respx.mock
 def test_the_webhook_finds_the_payment_by_order_id(
-    api_client: APIClient, member: User, annual_plan: MembershipPlan
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, settings: Settings
 ) -> None:
     """A webhook is matched to its payment by order id when there is no custom id."""
-    payment = pending_paypal_payment(member, order_id="ORDER-REF")
+    settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
+    token_route(respx.mock)
+    verification_route(respx.mock)
+    payment = pending_paypal_payment(member, order_id="ORDERREF")
     response = post_webhook(
         api_client,
         {
+            "id": "WH-3",
             "event_type": "PAYMENT.CAPTURE.COMPLETED",
             "resource": {
                 "id": "CAPTURE-9",
-                "supplementary_data": {"related_ids": {"order_id": "ORDER-REF"}},
+                "supplementary_data": {"related_ids": {"order_id": "ORDERREF"}},
             },
         },
     )
@@ -630,12 +1205,12 @@ def test_capture_records_the_fee_from_the_seller_breakdown(
     """The fee PayPal reports on the capture lands on the payment in cents."""
     payment = pending_paypal_payment(member)
     token_route(respx.mock)
-    respx.post(f"{ORDERS_URL}/ORDER-1/capture").mock(
+    respx.post(f"{ORDERS_URL}/ORDER1/capture").mock(
         return_value=httpx.Response(201, json=with_breakdown(capture_payload(payment)))
     )
 
     api_client.force_login(member)
-    api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER-1"})
+    api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER1"})
 
     payment.refresh_from_db()
     assert payment.fee_cents == 161
@@ -648,12 +1223,12 @@ def test_capture_records_the_net_from_the_seller_breakdown(
     """The net PayPal reports is stored as reported."""
     payment = pending_paypal_payment(member)
     token_route(respx.mock)
-    respx.post(f"{ORDERS_URL}/ORDER-1/capture").mock(
+    respx.post(f"{ORDERS_URL}/ORDER1/capture").mock(
         return_value=httpx.Response(201, json=with_breakdown(capture_payload(payment)))
     )
 
     api_client.force_login(member)
-    api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER-1"})
+    api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER1"})
 
     payment.refresh_from_db()
     assert payment.net_cents == 4_339
@@ -666,12 +1241,12 @@ def test_a_capture_without_a_breakdown_leaves_the_fee_unknown(
     """An order PayPal has not settled reports no fee, and none is invented."""
     payment = pending_paypal_payment(member)
     token_route(respx.mock)
-    respx.post(f"{ORDERS_URL}/ORDER-1/capture").mock(
+    respx.post(f"{ORDERS_URL}/ORDER1/capture").mock(
         return_value=httpx.Response(201, json=capture_payload(payment))
     )
 
     api_client.force_login(member)
-    api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER-1"})
+    api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER1"})
 
     payment.refresh_from_db()
     assert fees_are_known(payment) is False
@@ -717,7 +1292,7 @@ def test_fetch_fees_reads_the_order_again(member: User, annual_plan: MembershipP
     """Asking PayPal what a settled order cost reads the breakdown off the order."""
     payment = pending_paypal_payment(member)
     token_route(respx.mock)
-    respx.get(f"{ORDERS_URL}/ORDER-1").mock(
+    respx.get(f"{ORDERS_URL}/ORDER1").mock(
         return_value=httpx.Response(200, json=with_breakdown(capture_payload(payment)))
     )
 
@@ -875,6 +1450,38 @@ def test_a_verified_refund_webhook_updates_the_payment(
 
 
 @respx.mock
+def test_a_refund_in_another_currency_records_nothing(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, settings: Settings
+) -> None:
+    """A verified refund naming the payment, but in another currency, files no refund."""
+    settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
+    payment = captured_paypal_payment(member)
+    token_route(respx.mock)
+    verification_route(respx.mock)
+    event = refund_event(payment, "REFUND-YEN", 1_000)
+    event["resource"]["amount"]["currency_code"] = "JPY"
+
+    post_webhook(api_client, event)
+
+    assert Refund.objects.count() == 0
+
+
+@respx.mock
+def test_a_refund_of_a_payment_that_never_settled_records_nothing(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, settings: Settings
+) -> None:
+    """A verified refund of a payment CalDART never saw settle files no refund."""
+    settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
+    payment = pending_paypal_payment(member)
+    token_route(respx.mock)
+    verification_route(respx.mock)
+
+    post_webhook(api_client, refund_event(payment, "REFUND-EARLY", 1_000))
+
+    assert Refund.objects.count() == 0
+
+
+@respx.mock
 def test_a_second_delivery_of_the_refund_webhook_records_nothing(
     api_client: APIClient, member: User, annual_plan: MembershipPlan, settings: Settings
 ) -> None:
@@ -893,12 +1500,14 @@ def test_a_second_delivery_of_the_refund_webhook_records_nothing(
 
 @respx.mock
 def test_an_unverified_refund_webhook_records_nothing(
-    api_client: APIClient, member: User, annual_plan: MembershipPlan
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, settings: Settings
 ) -> None:
-    """Without a webhook id the notification is filed and acted on by nobody."""
+    """A refund notification PayPal does not vouch for files no refund."""
+    settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
     payment = captured_paypal_payment(member)
+    token_route(respx.mock)
+    verification_route(respx.mock, status="FAILURE")
 
-    response = post_webhook(api_client, refund_event(payment, "REFUND-UNVERIFIED", 1_000))
+    post_webhook(api_client, refund_event(payment, "REFUND-UNVERIFIED", 1_000))
 
-    assert json.loads(response.content)["verified"] is False
     assert Refund.objects.count() == 0

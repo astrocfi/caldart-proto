@@ -24,7 +24,7 @@ from apps.members.models import (
 )
 from apps.members.services import activate_term, is_tombstone
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
-from apps.payments.receipts import send_receipt
+from apps.payments.receipts import SETTLED_STATUSES, send_receipt
 from caldart import events
 from caldart.exceptions import DomainValidationError
 
@@ -173,6 +173,9 @@ def mark_succeeded(
 
     Idempotent: a second call is a no-op that returns the same payment and
     sends no second receipt, so webhook and client confirmation can race safely.
+    The same holds for a payment refunded in full or in part: its status, its
+    ``completed_at``, and its term stay as the refund left them, so a success the
+    provider reports again after a refund changes nothing and emails nobody.
     """
     payment, transitioned = _complete(
         payment, wallet=wallet, raw=raw, provider_ref=provider_ref, fees=(fee_cents, net_cents)
@@ -202,12 +205,15 @@ def _complete(
     payment for one that names none -- a public gift, a contribution, or a recurring
     donation's charge.
 
+    A payment whose money has already arrived -- succeeded, partly refunded, or
+    refunded -- is returned as it is, so a refund is never undone by a late success.
+
     Returns the row as saved and whether this call is the one that moved it, so
     only the caller that did the work sends the receipt.
     """
     payment = Payment.objects.select_for_update().get(pk=payment.pk)
 
-    if payment.status == PaymentStatus.SUCCEEDED:
+    if payment.status in SETTLED_STATUSES:
         return payment, False
 
     # Inline: donations reads this module for create_checkout, so a top-level
@@ -315,13 +321,15 @@ def backfill_fees(payment: Payment) -> Payment:
 
 @transaction.atomic
 def mark_failed(payment: Payment, raw: dict[str, Any] | None = None) -> Payment:
-    """Mark a pending payment failed.  A succeeded payment is never downgraded.
+    """Mark a pending payment failed.  A payment whose money arrived is never downgraded.
 
     Stores ``raw`` when it is given, leaves ``completed_at`` alone, and returns the
-    row as saved.  Activates no term and expires none.
+    row as saved.  A succeeded, partly refunded, or refunded payment is returned
+    unchanged, ``raw`` included, so it stays refundable and keeps its ledger line.
+    Activates no term and expires none.
     """
     payment = Payment.objects.select_for_update().get(pk=payment.pk)
-    if payment.status == PaymentStatus.SUCCEEDED:
+    if payment.status in SETTLED_STATUSES:
         return payment
     payment.status = PaymentStatus.FAILED
     if raw is not None:
@@ -337,8 +345,8 @@ def record_provider_event(payment: Payment, payload: dict[str, Any]) -> Payment:
     ``payload`` replaces ``raw["last_webhook"]``, so only the most recent
     notification is kept.  The status, the wallet and the term are untouched.
 
-    Used by the PayPal webhook, which is a recorder rather than an authority:
-    the capture call is what activates a membership.
+    Used by the PayPal webhook, for a notification PayPal has verified, before it
+    acts on one.
     """
     payment = Payment.objects.select_for_update().get(pk=payment.pk)
     raw = dict(payment.raw or {})

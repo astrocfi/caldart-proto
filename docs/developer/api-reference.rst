@@ -394,6 +394,9 @@ draw on the same budget:
    * - ``GET /addresses/suggest``
      - ``address_suggest``
      - ``ADDRESS_SUGGEST_THROTTLE_RATE`` (``60/min``), per account
+   * - ``POST /payments/paypal/webhook``
+     - ``paypal_webhook``
+     - ``PAYPAL_WEBHOOK_THROTTLE_RATE`` (``120/min``), per address or IPv6 ``/64``
 
 Setting a rate to empty turns that throttle off, and a value that is neither
 empty nor a readable rate stops start-up; see :doc:`configuration`.  The test

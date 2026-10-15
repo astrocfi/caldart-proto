@@ -58,7 +58,9 @@ shape of the module and everything that has to be told about it.
    its own servers has no session and no CSRF token to send.  Nothing then
    stands between the provider and the view: the signature is the only proof of
    where the body came from, which is why the skeleton refuses one it cannot
-   verify.
+   verify.  When checking a signature costs a call to the vendor, the view also
+   sets ``throttle_classes``, as ``PayPalWebhookView`` does with
+   ``PayPalWebhookThrottle`` from ``apps.payments.webhook_throttling``.
 #. Write the checkout panel in
    ``frontend/src/portal/features/checkout/<Name>Panel.tsx`` and offer it from
    ``Checkout.tsx`` when the config lists the slug.

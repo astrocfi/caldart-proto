@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import re
 from typing import Any
 
 from django.utils import timezone
@@ -244,14 +245,35 @@ class StripeConfirmSerializer(serializers.Serializer[dict[str, Any]]):
     payment_intent_id = serializers.CharField(required=False, allow_blank=True, default="")
 
 
+#: What a PayPal order id looks like: upper-case letters and digits, nothing else.
+PAYPAL_ORDER_ID_PATTERN = re.compile(r"^[A-Z0-9]+$")
+
+#: The longest order id accepted.  PayPal's are seventeen characters.
+PAYPAL_ORDER_ID_MAX_LENGTH = 64
+
+#: What an ``order_id`` of any other shape is refused with.
+PAYPAL_ORDER_ID_MESSAGE = "That is not a PayPal order id."
+
+
 class PayPalCaptureSerializer(serializers.Serializer[dict[str, Any]]):
     """``POST /payments/paypal/capture``.
 
-    ``order_id`` may be left out: the payment's own reference is used.
+    ``order_id`` may be left out: the payment's own reference is used.  One that is
+    given must be upper-case letters and digits, at most
+    :data:`PAYPAL_ORDER_ID_MAX_LENGTH` of them, and is otherwise refused with
+    :data:`PAYPAL_ORDER_ID_MESSAGE`.
     """
 
     payment_id = serializers.IntegerField()
-    order_id = serializers.CharField(required=False, allow_blank=True, default="")
+    order_id = serializers.CharField(
+        max_length=PAYPAL_ORDER_ID_MAX_LENGTH, required=False, allow_blank=True, default=""
+    )
+
+    def validate_order_id(self, value: str) -> str:
+        """``value`` unchanged when it is empty or PayPal's shape; a 400 otherwise."""
+        if value and PAYPAL_ORDER_ID_PATTERN.fullmatch(value) is None:
+            raise serializers.ValidationError(PAYPAL_ORDER_ID_MESSAGE)
+        return value
 
 
 #: What a mock payment can be told to do.

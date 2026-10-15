@@ -151,6 +151,9 @@ What ``caldart.settings.test`` changes
   auth throttles inert.  The throttling test turns one back on with
   ``override_settings`` rather than having every other test race a shared
   counter.
+- ``PAYPAL_WEBHOOK_THROTTLE_RATE`` is ``None``, so no test races the webhook
+  counter; ``test_payments_webhook_throttle.py`` sets a rate with the
+  ``settings`` fixture and clears the cache around itself.
 - ``GEOAPIFY_API_KEY`` is blank and ``ADDRESS_SUGGEST_THROTTLE_RATE`` is
   ``None``, so address suggestions are off and unthrottled whatever ``.env``
   says.  ``test_address_suggestions.py`` sets a key with the ``settings``

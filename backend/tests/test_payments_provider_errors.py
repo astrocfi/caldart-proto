@@ -32,6 +32,7 @@ from apps.payments.providers import paypal
 from apps.payments.providers import stripe as stripe_provider
 from apps.payments.providers.base import ProviderUnavailableError
 from apps.payments.services import create_checkout
+from tests.conftest import PAYPAL_TRANSMISSION_HEADERS
 from tests.test_payments_stripe import fake_stripe_client
 
 pytestmark = pytest.mark.django_db
@@ -122,7 +123,7 @@ def capture_payload(
 ) -> dict[str, Any]:
     """A PayPal capture webhook/API payload naming ``payment`` in its custom id."""
     return {
-        "id": "ORDER-1",
+        "id": "ORDER1",
         "status": "COMPLETED",
         "purchase_units": [
             {
@@ -148,7 +149,7 @@ def capture_payload(
 def pending_paypal_payment(member: User) -> Payment:
     """Start a pending PayPal checkout with its order id already attached."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.PAYPAL)
-    payment.provider_ref = "ORDER-1"
+    payment.provider_ref = "ORDER1"
     payment.save(update_fields=["provider_ref"])
     return payment
 
@@ -359,10 +360,10 @@ def test_a_capture_timeout_is_a_400(
     """A timeout capturing a PayPal order is a 400, not a 500."""
     payment = pending_paypal_payment(member)
     token_route(respx.mock)
-    respx.post(f"{ORDERS_URL}/ORDER-1/capture").mock(side_effect=httpx.ConnectTimeout("timed out"))
+    respx.post(f"{ORDERS_URL}/ORDER1/capture").mock(side_effect=httpx.ConnectTimeout("timed out"))
 
     api_client.force_login(member)
-    response = api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER-1"})
+    response = api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER1"})
 
     assert response.status_code == 400
     assert response.json()["detail"] == paypal.UNAVAILABLE_MESSAGE
@@ -375,10 +376,10 @@ def test_a_capture_timeout_leaves_the_payment_pending(
     """A capture timeout leaves the payment pending for another attempt."""
     payment = pending_paypal_payment(member)
     token_route(respx.mock)
-    respx.post(f"{ORDERS_URL}/ORDER-1/capture").mock(side_effect=httpx.ConnectTimeout("timed out"))
+    respx.post(f"{ORDERS_URL}/ORDER1/capture").mock(side_effect=httpx.ConnectTimeout("timed out"))
 
     api_client.force_login(member)
-    api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER-1"})
+    api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER1"})
 
     payment.refresh_from_db()
     assert payment.status == PaymentStatus.PENDING
@@ -395,10 +396,10 @@ def test_a_capture_timeout_is_logged_with_the_payment_and_amount(
     caplog.set_level(logging.ERROR, logger=PAYPAL_LOGGER)
     payment = pending_paypal_payment(member)
     token_route(respx.mock)
-    respx.post(f"{ORDERS_URL}/ORDER-1/capture").mock(side_effect=httpx.ConnectTimeout("timed out"))
+    respx.post(f"{ORDERS_URL}/ORDER1/capture").mock(side_effect=httpx.ConnectTimeout("timed out"))
 
     api_client.force_login(member)
-    api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER-1"})
+    api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER1"})
 
     logged = " ".join(r.getMessage() for r in caplog.records if r.levelno == logging.ERROR)
     assert f"payment {payment.pk}" in logged
@@ -416,12 +417,12 @@ def test_a_capture_of_the_wrong_amount_is_logged_with_both_amounts(
     caplog.set_level(logging.ERROR, logger=PAYPAL_LOGGER)
     payment = pending_paypal_payment(member)
     token_route(respx.mock)
-    respx.post(f"{ORDERS_URL}/ORDER-1/capture").mock(
+    respx.post(f"{ORDERS_URL}/ORDER1/capture").mock(
         return_value=httpx.Response(201, json=capture_payload(payment, value="1.00"))
     )
 
     api_client.force_login(member)
-    response = api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER-1"})
+    response = api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER1"})
 
     assert response.status_code == 400
     logged = " ".join(r.getMessage() for r in caplog.records if r.levelno == logging.ERROR)
@@ -441,12 +442,12 @@ def test_a_capture_in_another_currency_is_logged(
     caplog.set_level(logging.ERROR, logger=PAYPAL_LOGGER)
     payment = pending_paypal_payment(member)
     token_route(respx.mock)
-    respx.post(f"{ORDERS_URL}/ORDER-1/capture").mock(
+    respx.post(f"{ORDERS_URL}/ORDER1/capture").mock(
         return_value=httpx.Response(201, json=capture_payload(payment, currency="CAD"))
     )
 
     api_client.force_login(member)
-    api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER-1"})
+    api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER1"})
 
     logged = " ".join(r.getMessage() for r in caplog.records if r.levelno == logging.ERROR)
     assert f"payment {payment.pk}" in logged
@@ -463,12 +464,12 @@ def test_a_capture_mismatch_never_logs_an_email_address(
     caplog.set_level(logging.ERROR, logger=PAYPAL_LOGGER)
     payment = pending_paypal_payment(member)
     token_route(respx.mock)
-    respx.post(f"{ORDERS_URL}/ORDER-1/capture").mock(
+    respx.post(f"{ORDERS_URL}/ORDER1/capture").mock(
         return_value=httpx.Response(201, json=capture_payload(payment, value="1.00"))
     )
 
     api_client.force_login(member)
-    api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER-1"})
+    api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER1"})
 
     logged = " ".join(messages(caplog))
     assert "PayPal capture mismatch" in logged
@@ -482,12 +483,12 @@ def test_a_capture_mismatch_grants_no_membership(
     """A capture that does not match the payment grants no membership."""
     payment = pending_paypal_payment(member)
     token_route(respx.mock)
-    respx.post(f"{ORDERS_URL}/ORDER-1/capture").mock(
+    respx.post(f"{ORDERS_URL}/ORDER1/capture").mock(
         return_value=httpx.Response(201, json=capture_payload(payment, value="1.00"))
     )
 
     api_client.force_login(member)
-    api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER-1"})
+    api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER1"})
 
     assert Membership.objects.count() == 0
 
@@ -498,6 +499,7 @@ def test_a_capture_mismatch_grants_no_membership(
 def capture_completed_event(payment: Payment) -> dict[str, Any]:
     """A ``PAYMENT.CAPTURE.COMPLETED`` webhook payload naming ``payment``."""
     return {
+        "id": "WH-1",
         "event_type": "PAYMENT.CAPTURE.COMPLETED",
         "resource": {
             "id": "CAPTURE-1",
@@ -509,15 +511,20 @@ def capture_completed_event(payment: Payment) -> dict[str, Any]:
 
 
 def post_webhook(client: APIClient, event: dict[str, Any]) -> Response:
-    """POST the body to the PayPal webhook endpoint as JSON, with no signature headers."""
-    return client.post(WEBHOOK, data=json.dumps(event), content_type="application/json")
+    """POST the body to the PayPal webhook endpoint as JSON, with PayPal's headers."""
+    return client.post(
+        WEBHOOK,
+        data=json.dumps(event),
+        content_type="application/json",
+        headers=PAYPAL_TRANSMISSION_HEADERS,
+    )
 
 
 @respx.mock
-def test_a_verification_timeout_leaves_the_webhook_unverified(
+def test_a_verification_timeout_refuses_the_webhook(
     api_client: APIClient, member: User, annual_plan: MembershipPlan, settings: Settings
 ) -> None:
-    """A timeout verifying a PayPal webhook signature leaves it unverified, not a 500."""
+    """A timeout verifying a PayPal webhook signature is a 400, not a 500."""
     settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
     payment = pending_paypal_payment(member)
     token_route(respx.mock)
@@ -525,8 +532,8 @@ def test_a_verification_timeout_leaves_the_webhook_unverified(
 
     response = post_webhook(api_client, capture_completed_event(payment))
 
-    assert response.status_code == 200
-    assert json.loads(response.content)["verified"] is False
+    assert response.status_code == 400
+    assert json.loads(response.content) == {"detail": paypal.UNVERIFIED_MESSAGE}
 
 
 @respx.mock

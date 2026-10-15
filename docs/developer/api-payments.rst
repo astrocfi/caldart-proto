@@ -174,7 +174,11 @@ The server retrieves the PaymentIntent from Stripe (expanding
 
 On success the membership term is created immediately and the wallet is
 recorded from ``latest_charge.payment_method_details`` — ``apple_pay``,
-``google_pay``, ``link``, or ``card``.
+``google_pay``, ``link``, or ``card``.  A payment whose money has already
+arrived — ``succeeded``, ``partially_refunded``, or ``refunded`` — is not looked
+up again: the call answers 200 with the payment's status as it stands and
+changes nothing, so confirming twice, or after a refund, neither grants a second
+term nor undoes the refund.
 
 **200**:
 
@@ -192,7 +196,8 @@ provider that cannot be reached is a **400** too, and the payment stays
 that was started with another provider is a **400** keyed by ``payment_id``:
 ``{"payment_id": "That payment is not a stripe payment."}``.
 
-Statuses: **200** for a verified intent and for one Stripe reports as failed;
+Statuses: **200** for a verified intent, for one Stripe reports as failed, and
+for a payment that had already settled;
 **400** for a missing field, a payment started with another provider, a
 mismatch against our row, an intent still in flight, or Stripe being
 unreachable; **401** when anonymous; **404** when the payment is not the
@@ -207,13 +212,24 @@ The payment's owner only.
 
    {"payment_id": 413, "order_id": "5O190127TN364715T"}
 
+The order captured is always the one checkout recorded for the payment as its
+``provider_ref``.  ``order_id`` may be left out; one that is given must be
+PayPal's shape — upper-case letters and digits, at most 64 of them — or the
+request is a **400** keyed by ``order_id``:
+``{"order_id": ["That is not a PayPal order id."]}``.  An ``order_id`` naming any
+other order is a **400** with ``{"detail": "That PayPal order belongs to another
+payment."}``, and a payment PayPal never gave an order, such as a checkout that
+never reached PayPal, is a **400** with ``{"detail": "No PayPal order to
+capture."}``.  PayPal is not called in any of the three.
+
 Captures the order through Orders v2 and requires ``status == "COMPLETED"``,
 at least one completed capture, a captured total equal to ``amount_cents`` and
 the same currency.  ``custom_id`` is checked only when the capture carries one:
 a capture that names a payment is required to name *this* one, and a capture
-with no ``custom_id`` at all is accepted on the amount, the currency and the
-order id.  Capturing an already-succeeded payment is a no-op that answers 200
-without calling PayPal again.
+with no ``custom_id`` at all is accepted on the amount, the currency, and the
+order id.  Capturing a payment whose money has already arrived —
+``succeeded``, ``partially_refunded``, or ``refunded`` — is a no-op that answers
+200 with the payment's status as it stands, without calling PayPal again.
 
 .. code-block:: json
 
@@ -230,9 +246,11 @@ dashboard: the mismatch names the payment and both amounts, and the call that
 never completed names the payment and the amount at stake.
 
 Statuses: **200** for a completed capture and for a payment that had already
-succeeded; **400** for a missing field, a payment started with another
-provider (``{"payment_id": "That payment is not a paypal payment."}``), a
-capture PayPal did not complete, a mismatch, or PayPal being unreachable;
+settled; **400** for a missing field, an ``order_id`` that is not PayPal's shape
+or names another order, a payment with no order of its own, a payment started
+with another provider (``{"payment_id": "That payment is not a paypal
+payment."}``), a capture PayPal did not complete, a mismatch, or PayPal being
+unreachable;
 **401** when anonymous; **404** when the payment is not the caller's.
 
 ``POST /payments/mock/complete``
@@ -606,7 +624,12 @@ Webhooks
 ========
 
 Both endpoints are unauthenticated and CSRF-exempt: the signature *is* the
-authentication.
+authentication.  The PayPal one, whose check costs a call to PayPal, is
+throttled by client address (an IPv6 address by its ``/64``) under the
+``paypal_webhook`` scope (``PAYPAL_WEBHOOK_THROTTLE_RATE``, ``120/min``; see
+:doc:`configuration`), and a delivery past the rate is a **429** that PayPal
+sends again later.  Stripe's signature is checked locally, so its webhook is not
+throttled.
 
 ``POST /payments/stripe/webhook``
 ---------------------------------
@@ -640,7 +663,9 @@ have, for a ``payment_intent.succeeded`` that fails the same verification the
 confirm endpoint applies, for a ``charge.updated`` whose fee is already known
 or still unreadable, and for every event type above that is not listed.
 It is idempotent, so it is safe for it to race the browser's confirm call or
-to be re-delivered from the Stripe dashboard.
+to be re-delivered from the Stripe dashboard.  A ``payment_intent.succeeded`` or
+``payment_intent.payment_failed`` for a payment that has since been refunded, in
+full or in part, leaves it refunded.
 
 Statuses: **200** whether or not the event was acted on; **400** for a
 signature that does not check out; **405** for any method but ``POST``.
@@ -648,26 +673,57 @@ signature that does not check out; **405** for any method but ``POST``.
 ``POST /payments/paypal/webhook``
 ---------------------------------
 
-The capture call is authoritative, so this endpoint is a recorder.  It files
-the payload against the matching payment (found by ``custom_id``, then by
-order id) and answers:
+The route needs ``PAYPAL_WEBHOOK_ID``: while it is empty every delivery is a
+**404** ``{"detail": "PayPal notifications are not configured."}``, read no
+further.  A body larger than 64 KB is a **413**
+``{"detail": "Notification too large."}`` and one that is not a JSON object a
+**400** ``{"detail": "Malformed JSON."}``, both before PayPal is asked.
+
+A delivery missing any of the ``Paypal-Transmission-Id``,
+``Paypal-Transmission-Sig``, and ``Paypal-Transmission-Time`` headers, or a body
+``id`` or ``event_type``, cannot pass PayPal's check, so it is the unverified
+**400** below without a call to PayPal.
+
+Every other delivery is checked with PayPal's ``verify-webhook-signature`` call
+before anything is written.  A notification PayPal does not vouch for, or that
+it cannot be asked about, is a **400**
+``{"detail": "PayPal did not verify this notification."}`` that records nothing
+and touches no payment; its ``event_type`` is logged quoted, as a literal.
+PayPal sends again a delivery it is not answered 2xx for, so one refused while
+PayPal could not be reached arrives again.
+
+A verified notification is filed against the matching payment (found by
+``custom_id``, then by order id) as its ``raw["last_webhook"]``, and answered:
 
 .. code-block:: json
 
-   {"received": true, "verified": false, "handled": false}
+   {"received": true, "handled": true}
 
-``verified`` is true only when ``PAYPAL_WEBHOOK_ID`` is set *and* PayPal's
-``verify-webhook-signature`` call passes.  A verified
-``PAYMENT.CAPTURE.COMPLETED`` for the right amount activates the membership;
-``PAYMENT.CAPTURE.DENIED`` and ``PAYMENT.CAPTURE.REVERSED`` mark it failed; and
-a verified ``PAYMENT.CAPTURE.REFUNDED`` records the refund, as
-:ref:`api-refunds-webhooks` describes.
-Without verification nothing changes — an unverifiable notification is not
-evidence that money moved.  A notification about a payment this installation
-does not have is received but not filed.
+A ``PAYMENT.CAPTURE.COMPLETED`` activates the membership once it passes the
+capture call's own checks: the amount, the currency, a ``custom_id`` when the
+capture carries one, and the order, read from
+``supplementary_data.related_ids.order_id``, which has to be the payment's own
+``provider_ref``.  One that fails them is logged at ``ERROR`` for reconciliation
+and answered with ``handled`` false.  One that passes settles the payment and
+keeps the order checkout stored as ``raw``, with the capture filed beside it as
+``raw["capture"]``, so a refund issued from CalDART later knows which capture
+to give the money back from.
 
-Statuses: **200** whether or not the notification was verified or acted on;
-**400** ``{"detail": "Malformed JSON."}`` for a body that is not JSON;
+``PAYMENT.CAPTURE.DENIED`` and ``PAYMENT.CAPTURE.REVERSED`` are acted on only
+for a capture of the payment's own order, read from
+``supplementary_data.related_ids.order_id`` as above: they mark a payment that
+is still waiting on its money failed, and leave one that has settled as it is.
+``PAYMENT.CAPTURE.REFUNDED`` is acted on only in the payment's currency, and
+records the refund, as :ref:`api-refunds-webhooks` describes.  A ``custom_id``
+naming the payment is never enough on its own.  ``handled`` is false for a
+notification about a payment this installation does not have, which is kept
+nowhere; for a denial or a reversal of another order and a refund in another
+currency, each logged at ``ERROR``; and for every other event type.
+
+Statuses: **200** for a verified notification, whether or not it was acted on;
+**400** for a body that is not JSON and for a notification PayPal did not
+verify; **404** while ``PAYPAL_WEBHOOK_ID`` is empty; **413** for a body over
+64 KB; **429** past ``PAYPAL_WEBHOOK_THROTTLE_RATE``;
 **405** for any method but ``POST``.
 
 

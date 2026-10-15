@@ -60,6 +60,7 @@ from apps.payments.renewals.mandates import (
     discard_pending_mandate,
 )
 from apps.payments.services import create_checkout
+from apps.payments.webhook_throttling import PayPalWebhookThrottle
 
 #: What the webhook endpoints answer with.  The provider chooses the body, and
 #: neither portal screen reads it, so the schema describes only the status.
@@ -389,20 +390,22 @@ class StripeWebhookView(APIView):
 
 @method_decorator(csrf_exempt, name="dispatch")
 class PayPalWebhookView(APIView):
-    """``POST /payments/paypal/webhook`` -- recorder; capture is authoritative."""
+    """``POST /payments/paypal/webhook`` -- verified notifications only."""
 
     authentication_classes = []
     permission_classes = []
+    throttle_classes = [PayPalWebhookThrottle]
 
     @extend_schema(
         request=None,
         responses={200: OpenApiResponse(description=WEBHOOK_RESPONSE_DESCRIPTION)},
     )
     def post(self, request: Request) -> HttpResponse:
-        """Hand the notification to the PayPal provider, which records it.
+        """Hand the notification to the PayPal provider, which verifies it first.
 
         Unauthenticated by design: PayPal's own verification call is what proves
-        where the request came from, and an unverified notification is filed
-        against the payment without changing it.
+        where the request came from, so the route answers 404 while
+        ``PAYPAL_WEBHOOK_ID`` is empty, and a notification PayPal does not vouch
+        for is a 400 that records nothing.
         """
         return get_provider(PaymentProvider.PAYPAL).handle_webhook(request)
