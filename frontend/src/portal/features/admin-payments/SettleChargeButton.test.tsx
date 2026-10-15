@@ -69,10 +69,10 @@ describe('SettleChargeButton', () => {
     expect(screen.getByText('caldart-renewal-901')).toBeInTheDocument();
   });
 
-  it('holds It took nothing back until the search is confirmed', async () => {
+  it('holds No payment found back until the search is confirmed', async () => {
     await openPanel();
 
-    expect(screen.getByRole('button', { name: 'It took nothing' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'No payment found' })).toBeDisabled();
   });
 
   it('holds Close as failed back until the search is confirmed', async () => {
@@ -87,9 +87,9 @@ describe('SettleChargeButton', () => {
     await openPanel();
 
     await userEvent.click(
-      screen.getByLabelText('I searched the dashboard and it holds no charge for this invoice'),
+      screen.getByLabelText('I searched the dashboard and didn’t find a payment for this invoice'),
     );
-    await userEvent.click(screen.getByRole('button', { name: 'It took nothing' }));
+    await userEvent.click(screen.getByRole('button', { name: 'No payment found' }));
 
     expect(
       await screen.findByText('The charge for Ben Ortiz will be taken on the next run.'),
@@ -103,7 +103,7 @@ describe('SettleChargeButton', () => {
     await openPanel();
 
     await userEvent.click(
-      screen.getByLabelText('I searched the dashboard and it holds no charge for this invoice'),
+      screen.getByLabelText('I searched the dashboard and didn’t find a payment for this invoice'),
     );
     await userEvent.click(screen.getByRole('button', { name: 'Close as failed' }));
 

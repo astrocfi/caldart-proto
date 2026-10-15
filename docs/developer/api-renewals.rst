@@ -357,7 +357,7 @@ shows.
    settled at once as the scan settles one: the term renewed, and the member
    emailed after the answer has gone.
 ``released``
-   The provider took nothing: the hold is released and the next scan charges the
+   The provider didn't take anything: the hold is released and the next scan charges the
    same payment again, under the same ``invoice_id``.
 ``failed``
    Neither: the attempt is closed as failed with no charge, the payment is marked

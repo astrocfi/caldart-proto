@@ -1410,7 +1410,7 @@ export type RenewalSettleOutcome = 'paid' | 'released' | 'failed';
 
 /**
  * `POST /admin/renewals/attempts/{id}/settle`: whether the provider took a charge held
- * in doubt (`paid`, with its own id for it, a PayPal capture id), took nothing
+ * in doubt (`paid`, with its own id for it, a PayPal capture id), didn't take anything
  * (`released`), or neither will do and the charge is closed (`failed`).
  */
 export interface RenewalSettleRequest {

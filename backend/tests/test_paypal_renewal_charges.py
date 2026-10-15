@@ -778,7 +778,7 @@ def test_paypal_refusing_caldart_on_a_read_is_put_off(
 def test_a_create_that_never_left_is_put_off_not_held(
     ledger: PayPalLedger, member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
-    """A connection never made took nothing, so nothing waits for a treasurer."""
+    """A connection never made didn't take anything, so no charge waits for checking."""
     renewal_due(member, annual_plan, today)
     ledger.create_faults = ["connect"]
 

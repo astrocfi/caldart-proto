@@ -626,11 +626,11 @@ class PayPalProvider(Provider):
 
         Once any try has gone unanswered PayPal may hold an order, so every answer
         but the order itself raises :class:`PaymentInDoubtError` --
-        :class:`PaymentUnansweredError` when PayPal answers nothing at all.  Before
+        :class:`PaymentUnansweredError` when PayPal doesn't answer at all.  Before
         that, a request that never left (:class:`RequestNotSentError`) and PayPal
         refusing CalDART's credentials (a 401 or a 403, or a token it would not
-        give) raise :class:`RequestNotSentError`, since PayPal took nothing; PayPal
-        refusing the order as a duplicate of an invoice it was already paid for
+        give) raise :class:`RequestNotSentError`, since PayPal didn't take anything;
+        PayPal refusing the order as a duplicate of an invoice it was already paid for
         (``DUPLICATE_INVOICE_ID``) raises :class:`PaymentInDoubtError`; and any other
         refusal raises :class:`PaymentDeclinedError`.
         """

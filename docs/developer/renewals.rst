@@ -374,8 +374,8 @@ things in order.
    marked succeeded is recorded as the charge.  Otherwise the provider is asked for
    the charge it made for that payment (``find_mandate_charge``), and a success, a
    decline, a charge still settling, or one in doubt is recorded exactly as if the
-   charge had just answered.  Only when the provider holds no charge for it is the
-   payment charged again, under the same key; if the attempt should no longer be
+   charge had just answered.  Only when the provider doesn't hold a charge for it is
+   the payment charged again, under the same key; if the attempt should no longer be
    charged by then -- the mandate is off, or a skip rule below applies -- the
    payment is deleted and the attempt closed as ``skipped`` instead.  This runs
    whatever the mandate's status, and turning renewal off leaves such an attempt
@@ -444,7 +444,7 @@ Each provider implements these methods on ``Provider``:
    read the saved method back, verified with the provider, as a ``MandateMethod``.
 ``charge_mandate(mandate, payment)``
    charge off-session, keyed on the payment so a repeat for the same payment
-   takes nothing twice; raises ``PaymentDeclinedError`` carrying the provider's own
+   never charges twice; raises ``PaymentDeclinedError`` carrying the provider's own
    wording when the method is refused, ``PaymentPendingError`` when the provider
    has the charge and has not settled it, and ``ProviderUnavailableError`` when it
    cannot be reached, which says nothing about whether the charge was made.
@@ -671,18 +671,18 @@ attempt is locked while it is settled, so two treasurers settle it once.
   is settled at once exactly as the scan settles one: the charge recorded and the
   term renewed.  The member's email is sent after the answer has gone, so a slow
   mail server never holds the request up.
-* **It took nothing**, once the treasurer has checked that the dashboard holds no
-  charge for the invoice.  The hold is released, and the next scan charges the same
+* **No payment found**, once the treasurer has checked that the dashboard doesn't
+  hold a payment for the invoice.  The hold is released, and the next scan charges the same
   payment again, under the same ``invoice_id``.  With PayPal's *Block accidental
   payments* on (:doc:`payments-setup`), a PayPal that did take it refuses the repeat
   as a duplicate and the charge is held in doubt again, and flagged again.
 * **Close as failed**, when neither fits, once the treasurer has checked the same
-  box.  Nothing is charged: the attempt is closed as failed, the payment is marked
+  box.  The member isn't charged: the attempt is closed as failed, the payment is marked
   failed, and an active mandate is paused, raising ``auto_renewal_off``; the member
   is not emailed, and the ordinary renewal reminders take over.
 
 The attempt and its payment are locked while it is settled, and a payment that has
-already gone through can only be recorded as paid: *It took nothing* and *Close as
+already gone through can only be recorded as paid: *No payment found* and *Close as
 failed* are refused for it.  Each writes one ``renewal.settle`` audit record naming
 the treasurer, with the attempt, the payment, the outcome, and any capture reference
 (``-`` when there is none).  An attempt in doubt
