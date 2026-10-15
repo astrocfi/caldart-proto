@@ -1,7 +1,7 @@
 """Sphinx configuration for the CalDART documentation set.
 
-Kept deliberately minimal: ``make docs`` needs nothing in the environment
-except Sphinx and the ``furo`` theme, both of which are in the ``docs``
+Kept deliberately minimal: ``make docs`` needs only Sphinx and the ``furo``
+theme in the environment, both of which are in the ``docs``
 dependency group.  Graphviz is used when it is installed and skipped cleanly
 when it is not (see ``extensions`` below).  The whole set must build clean
 under ``sphinx-build -n -W`` (nitpicky; warnings are errors) -- ``make docs``
@@ -13,14 +13,14 @@ tag and the ``dirhtml`` builder, into the user guide the site serves at
 ``/docs/`` to signed-in members, and its signed-out pages to anybody.  The
 developer guide is outside that build's source tree, so a user page never links
 into it: every reference on a user page resolves inside ``docs/user/``, and the
-guide build needs no special case.
+guide build doesn't need a special case.
 
 One local extension, ``docs/_ext/guide_roles.py``, reads the ``:roles:`` and
 ``:signed-out:`` fields a user page opens with and writes ``roles.json`` and
 ``signed-out.json`` beside the built pages; the site reads them to show each
 reader only the pages their roles reach, and a visitor who is not signed in only
 the signed-out pages.  It is pure Python
-and needs nothing installed.
+and doesn't need anything installed.
 """
 
 from __future__ import annotations
@@ -47,7 +47,7 @@ release = ""
 # -- General configuration ---------------------------------------------------
 
 # Only ``sphinx.ext.graphviz``, and only when it can actually work.  It ships
-# with Sphinx, so it adds nothing to pyproject.toml, but it shells out to
+# with Sphinx, so it doesn't add anything to pyproject.toml, but it shells out to
 # Graphviz's ``dot`` and warns when that binary is missing -- which, under
 # ``-W``, would fail the build on any machine without Graphviz installed.
 #
@@ -104,7 +104,7 @@ def setup(app: Sphinx) -> None:
         }
 
         def run(self) -> list[Node]:
-            """Discard the directive's content and produce no nodes."""
+            """Discard the directive's content and return an empty list of nodes."""
             return []
 
     directives.register_directive("graphviz", _NoGraphviz)
@@ -135,8 +135,8 @@ rst_prolog = """
 language = "en"
 nitpicky = True
 
-# No warnings are suppressed: there is no ``nitpick_ignore`` and no
-# ``suppress_warnings``.
+# No warnings are suppressed: the configuration doesn't set ``nitpick_ignore``
+# or ``suppress_warnings``.
 
 # -- HTML output -------------------------------------------------------------
 
@@ -149,8 +149,8 @@ html_title = "CalDART user guide" if tags.has("guide") else "CalDART"  # noqa: F
 # **Open full size** and **Zoom** toolbar under every figure.  The path is
 # relative to this file, so ``make guide``, whose source tree is ``docs/user``,
 # finds the same directory.  The script is deferred and loads from the site's
-# own origin, so the guide's ``script-src`` needs nothing more.  There are no
-# custom templates; pointing ``templates_path`` at a directory that does not
+# own origin, so the guide's ``script-src`` doesn't need anything more.  The docs
+# don't use custom templates; pointing ``templates_path`` at a directory that does not
 # exist would raise a warning, and warnings are errors.
 html_static_path = ["_static"]
 html_css_files = ["figure-zoom.css"]

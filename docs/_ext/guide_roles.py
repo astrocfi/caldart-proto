@@ -8,8 +8,8 @@ title::
 Sphinx reads a field list that comes before anything else as the page's metadata, so
 the field never shows on the page.  A reader holding any one of the named roles may
 read the page, and a system administrator may read every page.  A page without the
-field is every signed-in reader's.  A page that carries no field and lists pages in a
-toctree (a group's ``index.rst``) takes the union of its children's roles, in role
+field is every signed-in reader's.  A page that doesn't carry the field and lists pages
+in a toctree (a group's ``index.rst``) takes the union of its children's roles, in role
 order, and is open to everyone when any child is.
 
 The extension warns about a slug that is not one of the site's roles, so the ``-W``
@@ -34,8 +34,8 @@ build fails.  At the end of an HTML build it writes ``signed-out.json`` beside
 the build under ``pages``, from which the view works out which pages an anonymous
 reader's copy of a signed-out page must not link to.
 
-The extension is pure Python and imports nothing from the Django project, so the
-role slugs are spelled here; ``backend/tests/test_docs_user.py`` holds them equal to
+The extension is pure Python and doesn't import anything from the Django project, so
+the role slugs are spelled here; ``backend/tests/test_docs_user.py`` holds them equal to
 ``apps.accounts.roles.ROLE_SLUGS``.
 """
 
@@ -91,7 +91,7 @@ def setup(app: Sphinx) -> ExtensionMetadata:
 
     Each table of contents is kept out of the search index as each page is read.
 
-    The extension keeps no state of its own (the fields live in Sphinx's metadata), so
+    The extension doesn't keep state of its own (the fields live in Sphinx's metadata), so
     it is safe for parallel reading and writing.
     """
     app.connect("doctree-read", keep_toctrees_out_of_search)
@@ -103,7 +103,7 @@ def setup(app: Sphinx) -> ExtensionMetadata:
 
 
 def declared_roles(env: BuildEnvironment, docname: str) -> tuple[str, ...]:
-    """The slugs the page ``docname``'s own ``:roles:`` field names, or none.
+    """The slugs the page ``docname``'s own ``:roles:`` field names, if any.
 
     Slugs are separated by commas; spaces around them and empty entries are dropped.
     """
@@ -128,7 +128,7 @@ def keep_toctrees_out_of_search(app: Sphinx, doctree: nodes.document) -> None:
 
 
 def check_roles(app: Sphinx, env: BuildEnvironment) -> None:
-    """Warn, against the page, about a ``:roles:`` field that names no role or a stranger.
+    """Warn, against the page, about an empty ``:roles:`` field or one naming a stranger.
 
     Under ``-W`` the warning fails the build.
     """
@@ -137,7 +137,9 @@ def check_roles(app: Sphinx, env: BuildEnvironment) -> None:
             continue
         slugs = declared_roles(env, docname)
         if len(slugs) == 0:
-            log.warning("the :roles: field names no role", location=docname, type="guide_roles")
+            log.warning(
+                "the :roles: field doesn't name a role", location=docname, type="guide_roles"
+            )
         for slug in slugs:
             if slug not in ROLE_SLUGS:
                 log.warning(
@@ -198,7 +200,7 @@ def page_roles(env: BuildEnvironment) -> dict[str, list[str]]:
 
     A page's own ``:roles:`` field wins.  Without one, a page that lists others in a
     toctree takes the union of their roles, and is open when any of them is; a page
-    that lists nothing is open.  Open pages are left out of the result.
+    that doesn't list anything is open.  Open pages are left out of the result.
     """
     computed: dict[str, tuple[str, ...]] = {}
 
