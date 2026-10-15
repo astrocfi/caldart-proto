@@ -38,6 +38,7 @@ from apps.payments.api.serializers import (
     RenewalEnvelopeSerializer,
     RenewalMandateSerializer,
     RenewalPatchSerializer,
+    RenewalSettleResultSerializer,
     RenewalSettleSerializer,
     RenewalSetupResponseSerializer,
     RenewalSetupSerializer,
@@ -415,7 +416,7 @@ class AdminRenewalAttemptSettleView(APIView):
 
     permission_classes = [IsAuthenticated, IsFinance]
 
-    @extend_schema(request=RenewalSettleSerializer, responses={200: RenewalAttemptSerializer})
+    @extend_schema(request=RenewalSettleSerializer, responses={200: RenewalSettleResultSerializer})
     def post(self, request: Request, pk: int) -> Response:
         """200 with the attempt once the treasurer's answer has been applied.
 
@@ -425,9 +426,13 @@ class AdminRenewalAttemptSettleView(APIView):
         the answer has gone.  ``{"outcome": "released"}`` releases the hold, so the
         next scan charges the same payment again under the same invoice id.
         ``{"outcome": "failed"}`` closes it as failed without a charge and pauses
-        the mandate.  404 for an unknown attempt, 400 keyed by ``attempt`` for one
-        that is not in doubt, and 400 naming ``detail`` when the provider will not
-        confirm the reference or cannot be reached.
+        an active mandate, and its member is emailed that it is paused once the answer
+        has gone.  The answer carries the member's email address and phone number, so
+        the treasurer can get in touch, and ``member_emailed``, true when an email to
+        the member was handed over to send and they have an address to send it to.
+        404 for an unknown attempt, 400 keyed by ``attempt`` for one that is not in
+        doubt, and 400 naming ``detail`` when the provider will not confirm the
+        reference or cannot be reached.
         """
         payload = RenewalSettleSerializer(data=request.data)
         payload.is_valid(raise_exception=True)
@@ -444,9 +449,12 @@ class AdminRenewalAttemptSettleView(APIView):
             )
         except PaymentError as exc:
             raise ValidationError({"detail": str(exc)}) from exc
-        response = Response(RenewalAttemptSerializer(settled).data)
+        member_emailed = len(emails) > 0 and settled.mandate.user.email != ""
+        response = Response(
+            RenewalSettleResultSerializer(settled, context={"member_emailed": member_emailed}).data
+        )
         if emails:
             send_after_response(
-                response, lambda: [send() for send in emails], what="the renewal charged email"
+                response, lambda: [send() for send in emails], what="the settled renewal email"
             )
         return response

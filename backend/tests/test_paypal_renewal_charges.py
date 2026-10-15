@@ -944,7 +944,7 @@ def test_a_treasurer_closes_a_charge_as_failed(
     today: date,
     mailoutbox: list[EmailMessage],
 ) -> None:
-    """Closed, nothing is charged, the renewal is paused, and the member hears nothing."""
+    """Closed, it isn't charged, the renewal is paused, and the member is told so."""
     held_in_doubt(ledger, member, annual_plan, today)
     mailoutbox.clear()
 
@@ -953,7 +953,9 @@ def test_a_treasurer_closes_a_charge_as_failed(
     assert the_attempt().outcome == RenewalOutcome.FAILED
     assert RenewalMandate.objects.get().status == MandateStatus.PAUSED
     assert Payment.objects.get().status == PaymentStatus.FAILED
-    assert mailoutbox == []
+    assert [str(m.subject).split(": ", 1)[1] for m in mailoutbox] == [
+        "we could not renew your membership"
+    ]
 
 
 def test_a_closed_charge_is_never_created_again(

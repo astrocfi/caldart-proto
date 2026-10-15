@@ -12,7 +12,7 @@ from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema_fiel
 from rest_framework import serializers
 
 from apps.members.api.serializers import MembershipStatusSerializer, PlanSerializer
-from apps.members.models import Membership, MembershipPlan
+from apps.members.models import MemberProfile, Membership, MembershipPlan
 from apps.members.services import is_tombstone
 from apps.payments.dates import is_in_the_future
 from apps.payments.manual import MANUAL_METHOD_CHOICES
@@ -590,6 +590,7 @@ class RenewalAttemptSerializer(serializers.ModelSerializer[RenewalAttempt]):
     membership_id = serializers.IntegerField(read_only=True, allow_null=True)
     user_id = serializers.SerializerMethodField()
     user_name = serializers.SerializerMethodField()
+    mandate_kind = serializers.SerializerMethodField()
     payment_amount_cents = serializers.SerializerMethodField()
     payment_sent_at = serializers.SerializerMethodField()
 
@@ -598,6 +599,7 @@ class RenewalAttemptSerializer(serializers.ModelSerializer[RenewalAttempt]):
         fields = [
             "id",
             "mandate_id",
+            "mandate_kind",
             "membership_id",
             "payment_id",
             "user_id",
@@ -633,6 +635,49 @@ class RenewalAttemptSerializer(serializers.ModelSerializer[RenewalAttempt]):
     def get_user_name(self, obj: RenewalAttempt) -> str:
         """The display name of the member whose renewal this attempt is."""
         return obj.mandate.user.display_name
+
+    @extend_schema_field(serializers.ChoiceField(choices=MandateKind.choices))
+    def get_mandate_kind(self, obj: RenewalAttempt) -> str:
+        """What the attempt's mandate charges for: a renewal, a donation, or both."""
+        return mandate_kind(obj.mandate)
+
+
+class RenewalSettleResultSerializer(RenewalAttemptSerializer):
+    """``POST /admin/renewals/attempts/{id}/settle`` answer: the attempt, and who to call.
+
+    The attempt as :class:`RenewalAttemptSerializer` shapes it, plus ``user_email``,
+    the member's address, and ``user_phone``, the phone number on their profile, or
+    an empty string when they don't have one, so the treasurer who closed the charge
+    can get in touch.
+    ``member_emailed`` is the ``member_emailed`` the view puts in the context: whether
+    the member is sent an email about this answer, once it has gone.
+    """
+
+    user_email = serializers.SerializerMethodField()
+    user_phone = serializers.SerializerMethodField()
+    member_emailed = serializers.SerializerMethodField()
+
+    class Meta(RenewalAttemptSerializer.Meta):
+        fields = [
+            *RenewalAttemptSerializer.Meta.fields,
+            "user_email",
+            "user_phone",
+            "member_emailed",
+        ]
+        read_only_fields = fields
+
+    def get_member_emailed(self, obj: RenewalAttempt) -> bool:
+        """Whether the member is emailed about this answer, as the view found."""
+        return bool(self.context["member_emailed"])
+
+    def get_user_email(self, obj: RenewalAttempt) -> str:
+        """The member's email address."""
+        return obj.mandate.user.email
+
+    def get_user_phone(self, obj: RenewalAttempt) -> str:
+        """The phone number on the member's profile, or ``""`` if they don't have one."""
+        profile = MemberProfile.objects.filter(user_id=obj.mandate.user_id).first()
+        return profile.phone if profile is not None else ""
 
 
 class RenewalSettleSerializer(serializers.Serializer[dict[str, Any]]):

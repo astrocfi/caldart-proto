@@ -1,7 +1,27 @@
 {% if kind == "contribution" %}{{ org_name }} — we could not take your recurring donation{% else %}{{ org_name }} — we could not renew your membership{% endif %}
 
 Hello {{ first_name }},
-{% if lapsed %}
+{% if closed %}{% if kind == "contribution" %}
+We couldn't complete your recurring donation of {{ amount }} {{ cadence_label }}.
+
+Your recurring donation is paused, so you won't be charged automatically. You can
+give by hand, or set your recurring donation up again, from the Donate screen:
+{{ donate_url }}
+
+Your My payments screen shows where your recurring donation stands:
+{% else %}
+We couldn't complete the automatic renewal of your {{ plan_name }} membership{% if kind == "both" %}
+and your contribution{% endif %}.
+
+Automatic renewal is paused, so you won't be charged automatically.{% if expires_on %}
+{% if has_ended %}Your membership ended on {{ expires_on|date:"F j, Y" }}.{% else %}Your membership runs until {{ expires_on|date:"F j, Y" }}.{% endif %}{% endif %}
+We will send you the ordinary renewal reminders.
+
+To renew by hand, open Renew in the portal:
+{{ renew_url }}
+
+To turn automatic renewal back on, press Turn on again on your My payments screen:
+{% endif %}{% elif lapsed %}
 We did not renew your {{ plan_name }} membership automatically: {{ error }}. Too much
 time had passed for us to charge {{ method_label }} without asking you first.
 
