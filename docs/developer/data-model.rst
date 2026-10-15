@@ -10,8 +10,8 @@ and :doc:`architecture` shows which app owns each one.
 
 House rules that apply throughout:
 
-- **Money is integer cents in USD.**  There is no ``Decimal`` and no float
-  anywhere in the schema.  ``amount_cents = 4500`` is $45.00.
+- **Money is integer cents in USD.**  The schema never uses a ``Decimal`` or a
+  float.  ``amount_cents = 4500`` is $45.00.
 - **Dates are ``DateField``** unless the name ends in ``_at``, which means a
   timezone-aware ``DateTimeField``.  The project timezone is
   ``America/Los_Angeles`` and ``USE_TZ`` is on, so "today" always means
@@ -22,15 +22,15 @@ House rules that apply throughout:
   inherits from ``AbstractUser`` instead.  The page models do not, because
   Wagtail's ``Page`` keeps its own dates (``first_published_at``,
   ``last_published_at``, and ``latest_revision_created_at``) alongside the
-  revision history behind them.  ``cms.SiteSettings`` carries no dates either,
-  so editing the settings overwrites the single row and records nothing about
+  revision history behind them.  ``cms.SiteSettings`` doesn't carry dates
+  either, so editing the settings overwrites the single row and doesn't record
   when or by whom.  ``aircraft.AircraftChange`` and ``accounts.AccountChange``
   carry their own ``changed_at`` and no row is ever updated, so the inherited pair
   would only duplicate it.
   The registry's tables carry the dates the import needs instead:
   ``AircraftType.created_at``, ``Registration.imported_at``, and
   ``RegistryImport.started_at`` and ``finished_at``; ``AircraftTypeAlias``
-  carries none.  ``payments.RenewalScan`` and ``sysadmin.JobRun`` carry their own
+  doesn't carry any.  ``payments.RenewalScan`` and ``sysadmin.JobRun`` carry their own
   ``started_at`` and ``finished_at`` the same way.  ``aircraft.AircraftCoveragePolicy`` and
   ``reminders.ReminderSchedule`` are single rows and keep ``updated_at`` and
   ``updated_by`` alone.
@@ -53,7 +53,7 @@ Type
 Null, default
     ``null`` when the column accepts ``NULL``, then the default a new row gets:
     ``default ""`` is a text field that may be left blank, ``required`` is a
-    field with no default that every write must supply, and ``set on insert``
+    field without a default that every write must supply, and ``set on insert``
     and ``set on every save`` are Django's ``auto_now_add`` and ``auto_now``.
 Meaning
     What the value is for.  The related name, where there is one, is what the
@@ -80,7 +80,7 @@ repeating that area's detail.
 In all three, a **solid arrow** is a foreign key, drawn from the table that
 holds the column to the table it references and labeled with the field name and
 its delete rule.  A **double line** is a many-to-many.  A line labeled ``1--1``
-is a one-to-one.  A **dashed box** is an abstract class with no table of its
+is a one-to-one.  A **dashed box** is an abstract class without a table of its
 own, and an **empty arrowhead** points from a subclass to the class it
 inherits.  ``caldart.TimestampedModel`` is left out of the drawings: the field
 tables below show ``created_at`` and ``updated_at`` on every model that
@@ -226,7 +226,7 @@ Payments and renewals
                 ``payments.Payment`` is the provider lookup: a slug in the
                 ``provider`` column, resolved by ``get_provider()``, rather than
                 a foreign key.  ``payments.Provider`` and its three
-                implementations are Python classes with no table.
+                implementations are Python classes without a table.
       :alt: Entity-relationship diagram of the payment and renewal models
 
       digraph caldart_payments {
@@ -281,8 +281,8 @@ Payments and renewals
       payments.RenewalScan      one live renewal scan started from the portal
       payments.YearStatement    one year-end statement sent to one account
 
-      Classes with no table
-      ---------------------
+      Classes without a table
+      -----------------------
       payments.Provider         abstract: start(payment), confirm(payment, **kwargs),
                                 handle_webhook(request); implemented by
                                 StripeProvider (stripe), PayPalProvider (paypal),
@@ -614,8 +614,8 @@ administrator may choose.
 The answer ``members.services.membership_status`` gives (see
 :ref:`membership-status`).  The labels are what the member list's status
 filter, the member report, and the portal's status select show.  ``donor`` is
-what a donor account reads; donors appear in no member list, report, roster, or
-member check, so no status dot for it is drawn anywhere.
+what a donor account reads; donors don't appear in any member list, report,
+roster, or member check, so no status dot for it is drawn anywhere.
 
 .. list-table::
    :header-rows: 1
@@ -736,7 +736,7 @@ How a term was come by (``Membership.source``).
 
 ``MemberProfile.photo_id_type``: the kind of photo ID a verifier has seen.
 Nothing else about the document is recorded.  ``not_provided`` is the default:
-nobody has shown a photo ID, so there is nothing to verify and the item is never
+nobody has shown a photo ID, so there isn't anything to verify and the item is never
 stamped (see :doc:`verification`).
 
 .. list-table::
@@ -1500,10 +1500,10 @@ accounts
 ``User``
 --------
 
-A custom ``AbstractUser`` in which **email is the login**.  There is no
-``username`` field at all (``username = None``), ``USERNAME_FIELD = "email"``
+A custom ``AbstractUser`` in which **email is the login**.  It doesn't have a
+``username`` field (``username = None``), ``USERNAME_FIELD = "email"``
 and ``REQUIRED_FIELDS`` is empty, so ``createsuperuser`` asks for an email
-address and a password and nothing else.  The table lists every column once,
+address and a password only.  The table lists every column once,
 including the ones inherited from ``AbstractUser`` and the ``AbstractBaseUser``
 and ``PermissionsMixin`` classes it builds on.
 
@@ -1586,7 +1586,7 @@ and ``PermissionsMixin`` classes it builds on.
    * - ``recovery_email``
      - ``EmailField(254)``
      - not null; default ``""``
-     - the verified address a completed change of address left, kept for its owner's undo and reserved for this account until ``recovery_until`` (:ref:`api-email-change`); blank with none kept
+     - the verified address a completed change of address left, kept for its owner's undo and reserved for this account until ``recovery_until`` (:ref:`api-email-change`); blank when none is kept
    * - ``recovery_until``
      - ``DateTimeField``
      - null; default ``NULL``
@@ -1638,7 +1638,7 @@ lower case is title-cased word by word: each hyphenated part capitalized
 or typographic (U+2019), capitalized (``O'Brien``), the letter after each period
 capitalized (``A.J.``), and the letter after a leading ``Mc`` capitalized
 (``McDonald``; ``Mac`` is left alone, since ``Macarthur`` is as likely as
-``MacArthur``).  A part with no vowel (``a``, ``e``, ``i``, ``o``, ``u``, ``y``) is
+``MacArthur``).  A part without a vowel (``a``, ``e``, ``i``, ``o``, ``u``, ``y``) is
 taken for initials and upper-cased whole (``tj`` and ``TJ`` are both stored ``TJ``).  After the first word, the particles ``van``, ``von``, ``der``,
 ``den``, ``de``, ``del``, ``della``, ``da``, ``di``, ``du``, ``la``, and ``le`` stay
 lower case (``VAN DER BERG`` is stored ``Van der Berg``) and the suffixes ``II``,
@@ -1689,12 +1689,12 @@ to the rows already stored (:doc:`setup`).
     holds a lifetime term.  The stored kind is what the person asked for; until
     a paid or granted term has started, the effective kind below is ``friend``.
 ``friend``
-    Holds a portal account and pays no dues.  A friend's membership state is
+    Holds a portal account and doesn't pay dues.  A friend's membership state is
     always ``friend``, never current and never expired, and a friend is never
     sent a renewal reminder.
 ``donor``
     Gave through the public site without joining.  A donor holds an unusable
-    password and no role, so cannot sign in; login answers the generic
+    password and doesn't hold a role, so cannot sign in; login answers the generic
     wrong-credentials refusal, and the password-reset, invitation and
     verification emails are never sent to one.  ``PasswordResetConfirmSerializer``
     refuses a donor's reset link as it refuses a forged one.
@@ -1702,7 +1702,7 @@ to the rows already stored (:doc:`setup`).
     (case-insensitively) for each gift on the public donation page, or makes one
     with ``create_account(kind=donor)`` and a ``MemberProfile`` holding the phone
     and whatever else the giver told us; the email address stays unverified.  A
-    donor's gifts are ordinary ``Payment`` rows with no plan (see
+    donor's gifts are ordinary ``Payment`` rows without a plan (see
     :ref:`api-public-donations`).
 
 ``PERSON_KINDS`` (``member`` and ``friend``) are the kinds registration and an
@@ -1717,7 +1717,7 @@ nobody is a member until they have paid or been granted a term.
 
 - ``kind`` is ``friend``;
 - ``friend_on`` is set and on or before ``today``;
-- ``kind`` is ``member`` and the account holds no term with ``starts_on <= today``
+- ``kind`` is ``member`` and the account doesn't hold a term with ``starts_on <= today``
   whose status is ``active``, ``expired``, or ``suspended``.
 
 Otherwise it is ``member``.  So a member who registered and never paid, one
@@ -1749,9 +1749,9 @@ row only while it still qualifies, so a member whose payment cleared
 A member sets ``friend_on`` themselves with ``POST /me/kind/friend``
 (:ref:`api-kind-switch`): ``members.lifecycle.become_friend(user, today)`` stores
 the day after a current membership's unbroken coverage ends, or makes a member
-with nothing current a friend at once, and ``undo_become_friend`` clears a date
+who isn't current a friend at once, and ``undo_become_friend`` clears a date
 still ahead.  ``become_friend`` refuses a donor, a current life member, and a
-friend; ``undo_become_friend`` refuses anybody with nothing pending, a donor
+friend; ``undo_become_friend`` refuses anybody without a pending date, a donor
 included.  ``payments.renewals.mandates.switch_to_friend`` wraps
 ``become_friend`` with the end of the automatic renewal (see
 :ref:`renewals-friend-switch`).
@@ -2013,8 +2013,8 @@ of the table alone cannot be searched offline.
 Roles
 -----
 
-**Roles are Django ``Group`` rows whose ``name`` is the role slug.**  There is
-no ``Role`` model.  That makes adding a role a data change, and it lets Wagtail
+**Roles are Django ``Group`` rows whose ``name`` is the role slug.**  There isn't
+a ``Role`` model.  That makes adding a role a data change, and it lets Wagtail
 reuse the same groups for editor permissions.  The slugs and their
 descriptions live in ``apps/accounts/roles.py``:
 
@@ -2061,7 +2061,7 @@ descriptions live in ``apps/accounts/roles.py``:
 Rules:
 
 - ``member`` is granted at registration, to members and friends alike; a donor
-  holds no role at all (``accounts.services.create_account`` decides by kind).
+  doesn't hold any role (``accounts.services.create_account`` decides by kind).
   The account administrator's member list is every ``User`` row, narrowed by
   ``?role=``.
 - Roles are additive; ``ROLE_SLUGS`` is ordered least to most privileged, and
@@ -2166,9 +2166,9 @@ Sixteen are seeded from ``DARTS`` in ``apps/members/seed.py``, each with the
 handful of example contacts ``seed_darts`` generates, the leader and the
 deputy leader checked to receive the roster.  ``cms.DartPage`` points at this
 table with a nullable ``SET_NULL`` foreign key, so deleting a DART leaves its
-page in place with no DART attached, and the airports are never retyped in the
-CMS.  A DART is identified by the fields it flies from, so it carries no town of
-its own.
+page in place without a DART attached, and the airports are never retyped in the
+CMS.  A DART is identified by the fields it flies from, so it doesn't carry a
+town of its own.
 
 ``DartContact``
 ---------------
@@ -2222,7 +2222,7 @@ One named volunteer who runs a DART, and how to reach them.
    * - ``receives_roster``
      - ``BooleanField``
      - not null; default ``False``
-     - whether the person is sent the team's roster; a checked person with no email address is skipped
+     - whether the person is sent the team's roster; a checked person without an email address is skipped
 
 **Constraints, indexes, and ordering.**
 
@@ -2235,10 +2235,10 @@ One named volunteer who runs a DART, and how to reach them.
 ``save()`` stores the phone number as ``XXX-XXX-XXXX``.  A DART lists any
 number of contacts, and a person without an email address may be checked to
 receive the roster, to be skipped when it goes out.  The foreign key cascades,
-so a contact has no life without its DART.
+so a contact can't exist without its DART.
 
 This is deliberately not a link to a member account: the person an emergency
-manager asks for by name may hold no account at all, and the listing outlives
+manager asks for by name might not hold an account at all, and the listing outlives
 whoever holds the job this year.
 
 members
@@ -2363,7 +2363,7 @@ administrators see.  Deleting the account deletes the profile.
    * - ``medical_type``
      - ``CharField(16)``, choices :ref:`MedicalType <choices-medical-type>`
      - not null; default ``"none"``
-     - the medical certificate held, ``none`` for none on file
+     - the medical certificate held, ``none`` when none is on file
    * - ``medical_expiration``
      - ``DateField``
      - null; default ``NULL``
@@ -2379,11 +2379,11 @@ administrators see.  Deleting the account deletes the profile.
    * - ``photo_id_type``
      - ``CharField(16)``, choices :ref:`PhotoIdType <choices-photo-id-type>`
      - not null; default ``"not_provided"``
-     - the kind of photo ID a verifier has seen, and nothing else about it
+     - the kind of photo ID a verifier has seen, the only fact recorded about it
    * - ``flies_rented_aircraft``
      - ``BooleanField``
      - not null; default ``False``
-     - the member rents or borrows, so has no airframe of their own to list
+     - the member rents or borrows, so doesn't have an airframe of their own to list
    * - ``vol_mission_pilot``
      - ``BooleanField``
      - not null; default ``False``
@@ -2504,8 +2504,8 @@ medical (``medical_type`` and ``medical_expiration``), and the photo ID
 (``photo_id_type``).  ``apps.members.verification.ITEMS`` lists them.  Each
 item's ``<item>_verified_at`` and ``<item>_verified_by`` are both ``NULL``
 while it is unverified.  A write that changes a field an item covers clears
-that item's verification, whoever writes it; a write that changes nothing
-clears nothing.  A verified medical whose expiration passes stays verified:
+that item's verification, whoever writes it; a write that doesn't change
+anything leaves every verification in place.  A verified medical whose expiration passes stays verified:
 currency and verification are two separate facts.
 
 ``ratings`` is a ``JSONField(default=list)`` of
@@ -2702,8 +2702,8 @@ Deactivating, by the person or by an administrator, suspends every ``active``
 term that is lifetime or ends on or after that day (the covering term and any
 renewal already paid for), and reactivating, by the person or by an
 administrator, turns each back to ``active``, or to ``expired`` if its end passed
-in the meantime.  While suspended, a term counts
-for nothing: it never covers a day and is never the past term an expired member
+in the meantime.  While suspended, a term doesn't count
+for anything: it never covers a day and is never the past term an expired member
 is reported from, and the renewal reminders skip it.
 
 .. _membership-status:
@@ -2734,7 +2734,7 @@ The service
     ``plan`` are ``None`` and ``is_lifetime`` is ``False``.  An anonymous
     caller, or none at all, gets the same answer.
 ``none``
-    The account chose to be a member and holds no term that has started yet
+    The account chose to be a member and doesn't hold a term that has started yet
     (``members.services.awaits_first_term``): its stored ``kind`` is ``member``,
     its ``friend_on`` has not come, and no term with ``starts_on <= on_date`` is
     active, expired, or suspended.  That is an account an administrator created
@@ -2757,9 +2757,9 @@ The service
     nor suspended has started.  ``expires_on`` and ``plan`` come from the most
     recent such term.
 
-``membership_status`` answers ``friend``, too, for an effective member with
-nothing covering ``on_date`` and no started term that counts as past: one whose
-only started terms are suspended.  Suspended terms make somebody a member but
+``membership_status`` answers ``friend``, too, for an effective member who
+doesn't have a term covering ``on_date`` or a started term that counts as past:
+one whose only started terms are suspended.  Suspended terms make somebody a member but
 neither cover a day nor count as past, so ``membership_status`` reaches that
 answer by its closing fallback, and the member list's ``?status=friend`` filter
 lists such a row by an explicit branch.
@@ -2873,7 +2873,7 @@ The translation, term by term:
     ``starts_on <= today``; else ``member``.  ``membership_payload`` answers
     ``friend``, ``none``, or ``donor`` from it before reading any term annotation,
     and the member list's ``?status=`` filter puts every effective friend under
-    ``friend`` or ``none`` and under no other status.  An effective member whose
+    ``friend`` or ``none`` and under those two statuses only.  An effective member whose
     only started terms are suspended is listed under ``friend`` as well.
 
 ``awaits_first_term``
@@ -2908,7 +2908,7 @@ The account administrator's list adds two annotations of its own, in
 ``effective_expiry``
     ``coverage_end`` when ``covers_today``, else ``past_end``.  This is what
     ``?ordering=expires_on`` sorts on, with ``NULL`` — lifetime members and
-    people with no started term — forced to the end in both directions.
+    people without a started term — forced to the end in both directions.
 
 .. important::
 
@@ -3138,7 +3138,7 @@ row is ever updated.
    * - ``fields``
      - ``JSONField``
      - not null; default ``[]``
-     - the column names the write moved; empty on a ``created`` row and on a save that altered nothing
+     - the column names the write moved; empty on a ``created`` row and on a save that didn't alter anything
 
 **Constraints, indexes, and ordering.**
 
@@ -3255,7 +3255,7 @@ a token that holds a digit or is three characters or shorter as it is
 
 **The search.**  ``apps.aircraft.types.search_types(q, limit=10)`` answers
 ``GET /aircraft/types``.  The query is lower-cased and stripped, and a blank one
-finds nothing.  The answer lists, each type once and at most ``limit`` of them:
+answers an empty list.  The answer lists, each type once and at most ``limit`` of them:
 the type an alias names exactly (the query as typed, and with its spaces
 removed); then the types whose ``make || ' ' || model`` has a trigram
 similarity above 0.2 to the query, most similar first, then by name; then, when
@@ -3305,7 +3305,7 @@ maps each lower-case alias to a display make and the start of a display model
 ``apps.aircraft.aliases.write_aliases()`` points each alias at the type whose
 display make matches and whose display model starts with the prefix, both
 compared case-insensitively, choosing the shortest model when several match;
-an alias that matches no type is logged and has no row.
+an alias that doesn't match a type is logged and doesn't get a row.
 
 ``Registration``
 ----------------
@@ -3365,7 +3365,7 @@ holds the registration.  No address is kept.  It does not inherit
      - ``CharField(24)``, choices :ref:`Airworthiness <choices-airworthiness>`
      - not null; default ``""``
      - the classification the first character of the registry's ``CERTIFICATION``
-       names; blank when the registry records none
+       names; blank when the registry doesn't record one
    * - ``imported_at``
      - ``DateTimeField``
      - not null; default now
@@ -3450,7 +3450,8 @@ successful row is the date the registry is current as of.
 
 Which aircraft CalDART's insurance policy does not cover.  There is only ever
 one row, primary key 1: ``save()`` forces the key, and ``load()`` reads the row,
-answering an unsaved empty policy (excluding nothing) before one is stored.  A
+answering an unsaved empty policy (which doesn't exclude anything) before one is
+stored.  A
 system administrator writes it from the aircraft register's **Coverage policy**
 card through ``PUT /aircraft/coverage-policy`` (:doc:`api-aircraft`); the seed
 excludes helicopters.
@@ -3500,8 +3501,9 @@ aircraft whose ``category`` is in ``excluded_categories`` or whose
 ``airworthiness`` is in ``excluded_airworthiness``; the reason names the category
 when both match, as *Not covered: helicopters are excluded by CalDART's policy*,
 with the organization's name from the site settings.  A blank value is never
-listed, so an aircraft with nothing recorded is never excluded; one with no
-category that its airworthiness does not exclude reads *Category not recorded*.
+listed, so an aircraft whose category and airworthiness are both blank is never
+excluded; one without a category that its airworthiness does not exclude reads
+*Category not recorded*.
 
 payments
 ========
@@ -3673,7 +3675,7 @@ the contribution, or both, for the provider's own record of the charge.
   ``hand_over_payments`` in ``apps/members/services.py`` cancels the member's
   ``active`` and ``paused`` mandates and discards a ``pending`` one, and
   ``tombstone_for`` creates a
-  deactivated ``donor`` account with no password, no role, and a blank
+  deactivated ``donor`` account without a password or a role, and with a blank
   ``MemberProfile``, whose ``first_name`` is ``Deleted member``, whose
   ``last_name`` is the deleted account's id (so ``display_name`` reads
   ``Deleted member 5``), and whose ``email`` is ``deleted-<id>@deleted.invalid``,
@@ -3681,12 +3683,12 @@ the contribution, or both, for the provider's own record of the charge.
   already holds that address, so taking it first cannot make a delete fail.
   Every payment of the member, whatever its status, moves to it in the same
   transaction with its ``donor_fields`` cleared; refunds stay on their
-  payments.  A member who never paid gets no tombstone.  ``is_tombstone`` names
+  payments.  A member who never paid doesn't get a tombstone.  ``is_tombstone`` names
   such an account (a deactivated ``donor`` whose ``first_name`` is ``Deleted
   member`` and whose address is on the ``deleted.invalid`` domain; the address
   alone does not make one), and
-  ``mark_succeeded`` settles a payment it holds without fulfilling it: no giver's
-  details, no term, no event, and no receipt.
+  ``mark_succeeded`` settles a payment it holds without fulfilling it: it doesn't
+  take a giver's details, activate a term, emit an event, or send a receipt.
 - ``DELETE /admin/members/{user_id}`` is the only way to delete an account: the
   Wagtail admin's account screens are closed (:ref:`cms-no-account-screens`), so
   no delete can skip the handover.
@@ -3812,7 +3814,7 @@ Newest first.
 
 One person's standing authority for CalDART to charge a saved payment method on
 a schedule.  With a plan it is an automatic renewal, charged once a year for
-the dues and any contribution beside them; with no plan it is a recurring
+the dues and any contribution beside them; without a plan it is a recurring
 donation, charged monthly, quarterly or yearly for the contribution alone, which
 a member, a life member, and a friend may each hold.  The provider is always one
 that can charge off-session.
@@ -3931,7 +3933,7 @@ Newest first.
 - ``canceled_by``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; the reverse accessor is ``renewal_mandates_canceled``.
 - Referenced by ``payments.RenewalAttempt.mandate``.
 
-``next_charge_on`` has no database default: the code that creates a mandate
+``next_charge_on`` doesn't have a database default: the code that creates a mandate
 sets it to the day the membership runs out for a renewal and to today for a
 donation, and every successful charge rolls it forward, to the end of the term
 bought or by the cadence.
@@ -4001,8 +4003,8 @@ keyed on.
    * - ``in_doubt``
      - ``BooleanField``
      - not null; default ``False``
-     - the provider may have taken the charge and cannot say; the scan charges nothing
-       more for it until a treasurer settles it
+     - the provider may have taken the charge and cannot say; the scan doesn't charge
+       it again until a treasurer settles it
    * - ``flagged_at``
      - ``DateTimeField``
      - null; default ``NULL``
@@ -4032,7 +4034,7 @@ each write, and then each take, the same charge.  Newest first.
 
 The three timestamps are what make the scanner idempotent: an email goes out
 only when its own stamp is still ``NULL``, so a scan that runs twice in one day
-sends nothing twice.  ``attempted_at`` is also the scan's claim on the charge:
+never sends anything twice.  ``attempted_at`` is also the scan's claim on the charge:
 one older than ``RENEWAL_STALE_MINUTES`` belongs to a scan that died, and the next
 scan takes it over.  A ``scheduled`` attempt that already names a ``payment`` was
 sent to the provider without its outcome being recorded, and the next scan
@@ -4044,7 +4046,7 @@ held ``in_doubt`` waits for a treasurer instead (:ref:`renewals-in-doubt`).
 
 One live renewal scan a system administrator started from the Scheduled tasks
 page, which runs in its own process (:ref:`renewals-run-now`).  The timer's
-daily scan writes no row.
+daily scan doesn't write a row.
 
 .. list-table::
    :header-rows: 1
@@ -4146,7 +4148,7 @@ rerun for a year already sent from reaching an account twice.
 
 - ``year_statement_unique``: one statement per account, per year.
 - Written only after the email is confirmed sent, never before: a send the
-  mail server refuses leaves no row, so the account is retried the next run.
+  mail server refuses doesn't leave a row, so the account is retried the next run.
 
 reminders
 =========
@@ -4209,7 +4211,7 @@ One row per reminder email sent: the record that makes the scanner idempotent.
 - ``user``: foreign key to ``accounts.User``, ``CASCADE``; the reverse accessor is ``reminder_logs``.
 - ``membership``: foreign key to ``members.Membership``, ``CASCADE``; the reverse accessor is ``reminder_logs``.
 
-Because of ``reminders_once_per_kind`` a second run writes nothing, and the log
+Because of ``reminders_once_per_kind`` a second run doesn't write anything, and the log
 row is written and committed before the send is attempted; a failure deletes
 it by hand rather than recording an email that never left.  The reminder is
 then still due, and a later run retries it for as long as the term stays in
@@ -4247,7 +4249,7 @@ every term passes through it whichever day it ends; the spans come from
 ``apps.reminders.services.stage_span`` and never overlap, and the unique
 constraint keeps a term that sits in one stage for days from being written to
 twice (:ref:`reminders-stages`).  Lifetime members are skipped, as are
-deactivated accounts, accounts with no email address, and members whose
+deactivated accounts, accounts without an email address, and members whose
 unbroken coverage runs past the term in question, which is what stops an
 early renewal being nagged about the term it replaced.  See :doc:`reminders`.
 
@@ -4259,8 +4261,8 @@ When each reminder stage falls.  There is only ever one row, primary key 1:
 default schedule (60, 30, 7, 30) before one is stored; reading never writes.  A
 system administrator writes it from the Scheduled tasks page's **Reminder schedule**
 card through ``PUT /admin/reminders/schedule`` (:ref:`api-reminder-schedule`).
-The ``expired`` stage spans the expiry day and the six days after it, so it has
-no field.
+The ``expired`` stage spans the expiry day and the six days after it, so it
+doesn't have a field.
 
 .. list-table::
    :header-rows: 1
@@ -4356,7 +4358,7 @@ system said to whom, which is what ``GET /system/emails`` reads
    * - ``user``
      - ``ForeignKey`` to ``accounts.User``, ``SET_NULL``
      - null; default ``NULL``
-     - the account the email concerned; null for an address with no account behind it, or one since deleted (even before the message went out); related name ``email_logs``
+     - the account the email concerned; null for an address without an account behind it, or one since deleted (even before the message went out); related name ``email_logs``
    * - ``purpose``
      - ``SlugField(64)``
      - not null; required
@@ -4401,7 +4403,7 @@ system said to whom, which is what ``GET /system/emails`` reads
 - Index on ``message_id``.
 - Ordering: ``-sent_at``, ``-id``.
 
-Nothing reads the table to decide what to do next, so it carries no
+Nothing reads the table to decide what to do next, so it doesn't carry a
 constraint: a member who is written to twice has two rows.  ``ReminderLog`` is
 the key that keeps a reminder from repeating; this is the record of the
 message.
@@ -4416,12 +4418,12 @@ regardless, the same as any other refused email.
 
 ``caldart.mail.send_templated`` takes an optional ``to_name`` and writes it as
 given: the DART roster sender passes the checked contact's own name, for a
-recipient who may hold no account at all.  A caller that names an account
-(``user_id``) but no ``to_name`` has the account's ``display_name`` written in
+recipient who might not hold an account at all.  A caller that names an account
+(``user_id``) but leaves out ``to_name`` has the account's ``display_name`` written in
 instead, so the row keeps the name its recipient had at send time even after
 the account is later renamed.  ``EmailLog.recipient_name`` reads ``to_name``,
 falling back to the linked account's current ``display_name`` when ``to_name``
-is blank, and to ``""`` when there is no account either; it is what
+is blank, and to ``""`` when there isn't an account either; it is what
 ``GET /system/emails``' ``user_name`` (:ref:`api-email-log`) and the email log
 report's ``Name`` column read.
 
@@ -4435,10 +4437,10 @@ administrator keeps on the Email types screen (:doc:`api-email-types`).  Every
 installation starts with three, created by the migration
 ``mail/0004_default_email_types``: Operational and Mission, sent by ``management``
 and ``dart_leader``, and Fundraising, sent by ``management``, all of which a recipient
-may turn off.  The migration creates them only when the table holds no type, so
+may turn off.  The migration creates them only when the table is empty, so
 running it again after a rollback neither restores a deleted type nor duplicates a
 renamed one, and its reverse leaves them alone; once created they are ordinary rows a
-system administrator may edit or delete.  The demo seed creates no type: it turns Fundraising off for the
+system administrator may edit or delete.  The demo seed doesn't create a type: it turns Fundraising off for the
 demo friend.
 
 .. list-table::
@@ -4499,8 +4501,8 @@ demo friend.
 
 The code refuses a name another type holds ignoring case, and a name whose slug
 another type's already is (*Mission!* beside *Mission*), with *Another email type
-already has this name.*; a name with no letter or digit has no slug and is refused
-too.  ``sender_roles`` is checked against ``apps.mail.types.SENDER_ROLES``.  A type
+already has this name.*; a name without a letter or digit doesn't have a slug and
+is refused too.  ``sender_roles`` is checked against ``apps.mail.types.SENDER_ROLES``.  A type
 that a bulk email names cannot be deleted: the bulk email's foreign key protects it,
 and the screen says to take the sending roles off the type instead, which leaves it
 to system administrators.
@@ -4626,7 +4628,7 @@ A named choice of one report's columns, kept for the account that saved it.
 
 ``reports_column_set_unique_name`` compares the name exactly, so ``Roster`` and
 ``roster`` are two sets; saving under a name already in use replaces that set's
-columns.  A report whose columns are fixed keeps no sets.
+columns.  A report whose columns are fixed doesn't keep sets.
 
 ``ReportSubscription``
 ----------------------
@@ -4716,7 +4718,7 @@ subscriptions are due.
 - ``recipient_user``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; the reverse accessor is ``report_subscriptions``.
 - ``created_by``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; the reverse accessor is ``created_report_subscriptions``.
 
-A DART's roster needs no row of its own: who receives it is
+A DART's roster doesn't need a row of its own: who receives it is
 ``DartContact.receives_roster`` and when it last went is
 ``Dart.roster_sent_at``.
 
@@ -4846,7 +4848,7 @@ it.
    * - ``email_type``
      - ``ForeignKey`` to ``mail.EmailType``, ``PROTECT``
      - null; default ``NULL``
-     - the kind of email it is; null while a draft has none, required to send; related name ``bulk_emails``
+     - the kind of email it is; null while a draft doesn't have one, required to send; related name ``bulk_emails``
    * - ``dart``
      - ``ForeignKey`` to ``darts.Dart``, ``SET_NULL``
      - null; default ``NULL``
@@ -4910,7 +4912,7 @@ it.
    * - ``hidden_from_archive``
      - ``BooleanField``
      - not null; default ``False``
-     - true while CalDART management keeps the email off its recipients' **Email to me** page; changes nothing else
+     - true while CalDART management keeps the email off its recipients' **Email to me** page; doesn't change anything else
    * - ``is_callout``
      - ``BooleanField``
      - not null; default ``False``
@@ -5340,7 +5342,7 @@ A saved message that a draft can start from, shared by all CalDART management
    * - ``email_type``
      - ``ForeignKey`` to ``mail.EmailType``, ``SET_NULL``
      - null; default ``NULL``
-     - the type a draft started from it takes; null for none and once the type is deleted; related name ``bulk_email_templates``
+     - the type a draft started from it takes; null when the template doesn't name one and once the type is deleted; related name ``bulk_email_templates``
    * - ``reply_to``
      - ``EmailField(254)``
      - not null; default ``""``
@@ -5554,7 +5556,7 @@ columns.  Wagtail writes most of them; CalDART's code reads ``title``,
 ``BasePage`` and ``MembersOnlyMixin``
 -------------------------------------
 
-Two abstract classes with no table of their own.
+Two abstract classes without a table of their own.
 
 ``BasePage`` is what every page type inherits.  It supplies
 ``RestrictedBlocksPageForm``, which hides the raw-HTML block from editors who
@@ -5729,7 +5731,7 @@ The news section: an index whose only children are posts.
 
 - Ordering: none of its own (Wagtail orders pages by their place in the tree).
 
-A ``NewsPage`` may only live under a ``NewsIndexPage`` and takes no children.
+A ``NewsPage`` may only live under a ``NewsIndexPage`` and can't have children.
 
 .. list-table::
    :header-rows: 1
@@ -5799,7 +5801,7 @@ what has passed, and whose only children are events.
 
 - Ordering: none of its own (Wagtail orders pages by their place in the tree).
 
-An ``EventPage`` may only live under an ``EventIndexPage`` and takes no
+An ``EventPage`` may only live under an ``EventIndexPage`` and can't have
 children.
 
 .. list-table::
@@ -5869,7 +5871,7 @@ The DART directory: an index whose only children are the teams' pages.
 
 - Ordering: none of its own (Wagtail orders pages by their place in the tree).
 
-A ``DartPage`` may only live under a ``DartIndexPage`` and takes no children.
+A ``DartPage`` may only live under a ``DartIndexPage`` and can't have children.
 
 .. list-table::
    :header-rows: 1
@@ -5914,7 +5916,7 @@ The airport identifiers are read from the linked ``darts.Dart``, never retyped.
 ``ContactPage``
 ---------------
 
-The contact page.  It takes no children.
+The contact page.  It can't have children.
 
 .. list-table::
    :header-rows: 1
@@ -5946,7 +5948,7 @@ The contact page.  It takes no children.
 
 The public donation page: ``intro`` and ``thanks`` are both rich text, and the
 donation form sits between them.  It may live under the home page or a
-standard page, and takes no children (see :ref:`cms-donate-page`).
+standard page, and can't have children (see :ref:`cms-donate-page`).
 
 .. list-table::
    :header-rows: 1
@@ -6156,10 +6158,10 @@ run was under way.``
 Migrations
 ==========
 
-This is a prototype and keeps no backwards compatibility.  Change a model and
-**regenerate** its migration rather than stacking a fix-up on top; there is no
-data to migrate and no external consumer to keep stable.  ``make reset``
-rebuilds a development database from nothing in a few seconds.
+This is a prototype and doesn't keep backwards compatibility.  Change a model
+and **regenerate** its migration rather than stacking a fix-up on top; there
+isn't any data to migrate or any external consumer to keep stable.
+``make reset`` rebuilds a development database from scratch in a few seconds.
 
 Two migrations do more than create tables and are worth knowing about:
 

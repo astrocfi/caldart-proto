@@ -45,16 +45,15 @@ that is true when ``<item>_verified_at`` is set.  Both columns are ``NULL`` whil
 the item is unverified.
 
 The photo ID records only the kind of document — *Not provided*, *Driver's
-license*, *Passport*, *State ID card*, *Military ID*, or *Other* — and nothing
-else about it.  A verifier who saw a document of a kind not listed records *Other*.
+license*, *Passport*, *State ID card*, *Military ID*, or *Other*.  A verifier who saw a document of a kind not listed records *Other*.
 
-An item the person does not hold has nothing to verify: a pilot certificate of
+An item the person does not hold doesn't have anything to verify: a pilot certificate of
 ``none``, a medical of ``none``, or a photo ID of ``not_provided``.  Each ``Item``
 carries the coded field that says so (its first field) and that field's ``none``
 value, and ``is_held(profile, slug)`` answers it.  Such an item is never stamped, a
-stamp on one counts for nothing, and every screen draws it with no mark and the
-panel with no box.  Insurance with no ``insurance_expiration`` is no policy on file
-and is likewise never stamped.
+stamp on one doesn't count, and every screen draws it without a mark and the panel
+without a box.  Insurance without an ``insurance_expiration`` means the aircraft
+doesn't have a policy on file, and it is likewise never stamped.
 
 A verified medical whose expiration passes stays verified, and so does verified
 insurance whose policy lapses.  Currency and verification are two separate facts,
@@ -66,7 +65,7 @@ Clearing
 
 A write that changes the stored value of any field an item covers clears that
 item — both columns back to ``NULL`` — whoever writes it, in the same transaction.
-A field resent at its stored value clears nothing, so a form that sends every
+A field resent at its stored value doesn't clear anything, so a form that sends every
 field it shows clears only what really moved.  The places those fields are
 written each clear:
 
@@ -92,7 +91,7 @@ written each clear:
 ``clear_stale(profile, changes)`` compares the incoming values with the stored
 ones and returns the slugs of the verified items it cleared;
 ``clear_stale_insurance(aircraft, moved_fields)`` returns whether it cleared the
-insurance.  An edit that clears an item raises no event of its own:
+insurance.  An edit that clears an item doesn't raise an event of its own:
 ``profile_changed`` or ``aircraft_changed`` already names the fields
 (:doc:`notification-events`).
 
@@ -139,12 +138,12 @@ and the office hears about it once.
 ``aircraft.verification.verify_insurance(aircraft, *, actor, changes, verified)``
     Writes ``changes``, calls ``record_updated`` (the history row, the audit
     record, ``aircraft_changed``, and the clearing), then stamps or clears the
-    insurance.  Insurance with no expiry date on file ends unverified whatever the
+    insurance.  Insurance without an expiry date on file ends unverified whatever the
     request asks.  It records ``aircraft.verify`` with ``verified`` and raises
     ``verification_changed`` when the insurance was stamped or cleared.
 
 ``verification_changed`` is raised once per save, never once per item, and not at
-all when a save changes no item's state.  Its payload is ``actor``, ``verified``
+all when a save doesn't change any item's state.  Its payload is ``actor``, ``verified``
 and ``cleared`` (item labels), and either ``user`` or ``aircraft``.
 
 
@@ -176,7 +175,7 @@ the seeded DART leader verifies each item held by about seven in ten members and
 the insurance of about seven in ten aircraft; the rest stay unverified, and no item
 a member does not hold is stamped.  ``seed_facts`` names an insured pilot verified
 on every count (``leaderCheck.insuredPilot``) and a current pilot with a current
-medical, all three items held, and nothing verified
+medical, all three items held but unverified
 (``leaderCheck.unverifiedPilot``), and ``accounts.verifier`` is
 the seeded verifier.  See :doc:`setup`.
 

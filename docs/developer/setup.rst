@@ -91,7 +91,7 @@ Step by step:
    ``caldart_pgdata`` volume and survives ``make down``.
 
 3. ``make migrate`` applies the migrations.  Each app has one initial
-   migration describing its tables as they are: this is a prototype with no
+   migration describing its tables as they are: this is a prototype without an
    installation to upgrade, so a schema change is made by editing the model and
    regenerating that migration rather than by stacking a fix-up on top of it.
    ``members`` is the one app with two schema migrations, ``0001_initial`` and
@@ -109,7 +109,7 @@ Step by step:
 4. ``make seed`` runs ``seed_roles`` and ``seed_plans``, then ``seed_demo`` (demo accounts,
    about forty generated members, twenty-five aircraft, two years of
    payments), then ``seed_content`` (the example Wagtail site).  All three are
-   idempotent — running ``make seed`` twice changes nothing.  The day it runs,
+   idempotent — running ``make seed`` twice doesn't change anything.  The day it runs,
    ``seed_demo`` leaves three report subscriptions due, every DART's roster
    due, two members with an ordinary automatic renewal due, and one more with
    a catch-up renewal due, so ``send_scheduled_reports`` and
@@ -240,10 +240,10 @@ React Fast Refresh needs a preamble installed on the page before any component
 module runs.  Vite injects it into its own ``index.html``, which Django never
 serves, so ``backend/templates/portal.html`` emits it with django-vite's
 ``{% vite_react_refresh %}`` tag, ahead of ``{% vite_hmr_client %}`` and the
-entry module.  The tag renders nothing unless ``DJANGO_VITE_DEV_MODE`` is
-``true``, so the built assets carry no refresh runtime.
-``backend/templates/base.html`` needs no such tag: ``src/site/main.ts`` is plain
-TypeScript with no React in it.
+entry module.  The tag doesn't render anything unless ``DJANGO_VITE_DEV_MODE``
+is ``true``, so the built assets don't carry a refresh runtime.
+``backend/templates/base.html`` doesn't need such a tag: ``src/site/main.ts`` is
+plain TypeScript without React in it.
 
 .. note::
 
@@ -288,7 +288,7 @@ match, so password-reset and reminder emails link back to the right one.
 
    The containers are shared.  ``docker compose down`` stops the database out
    from under every other worktree on the machine — use ``make down`` only when
-   you know nothing else is running, and never during parallel work.
+   you know that nothing else is running, and never during parallel work.
 
 Make targets
 ============
@@ -484,7 +484,7 @@ Beyond Django's and Wagtail's own, this project adds:
        its sign-in lockout
    * - ``clear_lockout --email ADDRESS``
      - forget the failed sign-in attempts counted against the address, lifting its
-       lockout; changes nothing else
+       lockout; it doesn't change anything else
    * - ``seed_demo [--seed N]``
      - the demo data set; ``--seed`` is the *random* seed, default ``20260904``
    * - ``seed_content``
@@ -533,7 +533,7 @@ Beyond Django's and Wagtail's own, this project adds:
        (:ref:`deploy-mail-dns`)
    * - ``send_bulk_emails``
      - start and send every bulk email whose start time has come; a run while
-       another works does nothing (:doc:`bulk-email`)
+       another works doesn't do anything (:doc:`bulk-email`)
    * - ``payments_sandbox_check``
      - check the configured Stripe and PayPal credentials without moving money
    * - ``import_faa_registry [--source URL|PATH] [--types-only] [--import-id ID]``
@@ -625,7 +625,7 @@ bound by a system PostgreSQL is the usual cause.
 Run ``make up``, which creates the database named in ``DATABASE_URL``.  It is only created at
 ``make up`` time, so a fresh ``DATABASE_URL`` needs another ``make up``.
 
-**Migrations conflict after a rebase.**  This prototype keeps no backwards
+**Migrations conflict after a rebase.**  This prototype doesn't keep backwards
 compatibility: delete the offending migration, re-run ``makemigrations``, and
 ``make reset`` your development database rather than stacking fix-ups.
 

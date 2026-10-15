@@ -143,15 +143,15 @@ A local postfix
 
 A server that already runs a mail server, such as the machine that serves the
 organization's website, can hand mail to its own postfix instead of a remote
-relay.  The URL is plain SMTP to the loopback port, with no credentials:
+relay.  The URL is plain SMTP to the loopback port, without any credentials:
 
 .. code-block:: text
 
    smtp://localhost:25
 
 ``deploy/install.sh --email local`` writes exactly that as ``EMAIL_URL``
-(:doc:`deployment`).  The installer installs no mail server, and when nothing
-listens on port 25 it says so in a note, since mail fails until postfix is
+(:doc:`deployment`).  The installer doesn't install a mail server, and when
+nothing listens on port 25 it says so in a note, since mail fails until postfix is
 installed and listening on localhost.  Postfix accepts mail from localhost for
 any destination in its default configuration (``mynetworks`` holds the
 loopback addresses), so nothing needs to authenticate.
@@ -255,7 +255,7 @@ Then send a real message and read how it arrived.  Django's own
 Open it in a mailbox you control, show the original message, and read the
 ``Authentication-Results`` header: it should say ``spf=pass``,
 ``dkim=pass``, and ``dmarc=pass``.  A test message goes straight to Django's
-mailer, so it leaves no email log row.  The first real message the site sends,
+mailer, so it doesn't leave an email log row.  The first real message the site sends,
 a password reset to your own account for instance, is the check that the log
 records it.
 
@@ -283,7 +283,7 @@ does not list stops start-up with ``ImproperlyConfigured``.
        drops the first slash of the path.
    * - ``consolemail://``
      - printed to standard output, headers and both bodies.  Handy on a
-       machine with no Mailpit.
+       machine without Mailpit.
    * - ``memorymail://``
      - kept in ``django.core.mail.outbox``.  The test settings select the
        in-memory backend themselves, whatever ``EMAIL_URL`` says, and the
@@ -301,8 +301,8 @@ Mailpit
 
 ``make up`` starts Mailpit beside Postgres, and ``.env.example`` points
 ``EMAIL_URL`` at it: an SMTP server on ``127.0.0.1:1025`` that accepts any
-credentials, delivers nothing, and shows every message it caught in a web
-inbox at http://localhost:8025/.  It keeps the newest 5000 messages and serves
+credentials, doesn't deliver anything, and shows every message it caught in a
+web inbox at http://localhost:8025/.  It keeps the newest 5000 messages and serves
 every worktree on the machine, so deleting its messages deletes them for every
 branch at once.
 
@@ -336,7 +336,7 @@ Django admin.
 reached an inbox.  A message the recipient's server later refuses for good turns
 **Bounced** once the bounce check has read the report (`Bounces`_).  The Sent
 Emails page filters on that status and shows when each message bounced and why.  A copy of a bulk email links from its row to that email's page on **Sent**
-(``link`` in ``GET /system/emails``): the mail app knows nothing of bulk email, so
+(``link`` in ``GET /system/emails``): the mail app doesn't know about bulk email, so
 the bulk email app registers the link with ``apps.mail.links.register_log_links``.
 
 .. _email-refused:
@@ -380,7 +380,7 @@ The request answers are listed endpoint by endpoint under
 :ref:`refused sends <api-refused-send>`.  A refusal during one of those account
 requests, or during a member record change that mails somebody, is logged at
 ERROR on the ``caldart.mail`` logger by ``caldart.mail.log_refusal``, naming the
-message and the account id, the transport's class, and the SMTP code, with no
+message and the account id, the transport's class, and the SMTP code, without a
 traceback.  Production writes that logger to the journal and mails it to
 ``ADMIN_EMAILS`` (:doc:`configuration`), as it does an unhandled 500.  The other
 senders above log a refusal on their own module's logger, to the journal only.  That error mail goes through the same mail server, so it is
@@ -400,8 +400,8 @@ A relay that accepts a message has not delivered it: the recipient's server can
 still refuse it, a minute or a day later, and say so in a delivery-status report
 (RFC 3464) mailed back to the envelope sender.  CalDART reads those reports from
 a mailbox of their own and marks what they report.  Bounce checking needs both
-``BOUNCE_ADDRESS`` and ``BOUNCE_IMAP_URL``; with either empty, the check reads
-nothing and says bounce checking is off.
+``BOUNCE_ADDRESS`` and ``BOUNCE_IMAP_URL``; with either empty, the check doesn't
+read anything and says bounce checking is off.
 
 The signed bounce address
 -------------------------
@@ -420,8 +420,8 @@ where ``<local>@<domain>`` is ``BOUNCE_ADDRESS`` (a display name in the setting
 is left out) and ``<signature>`` the first 16 hex digits of an HMAC-SHA256 over
 ``<id>:<Message-ID>`` (``caldart.mail.signed_bounce_address``), keyed with
 ``SECRET_KEY`` through ``django.utils.crypto.salted_hmac`` under a salt of its own,
-``caldart.mail.bounce-address``, so the signature stands for nothing else the site
-signs.  The ``Message-ID`` is drawn at random for each message before the
+``caldart.mail.bounce-address``, so the signature doesn't stand for anything else the
+site signs.  The ``Message-ID`` is drawn at random for each message before the
 hand-over and stored on the row, so the signature belongs to that one message: a
 sequence restored with an older backup (``db_restore``) or restarted by
 ``deploy/reset-database.sh`` can hand the same id to another message later, while
@@ -473,8 +473,8 @@ How it works
    relay did not refuse, that was sent in the last 30 days (``REPORT_MAX_AGE`` in
    ``apps/mail/bounces.py``), and whose ``Message-ID`` the signature was made over.
    The report counts as one bounce of that row's recipient, whatever address its
-   ``Final-Recipient`` names.  A report with no such address is *unmatched*, one
-   count per failure, and changes nothing: one sent to the bare ``BOUNCE_ADDRESS``,
+   ``Final-Recipient`` names.  A report without such an address is *unmatched*, one
+   count per failure, and doesn't change anything: one sent to the bare ``BOUNCE_ADDRESS``,
    one whose signature is wrong, one naming an id no row has or one the database
    has since given another message, and one about an older send.  Neither the returned original's
    ``Message-ID`` nor the ``Final-Recipient`` address ever matches a report to a
@@ -502,8 +502,8 @@ How it works
    the next run reads only what has arrived since.
 
 A dry run (``--dry-run``, or the box on the Scheduled tasks page) opens the mailbox
-read-only (IMAP ``EXAMINE``), reads and matches exactly as a live one, and writes
-nothing and marks nothing seen.  Every run prints, and ``POST /system/bounces/run``
+read-only (IMAP ``EXAMINE``), reads and matches exactly as a live one, and doesn't
+write anything or mark anything seen.  Every run prints, and ``POST /system/bounces/run``
 answers, the counts ``bounced``, ``unmatched``, ``ignored`` and ``skipped`` with one
 action per failure (:ref:`api-email-log`), and records a ``bounces.run`` audit
 line.  A malformed ``BOUNCE_IMAP_URL``, or a mailbox that cannot be reached, signed
@@ -511,13 +511,13 @@ in to, opened, or read, stops the run with a sentence naming the host, never the
 password: the command exits non-zero, so the unit shows ``failed``, and no audit
 line is written, though rows a live run marked before the failure stay marked and
 their messages stay seen.  With ``BOUNCE_IMAP_URL`` or ``BOUNCE_ADDRESS`` empty the
-run says bounce checking is off and reads nothing.
+run says bounce checking is off and doesn't read anything.
 
 ``BOUNCE_IMAP_URL`` carries the mailbox password.  Error reports mailed to
 ``ADMIN_EMAILS`` mask the password in any URL a setting holds
 (``DEFAULT_EXCEPTION_REPORTER_FILTER``, :doc:`configuration`), the parsed address
 leaves the password out of its ``repr``, and the check's own frames are marked
-sensitive, so a traceback shows none of their variables.
+sensitive, so a traceback doesn't show any of their variables.
 
 The flag on the account shows as a red dot and the word **Bounced** beside the address
 on the member record and the user record, and Roles filters on it
@@ -534,7 +534,7 @@ Setting up the mailbox
    same domain as ``DEFAULT_FROM_EMAIL``: ``bounces@caldart.example.org``, say.
    Nothing else should be delivered there: the check marks every message it reads
    as read, so a person's mail in it would go unnoticed.  A report that reaches it
-   by any other way than as a return to a signed address marks nothing.
+   by any other way than as a return to a signed address doesn't mark anything.
 2. Make sure the mailbox accepts plus addresses: mail to
    ``bounces+<anything>@caldart.example.org`` must be delivered to it, with the
    full address kept in its ``To`` or ``Delivered-To`` header.  Every message goes
@@ -566,10 +566,10 @@ Setting up the mailbox
       ``+``).  ``install.sh --bounce-address`` prints a note when this machine's
       postfix delivers the bounce address's domain (it is in ``mydestination``,
       ``virtual_mailbox_domains``, or ``virtual_alias_domains``) without a ``+`` in
-      ``recipient_delimiter`` (:doc:`deployment`); the installer changes nothing
-      in postfix itself.  A postfix that only relays CalDART's mail to the
+      ``recipient_delimiter`` (:doc:`deployment`); the installer doesn't change
+      anything in postfix itself.  A postfix that only relays CalDART's mail to the
       organization's relay (:ref:`email-local-postfix`) does not receive the
-      reports and needs nothing.
+      reports and doesn't need anything.
 3. Make sure the provider offers IMAP over TLS (port 993) and, where it wants
    one, create an app password for the mailbox.
 4. Set ``BOUNCE_ADDRESS`` to the mailbox's address and ``BOUNCE_IMAP_URL`` to it as
@@ -607,7 +607,7 @@ Bulk email comes in kinds, the email types a system administrator keeps
 (:doc:`api-email-types`), and each person may turn off any type whose
 ``allow_opt_out`` is set.  Every copy of a bulk email of such a type carries a way
 to do that without signing in; transactional mail (a receipt, a reminder, a
-password link) carries none, because it is about the person's own account.
+password link) doesn't carry one, because it is about the person's own account.
 
 The token.
    ``apps/mail/unsubscribe.py`` signs the recipient's account id and the type's id
@@ -637,8 +637,8 @@ The headers.
    encoded words, which those programs do not read; ``caldart.mail`` writes every
    message with a header class that keeps ``List-Unsubscribe`` as itself, one URI to
    a folded line, whichever policy the mail backend uses.  The ``mailto:`` goes to the
-   contact address in the site settings and is left out when there is none; the
-   site reads no mailbox for it, so whoever reads the contact address acts on such a
+   contact address in the site settings and is left out when there isn't one; the
+   site doesn't read a mailbox for it, so whoever reads the contact address acts on such a
    message by hand.  For a type that does not allow opting out the answer is empty.
 
 The footer.
@@ -646,20 +646,20 @@ The footer.
    type that allows opting out, *You receive <type> email from <organization>
    because you have not turned it off. To stop it, unsubscribe here:* followed by
    the same link; for one that does not, *<organization> sends <type> email to
-   everyone it writes to, so it cannot be turned off.* with no link.
+   everyone it writes to, so it cannot be turned off.* without a link.
 
 The page.
    ``GET /mail/unsubscribe/<token>`` renders a small page in the public site's shell
-   naming the type, with one **Unsubscribe** button, and records nothing: a mail
+   naming the type, with one **Unsubscribe** button, and doesn't record anything: a mail
    scanner that follows every link in a message must not unsubscribe anybody.  The
    button posts back to the same address, and so does a mail program's one-click
    unsubscribe; the ``POST`` records the opt-out with the source ``unsubscribe`` and
    answers **200** with *You will no longer receive <type> email from
    <organization>.*  The view is CSRF-exempt: a one-click ``POST`` arrives from the
-   mail provider with no session and no token, and the signed address is the
+   mail provider without a session or a token, and the signed address is the
    authorization.  A token that does not read is a **400** page saying the link has
-   expired, and a type that no longer allows opting out records nothing and says
-   so.  Every page links to the portal's Email preferences, where the person can
+   expired, and a type that no longer allows opting out doesn't record anything and
+   says so.  Every page links to the portal's Email preferences, where the person can
    turn the type back on after signing in.
 
 An opt-out is audited as ``email.opt_out`` with the person as both actor and
@@ -670,7 +670,7 @@ unapplied, until the type allows it again.
 Receiving
 =========
 
-The site runs no mail server and has no inbound address; the one mailbox it reads
+The site doesn't run a mail server or have an inbound address; the one mailbox it reads
 is the bounce mailbox (`Bounces`_).  Two consequences follow, and each is worth
 telling the organization before go-live.
 
@@ -714,7 +714,7 @@ running or not listening on localhost (``ss -ltn 'sport = :25'`` shows what
 is).  ``journalctl -u caldart-web`` has the full message, and so does the error
 mail to ``ADMIN_EMAILS`` when the server takes that one.
 
-**The log says Sent, but the member saw nothing.**  Ask them to look in spam.
+**The log says Sent, but the member didn't see the message.**  Ask them to look in spam.
 Then read the ``Authentication-Results`` of a test message as above: a
 ``fail`` on SPF, DKIM, or DMARC is the usual cause.  Finally look for a bounce
 in the bounce mailbox (or, without ``BOUNCE_ADDRESS``, the ``DEFAULT_FROM_EMAIL``

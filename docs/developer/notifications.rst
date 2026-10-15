@@ -10,9 +10,9 @@ short email saying what happened, with a link to the record in the portal.  A
 sign-up also goes to the contacts who receive the roster of the DART the person
 chose, whether or not they are subscribed.
 
-There is no queue and no worker.  The service that did the thing raises the
-event; the notifications app, listening, builds the email at once and sends it
-when the service's transaction commits.  The code is in
+Notifications don't use a queue or a worker.  The service that did the thing
+raises the event; the notifications app, listening, builds the email at once and
+sends it when the service's transaction commits.  The code is in
 ``backend/apps/notifications/``, the template pair is ``notification`` in
 ``backend/templates/emails/``, and the endpoints are in
 :doc:`api-notifications`.  See :doc:`notification-events` for the catalog of
@@ -22,8 +22,8 @@ every event: where it is raised, and what its email carries.
 Raising an event
 ================
 
-``backend/caldart/events.py`` is the one way an event is raised.  It imports no
-app, so a service on any layer may use it:
+``backend/caldart/events.py`` is the one way an event is raised.  It doesn't import
+an app, so a service on any layer may use it:
 
 .. code-block:: python
 
@@ -35,8 +35,8 @@ app, so a service on any layer may use it:
 included, to every handler registered with ``subscribe(handler)``.  Handlers
 run at once, in registration order, inside the caller's transaction.  A slug
 outside ``EVENT_SLUGS`` raises ``ValueError`` reading ``Unknown event '<slug>'``
-before any handler runs, so a misspelled event fails a test instead of reaching
-nobody.  ``unsubscribe(handler)`` removes one, which is how a test's recording
+before any handler runs, so a misspelled event fails a test instead of going
+unheard.  ``unsubscribe(handler)`` removes one, which is how a test's recording
 handler cleans up after itself.
 
 A service raises its event once, at the point the thing has definitively
@@ -122,7 +122,7 @@ Sending
    the objects the payload names are in hand;
 2. reads the roster contacts of the chosen DART, for a sign-up;
 3. arranges ``transaction.on_commit`` to send it, so a request that rolls back
-   sends nothing.
+   doesn't send anything.
 
 When the transaction commits it reads the subscriptions, applies the rule
 above, and sends one ``send_templated`` per recipient with the purpose
@@ -132,7 +132,7 @@ one under ``Notification: <label>`` (:ref:`api-email-log`).  A send that fails,
 whatever it raises, is recorded as failed in the email log, logged at ERROR
 with the event and the exception class, never the address, and the next
 recipient is still tried.  A payload the email cannot be built from is logged with its
-traceback and sends nothing.  Nothing a notification does can fail the request
+traceback, and nothing is sent.  Nothing a notification does can fail the request
 that raised the event.
 
 The email
@@ -153,8 +153,8 @@ message is a ``Message`` with four parts:
    the record in the portal: ``SITE_URL`` plus ``/portal/admin/members/<id>``
    for a member or friend, ``/portal/admin/users/<id>`` for an account event,
    ``/portal/admin/payments/<id>`` for a payment, or
-   ``/portal/admin/aircraft/<id>`` for an aircraft.  A removed aircraft has
-   none, and neither has an automatic payment turned off because its member's
+   ``/portal/admin/aircraft/<id>`` for an aircraft.  A removed aircraft doesn't
+   have one, and neither does an automatic payment turned off because its member's
    account was deleted.
 
 Names are the account's display name, money is printed in dollars from integer
