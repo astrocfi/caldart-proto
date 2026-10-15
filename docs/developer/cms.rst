@@ -86,14 +86,15 @@ Model                Notes
                      ``leader_name``, ``leader_contact``, ``body``.
                      ``airport_identifiers`` is read through the
                      FK, so the page never duplicates the membership database.
-                     Deleting the DART leaves the page with no DART attached.
+                     Deleting the DART leaves the page without a DART
+                     attached.
 ``ContactPage``      ``intro`` + ``body``; the address block comes from
                      ``SiteSettings``.
 ``DonatePage``       The public donation page (see `The donation page`_).
                      ``intro`` (rich text) above the form and ``thanks``
                      (rich text) shown in its place once a gift has gone
                      through.  Allowed under the home page or a standard
-                     page; takes no children.
+                     page; can't have children.
 ===================  ========================================================
 
 ``subpage_types`` and ``parent_page_types`` are declared so editors cannot
@@ -120,7 +121,7 @@ inline, because the Content Security Policy forbids an inline script.  A
 ``<noscript>`` line says how else to give.
 
 The script mounts ``DonationForm`` (``frontend/src/donate/``) with a TanStack
-Query client and a toast queue of its own and no router.  The form reads
+Query client and a toast queue of its own, without a router.  The form reads
 ``GET /donations/config``, takes the amount and the giver's details, and pays
 through the portal's own provider tabs and Stripe, PayPal, and mock panels, which
 take their endpoints as a prop (``PaymentEndpoints``) so the page's calls go to
@@ -166,7 +167,7 @@ account is current (and so let through), expired, not yet paid, or a
 friend, and a donor cannot sign in.
 
 Who gets through is ``User.can_access_members_content`` (:doc:`data-model`): a current
-membership, *or* any role beyond plain ``member``.  A DART leader with no
+membership, *or* any role beyond plain ``member``.  A DART leader without a
 membership of their own can still read the handbooks, and so can a friend who
 holds a staff role; a friend with only the ``member`` role gets the wall.
 
@@ -196,7 +197,7 @@ administrator, **My profile**, **Change password**, and **Change email** for the
 person themselves.  Those screens apply the rules an account change needs
 (roles, deactivation and the reactivation block, address verification, and the
 payment handover when an account is deleted), which Wagtail's own user admin
-knows nothing of.  So the Wagtail admin manages no account:
+doesn't know about.  So the Wagtail admin doesn't manage accounts:
 
 - ``caldart/urls.py`` answers 404 for ``/admin/users/``, ``/admin/groups/``,
   ``/admin/bulk/accounts/``, ``/admin/bulk/auth/``, and
@@ -207,7 +208,7 @@ knows nothing of.  So the Wagtail admin manages no account:
   drops the **Users** and **Groups** entries from the settings menu.
 - ``base.py`` sets ``WAGTAIL_PASSWORD_MANAGEMENT_ENABLED``,
   ``WAGTAIL_PASSWORD_RESET_ENABLED``, and ``WAGTAIL_EMAIL_MANAGEMENT_ENABLED`` to
-  ``False``, so the Wagtail sign-in page offers no password reset.
+  ``False``, so the Wagtail sign-in page doesn't offer a password reset.
 
 A website administrator signs in to the editor with their portal account; only
 the screens that would change an account are closed.  The Django admin at
@@ -238,7 +239,7 @@ hook, which Wagtail runs before it hands a document over:
 ``MEMBERS_ONLY_COLLECTION_NAME`` (``Members only``) and for every collection
 beneath it: a descendant's materialized path starts with its ancestor's, so one
 prefix test covers the whole subtree.  A document in any other collection, and
-a document with no collection at all, is public.
+a document that isn't in any collection, is public.
 
 The refusal is the page wall rendered from the same template and the same
 ``members_wall_context``, with the document's title in place of a page's, so a
@@ -295,8 +296,8 @@ every block.
 Restricting a block
 -------------------
 
-``raw_html`` is "website administrators only", and Wagtail has no per-block
-permission.  ``forms.RestrictedBlocksPageForm`` is the page's
+``raw_html`` is "website administrators only", and Wagtail doesn't have a
+per-block permission.  ``forms.RestrictedBlocksPageForm`` is the page's
 ``base_form_class``: Wagtail hands the form the editing user as ``for_user``,
 and when that user fails ``can_use_raw_html`` the form rebuilds each
 StreamField's block without the names in ``blocks.RESTRICTED_BLOCK_TYPES`` and
@@ -353,7 +354,7 @@ supplies four names:
     The ``URL_PREFIX`` setting, empty at the root of a host.  ``base.html`` and
     ``portal.html`` put it on ``<html data-url-prefix="...">`` for their
     scripts.  The templates themselves write every link with ``{% url %}``,
-    which carries the prefix even on the 500 page, where there is no context.
+    which carries the prefix even on the 500 page, where there isn't a context.
 
 ``can_preview_theme``
     True for website and system administrators.  ``base.html`` turns it into
@@ -451,7 +452,7 @@ that slug is deleted first so the donation page takes its place.  ``make seed`` 
 
 .. _cms-seed-data:
 
-Every word of the copy lives in ``seed_content_data.py``, which holds no logic:
+Every word of the copy lives in ``seed_content_data.py``, which holds only data:
 each page is a frozen ``PageSpec`` naming its slug, title, intro, menu, and
 members-only flags and a tuple of ``BlockSpec`` body blocks, built by the
 ``rich``, ``heading``, ``quote``, and ``cta`` helpers; a news post pairs a
@@ -469,7 +470,7 @@ module is imported, so the stored links are right for the prefix
 ``seed_content`` runs under.  Links to pages the command has just built, such
 as the home page's *Find your DART* button, come from the page's own URL, which
 carries the prefix already.  The home page ``migrate`` publishes, and the one
-``ensure_site_root`` creates when there is none, link their buttons the same
+``ensure_site_root`` creates when there isn't one, link their buttons the same
 way.
 
 It also calls ``ensure_members_only_collection``, so the ``Members only``

@@ -72,7 +72,7 @@ and 443 open, one command installs everything::
           --email-url smtp+tls://user:password@smtp.example.org:587 \
           --admin-email you@example.org
 
-``bootstrap.sh`` installs ``git`` if the box has none, creates the deploy root
+``bootstrap.sh`` installs ``git`` if the box doesn't have it, creates the deploy root
 ``/opt/caldart`` when it is missing, clones
 ``https://github.com/astrocfi/caldart-proto.git`` into ``/opt/caldart/caldart``
 (or, when a checkout is already there, fetches and checks out the ref), and
@@ -159,7 +159,7 @@ The flags:
        (:ref:`configuration-demo-two-factor`)
      - off
    * - ``--seed-content``
-     - load the example website alone, with no accounts
+     - load the example website alone, without any accounts
      - off
    * - ``--repo URL-OR-PATH``
      - ``bootstrap.sh`` only: what to clone
@@ -178,14 +178,14 @@ The flags:
 server on a private network: the certificate is made with ``openssl`` in
 ``/etc/caldart/tls/``, browsers warn until a real one replaces it, and the
 environment file sets ``SECURE_HSTS_SECONDS=0`` so no browser remembers HSTS
-for a name the box does not own.  There is no plain-HTTP mode:
+for a name the box does not own.  There isn't a plain-HTTP mode:
 ``caldart.settings.prod`` insists on secure cookies and redirects HTTP to HTTPS.
 
 **The install record.**  The values that describe the box (the deploy root, the
 hostname, ``www``, the web server, the TLS mode, the certbot address, staging,
 the database port, the gunicorn port, the URL prefix, and the attached vhost file) are written to ``/etc/caldart/install.conf``,
-``root:root``, mode ``0644``, holding no secret.  Every step reads it, so a
-later run needs no flags, and a flag given on a later run updates the record.
+``root:root``, mode ``0644``, without any secret in it.  Every step reads it, so a
+later run doesn't need any flags, and a flag given on a later run updates the record.
 ``--email-url``, ``--email``, ``--from-email``, ``--bounce-imap-url``,
 ``--bounce-address``, ``--admin-email``, ``--seed-demo``, and ``--seed-content``
 are used by the run that writes the environment file or creates the
@@ -209,7 +209,7 @@ what it needs from the record::
 
 ``--dry-run`` on any script (or ``CALDART_DRY_RUN=1`` in its environment) prints
 every command that would change the machine, prefixed ``+``, instead of running
-it, and needs no root.  The reads still happen, so a dry run on a fresh box
+it, and doesn't need root.  The reads still happen, so a dry run on a fresh box
 prints the whole sequence a real run would, in order.  A file the dry run never
 wrote, such as the environment file or the record, is treated as absent, with a
 note on standard error; the generated database password appears as
@@ -226,8 +226,8 @@ Open the administrator's link to set a password; it lasts as long as any
 password-reset link (``PASSWORD_RESET_TIMEOUT``).
 
 **Afterwards.**  The site runs without payment or address keys: checkout
-offers no provider and the profile form offers no address suggestions until
-they are set.  Add them with ``sudoedit /etc/caldart/caldart.env``, then
+doesn't offer a provider and the profile form doesn't offer address suggestions
+until they are set.  Add them with ``sudoedit /etc/caldart/caldart.env``, then
 ``sudo systemctl restart caldart-web``: the Stripe and PayPal keys as
 :doc:`payments-setup` describes, and ``GEOAPIFY_API_KEY`` (:doc:`configuration`).
 A changed SMTP relay is edited the same way.  No script ever rewrites the
@@ -461,9 +461,9 @@ except Vite's build output under ``assets/``, which Vite has hashed already
 (:doc:`architecture`).  The user guide
 at ``/docs/`` is not aliased either: Django serves it from ``USER_GUIDE_ROOT``
 and asks the reader to sign in first, so it stays behind the same login as the
-portal and needs nothing from the web server (:doc:`configuration`).  Only
+portal and doesn't need anything from the web server (:doc:`configuration`).  Only
 ``/media/`` — Wagtail's user uploads, which keep their filenames, and the bulk
-email images in ``/media/bulk-email/``, which a mail program fetches with no
+email images in ``/media/bulk-email/``, which a mail program fetches without a
 session (:doc:`api-bulk-email`) — is served straight off disk, to anybody, and
 ``/media/documents/`` is carved back out of it: a
 document may belong to the members-only collection, and Django's document view
@@ -716,7 +716,7 @@ upstream) and reloads the web server with ``reload-or-restart``, in that order::
 
 The step's own check runs only before the unit is installed, so first check
 that nothing listens on the new port (``ss -ltn "sport = :8101"`` prints only
-its header).  ``upgrade.sh`` takes no such flag and keeps the recorded port.
+its header).  ``upgrade.sh`` doesn't take that flag and keeps the recorded port.
 
 
 5. Configuration (``steps/configure.sh``)
@@ -744,7 +744,7 @@ step uncomments and sets every one::
   EMAIL_URL=<--email-url, or smtp://localhost:25 with --email local>
   DATABASE_URL=postgres://caldart:<the password from step 4>@localhost:<--db-port>/caldart
 
-Four of them have no default at all: ``prod.py`` refuses to start without
+Four of them don't have a default at all: ``prod.py`` refuses to start without
 ``SECRET_KEY``, ``ALLOWED_HOSTS``, ``SITE_URL``, or ``EMAIL_URL``, and refuses
 the published development ``SECRET_KEY`` as well.  Nothing in the production
 settings reads a ``.env`` file, so a stray one in the checkout cannot fill in a
@@ -775,14 +775,14 @@ left as the template has it: the existing site owns HSTS for its host.
 With ``--email local`` the step checks with ``ss -ltnH "sport = :25"`` that
 something listens on port 25, and, when nothing does, prints a note on standard
 error (not an error: the install carries on) that mail fails until postfix is
-installed and listening on localhost.  The installer installs no mail server;
+installed and listening on localhost.  The installer doesn't install a mail server;
 :ref:`email-local-postfix` describes what the machine's postfix needs.  With
 ``--bounce-address``, when ``postconf`` is on the machine and its postfix delivers
 the address's domain (it is in ``mydestination``, ``virtual_mailbox_domains``, or
-``virtual_alias_domains``) while ``recipient_delimiter`` holds no ``+``, the step
+``virtual_alias_domains``) while ``recipient_delimiter`` doesn't hold a ``+``, the step
 prints another note: the bounce mailbox must accept plus addresses, so set
-``recipient_delimiter = +`` in ``main.cf`` (:ref:`email-bounces`).  The step changes
-nothing in postfix itself.  Everything else,
+``recipient_delimiter = +`` in ``main.cf`` (:ref:`email-bounces`).  The step doesn't
+change anything in postfix itself.  Everything else,
 comments included, stays as the template has it, so the file still explains
 itself: the throttle rates, ``GEOAPIFY_API_KEY`` (the key behind the profile
 form's address suggestions, which stay off while it is blank), and the Stripe
@@ -792,8 +792,8 @@ covered in :doc:`payments-setup`, and what the mail domain needs before
 ``EMAIL_URL`` delivers anything in :doc:`email`.
 
 When the file exists the step leaves it alone but for one line: when
-``CALDART_GUNICORN_PORT`` names another port than the record, or the file has
-no such line, it sets the line to the recorded port and writes the file back
+``CALDART_GUNICORN_PORT`` names another port than the record, or the file
+doesn't have that line, it sets the line to the recorded port and writes the file back
 with the same owner and mode, every other line as it was.  Otherwise it says it
 is leaving the file alone.  Either way it reports any ``--email-url``,
 ``--email local``, ``--from-email``, ``--bounce-imap-url``, or ``--bounce-address``
@@ -886,8 +886,8 @@ attached (which the ``db_restore`` prompt needs) and passes plain pipes
 through when the output is redirected.  ``--dry-run`` before the command name
 prints the ``systemd-run`` line instead of running it.
 
-``UMask=0027`` is the one property with nothing to do with finding the code or
-the settings, and it is not optional: a transient unit otherwise takes
+``UMask=0027`` is the one property unrelated to finding the code or the
+settings, and it is not optional: a transient unit otherwise takes
 systemd's system default of ``0022``, and ``deploy/manage.sh db_backup`` would
 write a full dump of the database (member records, password hashes, payment
 history) world-readable at mode 0644.  All seven shipped services set the same
@@ -919,7 +919,7 @@ Preparing the database
 uses.  The anonymous auth throttles count in that cache, and every gunicorn
 worker has to see the same counters; the PayPal access token sits there too,
 so one fetch serves every worker (see :ref:`paypal-token-cache`).  The command
-is idempotent, so running it again costs nothing.
+is idempotent, so running it again doesn't cost anything.
 
 ``seed_demo`` and ``seed_content`` are idempotent too, ``get_or_create`` and
 ``update_or_create`` throughout: running either again on an installed server
@@ -953,14 +953,14 @@ so::
 
 With the mock provider off, the seed's payment history is dealt out between
 Stripe and PayPal in a 70 / 30 split, and its other renewals carry made-up
-Stripe and PayPal references.  With no payment keys configured,
+Stripe and PayPal references.  Without any payment keys configured,
 ``caldart-renewals`` puts their charges off and runs cleanly against the seeded
 data; with real or sandbox keys, the provider can refuse a seeded charge, and
 the job then exits with an error counting the refusals.  A mock-provider
 renewal left from a seed run while that provider was on is put off too, never
 refused (:ref:`renewals-scanner`).  Leave the mock provider off: turning it on
 shows every visitor a **Test payment** tab with *Succeed* and *Fail* buttons, a
-way for anyone to grant themselves a membership with no money changing hands,
+way for anyone to grant themselves a membership without any money changing hands,
 as :doc:`payments-setup` describes.  A demonstration site that keeps it on seeds
 its card payments through that Test provider instead, so a treasurer can refund
 them; a Stripe or PayPal row from a seed run with the provider off cannot be
@@ -982,13 +982,13 @@ password asks the administrator to set up an authenticator app and save the
 backup codes before it opens the portal (:ref:`api-two-factor`).  Keep those
 codes.  An administrator who loses both the phone and the codes asks another
 system administrator to reset two-factor sign-in from the user record or, when
-there is none, resets it from the server::
+there isn't one, resets it from the server::
 
   sudo deploy/manage.sh reset_two_factor --email you@example.org
 
 Every staff account -- a user administrator, the treasurer, an account
 administrator, CalDART management, a website administrator, and a system
-administrator -- that has no authenticator device sets one up at its next sign-in,
+administrator -- that doesn't have an authenticator device sets one up at its next sign-in,
 and a staff session that has not passed the second factor is signed out.  An
 address locked out by somebody's guesses (:ref:`api-login-lockout`) opens again on
 its own; to open it at once::
@@ -1118,7 +1118,7 @@ the vhost::
 
   sudo a2enmod proxy proxy_http headers ssl rewrite deflate expires http2
 
-**The bootstrap host.**  Write a port-80 host that serves nothing but the
+**The bootstrap host.**  Write a port-80 host that serves only the
 challenge directory, enable it, and check the syntax::
 
   sudo install -d /var/www/certbot
@@ -1305,7 +1305,7 @@ The shipped file:
 * answers ``/media/documents/`` with ``return 404;``.  It is the longer prefix,
   so nginx matches it ahead of ``/media/``, and a document is only reachable
   through Django's members-only check;
-* sets no security header on proxied responses.  nginx's ``add_header`` does
+* doesn't set a security header on proxied responses.  nginx's ``add_header`` does
   not replace what the upstream sent, so a copy here would reach the browser
   alongside Django's;
 * caps request bodies at 25 MB (``client_max_body_size 25m``) with a 60-second
@@ -1323,7 +1323,7 @@ header comment lists the lines that extend it to JSON, CSS, and JavaScript.
 Self-signed instead
 -------------------
 
-With ``--tls self-signed`` there is no bootstrap host and no request to Let's
+With ``--tls self-signed`` there isn't a bootstrap host or a request to Let's
 Encrypt.  The certificate is made once, for each name the site answers for,
 and kept for ten years::
 
@@ -1371,8 +1371,8 @@ With certbot the installer leaves the template's one-year default in place,
 because it confirms HTTPS answers before it finishes (:ref:`deploy-check`); with a
 self-signed certificate it writes ``0``.  To be more cautious on a new
 hostname, set ``0`` and restart ``caldart-web`` until HTTPS is known good.
-Browsers honor the header for its full duration and there is no way to take it
-back early.  ``SECURE_HSTS_PRELOAD`` stays off unless you mean to join the
+Browsers honor the header for its full duration, and it can't be taken back
+early.  ``SECURE_HSTS_PRELOAD`` stays off unless you mean to join the
 browser preload list; :doc:`configuration` explains what that commits the site
 to.
 
@@ -1398,14 +1398,14 @@ block; on a site set up with certbot's Apache plugin that is
 leaves only the plain-HTTP redirect in ``<name>.conf``.
 
 ``--tls existing`` says a web server on this machine already serves the
-hostname over HTTPS.  The installer then obtains no certificate, installs no
-certbot package, and writes no vhost of its own: the existing site's
+hostname over HTTPS.  The installer then doesn't obtain a certificate, install a
+certbot package, or write a vhost of its own: the existing site's
 certificate is the one browsers see, and the hop from its web server to
 gunicorn stays on loopback.  ``--url-prefix`` is the path, written as the
 settings read ``URL_PREFIX``: one leading and one trailing slash are optional,
 and each segment is letters, digits, ``.``, ``_``, ``~``, or ``-``.  Without
 it the site takes the whole of the existing host; on nginx that snippet holds
-``location ^~ /``, so the existing server block must have no ``location /`` of
+``location ^~ /``, so the existing server block must not have a ``location /`` of
 its own, or ``nginx -t`` refuses the pair and the step puts the vhost back.  ``--email local`` sends
 mail through the postfix the machine already runs (:ref:`email-local-postfix`).
 
@@ -1436,7 +1436,7 @@ the scheme too).  The proxy strips the prefix, and Django puts it
 back on every URL it writes, because ``URL_PREFIX`` sets ``FORCE_SCRIPT_NAME``
 (:doc:`configuration`).  The nginx snippet uses ``^~`` locations, so a
 regular-expression location of the existing site (``location ~ \.php$``, say)
-never takes a request under the prefix.  Static files need nothing: whitenoise
+never takes a request under the prefix.  Static files don't need anything: whitenoise
 serves them under the prefix through the proxy.
 
 **The include line.**  The existing site's vhost pulls the snippet in with one
@@ -1447,8 +1447,8 @@ line inside its HTTPS block::
 
 ``--attach-to FILE`` names the file that holds that block, and it must already
 exist: a real run that cannot find it stops without touching anything, and a
-dry run only notes that it would have inserted the line, since there is
-nothing there yet to back up or edit.  The step inserts
+dry run only notes that it would have inserted the line, since there isn't
+anything there yet to back up or edit.  The step inserts
 the line before the closing ``</VirtualHost>`` or ``}`` of every block in the
 file that terminates TLS, or of every block when none does, indented one
 level deeper than the closing line.  An Apache block terminates TLS when its
@@ -1532,8 +1532,8 @@ keys the web service has; they come from the same ``/etc/caldart/caldart.env``.
 **Run now** on the Scheduled tasks page starts the same command, through
 ``run_job``, as a child of ``caldart-web``, outside the request, so its output is in
 that unit's journal and its record names the administrator who pressed it.  A
-scan stopped mid-charge, by a timeout, a crash, or a restart, needs nothing from
-the operator: the next scan settles each unfinished charge with the provider
+scan stopped mid-charge, by a timeout, a crash, or a restart, doesn't need anything
+from the operator: the next scan settles each unfinished charge with the provider
 before charging anything (:ref:`renewals-scanner`).
 See :doc:`renewals` for what it charges, when, and how to change the cadence.
 
@@ -1573,8 +1573,8 @@ the same ``/etc/caldart/caldart.env``.  Rehearse the first of next month with
   systemctl list-timers caldart-statements.timer
 
 Yearly at 06:45 on January 15th, with catch-up if the machine was off: a year
-already sent reaches nobody again, so a late run costs nothing.  It emails
-every active account -- a member, a friend, or a donor -- that made a settled
+already sent never reaches anyone again, so a late run doesn't cost anything.
+It emails every active account -- a member, a friend, or a donor -- that made a settled
 contribution the year before, with that year's statement PDF attached; it
 needs the database and the SMTP server, from the same
 ``/etc/caldart/caldart.env``.  Rehearse it any time with
@@ -1597,7 +1597,7 @@ needs the database and the SMTP server, from the same
   systemctl list-timers caldart-registry.timer
 
 Daily at 04:30, with catch-up if the machine was off: every run replaces the
-registry with the FAA's current copy, so a late one costs nothing.  It downloads
+registry with the FAA's current copy, so a late one doesn't cost anything.  It downloads
 the FAA's Releasable Aircraft Database (about 70 MB) from ``FAA_REGISTRY_URL``
 into the unit's private ``/tmp`` and imports the aircraft types and the
 registrations, which takes well under a minute once the file is down; it needs
@@ -1628,7 +1628,7 @@ writes.
 
 Every hour at twenty past, with catch-up if the machine was off: each report it
 reads is marked read in the mailbox, so a late run reads what has arrived since
-and nothing twice.  It reads the bounce mailbox ``BOUNCE_IMAP_URL`` names over
+and never reads anything twice.  It reads the bounce mailbox ``BOUNCE_IMAP_URL`` names over
 IMAPS, marks every email a permanent-failure report matches as bounced, and
 flags the address on its account when the report says the address is bad; it
 needs the database and an outbound connection to the mailbox's IMAP server, from
@@ -1654,12 +1654,12 @@ it any time with ``sudo deploy/manage.sh check_bounces --dry-run``.  See
   sudo systemctl enable --now caldart-bulk-email.timer
   systemctl list-timers caldart-bulk-email.timer
 
-Every minute, on the minute, with ``AccuracySec=1s`` and no randomized delay,
+Every minute, on the minute, with ``AccuracySec=1s`` and without a randomized delay,
 because the undo window and a scheduled time are promises to the minute.  A run
 starts every bulk email whose start time has come and sends its copies at
 ``BULK_EMAIL_RATE_PER_MINUTE``, so a large send keeps the unit running for as
-long as that takes: ``TimeoutStartSec=0`` never cuts it short, and systemd starts
-no second run while it works.  A run with nothing due exits at once.  A missed
+long as that takes: ``TimeoutStartSec=0`` never cuts it short, and systemd doesn't
+start a second run while it works.  When nothing is due, a run exits at once.  A missed
 minute is not caught up (``Persistent=false``); the next minute's run sends
 whatever is due by then.  It needs the database and the SMTP server, from the
 same ``/etc/caldart/caldart.env``.  Run it by hand with ``sudo deploy/manage.sh
@@ -1859,7 +1859,7 @@ sending bulk email:
        local mail server (``opendkim``, for instance) chose, and goes in
        ``DKIM_SELECTOR`` (:doc:`configuration`)
    * - DMARC
-     - ``TXT`` at ``_dmarc.<domain>``, or, when there is none, at
+     - ``TXT`` at ``_dmarc.<domain>``, or, when there isn't one, at
        ``_dmarc.<organizational domain>`` (``_dmarc.example.org`` for
        ``caldart.example.org``), whose ``sp=`` (or ``p=``) then applies to the
        subdomain
@@ -1889,17 +1889,17 @@ report is in the **Mail delivery** card of the portal's Health and database page
 for system administrators only, which reads a copy cached for five minutes
 (``GET /mail/delivery-check``, :ref:`api-mail-delivery`).
 
-The DMARC record follows RFC 7489: with no policy at ``_dmarc.<From domain>``, the
-check reads the organizational domain's record, found with the public suffix list
+The DMARC record follows RFC 7489: when ``_dmarc.<From domain>`` doesn't hold a policy,
+the check reads the organizational domain's record, found with the public suffix list
 bundled with ``tldextract`` (never fetched at check time), so ``caldart.example.co.uk``
 falls back to ``example.co.uk``.  The finding then says where the policy was found,
-and judges its ``sp=`` when it has one.  The DKIM record has no such fallback.
+and judges its ``sp=`` when it has one.  The DKIM record doesn't have that fallback.
 
 Three limits to know.  The whole check gives up after about 15
 seconds, and a lookup it did not reach is a ``[FAIL]`` that says the check took
 too long.  A mail server on the same machine
 (``--email local``) is reported as a warning rather than judged, because the
-name ``localhost`` says nothing about the public address mail leaves from.  And
+name ``localhost`` doesn't say anything about the public address mail leaves from.  And
 DNS changes take time to spread: a record published a minute ago may not show
 until its old value's time to live runs out.
 
@@ -1919,8 +1919,8 @@ a built ``frontend/dist``.
 The recipe supplies a throwaway environment inline rather than reading
 ``/etc/caldart/caldart.env``.  That environment carries only what
 ``caldart.settings.prod`` requires outright — a dummy ``SECRET_KEY``,
-``ALLOWED_HOSTS``, ``DATABASE_URL``, ``SITE_URL``, and ``EMAIL_URL`` — and pins
-no secure flag, so each one comes from the module's own default and the check
+``ALLOWED_HOSTS``, ``DATABASE_URL``, ``SITE_URL``, and ``EMAIL_URL`` — and doesn't
+pin a secure flag, so each one comes from the module's own default and the check
 exercises what a real box gets, without touching a real secret or a real
 database.
 
@@ -1975,7 +1975,7 @@ scripts.
 Logs
 ====
 
-Everything goes to the journal; there are no application log files to rotate.
+Everything goes to the journal; there aren't any application log files to rotate.
 The site also keeps the last 90 days of every scheduled job's runs, with their
 output, for system administrators to read from the portal
 (:ref:`deploy-job-runs`).
@@ -2091,7 +2091,8 @@ Action                            Fields beyond actor and target
 ``payment.receipt_resend``        --
 ``payment.note``                  --
 ``renewal.enable``                ``provider``, ``plan`` -- ``-`` for a
-                                  recurring donation, which renews nothing
+                                  recurring donation, which doesn't renew
+                                  anything
 ``renewal.cancel``                ``provider``, ``self_service`` -- whether the
                                   member turned it off themselves; ``reason``
                                   ``member.delete`` when the member's account
@@ -2179,8 +2180,8 @@ Action                            Fields beyond actor and target
 
 An account edit is recorded only when it really alters the record.  The admin
 account form resends every field on each save, so ``account.update`` names just
-the columns whose stored value changed, and a save that changes nothing at all
-is not a line.  A register edit is recorded whatever it changes, because the
+the columns whose stored value changed, and a save that doesn't change anything
+at all is not a line.  A register edit is recorded whatever it changes, because the
 history behind it is a record of who wrote to the airframe; ``aircraft.update``
 names the columns that moved, and ``fields=-`` when none did.
 
@@ -2197,9 +2198,9 @@ is under way), ``run_in_progress`` (a live renewal run started while another is
 under way), or, for ``bulk_email.refused``, ``sender_deleted``,
 ``type_not_sendable``, or ``no_type`` (the sender may no longer send the email's
 type), or ``no_dart`` and ``dart_changed`` (the sender is a DART leader whose profile
-names no DART any more, or names another DART than the one the batch was built in).
+doesn't name a DART any more, or names another DART than the one the batch was built in).
 
-A record carries ids, counts, flags, and slugs and nothing else.  Email
+A record carries only ids, counts, flags, and slugs.  Email
 addresses, names, passwords, tokens, and database contents are not values the
 helper accepts, so a line can never carry them; reading it back therefore means
 looking the ids up.  A richer trail, held in the database and readable from the
@@ -2213,8 +2214,8 @@ Rehearsing an install
 
 ``make rehearse-deploy``, run on a development machine with Docker, puts these
 scripts through a whole life on a throwaway Ubuntu 24.04 container running
-systemd: ``bootstrap.sh`` with ``--tls self-signed``, an ``upgrade.sh`` with
-nothing to pull, ``install.sh`` again with no flags, and ``uninstall.sh --yes
+systemd: ``bootstrap.sh`` with ``--tls self-signed``, an ``upgrade.sh`` without
+anything to pull, ``install.sh`` again without any flags, and ``uninstall.sh --yes
 --purge``, with Apache by default or nginx with
 ``REHEARSE_WEB_SERVER=nginx``.  ``REHEARSE_URL_PREFIX=/caldart-proto``
 rehearses :ref:`deploy-prefix` instead, behind a stand-in for the existing
@@ -2250,8 +2251,8 @@ Upgrading
    makes every upload readable by the web server again;
 5. step 6, the build (``steps/build.sh``);
 6. step 7's database commands (``steps/database.sh``): ``migrate``,
-   ``createcachetable``, ``seed_roles``, ``seed_plans``, and ``collectstatic``, with no
-   administrator and no example content;
+   ``createcachetable``, ``seed_roles``, ``seed_plans``, and ``collectstatic``, without an
+   administrator or example content;
 7. step 8 (``steps/web-service.sh``), which reinstalls the web unit and
    restarts it, then waits for gunicorn to answer;
 8. ``steps/timers.sh``, which reinstalls the job units and reloads systemd;
@@ -2261,8 +2262,8 @@ Each step runs as the freshly checked-out script, so an upgrade that changes
 the installer runs the changed one.  Order matters: the frontend is built
 before ``collectstatic``, and the web unit restarts after both.  The guide is
 rebuilt in the same sequence, so the copy at ``/docs/`` is always the one the
-running code describes; Django reads it off disk on every request, so it needs
-no restart of its own.  ``createcachetable`` is idempotent, and it is in the
+running code describes; Django reads it off disk on every request, so it doesn't
+need a restart of its own.  ``createcachetable`` is idempotent, and it is in the
 list so that no upgrade can leave a box without ``caldart_cache``.
 ``preload_app`` is on, so a restart, and not a reload, is what picks up new
 code.  The timers start a fresh process on every run, so they pick up the new
@@ -2280,7 +2281,7 @@ An upgrade never touches the environment file, the vhost, or the snippet.  It
 keeps the recorded gunicorn and Postgres ports: each step it runs reads the
 install record, so gunicorn restarts on the recorded ``CALDART_GUNICORN_PORT``,
 the readiness check asks it there, and every ``docker compose`` command runs
-with the recorded ``CALDART_DB_PORT`` exported.  It takes no
+with the recorded ``CALDART_DB_PORT`` exported.  It doesn't take
 ``--gunicorn-port`` or ``--db-port``; either is a usage error naming
 ``install.sh``, whose ``--gunicorn-port`` and ``--db-port`` are the way to move
 a port (:ref:`deploy-sharing`).  A change to the environment file is made by
@@ -2317,8 +2318,8 @@ With the same flags the first install was given:
      sudo cp -a /opt/caldart/backend/media /root/caldart-media
 
 3. ``sudo /opt/caldart/deploy/uninstall.sh --yes --purge``, which removes
-   the checkout ``/opt/caldart`` and the database, and nothing else under
-   ``/opt``;
+   the checkout ``/opt/caldart`` and the database, and leaves the rest of
+   ``/opt`` alone;
 4. run ``bootstrap.sh`` with the same flags, which clones into
    ``/opt/caldart/caldart`` and installs an empty site;
 5. put the dumps and the uploads back beside the checkout::
@@ -2448,7 +2449,7 @@ Let's Encrypt limits failed attempts per hour, so check the ``curl`` first.
 restart ``caldart-web``.
 
 **The install stops at a step.**  Every step is idempotent: fix what its
-error names and run ``sudo deploy/install.sh`` again, with no flags once the
+error names and run ``sudo deploy/install.sh`` again, without any flags once the
 install record exists, or run that step alone as
 ``sudo deploy/steps/<step>.sh``.  ``--dry-run`` shows what a run would do.
 
@@ -2465,7 +2466,7 @@ run, or ``collectstatic`` did not.  Run ``sudo deploy/steps/build.sh``, then
 
 ``/docs/`` **answers 404 and the journal says the user guide has not been
 built.**  The Sphinx step of :ref:`the build <deploy-build>` did not run, or
-``USER_GUIDE_ROOT`` names a directory with no ``index.html``.  Run
+``USER_GUIDE_ROOT`` names a directory without an ``index.html``.  Run
 ``sudo deploy/steps/build.sh``, or point the variable at the directory it
 wrote to.
 

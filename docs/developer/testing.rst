@@ -136,7 +136,7 @@ it:
    $ git diff backend/tests/golden
 
 ``--update-golden`` rewrites every golden file the selected tests touch and
-asserts nothing, so a run with it passes whatever the code produced.
+doesn't assert anything, so a run with it passes whatever the code produced.
 
 What ``caldart.settings.test`` changes
 --------------------------------------
@@ -170,8 +170,8 @@ What ``caldart.settings.test`` changes
   import, because WhiteNoise warns about a ``STATIC_ROOT`` that is not on disk
   and the suite never runs ``collectstatic``.  ``conftest.py``'s
   ``pytest_unconfigure`` removes it, along with any stub manifest directory, at
-  the end of the session, so a run leaves nothing behind in the temporary
-  directory.
+  the end of the session, so a run doesn't leave anything behind in the
+  temporary directory.
 - ``PAYMENTS_MOCK_ENABLED`` is on; ``DEBUG`` is off; storage is in-memory;
   the root logger is quietened to ``ERROR``.  The ``caldart.audit`` logger
   keeps its own ``INFO`` level (:ref:`deploy-audit-log`), so a test that
@@ -192,8 +192,8 @@ separate jobs.
 ``caldart.settings.test`` resolves ``DJANGO_VITE``'s manifest path from the
 ``DJANGO_VITE_MANIFEST_PATH`` environment variable, falling back to the
 default ``frontend/dist/.vite/manifest.json``.  CI's backend job builds the
-frontend first and sets the variable to that real manifest.  A local run with
-nothing built has neither, so ``conftest.py``'s ``pytest_configure`` builds a
+frontend first and sets the variable to that real manifest.  A local run without
+a build has neither, so ``conftest.py``'s ``pytest_configure`` builds a
 stub manifest in a directory outside the checkout and overrides the
 already-loaded setting to point there instead, forcing django-vite to re-read
 it.  Nothing is written under ``frontend/dist``.
@@ -207,8 +207,8 @@ A test that genuinely needs the real bundle carries
 naming the manifest that was missing.  What it does depends on the ``CI``
 environment variable:
 
-- Unset, as in a local run, the test is skipped: the checkout simply has no
-  build yet.
+- Unset, as in a local run, the test is skipped: the checkout simply doesn't
+  have a build yet.
 - Set, as the CI runner sets it, the test fails with the same message.  CI's
   backend job builds the frontend precisely so these tests run, so a manifest
   that is not where the job says it is means the job is not testing the bundle
@@ -259,7 +259,7 @@ for constantly:
      - a Palo Alto DART, a profile for ``member``, one insured airplane
    * - ``register``
      - a four-aircraft register covering every insurance state: current,
-       expiring inside 30 days, expired, and nothing on file
+       expiring inside 30 days, expired, and not on file
    * - ``backup_dir``
      - ``BACKUP_DIR`` pointed at a throwaway directory under ``tmp_path`` and
        created, so no test touches the repository's own
@@ -380,8 +380,8 @@ Conventions
 -----------
 
 - **All backend tests live in ``backend/tests/``**, named
-  ``test_<feature>.py``.  There are no per-app ``tests/`` packages, so parallel
-  branches never touch the same file.
+  ``test_<feature>.py``.  The apps don't carry their own ``tests/`` packages, so
+  parallel branches never touch the same file.
 - **Every endpoint gets an allow *and* a deny test** for each role that matters
   — see the matrix in :doc:`api-reference`.  ``all_role_users`` plus
   ``pytest.mark.parametrize`` keeps that to a few lines.
@@ -389,7 +389,7 @@ Conventions
   skips the check so most tests stay short.  ``backend/tests/test_csrf.py``
   uses ``csrf_client`` to hold the real contract: every unsafe method is
   refused without a token, anonymous ones included, and the payment webhooks
-  still need none.
+  still don't need one.
 - **Mock at the boundary, never inside.**  Stripe is faked at the SDK
   boundary: the ``fake_intents`` fixture replaces the provider's
   ``stripe_client`` factory, and the stand-in client's
@@ -400,16 +400,16 @@ Conventions
   Webhook bodies are signed with ``STRIPE_WEBHOOK_SECRET`` exactly as Stripe
   signs them and ``stripe.Webhook.construct_event`` verifies them for real;
   nothing patches the signature check.  PayPal, which is called over ``httpx``
-  with no SDK, is exercised with ``respx`` intercepting the HTTP.  Neither
+  without an SDK, is exercised with ``respx`` intercepting the HTTP.  Neither
   provider module is stubbed out.
 - **No payment test may leave the machine.**  The payment providers are the
   only code that calls a third party, so the ``test_payments*`` modules are the
   only ones the guard covers.  An autouse fixture in ``conftest.py`` wraps every
   test in such a module in a ``respx`` router armed with
-  ``assert_all_mocked=True``, so an ``httpx`` request no route matches raises
-  ``AllMockedAssertionError`` instead of travelling; the router nests inside the
-  one an individual test starts, so its own routes still answer.  Tests in every
-  other module run untouched.
+  ``assert_all_mocked=True``, so an ``httpx`` request that doesn't match a
+  route raises ``AllMockedAssertionError`` instead of travelling; the router
+  nests inside the one an individual test starts, so its own routes still
+  answer.  Tests in every other module run untouched.
   The Stripe SDK carries its own transport rather than ``httpx``, so
   ``test_payments_stripe.py`` replaces the provider's ``http_client`` factory
   with one that raises.  Either way a forgotten mock fails the test that forgot
@@ -534,7 +534,7 @@ Three settings keep the suite honest:
     reorders a file.
 
 **Every test file imports what it uses.**  ``globals: false`` means the runner
-injects nothing, and ``tsconfig.json``'s ``types`` lists only ``vite/client``,
+doesn't inject anything, and ``tsconfig.json``'s ``types`` lists only ``vite/client``,
 so ``describe``, ``it``, ``expect``, ``vi``, and the lifecycle hooks come from a
 single ``import {...} from 'vitest'`` at the top of each file.  The jest-dom
 matchers are typed once for the whole suite by ``src/test/setup.ts``, which
@@ -554,8 +554,8 @@ then runs every effect as setup, cleanup, setup, which means **an effect must
 tolerate running twice** or its test fails.  Make the effect undo its own work
 in the cleanup — abort the request with an ``AbortController``, clear the timer
 — rather than guarding it with a ref: a ref outlives the cycle, so the second
-setup does nothing while the first one's cleanup has already canceled its
-work.
+setup doesn't do anything while the first one's cleanup has already canceled
+its work.
 
 **The console is a gate.**  ``src/test/console.ts`` replaces ``console.error``
 and ``console.warn`` with capturing spies before every test and fails the test
@@ -582,8 +582,8 @@ Three helpers do the heavy lifting:
 
 ``src/test/render.tsx``
     ``renderWithProviders(ui, {route})`` wraps a component in the providers the
-    portal really uses — a fresh ``QueryClient`` with retries off and no
-    caching between tests, the ``ToastProvider``, and a ``MemoryRouter``
+    portal really uses — a fresh ``QueryClient`` with retries off and
+    caching off between tests, the ``ToastProvider``, and a ``MemoryRouter``
     started at ``route``.  Render through it rather than Testing Library's bare
     ``render``, or anything using a query or a toast will throw.
 
@@ -754,7 +754,7 @@ The frontend half
 ``api/types.ts`` with its schema component and asserts the two are mutually
 assignable.  The comparison strips ``readonly`` and optionality at every depth,
 because OpenAPI marks a property optional whenever the serializer does not
-require it on input, which says nothing about whether the response carries it;
+require it on input, which doesn't say whether the response carries it;
 property names and property types are what the two sides must agree on.  A
 mismatch is a ``tsc --noEmit`` error on the assertion's line, so
 ``make lint-frontend`` and ``make check-frontend`` both catch it.  The file's
@@ -775,14 +775,14 @@ Every endpoint under ``/api/v1/`` describes its request and its response, so the
 residual is short:
 
 * **Bodiless answers.**  ``GET /auth/csrf``, ``POST /auth/logout``, the three
-  password endpoints and ``DELETE /me/profile/aircraft/{id}`` answer **204** with
-  no body, and the two payment webhooks answer **200** with whatever the
-  provider's own handler returns.  Each declares that response, but there is no
-  object to describe.
+  password endpoints and ``DELETE /me/profile/aircraft/{id}`` answer **204**
+  without a body, and the two payment webhooks answer **200** with whatever the
+  provider's own handler returns.  Each declares that response, but there isn't
+  an object to describe.
 * **Downloads.**  The member, aircraft, and payment exports and the backup
   download answer with a file.  Each names its media type -- ``text/csv``,
   ``application/pdf``, ``application/gzip`` -- and describes the body as opaque
-  bytes, so there is no component to compare.
+  bytes, so there isn't a component to compare.
 * **Error bodies.**  A **400** field-keyed error, and the **401**, **403**, and
   **404** bodies, are described in :doc:`api-reference` rather than in the
   schema.
@@ -793,8 +793,8 @@ residual is short:
 
 A handful of small request bodies the portal builds inline rather than typing --
 the Stripe confirm, PayPal capture, mock completion and reminder-run payloads,
-and the aircraft attach and create bodies -- have a component but no interface to
-pair with.  The snapshot covers them, property names and types alike.
+and the aircraft attach and create bodies -- have a component but don't have an
+interface to pair with.  The snapshot covers them, property names and types alike.
 
 End-to-end tests
 ================
@@ -952,7 +952,7 @@ document has eight keys:
 ``registry``
    A registration for the N-number box on the aircraft forms:
    ``knownNNumber``, the first valid registration by N-number that carries a
-   year and is on no register record, preferring one a corporation or an LLC
+   year and isn't on any register record, preferring one a corporation or an LLC
    holds, with the ``knownType``, ``knownYear``, and ``knownOwner`` that picking
    it fills in; and ``asOf``, the day the newest successful import finished,
    written ``MM/DD/YYYY`` as the screens print it.  ``aircraft-registry.spec.ts``
@@ -992,7 +992,7 @@ the newest message addressed there with its quoted-printable bodies decoded;
 ``/portal/verify-email?token=`` link out of it; and ``followVerificationLink(page,
 address)``, which opens that link, presses **Continue**, and signs in on the sign-in
 page it lands on when nobody is signed in.  Every spec that registers an account goes
-through it, because registering signs nobody in and the join wizard waits at its
+through it, because registering doesn't sign anybody in and the join wizard waits at its
 verify step until the address is verified.  ``signInAsJoiner(page, address)`` signs a
 joiner in before that, which lands on the verify step.
 
@@ -1004,7 +1004,7 @@ password reset request answer first and mail afterwards
 (:ref:`mail after the answer <api-after-response>`), so their count is final only
 once the next request has been made.  The notifications
 spec reads it after a deactivation to show that an address subscribed to other
-events heard nothing, and reads the account administrator's newest message in the
+events didn't hear anything, and reads the account administrator's newest message in the
 same step to show the event did go out.
 
 Environment variables
@@ -1041,7 +1041,7 @@ from other end-to-end runs on the same machine:
 ``SKIP_CREATEDB``
    When set to any non-empty value, skips the ``make createdb`` step and
    assumes the database already exists.  CI sets this because it creates the
-   database with ``psql`` directly, having no Docker Compose service to run
+   database with ``psql`` directly, without a Docker Compose service to run
    ``createdb`` against.
 ``E2E_BASE_URL``
    Read by ``frontend/playwright.config.ts``, not by the Makefile: the URL the
@@ -1084,7 +1084,7 @@ The routes are not listed anywhere: the paths and the roles each one needs are r
 from ``frontend/src/portal/routes/*.tsx`` and
 ``frontend/src/portal/nav.ts``, so a new route is shot the first time it is run.  A
 route with an id in it opens at the first record that a screen the account already
-visited links to, and is skipped, with a note, when there is none.
+visited links to, and is skipped, with a note, when there isn't one.
 
 Each route is shot full page at ``1920x1080``, ``820x1180`` and ``390x844``, into
 ``frontend/screenshots/<role>/<route-slug>@<width>.png`` (untracked).  Where the screen
@@ -1145,9 +1145,9 @@ systemd runs as it does on a server, and drives the scripts of
    layout (:ref:`deploy-layout`): ``/opt/caldart/caldart`` is a git checkout,
    ``/opt/caldart/backups`` holds the first dump, ``/opt/caldart/media``
    exists and belongs to the ``caldart`` user, and nothing the site writes is
-   inside the checkout: there is no ``/opt/caldart/backend``, no ``backups``
-   or ``backend/media`` in the checkout, and ``git status --porcelain`` there
-   names nothing.  It also checks that the sign-in page loads the portal's
+   inside the checkout: ``/opt/caldart/backend`` doesn't exist, the checkout
+   doesn't hold ``backups`` or ``backend/media``, and ``git status
+   --porcelain`` there doesn't name any file.  It also checks that the sign-in page loads the portal's
    entry script under exactly the name ``frontend/dist/.vite/manifest.json``
    gives it, the name every lazy chunk imports it by, so the production static
    storage has not renamed Vite's output (:doc:`architecture`);
@@ -1162,9 +1162,9 @@ systemd runs as it does on a server, and drives the scripts of
    About Us page ``404``; then ``deploy/seed.sh --content`` twice, which must
    leave the same number of Wagtail pages after the second run as after the
    first, with About Us answering ``200`` (:ref:`deploy-reset`);
-4. ``deploy/upgrade.sh``, an upgrade with nothing new to pull, which must
+4. ``deploy/upgrade.sh``, an upgrade without anything new to pull, which must
    still back up, rebuild, restart, and pass the checks;
-5. ``deploy/install.sh`` with no flags, which must read everything from the
+5. ``deploy/install.sh`` without any flags, which must read everything from the
    install record and leave the environment file and the install record
    byte-identical, checked with ``sha256sum`` before and after;
 6. ``deploy/uninstall.sh --yes --purge``, after which neither ``/opt/caldart``
@@ -1220,15 +1220,15 @@ npm, and Docker Hub.
    (the example website alone), ``--seed-demo`` (the demo accounts alone), or
    both, the seeds ``make seed`` runs in development (:ref:`deploy-database`).
    Either seed gives the scheduled jobs mail to send (the website seed creates
-   the DARTs whose rosters ``caldart-reports`` mails), and the container has no
-   mail transport of its own, so with any seed the target installs and starts
+   the DARTs whose rosters ``caldart-reports`` mails), and the container doesn't
+   have a mail transport of its own, so with any seed the target installs and starts
    postfix, so ``caldart-reminders``, ``caldart-reports`` and
    ``caldart-statements`` (step 2) can send mail.  With the website seeded, the
    target checks that a seeded page answers and that a website-only install
-   holds no account but the administrator's.  With the demo accounts seeded,
+   holds only the administrator's account.  With the demo accounts seeded,
    the mock payment provider stays off, as production leaves it, so
-   ``caldart-renewals`` (step 2) shows that ``seed_demo`` left it nothing that
-   provider must charge (:ref:`deploy-database`), and the target asserts that
+   ``caldart-renewals`` (step 2) shows that ``seed_demo`` didn't leave it anything
+   that provider must charge (:ref:`deploy-database`), and the target asserts that
    ``manage.sh health --json`` still passes and that the sign-in page still
    answers.  Postfix is not something the container's package scripts or a
    plain install sets up on its own.  The container's name gains
@@ -1244,7 +1244,7 @@ and installs the matching vhost from ``frontend/e2e/rehearsal/``
 ``nginx.conf`` as ``/etc/nginx/sites-available/standin``), an HTTPS host that
 serves a one-line page at ``/``.  Step 1 then runs with ``--tls existing
 --url-prefix <prefix> --attach-to <that vhost> --email local`` in place of
-``--tls self-signed --email-url smtp://localhost:25``.  The container has no
+``--tls self-signed --email-url smtp://localhost:25``.  The container doesn't have
 postfix, so the target asserts that the install printed the note that nothing
 listens on port 25.  The install's own checks prove that
 ``https://caldart.test/<prefix>/``, the sign-in page under it, and the portal
@@ -1298,10 +1298,10 @@ requires a docstring on every public module, class, function, and method and
 checks the form of every docstring it finds (a ``_``-prefixed helper's
 docstring is a matter for review); ``max-doc-length = 90`` turns on ``W505``,
 which wraps those docstrings at 90 characters.  A package's ``__init__.py``
-(``D104``) and a nested ``Meta`` class (``D106``) need no docstring.  ``ANN``
-and ``D`` apply to the whole backend, tests included: there is no
-``[tool.ruff.lint.per-file-ignores]`` entry for either, no file may be
-exempted from either, and ``backend/tests/test_lint_config.py`` fails if an
+(``D104``) and a nested ``Meta`` class (``D106``) don't need a docstring.
+``ANN`` and ``D`` apply to the whole backend, tests included:
+``[tool.ruff.lint.per-file-ignores]`` doesn't hold an entry for either, no
+file may be exempted from either, and ``backend/tests/test_lint_config.py`` fails if an
 exemption or an ``ignore_errors`` mypy override appears.  ``RUF012`` is
 ignored everywhere, because Django's ``Meta`` options, admin ``list_display``
 lists and serializer ``fields`` are class-level configuration the framework
@@ -1321,7 +1321,7 @@ step of ``make lint-backend``.  ``[tool.mypy]`` in ``pyproject.toml`` sets
 ``strict = true``, the ``mypy_django_plugin`` and ``mypy_drf_plugin`` plugins,
 and ``caldart.settings.test`` as the settings module the Django plugin reads;
 migrations are excluded.  ``disallow_subclassing_any`` is off because Wagtail's
-page, block, and settings base classes carry no types, and Wagtail, the four
+page, block, and settings base classes don't carry types, and Wagtail, the four
 libraries it builds on (``django-modelcluster``, ``django-taggit``
 , ``django-treebeard``, and ``modelsearch``), ``django-environ``,
 ``django-filter``, ``django-vite``, and ``whitenoise`` are declared as untyped
@@ -1499,7 +1499,7 @@ description ``check-frontend`` then checks the portal against.
 ``check-deploy`` runs ``manage.py check --deploy`` against
 ``caldart.settings.prod``, with a throwaway environment set inline in the
 Makefile recipe: a dummy ``SECRET_KEY``, ``ALLOWED_HOSTS``, ``DATABASE_URL``
-, ``SITE_URL``, and ``EMAIL_URL``, and no secure flag at all — each of those comes
+, ``SITE_URL``, and ``EMAIL_URL``, while every secure flag stays unset — each of those comes
 from ``caldart.settings.prod``'s own default, so turning one off fails the gate
 rather than being masked by a value the recipe supplies. The recipe names every
 tag Django's deployment-only checks carry — ``security``, ``caches``
@@ -1508,7 +1508,7 @@ tag Django's deployment-only checks carry — ``security``, ``caches``
 ``frontend/dist`` this gate never builds. :doc:`deployment` covers the two
 warnings ``caldart.settings.prod`` silences deliberately.
 
-``check-deploy`` sends no mail, and Django warns of a deprecated ``ADMINS`` or
+``check-deploy`` doesn't send mail, and Django warns of a deprecated ``ADMINS`` or
 ``MANAGERS`` shape only when it sends to one, so ``test_sysadmin_settings.py``
 covers that half: it loads ``caldart.settings.prod`` through Django's own settings
 loader, then mails through both settings, each with warnings as errors.

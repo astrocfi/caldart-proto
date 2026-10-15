@@ -13,8 +13,8 @@ Deliberate non-goals
 
 Four things are out of scope by decision rather than by omission:
 
-**Backwards compatibility.**  There is no data to migrate and no external API
-to keep stable.  Change a model and regenerate its migration rather than
+**Backwards compatibility.**  There isn't any data to migrate, or an external
+API to keep stable.  Change a model and regenerate its migration rather than
 stacking a fix-up; delete code a change makes dead.
 
 **Data migration from the live site.**  The seeded content is example copy
@@ -27,8 +27,8 @@ bring across.
 ``en-us``, but no string is wrapped in ``gettext`` and no catalog exists.
 See :ref:`roadmap-i18n`.
 
-**Bulk email beyond email.**  :doc:`bulk-email` sends one email to many people,
-and nothing else.  Five things were considered and set aside: a second person
+**Bulk email beyond email.**  :doc:`bulk-email` does one thing: it sends one
+email to many people.  Five things were considered and set aside: a second person
 approving an email before it goes, SMS, tracking who opens an email or clicks its
 links, an archive of past emails open to everybody, and members reading their own
 transactional mail (receipts, reminders, password links) on **Email to me**.
@@ -101,11 +101,11 @@ they write to.  Three next steps are known:
 
 * A mission callout's reminders are further rounds of copies of the same email.
   The Sent page's counts include them, but its table and its download list only the
-  first round, so a failed reminder has no line of its own.
+  first round, so a failed reminder doesn't have a line of its own.
 * The rich text editor shows an inserted field as its raw token, such as
   ``{first_name}``; showing it as a named chip would keep a sender from breaking it.
 * A DART leader's email goes to the DART on their own profile, which they choose on
-  **My profile**, and a member's own change of DART writes no audit line.
+  **My profile**, and a member's own change of DART doesn't write an audit line.
 
 .. _roadmap-i18n:
 
@@ -135,8 +135,8 @@ each dump off the host, and keeping weeklies longer than dailies, is a small pie
 of work with a large payoff.
 
 **Observability.**  Logging goes to stdout for systemd to capture, and
-``GET /system/health`` answers the basic questions.  There are no metrics, no
-error tracking and no uptime check.
+``GET /system/health`` answers the basic questions.  CalDART doesn't
+collect metrics, track errors, or run an uptime check.
 
 **Search.**  Wagtail's default database search backend is in use; a site of
 this size does not need more, but a growing news archive eventually will.

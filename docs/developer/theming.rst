@@ -60,7 +60,7 @@ Components only ever reference **semantic** tokens.  Nothing outside
    properties, so ``appearanceFromTokens()`` resolves each token with
    ``getComputedStyle`` and hands Stripe the computed value.  Every color
    lookup carries the duty hex as a fallback, for the case where the property
-   resolves to nothing; the two lookups that are not colors, ``--font-body``
+   doesn't resolve to a value; the two lookups that are not colors, ``--font-body``
    and ``--radius``, fall back to a plain literal.  Change a duty color and
    change the matching fallback with it.
 
@@ -99,7 +99,7 @@ Token                      Meaning
 ``--color-ok-bg``,         The matching status fills, at low alpha
 ``--color-warn-bg``,
 ``--color-bad-bg``
-``--color-neutral-bg``     Fill for a chip with no status at all
+``--color-neutral-bg``     Fill for a chip without any status
 ``--color-focus``          Focus ring
 ``--color-signal-go``,     The status *dots*: filled shapes rather than type,
 ``--color-signal-warn``,   so they are brighter and further apart in hue than
@@ -121,7 +121,7 @@ the palette.  ``tokens.css`` carries the sierra set as the default.
 ``--font-display``
     The portal's headings and its wordmark.  Duty's is *Fraunces*, a variable
     serif with optical sizing; ``base.css`` sets ``font-variation-settings``
-    with ``opsz`` matched to the size for ``h1``–``h4``, which a face with no
+    with ``opsz`` matched to the size for ``h1``–``h4``, which a face without an
     ``opsz`` axis simply ignores.  The public site sets its headings in the
     body face instead: there the panel and its rules carry the structure.
 
@@ -162,8 +162,8 @@ How a theme reaches the page
 #. ``themes/<slug>.css`` redefines the tokens under
    ``:root[data-theme="<slug>"]``, and every component follows.
 
-Because the attribute is on ``<html>`` and rendered by the server, there is no
-flash of the wrong palette.
+Because the attribute is on ``<html>`` and rendered by the server, the page never
+flashes the wrong palette.
 
 Previewing a theme
 ------------------
@@ -179,7 +179,7 @@ URL.  Three things have to line up:
 #. ``site/main.ts`` swaps ``data-theme`` client side when, and only when, that
    attribute is present and the slug is one that ships.
 
-It writes nothing to the server and nobody else sees it.
+It doesn't write anything to the server, and nobody else sees it.
 
 ``portal.html`` does **not** emit the attribute, so ``?theme=`` previews the
 public site only; the portal always renders the saved theme.
@@ -374,7 +374,7 @@ Adding a theme
    preview it.
 
 #. Update the ``choices`` recorded for the ``theme`` column in
-   ``apps/cms/migrations/0001_initial.py``.  This prototype stacks no fix-up
+   ``apps/cms/migrations/0001_initial.py``.  This prototype doesn't stack fix-up
    migrations: edit the migration that declares the field, then confirm
    ``manage.py makemigrations --check`` is satisfied.
 
@@ -388,8 +388,8 @@ Adding a theme
 Fonts
 =====
 
-Fonts are self-hosted through ``@fontsource`` packages so the site works with
-no network.  ``index.css`` declares every face any theme can ask for, grouped
+Fonts are self-hosted through ``@fontsource`` packages so the site works without
+a network.  ``index.css`` declares every face any theme can ask for, grouped
 under a comment naming the theme that introduced it:
 
 .. code-block:: css
@@ -411,7 +411,7 @@ under a comment naming the theme that introduced it:
    @import '@fontsource-variable/source-sans-3/wght-italic.css';
    @import '@fontsource-variable/jetbrains-mono';
 
-Declaring them all costs a reader nothing: an ``@font-face`` rule downloads its
+Declaring them all doesn't cost a reader anything: an ``@font-face`` rule downloads its
 file only when something on the page uses that family, so a visitor fetches
 only the three faces the active theme names.
 
@@ -438,8 +438,8 @@ House rules
 ===========
 
 * **Plain and civic.**  Type, rules, and the panel carry the design, not
-  decoration: no gradients, no glassmorphism or backdrop blur, no hero blobs
-  and no emoji bullets.
+  decoration: the design doesn't use gradients, glassmorphism or backdrop
+  blur, hero blobs, or emoji bullets.
 * **Semantic tokens only** in components.  If you need a color that no token
   names, add the token — do not inline a hex value.  The one exception is
   :ref:`the Stripe panel <theming-stripe-colors>`, which has to hand computed

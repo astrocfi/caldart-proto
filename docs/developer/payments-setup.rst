@@ -6,8 +6,8 @@ CalDART takes money through three providers: **Stripe** (card, Apple Pay,
 Google Pay and Link, all through one Payment Element), **PayPal** (Orders v2),
 and a **mock** provider for development and tests.  Each is optional.
 ``GET /api/v1/payments/config`` reports only the providers whose keys are
-actually set, and the checkout screen shows a tab for each — so a machine with
-no keys at all still runs the whole join flow against the mock provider.
+actually set, and the checkout screen shows a tab for each — so a machine without
+any keys still runs the whole join flow against the mock provider.
 
 This page is the recipe for setting the real ones up.
 
@@ -61,8 +61,8 @@ mock switch, which ``backend/caldart/settings/prod.py`` reads.
        ``live`` with Live-tab ones.
    * - ``PAYPAL_WEBHOOK_ID``
      - Required for the PayPal webhook, which checks every notification's
-       signature against it.  Blank, the webhook route answers 404 and records
-       nothing; the capture call works either way.
+       signature against it.  Blank, the webhook route answers 404 and doesn't
+       record anything; the capture call works either way.
      - **Apps & Credentials →** the app **→ Webhooks**, the *Webhook ID*
        shown once the webhook exists, under the same tab.
    * - ``PAYMENTS_MOCK_ENABLED``
@@ -239,8 +239,8 @@ Step by step:
    400 naming the field, and nothing is written.
 #. The provider's ``start`` creates the PaymentIntent (Stripe) or the
    ``intent=CAPTURE`` order (PayPal).  If the provider cannot be reached the API
-   deletes the pending payment again and answers 400, so a failed start leaves
-   no orphan row.
+   deletes the pending payment again and answers 400, so a failed start doesn't
+   leave an orphan row.
 #. The provider's id goes into ``provider_ref`` and the whole reply into
    ``raw``.
 #. The 201 hands the browser the payment id and whatever the provider's own
@@ -263,11 +263,11 @@ and what it can do depends on the provider.  Stripe's handler checks the
 ``Stripe-Signature`` header against ``STRIPE_WEBHOOK_SECRET`` — a body that
 fails the check is refused with a 400 — and then runs the same idempotent
 activation as the confirm call, which is why one arriving after a successful
-confirm changes nothing.  PayPal's handler asks PayPal to verify each
+confirm doesn't change anything.  PayPal's handler asks PayPal to verify each
 notification before it reads or records anything, which needs
 ``PAYPAL_WEBHOOK_ID``: with that setting unset the route answers 404, and the
 capture in step 8 remains the only thing that activates a term.  A notification
-PayPal does not verify is refused with a 400 and leaves no trace on any
+PayPal does not verify is refused with a 400 and doesn't leave a trace on any
 payment.
 
 What each provider verifies, how long it may take, and how the mock provider
@@ -315,7 +315,7 @@ Enable the payment methods
 
 Because the server creates the PaymentIntent with
 ``automatic_payment_methods: {enabled: true}``, anything enabled here shows up
-in the Payment Element automatically — there is no code change to make.
+in the Payment Element automatically — it doesn't need a code change.
 
 Set up the webhook
 ------------------
@@ -348,15 +348,15 @@ a test event in another terminal:
 
 .. note::
 
-   ``stripe trigger`` builds an intent of its own, with no
-   ``metadata.payment_id``, so the endpoint finds no payment to match and
+   ``stripe trigger`` builds an intent of its own, without a
+   ``metadata.payment_id``, so the endpoint doesn't find a payment to match and
    answers ``{"received": true, "handled": false}`` while logging that the
    event "referenced an unknown payment".  That is the *correct* response and
    it proves the route, the signature and the secret — but it is not a test of
    activation.  For that, take a real checkout through the Payment Element and
    watch the second, matching event arrive.
 
-Both webhook views are ``csrf_exempt`` with no authentication and no
+Both webhook views are ``csrf_exempt`` without authentication or
 permission classes: the provider's signature over the body is the whole gate.
 Each client address may make ``PAYPAL_WEBHOOK_THROTTLE_RATE`` deliveries
 (``120/min`` by default) to the PayPal webhook, whose check costs a call to
@@ -424,7 +424,7 @@ whoever runs the Stripe account, in both test and live mode:
 
 #. Open **Radar → Rules**.  Leave Stripe's default rules on, including
    ``Block if :risk_level: = 'highest'``.  Stripe's own card-testing protection is
-   part of Radar and needs nothing turned on.
+   part of Radar and doesn't need anything turned on.
 #. Turn on the default rule ``Block if :cvc_check: = 'fail'``, and add
    ``Block if :address_zip_check: = 'fail'``.  The Payment Element asks for the CVC
    and the ZIP code, so a real member's card passes both.
@@ -485,8 +485,8 @@ domain registration, HTTPS, Safari, and an available card line up.
 Google Pay
 ----------
 
-Google Pay needs nothing beyond enabling it in **Payment methods**: no domain
-registration, no extra file.  Test it in **Chrome**, signed in to a Google
+Google Pay needs only to be enabled in **Payment methods**: it doesn't need a
+domain registration or an extra file.  Test it in **Chrome**, signed in to a Google
 account with a saved card (``pay.google.com``).  As with Apple Pay, test mode
 never charges the card.
 
@@ -550,12 +550,12 @@ as a gateway error while the request is still running.  ``stripe`` defaults to
 reads the three deployment files and fails if the budget stops fitting under
 them, so raise the budget and the proxy timeouts together or not at all.
 
-PayPal is called over ``httpx`` with the same 20-second timeout and no retries.
-An answer that says nothing about the request -- a 5xx, a 429 or a 408 -- counts as
-PayPal not answering, exactly like a timeout: the person is told to try again and a
-renewal charge is put off, never failed, because PayPal may already have acted.  The
-renewal scan alone asks again for an unanswered order create, three times within
-about four minutes (:ref:`renewals-providers`).
+PayPal is called over ``httpx`` with the same 20-second timeout and without retries.
+An answer that doesn't say anything about the request -- a 5xx, a 429 or a 408 --
+counts as PayPal not answering, exactly like a timeout: the person is told to try
+again and a renewal charge is put off, never failed, because PayPal may already have
+acted.  The renewal scan alone asks again for an unanswered order create, three
+times within about four minutes (:ref:`renewals-providers`).
 
 Creating a PaymentIntent sends the idempotency key
 ``caldart-payment-<payment id>-start``, so starting the same payment row twice
@@ -637,13 +637,13 @@ presenting one PayPal would refuse.
 
 How widely that token is shared is the cache backend's business.  Production
 uses the database cache table (see :doc:`deployment`), so every worker process
-shares one token; a per-process backend costs one extra token fetch per
-process and nothing else.  Emptying the cache forces the next call to fetch —
-which is how the tests do it.
+shares one token; a per-process backend costs only one extra token fetch per
+process.  Emptying the cache forces the next call to fetch — which is how the
+tests do it.
 
 A capture only activates a membership when PayPal answers ``COMPLETED`` *and*
 the captured amount, the currency, and the order match our own record.  A
-``custom_id`` on the capture has to match too, but a capture that carries none is
+``custom_id`` on the capture has to match too, but a capture that doesn't carry one is
 still accepted: see :doc:`api-payments`.  A ``PAYMENT.CAPTURE.COMPLETED``
 notification is held to the same checks, with the order read from its
 ``supplementary_data.related_ids.order_id``.
@@ -694,13 +694,13 @@ the only difference is that no provider is involved.
 Production ignores that variable entirely: ``prod.py`` never reads it, so an
 environment file copied from a development machine cannot hand out free
 memberships on a live site.  The one switch that works there is
-``PAYMENTS_MOCK_ENABLED_IN_PRODUCTION``, which appears in no template — set it
-only to demonstrate the checkout on a box with no payment keys.  With the
+``PAYMENTS_MOCK_ENABLED_IN_PRODUCTION``, which doesn't appear in any template — set
+it only to demonstrate the checkout on a box without payment keys.  With the
 provider off the endpoint answers 404, not 403: a production deployment should
 not even advertise that a way to grant yourself a membership exists.
 
 The end-to-end tests use this provider, which is why the five headline flows
-run with no payment keys at all.  ``seed_demo`` follows the switch.  While the
+run without any payment keys.  ``seed_demo`` follows the switch.  While the
 provider is on, every card payment in its two years of history is a ``mock``
 payment with the mock provider's fee, so a demonstration site shows them all
 under **Test** and a treasurer can refund any of them: the refund goes to the
@@ -740,7 +740,7 @@ payment methods, a PayPal OAuth token and the account's configured webhooks
 (confirming ``PAYPAL_WEBHOOK_ID`` names one of them, when it is set) — and
 reports which webhook secret is configured and what fees, refunds and
 off-session (automatic renewal) charges each provider will be able to do. It
-moves no money and creates nothing. A provider left unconfigured is named but
+doesn't move money or create anything. A provider left unconfigured is named but
 does not by itself fail the command; it exits non-zero only when a provider
 with keys set could not be reached, or when neither provider is usable at
 all, which is what a blank ``.env`` reports.
@@ -806,8 +806,8 @@ PayPal: Vault, and a refund from the dashboard
 Automatic renewal over PayPal needs the sandbox REST app to be able to vault
 a payment method, which is a setting **Apps & Credentials → your app →
 Features**: turn on **Vault**, next to the **Advanced Credit and Debit Card
-Payments** toggle. It takes effect immediately, with no separate approval.
-``payments_sandbox_check`` cannot see whether it is on — there is no read
+Payments** toggle. It takes effect immediately, without a separate approval.
+``payments_sandbox_check`` cannot see whether it is on — there isn't a read
 endpoint for a REST app's own feature flags — so check it in the dashboard
 before relying on it.
 
@@ -850,8 +850,8 @@ but every step names the PayPal or mock equivalent where it differs.
       $ uv run backend/manage.py run_auto_renewals --today 2026-12-17
 
    ``renewal_notice`` arrives in Mailpit naming the amount, the date and the
-   card. Running the same command again for the same day sends nothing a
-   second time — the attempt's ``noticed_at`` is what makes it idempotent.
+   card. Running the same command again for the same day doesn't send
+   anything a second time — the attempt's ``noticed_at`` is what makes it idempotent.
 
 #. **Advance to the charge date.** Run the scan again as of ``ends_on``
    itself:
@@ -864,8 +864,8 @@ but every step names the PayPal or mock equivalent where it differs.
    Mailpit with the new expiry date and CalDART's own receipt PDF attached —
    the only email a renewal charge earns, in place of the plain receipt a
    person's own checkout gets. ``stripe listen``'s terminal shows the
-   ``payment_intent.succeeded`` delivery for the charge, which changes
-   nothing further: the scan already activated the term before the webhook
+   ``payment_intent.succeeded`` delivery for the charge, which doesn't change
+   anything further: the scan already activated the term before the webhook
    arrived.
 
 #. **Watch the decline path.** Repeat the first three steps with ``4000 0000
@@ -891,7 +891,7 @@ but every step names the PayPal or mock equivalent where it differs.
    terminal shows ``charge.refunded`` (or the PayPal webhook logs
    ``PAYMENT.CAPTURE.REFUNDED``) arriving a moment later, and the payment's
    detail screen shows a refund with the note *Issued in the provider's
-   dashboard* and no treasurer named against it — CalDART heard about it
+   dashboard* and without a treasurer named against it — CalDART heard about it
    without anyone touching the portal.
 
 #. **Record a check.** **Record a payment** for the same or another member,

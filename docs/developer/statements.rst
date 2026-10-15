@@ -4,10 +4,10 @@ Statements
 
 Once a year, CalDART sends every account that gave a contribution a statement
 of what it gave, for the giver's tax return.  As with the renewal scan
-(:doc:`renewals`) and the report sender (:doc:`scheduled-reports`), there is no
-queue and no worker: one management command, run yearly by a systemd timer,
-sends whatever a calendar year owes, and a rerun for a year already sent
-reaches nobody again.
+(:doc:`renewals`) and the report sender (:doc:`scheduled-reports`), it doesn't
+need a queue or a worker: one management command, run yearly by a systemd
+timer, sends whatever a calendar year owes, and a rerun for a year already sent
+doesn't reach anybody again.
 
 The code is in ``apps/payments/statements.py``, the templates are
 ``contribution_statement`` in ``backend/templates/emails/``, and the endpoint
@@ -23,9 +23,10 @@ contribution in the calendar year: a payment carrying a contribution whose
 ledger date (:doc:`reports`) falls in that year, and whose status is
 ``succeeded``, ``partially_refunded`` or ``refunded``.  A deactivated account
 is never written to, however much it gave while active; a pure membership
-payment, carrying no contribution, earns no statement.  Nor does a year that nets to
-nothing: a giver whose every contribution that year was refunded in full is left out
-of the run, live or practice, and counted nowhere, so nobody is sent a $0.00 statement.
+payment, which doesn't carry a contribution, doesn't earn a statement.  Neither does
+a year that nets to zero: a giver whose every contribution that year was refunded in
+full is left out of the run, live or practice, and isn't counted anywhere, so nobody
+is sent a $0.00 statement.
 
 ``givers_in_year(year)`` in ``apps/payments/statements.py`` finds them by the
 same ledger-date rule ``Payment.paid_on`` applies: a payment recorded by hand
@@ -66,7 +67,7 @@ takes the ``year`` to send statements for, and returns a ``StatementRun``:
    accounts that already held a ``YearStatement`` for the year;
 ``failed``
    an address the mail server refused, logged at ERROR with the account's id,
-   and an account with no address on file, logged at WARNING;
+   and an account without an address on file, logged at WARNING;
 ``actions``
    one line per statement: the account's name and address, and the year's net
    total as ``amount_cents``.
@@ -75,9 +76,9 @@ One giver's problem never stops the run.  Before sending, the account's
 ``YearStatement`` row for the year is claimed with ``get_or_create``, so two
 runs started at once -- the timer and an operator's click on the Scheduled
 page, say -- cannot both email the same address: the second finds the row
-already claimed and counts the account as skipped.  A dry run writes and
-emails nothing, and reports exactly the statements a live run would send,
-with the same totals, counting an account with no address on file as
+already claimed and counts the account as skipped.  A dry run doesn't write
+or email anything, and reports exactly the statements a live run would send,
+with the same totals, counting an account without an address on file as
 ``failed`` exactly as a live run would.  Every run ends with one
 ``statements.run`` audit line carrying the year, the mode, and the three
 counts (:ref:`deploy-audit-log`).
@@ -102,9 +103,9 @@ The command
 ``--year`` names the calendar year to send statements for and defaults to the
 year before ``--today`` (or before today, without it); ``--today`` runs as of
 another date, which is how to rehearse the timer's own run; ``--dry-run``
-sends nothing.  The command exits non-zero when any statement failed to send,
+doesn't send anything.  The command exits non-zero when any statement failed to send,
 so the systemd unit goes to ``failed`` rather than reporting a clean run that
-reached nobody.  In production ``caldart-statements.timer`` runs it yearly at
+didn't reach anybody.  In production ``caldart-statements.timer`` runs it yearly at
 06:45 on January 15th (:ref:`deploy-statements`), well after every provider
 has settled the prior December's payments.
 
@@ -114,7 +115,7 @@ Tests
 
 ``backend/tests/test_year_statements.py`` covers who counts as a giver across
 every kind of account and a deactivated one, the run's counts and actions, a
-refund netted against the total, the dry run, a rerun sending nothing twice, a
+refund netted against the total, the dry run, a rerun never sending a statement twice, a
 refused send counted and retried once the mail server is back up, two claims
 on one account within a single run, the audit line, the command, and the
 endpoint's role matrix.  The email bodies are exercised through ``mailoutbox``

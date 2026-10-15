@@ -41,7 +41,7 @@ moving a user page therefore changes a Help target, and the entry in
 
 The developer guide is organized by subsystem, with the cross-cutting chapters
 (architecture, setup, configuration, data model, the API reference) first.
-Nothing in either guide is generated from docstrings: there is no ``autodoc``,
+Nothing in either guide is generated from docstrings: neither uses ``autodoc``,
 and the API reference is written by hand.
 
 
@@ -74,8 +74,8 @@ Both run nitpicky (``-n``: every cross-reference must resolve) with warnings
 as errors (``-W``), locally and in CI.  A page the guide build cannot resolve
 fails it just as the whole-tree build would, so a user page links only to
 other user pages, with a relative ``:doc:`` target (``profile``,
-``../faq``) that resolves the same way in both builds.  ``docs/conf.py`` has
-no special case for the guide build: a reference into ``docs/developer/``
+``../faq``) that resolves the same way in both builds.  ``docs/conf.py`` doesn't
+have a special case for the guide build: a reference into ``docs/developer/``
 from a user page is an unresolved reference there, and fails it.  The tests in
 :ref:`documentation-tests` catch such a reference before the build does.
 
@@ -94,7 +94,7 @@ dependency-free, and ``conf.py`` ships them through ``html_static_path``,
 ``html_css_files``, and ``html_js_files``: the figure toolbar's two files, in
 both builds.  The path is
 relative to ``conf.py``, so the guide build, whose source tree is
-``docs/user``, finds the same directory.  There are no custom templates.
+``docs/user``, finds the same directory.  There aren't any custom templates.
 
 ``figure-zoom.css``
    Puts every Graphviz diagram (``figure div.graphviz``) on a white panel
@@ -119,7 +119,7 @@ relative to ``conf.py``, so the guide build, whose source tree is
      panel only, so keyboard focus never lands on a control hidden behind
      the overlay.
 
-   The overlay is built once per page and reused.  The script sets no inline
+   The overlay is built once per page and reused.  The script doesn't set inline
    handlers and loads from the site's own origin, so it runs under the
    guide's content security policy unchanged (:ref:`configuration-csp`).
    The ``user_guide`` view serves it as ``text/javascript``, the stylesheet
@@ -137,8 +137,8 @@ diagram, such as ``docs/_build/html/developer/deployment.html``.
 Role-gated pages
 ================
 
-The guide shows each reader the screens their roles reach, and nothing else:
-a plain member's sidebar lists the pages under **Start here**, their own
+The guide shows each reader only the screens their roles reach: a plain
+member's sidebar lists the pages under **Start here**, their own
 screens, and **Reference**, and their search finds only those pages, while the
 system administrator's lists and finds every page.  Five pieces do it, and the
 server does all of the hiding: no script in the browser takes anything out.
@@ -160,16 +160,16 @@ page's metadata (``env.metadata``), so the field never shows on the page.  The
 roles follow the portal's menu (``frontend/src/portal/nav.ts``): each page
 names the roles of the menu entry for its screen, so every page under
 ``admin/``, ``finance/``, and ``website/`` carries the field, and no page under
-``member/`` and no top-level page does.  A group's ``index.rst`` carries none:
+``member/`` and no top-level page does.  A group's ``index.rst`` doesn't carry one:
 its roles are computed.
 
 **The extension.**  ``docs/_ext/guide_roles.py`` is a local Sphinx extension,
 pure Python, which ``conf.py`` puts on ``sys.path`` and in ``extensions`` for
 both builds.  Once every page is read it checks each field and warns, against
-the page, about a slug that is not a role or a field that names none, so
+the page, about a slug that is not a role or a field that doesn't name any, so
 ``-W`` fails the build on a misspelling.  It spells the role slugs itself,
 since it cannot import the Django project, and a test holds its list equal to
-``ROLE_SLUGS``.  A page with no field of its own that lists others in a
+``ROLE_SLUGS``.  A page without a field of its own that lists others in a
 toctree takes the union of their roles, so ``admin/index`` is readable by
 every role that reaches any administrator screen, and it is open to everyone
 when any page it lists is.  As each page is read, the extension also gives
@@ -180,8 +180,8 @@ page's title.  Each page's words are indexed under that page alone.
 
 **The JSON.**  At the end of a successful HTML build the extension writes
 ``roles.json`` into the output directory, beside the front page: each
-restricted page's docname and its slugs, in role order, and nothing for an
-open page.  It writes the file under a temporary name beside it and renames it
+restricted page's docname and its slugs, in role order; an open page isn't
+listed.  It writes the file under a temporary name beside it and renames it
 into place, so the site reading it during a rebuild finds the old file or the
 new one, never half of one::
 
@@ -222,30 +222,30 @@ pages they may not open taken out, by ``caldart/guide_search.py``:
   the search page is hidden.  So does every next or previous link at the
   foot of the page (``.related-pages``) and every ``<link rel="next">`` or
   ``<link rel="prev">`` in its head, which carries the page's title.  Then
-  every list left with no entries goes, with the caption before it, and a
-  table of contents left with no list.  Any other link to a hidden page,
+  every list left empty goes, with the caption before it, and a table of
+  contents left without a list.  Any other link to a hidden page,
   such as a ``:doc:`` reference in a page's prose, loses its anchor and keeps
   its text, so no link leads the reader to a page they cannot open; the
-  words stay, since a screen's name is no secret.  A link is resolved
+  words stay, since a screen's name isn't a secret.  A link is resolved
   against the page's own address and judged by the same rule as a request,
-  and a link that leaves the guide is left alone.  A page that loses
-  nothing is served byte for byte as built.  The page is parsed with
+  and a link that leaves the guide is left alone.  A page that doesn't
+  lose anything is served byte for byte as built.  The page is parsed with
   Beautiful Soup's ``html.parser``.
 - *The search index.*  The hidden pages leave ``docnames``, ``filenames``,
   and ``titles``, and the pages left are numbered afresh in the order they
   had.  Each word in ``terms`` and ``titleterms`` keeps only the pages left,
   written as one number when one page is left, as Sphinx writes it, and goes
   when none is; each entry in ``alltitles``, ``indexentries``, and
-  ``objects`` on a hidden page goes, and a name with no entry left goes with
-  it.  Every other field passes through.  An index that is not the
+  ``objects`` on a hidden page goes, and a name without an entry left goes
+  with it.  Every other field passes through.  An index that is not the
   ``Search.setIndex(...)`` call Sphinx writes, in the shapes above, is
   logged as an error and answers 404, so a format change never sends every
-  page's words to a member.  A member's search therefore finds nothing on a
-  restricted page, and Sphinx's own results and count need no correction.
+  page's words to a member.  A member's search therefore never finds anything on
+  a restricted page, and Sphinx's own results and count don't need correcting.
 
 The view reads the reader's roles once per request, and only for a file it
-gates or trims, so a stylesheet or an image costs no query beyond the
-session's.  A reader's reach is the set of restricted docnames they may not
+gates or trims, so a stylesheet or an image doesn't cost a query beyond
+the session's.  A reader's reach is the set of restricted docnames they may not
 open.  Both
 trims are cached in memory per file, modification time, and reach, so readers
 with the same reach share one copy, and a rebuilt guide is trimmed afresh; a
@@ -296,8 +296,8 @@ build under ``pages``::
 
 **The view.**  For a visitor who is not signed in, ``user_guide`` serves a
 page ``signed_out`` names (by its slashed directory or its ``index.html``),
-and any file under ``_static/``, which those pages load and which names no
-page.  The page reaches them trimmed as in
+and any file under ``_static/``, which those pages load and which doesn't name
+a page.  The page reaches them trimmed as in
 :ref:`documentation-role-gated-pages`, with every other page of the build
 hidden, and the search page and the general index too, since Sphinx writes
 those without a source file and they need a session: the sidebar lists only
@@ -306,9 +306,9 @@ the search box goes, and a link in the prose to any other page keeps its
 text and loses its anchor.  Every other request from that visitor, including
 one for a file that does not exist, ``searchindex.js``, or an image under
 ``_images/``, is sent to the portal's login page with ``next`` set to what
-they asked for.  A guide built without ``signed-out.json`` serves nothing
-signed out, and one whose file is not valid JSON, or not the shape above, is
-logged as an error and serves nothing signed out either.  ``signed-out.json``
+they asked for.  A guide built without ``signed-out.json`` doesn't serve
+anything signed out, and one whose file is not valid JSON, or not the shape
+above, is logged as an error and doesn't serve anything signed out either.  ``signed-out.json``
 itself answers 404 to everyone, as ``roles.json`` does.
 
 To open another page before sign-in, give it the field and run ``make guide``;
@@ -448,7 +448,7 @@ against the code on every run.
   with a comma, or more than 250 lines;
 - every email purpose label in ``apps/mail/purposes.py`` appears somewhere in
   the user guide;
-- ``docs/conf.py`` connects no ``missing-reference`` handler, so a link from
+- ``docs/conf.py`` doesn't connect a ``missing-reference`` handler, so a link from
   a user page into the developer guide fails the guide build instead of
   rendering there;
 - every page under ``admin/``, ``finance/``, and ``website/`` except an index
@@ -485,8 +485,8 @@ and its search box, keeps its links to the other signed-out pages and its
 group's entry as a label, every other request
 (the front page, a gated page, the search page and index, the JSON files, an
 image, and a missing page) is sent to sign in, a guide without
-``signed-out.json`` or with an unreadable one serves nothing signed out, and a
-signed-in reader is served the page untrimmed.
+``signed-out.json`` or with an unreadable one doesn't serve anything signed out,
+and a signed-in reader is served the page untrimmed.
 ``backend/tests/test_user_guide_search.py`` checks the trimming: on a
 stand-in guide, each field of a member's and a DART leader's search index,
 each piece of navigation a member's page loses or keeps, a prose link to a
@@ -498,9 +498,10 @@ site's ``conf.py`` in a temporary directory, that no page a member is served
 and not their index carries a word found only on a restricted page.
 ``frontend/e2e/user-guide.spec.ts`` checks the same in a browser: a member
 typing an administrator page's address lands on the front page, a member's
-sidebar has no administrator, treasurer, or website entries, and the system
-administrator's has all three; a member's search index names no
+sidebar doesn't have administrator, treasurer, or website entries, and the
+system administrator's has all three; a member's search index doesn't name an
 administrator, treasurer, or website page, and a word the system
-administrator's search finds only on such pages finds nothing for a member.
+administrator's search finds only on such pages doesn't find anything for a
+member.
 
 :doc:`testing` describes how the suites run.

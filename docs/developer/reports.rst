@@ -97,7 +97,7 @@ The engine
    reads; a dated report uses it for ``period`` (below), and ``spec.periods`` is
    true exactly when it is not ``keep_params``, the identity.  ``section(row)``
    names the section a row is drawn in, ``empty_section`` is the line the PDF
-   draws under a section with no rows, ``section_column`` the column a default
+   draws under an empty section, ``section_column`` the column a default
    PDF leaves to its section headings, and ``section_columns`` the columns each
    section draws in the PDF (see `Sections`_ below).
 ``build_report(spec, params, *, fmt, today=None)``
@@ -132,19 +132,19 @@ row falls in still appears.  ``spec.table()`` answers a ``ReportTable`` whose
 are ``ReportSection(title, rows, header=None, widths=None)`` entries grouping the
 same rows:
 
-* with no ``section`` function, one section titled ``""`` holds every row, and the
+* without a ``section`` function, one section titled ``""`` holds every row, and the
   PDF is drawn exactly as a report without sections;
 * with one and a list of titles, one section per listed title, in that order; a
   row whose title is not listed raises ``ValueError`` reading
   ``Row in unlisted section '<title>'``;
-* with one and no list, the distinct titles in the order the rows first name them.
+* with one but without a list, the distinct titles in the order the rows first name them.
 
 The CSV is one flat table, the header and then ``ReportTable.rows``, so a
-sectioned report carries its section as a column too, and the spreadsheet loses
-nothing.  The PDF draws each section's title in ``SECTION_STYLE`` (the subtitle's
+sectioned report carries its section as a column too, and the spreadsheet doesn't
+lose anything.  The PDF draws each section's title in ``SECTION_STYLE`` (the subtitle's
 Helvetica at 10pt, bold, in the house blue, 8pt above and 4pt below) and then that
-section's own table, its header repeated on every page it runs onto.  A section
-with no rows draws its title and then the spec's ``empty_section`` in italics, or
+section's own table, its header repeated on every page it runs onto.  An empty
+section draws its title and then the spec's ``empty_section`` in italics, or
 its title alone when ``empty_section`` is blank.  A spec's ``section_column`` names a
 column that repeats each row's section title: the CSV prints it among the defaults, and
 a PDF of the default columns leaves it out, since its headings say the same.  A title
@@ -160,8 +160,8 @@ heads a column with ``labels[key]`` in place of its registry label.  Its
 to fill the page as the table's are), and rows holding those columns' cells alone; a
 section the list does not name keeps ``header`` and ``widths`` at ``None`` and is drawn
 under every chosen column.  So the **Columns** chooser governs every section at once: a
-column it leaves out is left out of each section that lists it, and a section left with
-no column draws its title alone.  The CSV is never cut by section: ``ReportTable.header``
+column it leaves out is left out of each section that lists it, and a section left
+without a column draws its title alone.  The CSV is never cut by section: ``ReportTable.header``
 and ``ReportTable.rows`` keep every chosen column under its registry label, one header
 row for the whole file, so a spreadsheet reads it as one table and a section's row
 leaves blank the cells of the columns that section does not draw.
@@ -192,7 +192,7 @@ Columns and cells
    columns are all defaults.
 ``select_columns(columns, requested)``
    The columns to export.  A ``requested`` list that is ``None`` or empty means
-   the caller chose nothing, and the answer is every column whose ``default``
+   the caller didn't choose anything, and the answer is every column whose ``default``
    is true, in registry order; otherwise it is one column per requested key, in
    the order requested.  A key no column carries raises ``ValueError`` naming
    that key, and so does a key asked for twice.
@@ -241,7 +241,7 @@ Filters
    The parameters that carry a value, optionally only those in ``keys``, in
    that order.  A blank value is "not given": a filter bar sends every parameter
    it has.  A report names its applied filters with it, and the payment query
-   drops blanks with it before validating, so a blank bound narrows nothing
+   drops blanks with it before validating, so a blank bound doesn't narrow anything
    whether the parameters came from a query string or a stored mapping.
 ``ordering_terms(raw)``
    The terms of a comma-separated ``?ordering=``, stripped.  Each report checks
@@ -306,7 +306,7 @@ hands them over.
 The letterhead itself comes from ``org_details()`` in ``backend/caldart/org.py``,
 which reads the organization's name, contact address, mailing address, EIN and
 site URL from the Wagtail site settings a website administrator edits.  A field
-nobody has filled in draws no line at all.
+nobody has filled in doesn't draw a line at all.
 
 
 .. _reports-untrusted-values:
@@ -353,7 +353,7 @@ unlike the list it never holds a deactivated account: ``member_report_query``
 keeps ``is_active`` accounts whatever ``include_inactive`` says.
 
 Columns, in order, from ``backend/apps/members/reports.py``.  The eleven marked
-"default" are the report when the caller chooses none; the rest are there to be
+"default" are the report when the caller doesn't choose any; the rest are there to be
 asked for with ``?columns=``:
 
 ==================== ======================= ======= ======================================
@@ -379,13 +379,13 @@ expires_on           Expires                 yes     End of unbroken coverage; *
                                                      a lifetime member**
 certificate          Certificate             yes     Pilot certificate, e.g. ``Private``;
                                                      ``ATP`` for an airline transport
-                                                     pilot; blank for none
+                                                     pilot; blank without one
 certificate_number   Certificate number      no      Certificate number as entered
 instrument           Instrument              no      ``Yes`` or ``No`` for a pilot, by
                                                      whether ``instrument`` is among the
                                                      ratings; blank for a non-pilot
 medical_type         Medical                 yes     ``BasicMed``, ``Third class``, …;
-                                                     blank for none
+                                                     blank without one
 medical_expiration   Medical expires         yes     Medical expiry date
 aircraft             Aircraft                yes     N-numbers of the planes the member
                                                      commonly flies, spaced
@@ -413,7 +413,7 @@ Dates are ISO-8601 (``YYYY-MM-DD``) so a spreadsheet sorts them correctly.
 
 Three conventions are worth knowing when you read a row:
 
-* A **lifetime** member has no expiry date, so ``expires_on`` is empty while
+* A **lifetime** member doesn't have an expiry date, so ``expires_on`` is empty while
   ``status`` says ``Current`` and ``plan`` says ``Life``.  That matches the
   API, where ``expires_on`` is ``null``.
 * "Nothing on file" choices — a ``none`` certificate or medical — export as an
@@ -452,8 +452,8 @@ section titles are those names.
 A row is one role held by one account: ``role_holders`` finds every active
 account in a staff role's group, and ``role_rows`` answers a ``RoleRow`` for each
 staff role each of them holds, role by role.  A system administrator who is also
-an account administrator is listed in both sections, and a deactivated account in
-none, whatever roles it still holds.  Within a section the rows are ordered by
+an account administrator is listed in both sections, and a deactivated account
+isn't listed in any, whatever roles it still holds.  Within a section the rows are ordered by
 last name, first name, then address.
 
 ``RolesReportFilterSet``, in the same module, reads four filters, which the PDF
@@ -468,7 +468,7 @@ subtitle names when given a value:
 ``kind``
    ``member`` or ``friend``, matched against the effective kind for today, the
    kind the **Kind** column prints.  This is not the users list's ``kind``, which
-   matches the stored kind: an account stored as ``member`` with no started term is
+   matches the stored kind: an account stored as ``member`` without a started term is
    a member there and a friend here.  A donor never holds a role, so ``donor`` is
    refused with a 400 keyed by ``kind``.
 ``email_bounced``
@@ -499,7 +499,7 @@ county        County         no      California county from the profile
 home_airport  Home airport   no      Home airport identifier from the profile
 ============= ============== ======= =============================================
 
-An account with no profile leaves the phone, DART, city, county, and airport
+An account without a profile leaves the phone, DART, city, county, and airport
 cells blank.  ``backend/tests/test_roles_report.py`` covers the report.
 
 
@@ -527,14 +527,15 @@ line "Nothing to show." under an empty one:
    (``checkable_people()`` in ``apps/aircraft/services.py``).  Each of the three has a
    check column; an item the person does not hold (``is_held`` in
    ``apps/members/verification.py``: a photo ID of *Not provided*, a certificate of
-   *Not a pilot*, a medical of *None*) has nothing to verify, and its check reads
-   ``Not provided``, whatever stamp it carries.  A person who holds none of the three, a donor, a
-   deactivated account, and an account with no profile are never listed.  The rows are
+   *Not a pilot*, a medical of *None*) doesn't have anything to verify, and its check
+   reads ``Not provided``, whatever stamp it carries.  A person who doesn't hold any of
+   the three, a donor, a deactivated account, and an account without a profile are
+   never listed.  The rows are
    ordered by last name, first name, then address.
 ``Aircraft insurance``
    One row per aircraft in service (``is_active``) with a policy on file (an
-   ``insurance_expiration``), in N-number order.  An aircraft out of service, or with
-   no policy, is never listed.
+   ``insurance_expiration``), in N-number order.  An aircraft out of service, or
+   without a policy, is never listed.
 
 A row's held items decide its state: it is verified when every one of them carries a
 stamp, and requires validation otherwise.  Two filters narrow the rows:
@@ -566,8 +567,8 @@ row leaves the three check cells blank.  In the PDF each section draws its own c
 (``VERIFICATION_SECTION_COLUMNS``, through the spec's ``section_columns``): *People*
 draws every column but Section under the labels below, except ``dart``, headed
 ``DART``; *Aircraft insurance* draws ``name`` headed ``N-number``, ``dart`` headed
-``Owner``, ``details`` headed ``Carrier``, Expires, and Updated, with no check columns.  Section and the three
-stamp columns are drawn in either section when they are chosen.  In order:
+``Owner``, ``details`` headed ``Carrier``, Expires, and Updated, without the check
+columns.  Section and the three stamp columns are drawn in either section when they are chosen.  In order:
 
 ============= ============== ======= =============================================
 Key           Label          Default Contents
@@ -578,8 +579,9 @@ name          Name           yes     The person's full name (or address), or the
                                      aircraft's N-number
 dart          DART or owner  yes     The person's DART, or the aircraft's owner
 photo_id      Photo ID       yes     ``Verified`` or ``Not verified``;
-                                     ``Not provided`` when the person holds no
-                                     photo ID, and blank on an aircraft's row
+                                     ``Not provided`` when the person doesn't
+                                     hold a photo ID, and blank on an
+                                     aircraft's row
 certificate   Certificate    yes     The same, for the pilot certificate
 medical       Medical        yes     The same, for the medical
 details       Details        yes     What is on file, in check-column order:
@@ -672,7 +674,7 @@ seeded row with reportlab's ``stringWidth`` and fails when one no longer fits.
 
 A new default column therefore takes room from the others.  If the measurement
 fails, re-tune the widths or make the column non-default; do not shrink the
-font.  Adding a non-default column costs the defaults nothing, because a
+font.  Adding a non-default column doesn't cost the defaults anything, because a
 caller who asks for it asks for a different set.
 
 The aircraft report
@@ -717,7 +719,7 @@ width can promise to hold.
 
 Each row is a ``RegisterRow``: the aircraft and whether the coverage policy
 covers it, judged by one ``CoverageRule`` read before the first row, so the
-**Covered** column costs no query per row.  The insured amounts are ``Money``
+**Covered** column doesn't cost a query per row.  The insured amounts are ``Money``
 cells that drop round cents, and the expiry is a ``Marked`` cell:
 
 .. list-table::

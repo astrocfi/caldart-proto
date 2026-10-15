@@ -32,7 +32,7 @@ in terminals of your own.
    * - Mailpit
      - ``make up``
      - the ``mailpit`` container: an SMTP server on ``127.0.0.1:1025`` that
-       delivers nothing, and a web inbox on http://localhost:8025/ showing
+       doesn't deliver anything, and a web inbox on http://localhost:8025/ showing
        every message it caught.
    * - Django
      - ``make run``
@@ -100,7 +100,7 @@ and JSON body, which is usually the fastest way to tell whether a problem is
 in the portal or in the API.  React's own browser extension, React Developer
 Tools, adds the component tree and each component's props and state.
 
-The built bundle (``make build``) carries no source maps, so debug against the
+The built bundle (``make build``) doesn't carry source maps, so debug against the
 Vite dev server.
 
 A Vitest test runs in Node rather than a browser.  ``npx vitest`` in
@@ -161,7 +161,7 @@ the names of any attachments.  Three ways to read it:
 * the Django admin, read-only, at http://localhost:8000/django-admin/mail/emaillog/;
 * the API, ``GET /api/v1/system/emails`` (:doc:`api-system`).
 
-A message Mailpit shows with no email log row did not come from the
+A message Mailpit shows without an email log row did not come from the
 application's own sending path.  Django's ``sendtestemail`` command is the
 usual source, and :doc:`email` explains both.
 
@@ -180,9 +180,9 @@ quick loop, and ``--create-db`` forces a fresh one after a migration changes::
 
   uv run pytest backend/tests/test_members_list.py --reuse-db
 
-The test settings read ``.env`` for ``DATABASE_URL`` and nothing else that
-matters: throttles are off, email goes to memory, and the mock payment
-provider is on (:doc:`testing`).
+The test settings read ``DATABASE_URL`` from ``.env``, and it is the only
+value there that matters to them: throttles are off, email goes to memory,
+and the mock payment provider is on (:doc:`testing`).
 
 
 Reseeding
@@ -194,7 +194,7 @@ command after pulling a branch that adds seed data and the wrong one for
 starting over.
 
 To start over, ``make reset`` drops the schema of the database in
-``DATABASE_URL``, migrates, and seeds again.  It asks no question, so check
+``DATABASE_URL``, migrates, and seeds again.  It doesn't ask first, so check
 the database name in ``.env`` first.  It is also the only safe step after a
 migration is regenerated.
 

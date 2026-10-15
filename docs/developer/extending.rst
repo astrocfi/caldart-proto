@@ -55,7 +55,7 @@ shape of the module and everything that has to be told about it.
    carries ``@method_decorator(csrf_exempt, name="dispatch")``, as
    ``StripeWebhookView`` and ``PayPalWebhookView`` in
    ``backend/apps/payments/api/views.py`` do, because a provider posting from
-   its own servers has no session and no CSRF token to send.  Nothing then
+   its own servers doesn't have a session or a CSRF token to send.  Nothing then
    stands between the provider and the view: the signature is the only proof of
    where the body came from, which is why the skeleton refuses one it cannot
    verify.  When checking a signature costs a call to the vendor, the view also
@@ -194,7 +194,7 @@ The three helpers are the only places the vendor's library appears.  Each must
 turn that library's exceptions into ``ProviderUnavailableError`` (and a missing
 key into ``ProviderNotConfiguredError``), because the confirm view catches
 ``PaymentError`` and answers it with HTTP 400, while anything else becomes a
-500.  The webhook view catches nothing: it hands the request straight to
+500.  The webhook view doesn't catch anything: it hands the request straight to
 ``handle_webhook``, so the skeleton catches ``PaymentVerificationError`` itself
 and answers 200 with ``handled: false``.  An exception that escapes there is a
 500, which a provider reads as a failed delivery and retries, so a single
@@ -204,7 +204,7 @@ mismatched amount would arrive again and again.
 ``mark_succeeded``, which is idempotent, so a webhook that arrives after the
 browser's confirmation is a no-op rather than a second membership term.
 
-Never trust the notification body.  The skeleton settles nothing on the
+Never trust the notification body.  The skeleton never settles anything on the
 strength of the event alone: it branches on the event type, reads the charge
 back from Acme, and compares the amount and currency against the stored payment
 before it activates a term.  A notification that reports anything other than a
@@ -231,8 +231,8 @@ an endpoint never edits the router.
    and ``HasRole`` from ``apps.accounts.permissions`` build a role check;
    object-level rules go in a ``BasePermission`` subclass in
    ``apps/<app>/api/permissions.py`` with a ``message`` the caller can act on.
-#. Add the path to ``backend/apps/<app>/api/urls.py``.  Paths carry no trailing
-   slash, and an administrative endpoint lives under ``admin/``.
+#. Add the path to ``backend/apps/<app>/api/urls.py``.  Paths don't carry a
+   trailing slash, and an administrative endpoint lives under ``admin/``.
 #. Write ``backend/tests/test_<feature>.py`` covering each role that may call
    it and at least one that may not, asserting on the status code and the
    response body.
@@ -299,11 +299,11 @@ work does not collide in the route table.
    when it is not for every member, and load the component with ``lazy`` so its
    code arrives only when somebody opens the screen.
 #. Add that array to ``privateRoutes`` (or ``publicRoutes``) in
-   ``routes/index.tsx``, which does nothing but concatenate the feature files.
+   ``routes/index.tsx``, which only concatenates the feature files.
 #. Declare the navigation entry in ``frontend/src/portal/nav.ts``.  An entry
-   with no ``NAV_ITEMS`` row is reachable by URL alone, which is how a screen
+   without a ``NAV_ITEMS`` row is reachable by URL alone, which is how a screen
    ends up invisible.  The label matches the page's title, and the entry's group
-   becomes the page's eyebrow, so ``Page`` takes none.
+   becomes the page's eyebrow, so ``Page`` doesn't take one.
 #. Write ``<Name>Page.test.tsx`` beside the component, rendering through
    ``src/test/render.tsx`` and answering the API from the msw server in
    ``src/test/server.ts``.
@@ -388,7 +388,7 @@ Django finds them by that path alone.
 #. Subclass ``BaseCommand``, set ``help`` to one sentence — it is what
    ``manage.py help`` prints — and register options in ``add_arguments``.
 #. Raise ``CommandError`` for anything an operator can act on: it exits
-   non-zero with the message and no traceback, which is what a systemd timer
+   non-zero with the message but without a traceback, which is what a systemd timer
    reads as a failed run.  Never call ``print``; write through ``self.stdout``
    and ``self.stderr``, and ``self.style`` for color.
 #. Make it safe to run twice.  An operator will.
@@ -402,8 +402,8 @@ Django finds them by that path alone.
 
    """``manage.py list_uninsured_aircraft`` -- the register's lapsed insurance.
 
-   Run by hand before a callout.  Reads the aircraft register and writes nothing,
-   so it is safe to repeat.
+   Run by hand before a callout.  Reads the aircraft register and doesn't write
+   anything, so it is safe to repeat.
    """
 
    from __future__ import annotations

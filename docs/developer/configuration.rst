@@ -33,7 +33,7 @@ Where settings are read
 
 ``_dotenv.py``
    Reads ``.env`` from the repository root into the process environment, so a
-   bare checkout runs with no exported variables at all.  Real environment
+   bare checkout runs without any exported variables.  Real environment
    variables win over the file.  Only ``dev.py`` and ``test.py`` import it, and
    they import it before ``base``.
 
@@ -129,7 +129,7 @@ Core
    The public base URL.  Used for links in emails — including the renewal
    reminders' ``/portal/renew`` link — and as ``WAGTAILADMIN_BASE_URL``.  Its
    path is the ``URL_PREFIX``: ``https://paloaltodart.org/caldart-proto`` for a
-   site under ``/caldart-proto``, and no path at all for a site at the root of
+   site under ``/caldart-proto``, and an empty path for a site at the root of
    its host.  ``prod.py`` refuses to start when the two disagree, since the
    emails would then link somewhere the pages do not.
 
@@ -191,7 +191,7 @@ rate is a **429**.
 
 ``AUTH_THROTTLE_LOGIN``
    ``POST /auth/login`` and ``POST /auth/reactivate``, drawing on one budget per
-   client address.  The Wagtail and Django admins have no login form of their own:
+   client address.  The Wagtail and Django admins don't have a login form of their own:
    both send the reader to the portal's sign-in.
 
    :Development: ``20/min``
@@ -267,7 +267,7 @@ The rates land in the ``AUTH_THROTTLE_RATES`` setting, one key per scope, and
 are read by ``apps.accounts.throttling``.  A scope mapped to ``None``, mapped
 to an empty string, or missing from that dict is off, so an
 ``override_settings`` in a test can switch one on or off without knowing how
-the environment was set.  There is no project-wide throttle: apart from these,
+the environment was set.  There isn't a project-wide throttle: apart from these,
 the per-account limits on :ref:`payments <configuration-payment-limits>`, and the
 per-account limit on :ref:`address suggestions
 <configuration-address-suggestions>`, every endpoint is unlimited.  See
@@ -367,7 +367,7 @@ sets it, which suits a demonstration server installed with ``--seed-demo``
    production server and a development checkout: ``make run`` listens on every
    interface, so a seeded development database answers the whole network the
    machine is on.  Turn it
-   on only for a demonstration server that holds no real person's data, and set it
+   on only for a demonstration server that doesn't hold any real person's data, and set it
    to ``false`` in ``.env`` on a development machine others can reach.
 
 Which address is counted
@@ -418,12 +418,12 @@ matching US addresses, and a pick fills the street, city, state, ZIP code, and
 county at once.  The suggestions come from Geoapify's autocomplete endpoint,
 called by the server through ``GET /addresses/suggest`` (see
 :doc:`api-profile`), so the key stays on the server and the
-Content-Security-Policy needs no Geoapify origin.
+Content-Security-Policy doesn't need a Geoapify origin.
 
 ``GEOAPIFY_API_KEY``
    The Geoapify API key.  Blank turns suggestions off: the endpoint answers an
    empty list without calling anyone, and the Address box behaves as a plain
-   text box.  Geoapify's free tier needs no card and covers a membership
+   text box.  Geoapify's free tier doesn't need a card and covers a membership
    register's traffic; create a project at https://myprojects.geoapify.com and
    copy its key.  ``caldart.settings.test`` blanks it whatever the environment
    says, so a key in a developer's ``.env`` never sends a request from the
@@ -468,7 +468,7 @@ Content-Security-Policy needs no Geoapify origin.
    ``/mail/callout/<token>``), counted per link, as a DRF rate: empty turns the limit
    off.  A changed answer can email every subscriber to callout answers, so the limit
    keeps somebody holding a forwarded link from filling their inboxes; past it the
-   page says to try again later and records nothing.  Read by
+   page says to try again later and doesn't record anything.  Read by
    ``apps.bulk_email.throttling``; ``caldart.settings.test`` sets it to ``None``.
 
    :Development: ``10/hour``
@@ -483,7 +483,7 @@ Aircraft Database, imported daily by ``manage.py import_faa_registry`` (see
 :doc:`aircraft-registry`).
 
 ``FAA_REGISTRY_URL``
-   Where the import reads the registry from when it is given no ``--source``:
+   Where the import reads the registry from when it isn't given ``--source``:
    an ``http`` or ``https`` URL of the zip, which is downloaded, or a local zip
    or a directory holding ``ACFTREF.txt`` and ``MASTER.txt``, as a path or a
    ``file://`` URL.  The end-to-end run points it at the fixture directory,
@@ -522,7 +522,7 @@ Email
    details silently.
 
    :Development: ``smtp://localhost:1025`` — Mailpit, whose web UI at
-      http://localhost:8025 catches everything and delivers nothing.
+      http://localhost:8025 catches everything and never delivers it.
    :Production: **required**,
       ``smtp+tls://user:password@smtp.example.org:587``.  Many providers want
       an app password rather than the account password.  ``smtp://localhost:25``
@@ -544,7 +544,7 @@ Email
    ``bounces+<id>.<signature>@caldart.example.org``, and the bounce check counts
    only reports returned to such an address (:ref:`email-bounces`).  Set it to the
    address of the bounce mailbox ``BOUNCE_IMAP_URL`` reads; the mailbox must accept
-   plus addresses.  It must be a bare address, with no display name, and its local
+   plus addresses.  It must be a bare address, without a display name, and its local
    part at most 28 characters, so the signed address fits; ``manage.py check``
    reports anything else as ``mail.E001`` or ``mail.E002``.  Bounce checking needs
    it as well as ``BOUNCE_IMAP_URL``.
@@ -562,7 +562,7 @@ Email
 
    :Both: empty, which turns bounce checking off, as an empty ``BOUNCE_ADDRESS``
       does: the hourly run and **Run now** on the Scheduled tasks page say so and
-      read nothing.
+      don't read anything.
    :Production: ``imaps://bounces%40caldart.example.org:app-password@imap.example.org/INBOX``.
 
 ``DKIM_SELECTOR``
@@ -658,7 +658,7 @@ verifies whichever of the keys below are set before you open a browser.
 
 ``STRIPE_PUBLISHABLE_KEY``, ``STRIPE_SECRET_KEY``
    The Stripe API key pair.  Blank hides Stripe from the checkout provider
-   list, which is what lets the prototype run with no Stripe account at all.
+   list, which is what lets the prototype run without a Stripe account.
 
    :Development: blank, or ``pk_test_…`` / ``sk_test_…``.
    :Production: the live pair, ``pk_live_…`` / ``sk_live_…``.
@@ -722,7 +722,7 @@ verifies whichever of the keys below are set before you open a browser.
    production template lists it commented out, so turning it on is a deliberate
    uncomment: on a public site it lets
    anyone who can sign in grant themselves a membership.  Set it only to
-   demonstrate the checkout flow on a box with no payment keys.
+   demonstrate the checkout flow on a box without payment keys.
 
    :Production: ``false``
 
@@ -821,7 +821,7 @@ User guide
    serves at ``/docs/`` to signed-in users, and its few signed-out pages to
    anybody.  ``make guide`` (on a server, the
    ``sphinx-build`` line of the deployment guide's build step) writes it.  A
-   directory with no ``index.html`` makes every ``/docs/`` page answer 404 and
+   directory without an ``index.html`` makes every ``/docs/`` page answer 404 and
    logs a warning.
 
    :Development: ``docs/_build/guide``, under the repository root.
@@ -839,7 +839,7 @@ Uploads
    editor's images go in its ``bulk-email/`` directory (:doc:`api-bulk-email`).
    The web server serves ``/media/`` straight from it to anybody, signed in or
    not, except ``media/documents/``, which only Django serves; a bulk email's
-   images must stay that way, since a mail program fetches them with no session.
+   images must stay that way, since a mail program fetches them without a session.
    In development Django serves ``/media/`` itself while ``DEBUG`` is on.
 
    :Development: unset: ``backend/media`` in the checkout, gitignored.
@@ -918,7 +918,7 @@ configuration file and never by Django at all.
 ``SECURE_HSTS_SECONDS``
    ``Strict-Transport-Security`` max-age.  Default ``31536000`` (one year).
    Set it to ``0`` for the first deploy of a new hostname: browsers honor the
-   header for its whole duration and there is no way to retract it early.
+   header for its whole duration and there isn't a way to retract it early.
    Django is the only thing that sends this header — neither shipped vhost sets
    it — so this setting is exactly what a browser receives.
 
@@ -1037,7 +1037,7 @@ under the path Wagtail's admin is mounted at, ``script-src`` is replaced with
 ``'self' 'unsafe-inline'``, because Wagtail's admin templates — the inline
 panel and the date and time widgets among them — write scripts into the page.
 The exception follows the path, so it covers the admin's own login page and
-reaches nothing else: the public site, the portal and the API keep the policy
+stops at the admin: the public site, the portal, and the API keep the policy
 above.  Every other directive stays as it is even inside the admin.
 
 ``caldart.settings.dev`` widens four directives so the pages work against the
@@ -1060,7 +1060,7 @@ Settings that are not environment variables
 ``DJANGO_SETTINGS_MODULE``
    Which settings module to load.  Not read from ``.env`` — it has to be set
    before Django starts.  ``manage.py`` falls back to ``caldart.settings.dev``
-   so a local command needs no ceremony.  The application servers do not:
+   so a local command runs without ceremony.  The application servers do not:
    ``wsgi.py`` and ``asgi.py`` raise ``ImproperlyConfigured`` naming this
    variable when it is unset, because a web server that has not been told which
    settings to load has been misconfigured.  All five systemd services set

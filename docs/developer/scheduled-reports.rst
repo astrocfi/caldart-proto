@@ -4,7 +4,7 @@ Scheduled reports
 
 CalDART emails reports on its own: a **subscription** sends one report to one
 address on a schedule, and each DART is sent its **roster** once a month.  As
-with the renewal reminders (:doc:`reminders`), there is no queue and no worker:
+with the renewal reminders (:doc:`reminders`), it doesn't need a queue or a worker:
 one management command, run daily by a systemd timer, sends whatever is due,
 and everything else falls out of two dates on the rows.
 
@@ -52,12 +52,12 @@ schedule's next day after the edit; **Send now** leaves it.
 A ``period`` among the filters (``this_month``, ``last_month``, ``this_year``,
 ``last_year``) is resolved on the day the report is built, so a monthly
 subscription that says ``last_month`` always carries the month before the one it
-is sent in.  The portal's form offers a subscription no fixed dates where a period
-stands in for them: the contributions report has no ``year`` there, and the
-reconciliation report no ``from`` or ``to``.  Migration
+is sent in.  The portal's form doesn't offer a subscription fixed dates where a
+period stands in for them: the contributions report doesn't have a ``year``
+there, and the reconciliation report doesn't have a ``from`` or ``to``.  Migration
 ``reports.0002_drop_fixed_dates`` cleared those filters from the subscriptions saved
 before, so each follows the day it is sent; a reconciliation subscription it cleared
-that named no period was given ``last_month``.  The API refuses those filters on a
+that didn't name a period was given ``last_month``.  The API refuses those filters on a
 subscription as well.
 
 The demo seed sets every subscription's ``next_due_on`` to the day it runs, so
@@ -98,7 +98,7 @@ resolved to, as the PDF's subtitle prints it), the schedule, who set it up, and 
 and says that an account administrator or a treasurer can change or stop it.
 The email log records it under the purpose ``scheduled_report``, with the
 recipient's account and its display name as the row's name when there is one,
-and no name for a bare address.
+and a blank name for a bare address.
 
 
 DART rosters
@@ -122,14 +122,15 @@ the timer missed the day.  ``roster_sent_at`` is stamped when every email went
 out; a refused one leaves the DART due, and the next run sends the roster to all
 its people again, since a repeated roster does less harm than a missing one.
 
-A DART with nobody set to receive its roster who has an address is skipped as ``no_recipients``.
+A DART is skipped as ``no_recipients`` when none of the people set to receive its
+roster has an address.
 Otherwise each checked person without an address is skipped as ``no_email`` and
 everyone else is sent the roster.  The subject is
 ``<DART name> roster (<MM/DD/YYYY>)``, and the body says how many members it
 lists and that the DART's leaders may ask a CalDART account administrator to
 change who receives it.  The email log records it under the purpose
 ``dart_roster``, naming the contact as the row's own name -- a DART contact
-holds no account, so this is the only way its recipient's name reaches the
+doesn't hold an account, so this is the only way its recipient's name reaches the
 log.
 
 ``POST /reports/rosters/send`` sends every active DART's roster at once,
@@ -159,16 +160,16 @@ returns a ``ReportRun``:
    the report's title and formats, or kind ``roster`` with the person and the
    DART.
 
-One recipient's problem never stops the run.  A dry run writes nothing — no
-email, no pause, no stamp, and no date moves on — and lists exactly the emails
-a live run would send: it builds each subscription's report, so one whose
+One recipient's problem never stops the run.  A dry run doesn't write anything:
+it doesn't send an email, pause a subscription, stamp a row, or move a date on.
+It lists exactly the emails a live run would send: it builds each subscription's report, so one whose
 stored filters no longer build is counted in ``failed`` there too.
 
 Each subscription and each DART is sent inside its own transaction that holds
 its row (``select_for_update(skip_locked=True)``) and checks again that it is
 still due.  When two runs overlap — the timer and ``POST /system/reports/run``,
 say — the one that takes a row sends it and the other passes it by, so nobody
-is sent the same report twice.  **Send now** takes no such turn: it sends
+is sent the same report twice.  **Send now** doesn't take such a turn: it sends
 whatever the date, by design.
 
 The run ends with one ``reports.run`` audit line carrying ``dry_run``,
@@ -193,9 +194,9 @@ The command
    would send 34, skipped 0
 
 ``--today`` runs as of another date, which is how to rehearse the first of next
-month; ``--dry-run`` sends nothing.  The command exits non-zero when any email
+month; ``--dry-run`` doesn't send anything.  The command exits non-zero when any email
 failed, so the systemd unit goes to ``failed`` rather than reporting a clean run
-that reached nobody.  In production ``caldart-reports.timer`` runs it daily at
+that didn't reach anybody.  In production ``caldart-reports.timer`` runs it daily at
 06:00 (:ref:`deploy-reports`).
 
 
@@ -203,7 +204,7 @@ Tests
 =====
 
 ``backend/tests/test_scheduled_reports.py`` covers the schedule over every
-cadence, the run on a frozen clock (what is due and nothing else, moving on,
+cadence, the run on a frozen clock (only what is due, moving on,
 a refused send left due, a report the stored filters no longer build left due,
 a recipient who lost the role paused, the recipient's address brought up to
 date, both formats), the dry run, two runs at once, the audit line, the command, the timer and the run endpoint.

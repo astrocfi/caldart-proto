@@ -19,9 +19,10 @@ instances included, to every handler registered with ``subscribe(handler)``,
 at once, in registration order, inside the caller's transaction.  A slug
 outside ``EVENT_SLUGS`` raises ``ValueError`` reading ``Unknown event
 '<slug>'`` before any handler runs, so a misspelled event fails a test instead
-of reaching nobody.  The module imports no app, so a service on any layer may
-raise an event without importing the notifications app (``apps/notifications``),
-which registers its handler when it starts and does the sending.
+of going unheard.  The module doesn't import an app, so a service on any
+layer may raise an event without importing the notifications app
+(``apps/notifications``), which registers its handler when it starts and does
+the sending.
 
 The rules every call site keeps:
 
@@ -37,7 +38,7 @@ The rules every call site keeps:
   for the commit.
 * **Only for a real change.**  An edit that resends the value a field already
   holds, a second delivery of the same webhook, and a payment confirmed twice
-  raise nothing the second time.
+  don't raise anything the second time.
 
 ``backend/tests/test_notification_hooks.py`` proves each call site: it
 subscribes a recording handler through ``caldart.events`` for the length of a
@@ -99,7 +100,7 @@ Membership
        it flipped and that no other term still covers
      - ``user``; ``term``, the flipped term that ended last
 
-Registering (``POST /auth/register``) raises nothing, because the account
+Registering (``POST /auth/register``) doesn't raise anything, because the account
 exists before the wizard asks for the DART.  A donor who registers joins the
 same way: following the verification link makes the donor a member or a friend,
 and completing the profile raises ``signed_up``.  So does the first profile an
@@ -143,7 +144,7 @@ Money
        charge is still in doubt
      - ``attempt``; ``payment``; ``reason``, why the charge needs checking
    * - ``donation_received``
-     - ``payments.services._complete``, for a succeeded payment that names no plan:
+     - ``payments.services._complete``, for a succeeded payment that doesn't name a plan:
        a gift on the public donation page, a contribution, or a recurring
        donation's charge
      - ``payment``
@@ -157,12 +158,12 @@ Money
      - ``payment``; ``refund_cents``; ``actor`` (``None`` for the dashboard);
        ``term_canceled``, true when the term the payment bought ended with it
 
-Canceling a paused mandate raises nothing: it was off already.
+Canceling a paused mandate doesn't raise anything: it was off already.
 
 A payment recorded by hand raises two events: ``payment_recorded``, and the
 ``membership_paid`` or ``donation_received`` its money earns, since it succeeds
-through the same ``_complete`` a card payment does.  A refused refund raises
-nothing: no money went back.
+through the same ``_complete`` a card payment does.  A refused refund doesn't
+raise anything: no money went back.
 
 Accounts
 --------
@@ -188,8 +189,8 @@ Accounts
      - ``accounts.services.update_account`` when the role list really changes, whatever
        asked: ``PATCH /admin/users/{id}``, ``accounts.services.set_verifier`` behind
        ``PUT /leader/members/{user_id}/verifier``, and the ``create_admin`` command; the
-       Django admin shows the roles and per-user permissions read-only and has no group
-       screens, so every role write passes through it
+       Django admin shows the roles and per-user permissions read-only and doesn't have
+       group screens, so every role write passes through it
      - ``user``; ``added`` and ``removed``, lists of role slugs in privilege order;
        ``actor``, the account that made the change, or ``"command"``
        (``audit.COMMAND_ACTOR``) for a management command, which the email names as
@@ -198,7 +199,7 @@ Accounts
      - ``accounts.email_change.complete_email_change``, when the link mailed to the
        new address completes a change of address (:ref:`api-email-change`), whether
        an administrator's edit or the member's own ``POST /auth/email/change`` asked
-       for it; a second visit to the link raises nothing
+       for it; a second visit to the link doesn't raise anything
      - ``user``; ``old_email``, the address the account held before, since the
        account holds only the new one
    * - ``profile_changed``
@@ -268,7 +269,7 @@ Callouts
    * - ``callout_answer``
      - ``bulk_email.callouts.record_answer``, which the answer page's **Send answer**
        calls (:ref:`bulk-email-callouts`), for a new answer and for a change of answer;
-       a change to the note alone, and the same answer sent again, raise nothing
+       a change to the note alone, and the same answer sent again, don't raise anything
      - ``user``, who answered; ``answer``, in words (*Available*, *Available with
        limits*, or *Not available*); ``note``, as recorded; ``subject``, the callout's
        subject as written; ``callout_id``, the bulk email's id; and ``audience``, a

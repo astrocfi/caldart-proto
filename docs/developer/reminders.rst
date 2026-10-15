@@ -4,8 +4,8 @@ Renewal reminders
 
 CalDART emails members before and after their membership runs out.  The whole
 mechanism is one management command, one log table, one schedule row and ten
-templates; there is no queue, no worker and no scheduler process.  A systemd timer runs the command
-once a day, and everything else falls out of the data.
+templates; it doesn't need a queue, a worker, or a scheduler process.  A systemd
+timer runs the command once a day, and everything else falls out of the data.
 
 The code is in ``backend/apps/reminders/`` and the templates are in
 ``backend/templates/emails/``.
@@ -55,16 +55,16 @@ scanner reads the schedule once per run and hands it to every stage.
 
 A stage before expiry reaches back from its own date to the day after the date
 of the stage nearer expiry, so the three of them tile the time before a term
-runs out with no gap and no overlap, whatever the schedule.  That is the point of stages: a
-member who joins the register 23 days out is in ``second`` that day, gets ``final``
+runs out without a gap or an overlap, whatever the schedule.  That is the point of
+stages: a member who joins the register 23 days out is in ``second`` that day, gets ``final``
 sixteen days later, and hears from CalDART twice, where three exact dates would
-have reached them not at all.  A member who joins three days out gets ``final``
-and nothing earlier.
+have reached them not at all.  A member who joins three days out gets only
+``final``.
 
 The two stages at expiry and after it reach back by their entry in
 ``POST_EXPIRY_REACH_DAYS``: ``expired`` by six days, because "your membership
 has expired" stays worth saying for about a week, and ``lapsed`` by thirty, so
-the win-back note covers a whole month of lapsed terms.  On the default schedule
+the win-back note covers a whole month of lapsed terms.  On the default schedule,
 nothing covers the three weeks between those two spans, and nothing at all is
 sent about a term that ran out more than sixty days ago; the schedule's rules
 keep ``lapsed_days_after`` at seven or more, so the ``lapsed`` span never meets
@@ -110,7 +110,7 @@ Field                    Default  Sets
                                   days more
 =======================  =======  ==============================================
 
-``expired`` has no field: its span is the expiry day and the six days after it.
+``expired`` doesn't have a field: its span is the expiry day and the six days after it.
 ``schedule_errors`` in ``models.py`` holds a schedule to
 ``180 >= first > second > final >= 1`` and ``7 <= lapsed <= 365``, naming the
 field and the rule for each one broken; ``ReminderScheduleSerializer`` raises
@@ -147,23 +147,23 @@ all call it.  In order:
 
 1. **Expire lapsed terms.**  Every ``Membership`` that is still ``active`` with
    an ``ends_on`` in the past is flipped to ``expired``
-   (``members.lifecycle.expire_lapsed_memberships``), and each account left with
-   no current term raises the ``membership_expired`` event
+   (``members.lifecycle.expire_lapsed_memberships``), and each account left
+   without a current term raises the ``membership_expired`` event
    (:doc:`notification-events`).  This runs first so
    that the ``lapsed`` stage is honestly labeled.
 2. **Convert due friends.**  ``members.lifecycle.convert_due_friends`` stores
    every member whose ``friend_on`` is today or earlier as a friend, clears the
    date, and audits each as ``account.kind`` with ``to=friend`` and
    ``on=<friend_on>`` (:ref:`kinds of account <account-kinds>`), raising the
-   ``became_friend`` event for each.  A dry run converts nobody.
+   ``became_friend`` event for each.  A dry run doesn't convert anybody.
 3. **Walk the five stages in order.**  For each, select the memberships whose
    ``ends_on`` falls in that stage's span (:ref:`reminders-stages`), excluding
    canceled ones, suspended ones (their holder deactivated their own account;
    see :ref:`api-deactivation`), and the terms of every account stored as a
    friend or carrying a ``friend_on`` date: a friend is never nagged to renew,
-   and neither is a member who has asked to become one.  Such a term is not a candidate at all,
-   so it appears in no skip count.  Lifetime terms have no ``ends_on`` at all,
-   so they never appear.
+   and neither is a member who has asked to become one.  Such a term is not a
+   candidate at all, so it doesn't appear in any skip count.  Lifetime terms
+   don't have an ``ends_on`` at all, so they never appear.
 4. **Decide whether to send.**  A candidate is skipped, with a reason recorded
    in the summary, when:
 
@@ -172,16 +172,16 @@ all call it.  In order:
    ``inactive_user``
       the account has been deactivated by an administrator, whose term is still
       ``active`` (an account its owner deactivated holds suspended terms, which
-      are no candidates);
+      aren't candidates);
    ``no_email``
-      the account has no email address;
+      the account doesn't have an email address;
    ``lifetime``
       the member holds a lifetime term, whatever else is on file;
    ``auto_renew``
       the membership renews itself, so the automatic-renewal emails already tell
       the member what is happening to it.  That means an ``active`` mandate, or a
       ``pending`` one with a charge already scheduled; a ``paused`` or
-      ``canceled`` mandate covers nothing and the reminders resume.  See
+      ``canceled`` mandate doesn't cover anything and the reminders resume.  See
       :doc:`renewals`;
    ``renewed``
       unbroken coverage now runs past this term.  For the pre-expiry kinds that
@@ -211,8 +211,8 @@ deleted by hand, so no row survives and the reminder is still due -- the
 send itself still leaves a ``failed`` row in the email log
 (:ref:`api-email-log`).  A later run sends
 it while that member's ``ends_on`` is still inside the stage's span
-(:ref:`reminders-stages`), so the retry is the rest of the span and nothing
-more: a week for ``final`` and ``expired``, three weeks or more for the others.
+(:ref:`reminders-stages`), so the retry window is only the rest of the span:
+a week for ``final`` and ``expired``, three weeks or more for the others.
 Once the term leaves the span the member is sent the stage they have reached
 instead, and the refused message is not recovered.  A term that has left
 ``lapsed`` is past every stage, so nothing more is attempted.  The failure is
@@ -239,7 +239,7 @@ Running it
 Development::
 
   make reminders                          # today, for real
-  make reminders DRY_RUN=1                # rehearse, write nothing
+  make reminders DRY_RUN=1                # rehearse without writing anything
   make reminders TODAY=2027-01-01         # scan as of another date
   make reminders TODAY=2027-01-01 DRY_RUN=1
 
@@ -275,8 +275,8 @@ the member, their address and the day their term runs out.  A live run prints
 ``emailed first to ...`` instead.  They are what turns "twelve reminders" into
 "these twelve people", which is the thing worth checking before a live run.
 
-A dry run writes nothing at all: no email, no log row, and no membership status
-flips.  It is safe on production.
+A dry run doesn't write anything at all: it doesn't send an email, write a log
+row, or flip a membership status.  It is safe on production.
 
 The command exits 0 when ``failed`` is 0, and 1 with a ``CommandError`` on
 stderr when it is not.  Everything it managed to send is still sent, and the
@@ -326,9 +326,9 @@ Running it by hand is safe at any time::
 ``apps.sysadmin.jobs.JOBS`` in the same commit, which ``test_job_status.py`` holds
 together, and upgrade; the upgrade reinstalls the timer.
 ``OnCalendar=*-*-* 06:30:00 America/Los_Angeles`` moves it to 06:30.  The table
-reads daily, hourly, every-minute, and yearly forms.  The scanner is date-driven and idempotent, so running it more often
-simply finds nothing new, and a missed morning costs nothing: the stages are
-spans, so the next run finds everyone the missed one would have
+reads daily, hourly, every-minute, and yearly forms.  The scanner is date-driven
+and idempotent, so running it more often simply doesn't find anything new, and a
+missed morning doesn't cost anything: the stages are spans, so the next run finds everyone the missed one would have
 (:ref:`reminders-stages`).  A weekly timer is the point at which that stops
 being true, because ``final`` and ``expired`` are seven days wide: a member can
 pass through one of them between two runs.  Keep the cadence daily, and let
@@ -407,7 +407,7 @@ follows the dates wherever in the span a member is reached.  ``expired`` reads
 "today is the last day" on the expiry day and "your membership has expired ...
 N days ago" after it, switching on ``days_ago``.
 
-House voice: plain, specific, no exclamation marks, no emoji.  Say what expires
+House voice: plain and specific, without exclamation marks or emoji.  Say what expires
 and when, give one link, and stop.
 
 
@@ -427,7 +427,7 @@ Every reminder is also recorded in the email log, under the purpose
 (:ref:`api-email-log`).  The two logs answer different questions: the reminder
 log is the key that keeps a stage from repeating, and the email log is the record
 of the message, with its subject and whether the mail server took it.  A refused
-reminder leaves no ``ReminderLog`` row, so it stays due, but the send is still
+reminder doesn't leave a ``ReminderLog`` row, so it stays due, but the send is still
 recorded as a ``failed`` row in the email log, the same as any other refused
 email.
 
@@ -482,16 +482,16 @@ Testing
 ``backend/tests/test_reminder_stages.py`` covers the spans: a table over every
 expiry date from seventy days before a scan to seventy days after it, naming the
 one stage that covers each, the scan sending that stage, the days between the
-spans sending nothing, and the ``expired`` wording on the expiry day and after
+spans staying silent, and the ``expired`` wording on the expiry day and after
 it.  ``backend/tests/test_reminders.py`` covers the scanner: each stage on its
 own date, silence outside the stages, dedupe across runs, the expiry flip, the
-dry run writing nothing, lifetime, and deactivated members being skipped, early
+dry run not writing anything, lifetime, and deactivated members being skipped, early
 renewals being skipped, and the rendered content of every template.
 ``backend/tests/test_reminders_resilience.py`` covers late runs -- one and two
 days late still sending, a run late enough to miss a stage sending the next one,
-nothing at all after ``lapsed`` -- the day count in a late email, and the
+silence after ``lapsed`` -- the day count in a late email, and the
 failure paths: a locmem backend that refuses one address, the log line that
-names ids and no address, a failed send still leaving a ``failed`` row in the
+names ids and leaves the address out, a failed send still leaving a ``failed`` row in the
 email log, a log row written under the scan to stand in for a racing run, and a
 retry that the rest of the span allows.
 ``backend/tests/test_reminders_api.py`` covers the endpoints and their role
