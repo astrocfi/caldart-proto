@@ -65,8 +65,8 @@ renewal's status. The charges still to come are listed first, then the rest by w
 were tried, newest first.
 
 **Needs checking** marks a charge PayPal may have taken without saying so: it never
-answered, or it says the charge's invoice was already paid. The site charges nothing more
-for it until you settle it, and its **Reason** says why. If you subscribe to *Automatic
+answered, or it says the charge's invoice was already paid. The site doesn't charge
+anything more for it until you settle it, and its **Reason** says why. If you subscribe to *Automatic
 charge needs checking* on the **Notifications** screen you are emailed when a charge is
 held this way, again if the member's membership runs out while it waits, and about a
 charge the payment provider has held as pending for more than three days.
@@ -115,8 +115,16 @@ search PayPal's own dashboard for: the charge's invoice id, such as
   PayPal refuses the second charge and the row returns to **Needs checking**, and you are
   told again. PayPal's *Block accidental payments* must be on for that to happen.
 * If neither fits, check the same box and press **Close as failed**. The member isn't
-  charged again, their automatic renewal is paused, and the ordinary renewal reminders
-  take over. The member is not emailed, so get in touch with them yourself.
+  charged again, their automatic renewal or recurring donation is paused, and the
+  ordinary renewal reminders take over. The member is emailed *CalDART: we could not
+  renew your membership* (or *…take your recurring donation*): their automatic renewal
+  couldn't be completed and is paused, when their membership ends or ended, and how to
+  renew by hand and turn it back on. A note then appears above **Recent charges**
+  asking you to get in touch with them too, with their phone number when their record
+  has one, their email address, and links to their money history (and, for an account
+  administrator, their **Member record**). It stays until you press **Dismiss**. A
+  standing charge that was already off is left as it is, and the note says the member
+  isn't emailed.
 
 Once a charge's payment has gone through, **No payment found** and **Close as failed** are
 refused: record it as paid instead.

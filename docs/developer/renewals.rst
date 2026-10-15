@@ -555,7 +555,11 @@ Template                   When
 ``renewal_failed``         A charge was refused: the reason, and either when it
                            will be tried again or that it was the last try and
                            the reminders resume.  Also the message a member gets
-                           when their membership had lapsed too long to catch up.
+                           when their membership had lapsed too long to catch up
+                           (``lapsed``), and when a treasurer closes a charge as
+                           failed (``closed``): the charge couldn't be
+                           completed, it is paused, the day the term ends or
+                           ended, and the Renew and Donate screens' links.
 ``renewal_canceled``       The member or an administrator turned it off.
 =========================  ====================================================
 
@@ -678,8 +682,19 @@ attempt is locked while it is settled, so two treasurers settle it once.
   as a duplicate and the charge is held in doubt again, and flagged again.
 * **Close as failed**, when neither fits, once the treasurer has checked the same
   box.  The member isn't charged: the attempt is closed as failed, the payment is marked
-  failed, and an active mandate is paused, raising ``auto_renewal_off``; the member
-  is not emailed, and the ordinary renewal reminders take over.
+  failed, and an active mandate is paused, raising ``auto_renewal_off``, and the
+  ordinary renewal reminders take over.  The member of a mandate paused this way is
+  emailed ``renewal_failed`` worded for a closed charge: their automatic renewal (or
+  recurring donation) couldn't be completed and is paused, so they aren't charged
+  automatically; for a renewal, the day the term ends or ended; and the links to
+  renew by hand (or give from the Donate screen) and to turn it back on.  It names
+  neither the hold nor the provider.  Like the *Record as paid* email it is sent after
+  the answer has gone, and outside a request once the transaction commits; a mail
+  server that refuses it is logged, the settlement stands, and ``result_emailed_at``
+  stays unset.  A mandate that was not active is left as it is and the member isn't emailed.
+  The answer carries the member's email address and phone number, and the Renewals
+  tab keeps them on screen above the charges, asking the treasurer to get in touch
+  with the member too.
 
 The attempt and its payment are locked while it is settled, and a payment that has
 already gone through can only be recorded as paid: *No payment found* and *Close as

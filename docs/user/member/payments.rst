@@ -112,6 +112,11 @@ The emails it sends
   receipt; no second one follows.
 * **When a charge is refused**: *CalDART: we could not renew your membership*, with
   the reason the bank gave.
+* **When the treasurer closes a charge that couldn't be completed**: the same
+  subject. Automatic renewal is paused, so you won't be charged automatically, and
+  the email says when your membership ends (or that it has ended), links the **Renew**
+  screen to renew by hand, and points to **Turn on again** on this screen. The
+  treasurer may get in touch with you too.
 
 If a charge is refused
 ~~~~~~~~~~~~~~~~~~~~~~

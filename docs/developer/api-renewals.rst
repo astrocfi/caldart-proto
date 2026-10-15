@@ -298,6 +298,7 @@ scheduled first, then every tried charge by ``attempted_at``, newest first.
    {
      "id": 87,
      "mandate_id": 12,
+     "mandate_kind": "renewal",
      "membership_id": 455,
      "payment_id": 901,
      "user_id": 34,
@@ -317,8 +318,9 @@ scheduled first, then every tried charge by ``attempted_at``, newest first.
 
 ``outcome`` is ``scheduled``, ``succeeded``, ``failed``, or ``skipped``.  ``in_doubt``
 is true for a ``scheduled`` charge the provider may have taken and cannot say about:
-the scan charges nothing more for it until a treasurer settles it, and ``error``
-says why.  ``flagged_at`` is when the treasurer was last told the charge needs
+the scan doesn't charge anything more for it until a treasurer settles it, and
+``error`` says why.  ``mandate_kind`` is what the charge's mandate charges for:
+``renewal``, ``both``, or ``contribution``, as ``kind`` is for a mandate.  ``flagged_at`` is when the treasurer was last told the charge needs
 checking, and ``null`` until then (:ref:`renewals-in-doubt`).
 ``payment_amount_cents`` is what the attempt's payment comes to and
 ``payment_sent_at`` when its charge was first sent to the provider; both are ``null``
@@ -361,11 +363,26 @@ shows.
    same payment again, under the same ``invoice_id``.
 ``failed``
    Neither: the attempt is closed as failed with no charge, the payment is marked
-   failed, and an active mandate is paused.  The member is not emailed.
+   failed, and an active mandate is paused.  Its member is emailed
+   ``renewal_failed`` after the answer has gone: the charge couldn't be completed,
+   the renewal or donation is paused, and where to pay by hand and turn it back on
+   (:ref:`renewals-in-doubt`).  A mandate that was not active is left as it is, and
+   the member isn't emailed.
 
 Each clears ``flagged_at`` and writes a ``renewal.settle`` audit record naming the
 caller, with the attempt, the payment, the outcome, and any reference.  The answer
-is the attempt as it stands afterwards, shaped as in the list above.
+is the attempt as it stands afterwards, shaped as in the list above, with three
+fields more, so the treasurer who closed a charge can get in touch with the member:
+
+.. code-block:: json
+
+   {"user_email": "maria@example.org", "user_phone": "415-555-0142",
+    "member_emailed": true}
+
+``user_email`` is the member's address and ``user_phone`` the phone number on their
+profile, an empty string when they don't have one.  ``member_emailed`` is true when the
+answer hands the member an email to send once it has gone (``paid``, and ``failed``
+on an active mandate) and the member has an address; it is false otherwise.
 
 The payment is locked with the attempt.  Once it has gone through, ``released`` and
 ``failed`` are refused: **400** ``{"outcome": ["This charge's payment has already gone

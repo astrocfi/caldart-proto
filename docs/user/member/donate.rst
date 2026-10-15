@@ -121,6 +121,10 @@ The emails it sends
   week after that.
   After four refusals the donation stops and the card on :doc:`payments` reads
   **Stopped** with the reason. Set it up again with another method from this screen.
+* A charge the treasurer closes because it couldn't be completed sends the same
+  subject: your recurring donation is paused, so you won't be charged automatically,
+  and you can give by hand or set it up again from this screen. The treasurer may get
+  in touch with you too.
 
 
 If something looks wrong
