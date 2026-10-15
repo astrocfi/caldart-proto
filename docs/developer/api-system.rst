@@ -392,8 +392,9 @@ Statuses: **200**; **401** when anonymous; **403** for every other role.
 -----------------------
 
 Whether bounce checking is set up, so the Scheduled tasks screen can say so before anyone
-presses **Run now**: ``{"enabled": true}`` when ``BOUNCE_IMAP_URL`` is set, ``false``
-when it is empty (``bounce_checking_enabled()`` in ``apps/mail/bounces.py``).  Nothing
+presses **Run now**: ``{"enabled": true}`` when ``BOUNCE_IMAP_URL`` and
+``BOUNCE_ADDRESS`` are both set, ``false`` when either is empty
+(``bounce_checking_enabled()`` in ``apps/mail/bounces.py``).  Nothing
 is read from the mailbox; one that is set up but cannot be read is found by a run.
 ``system_admin`` only.
 
@@ -404,8 +405,9 @@ Statuses: **200**; **401** when anonymous; **403** for every other role.
 
 Runs the bounce check immediately instead of waiting for the hourly timer: it
 reads the unseen messages in the bounce mailbox ``BOUNCE_IMAP_URL`` names, marks
-every email a permanent-failure report matches as ``bounced``, flags the address on
-the account that holds it, and marks each message read (:ref:`email-bounces`).
+``bounced`` every email whose signed bounce address a permanent-failure report was
+returned to, flags the address on the account that holds it, and marks each message
+read (:ref:`email-bounces`).
 ``system_admin`` only.  The body is optional; ``dry_run`` defaults to ``false``.
 
 .. code-block:: json
@@ -430,12 +432,15 @@ the account that holds it, and marks each message read (:ref:`email-bounces`).
      ]
    }
 
-``enabled`` is ``false`` when ``BOUNCE_IMAP_URL`` is empty: nothing is read and
-every count is zero.  ``bounced`` counts the permanent failures matched to a sent
-email, each an action of kind ``bounced`` naming the recipient as the row
-recorded them, ``on`` the day the email was sent; ``unmatched`` counts those no
-sent email could be found for, each an action of kind ``unmatched`` with an empty
-``member`` and a null ``on``; ``ignored`` counts the messages read that reported
+``enabled`` is ``false`` when ``BOUNCE_IMAP_URL`` or ``BOUNCE_ADDRESS`` is empty:
+nothing is read and every count is zero.  ``bounced`` counts the reports matched to
+a sent email by the signed address they were returned to, each an action of kind
+``bounced`` naming the recipient as the row recorded them, ``on`` the day the email
+was sent; ``unmatched`` counts the permanent failures in reports returned to no
+valid signed address of a sent email (the bare bounce address, a wrong signature,
+an id no row has, or a row the relay refused), each an action of kind
+``unmatched`` naming the report's ``Final-Recipient``, with an empty ``member``
+and a null ``on``, and none of them changes anything; ``ignored`` counts the messages read that reported
 no permanent failure at all (delays, temporary failures, auto-replies) or whose
 writes the database refused; ``skipped`` counts the messages left unread in the
 mailbox, one the server would not hand over or one larger than 1 MB.  ``detail``

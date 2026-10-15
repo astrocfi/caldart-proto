@@ -19,6 +19,7 @@ from rest_framework.test import APIClient
 from apps.accounts.models import User
 from apps.accounts.roles import SYSTEM_ADMIN
 from apps.mail.models import EmailLog, EmailStatus
+from caldart.mail import signed_bounce_address
 from tests.conftest import BounceReport, FakeMailbox, audit_messages, read_csv, role_matrix
 from tests.factories import EmailLogFactory, UserFactory
 
@@ -34,7 +35,7 @@ BOUNCED_AT = datetime(2026, 10, 1, 18, 0, tzinfo=UTC)
 
 @pytest.fixture
 def sent(db: None) -> EmailLog:
-    """A message sent to Dana Doe at ``gone@example.com`` with the report's Message-ID."""
+    """A message sent to Dana Doe at ``gone@example.com``."""
     user = UserFactory(email="gone@example.com", first_name="Dana", last_name="Doe")
     return EmailLogFactory(user=user, message_id="<original.1@caldart.example.org>")
 
@@ -72,7 +73,10 @@ def test_the_run_answers_its_counts_and_actions(
     bounce_report: BounceReport,
 ) -> None:
     """The answer is ``{enabled, bounced, unmatched, ignored, actions}``."""
-    fake_mailbox(bounce_report("hard_bounce"), bounce_report("auto_reply"))
+    fake_mailbox(
+        bounce_report("hard_bounce", envelope=signed_bounce_address(sent.pk)),
+        bounce_report("auto_reply"),
+    )
 
     body = system_admin_client.post(RUN_URL, {"dry_run": True}, format="json").json()
 
@@ -105,7 +109,7 @@ def test_a_run_with_no_body_is_live(
     bounce_report: BounceReport,
 ) -> None:
     """``dry_run`` defaults to false, so the row is marked."""
-    fake_mailbox(bounce_report("hard_bounce"))
+    fake_mailbox(bounce_report("hard_bounce", envelope=signed_bounce_address(sent.pk)))
 
     system_admin_client.post(RUN_URL, {}, format="json")
 
@@ -169,7 +173,7 @@ def test_the_command_prints_the_run(
     sent: EmailLog, fake_mailbox: FakeMailbox, bounce_report: BounceReport
 ) -> None:
     """The command prints the counts, one line per bounce, and a closing tally."""
-    fake_mailbox(bounce_report("hard_bounce"))
+    fake_mailbox(bounce_report("hard_bounce", envelope=signed_bounce_address(sent.pk)))
     out = StringIO()
 
     call_command("check_bounces", "--dry-run", stdout=out)
@@ -183,7 +187,9 @@ def test_the_command_with_checking_off_says_so_and_succeeds() -> None:
 
     call_command("check_bounces", stdout=out)
 
-    assert out.getvalue() == "Bounce checking is off: BOUNCE_IMAP_URL is not set.\n"
+    assert (
+        out.getvalue() == "Bounce checking is off: BOUNCE_IMAP_URL or BOUNCE_ADDRESS is not set.\n"
+    )
 
 
 def test_the_command_fails_when_the_mailbox_cannot_be_reached(fake_mailbox: FakeMailbox) -> None:

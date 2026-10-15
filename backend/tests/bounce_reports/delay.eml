@@ -1,8 +1,9 @@
+Delivered-To: {delivered_to}
 Return-Path: <>
 Date: Thu,  1 Oct 2026 14:00:05 -0700 (PDT)
 From: MAILER-DAEMON@mx.caldart.example.org (Mail Delivery System)
 Subject: Delayed Mail (still being retried)
-To: bounces@caldart.example.org
+To: {to}
 Auto-Submitted: auto-replied
 MIME-Version: 1.0
 Content-Type: multipart/report; report-type=delivery-status;

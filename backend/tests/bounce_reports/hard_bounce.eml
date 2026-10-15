@@ -1,9 +1,11 @@
 Return-Path: <>
+X-Original-To: {original_to}
+Delivered-To: {delivered_to}
 Received: by mx.caldart.example.org (Postfix) id 4F1A2B3C4D; Thu,  1 Oct 2026 10:00:05 -0700 (PDT)
 Date: Thu,  1 Oct 2026 10:00:05 -0700 (PDT)
 From: MAILER-DAEMON@mx.caldart.example.org (Mail Delivery System)
 Subject: Undelivered Mail Returned to Sender
-To: bounces@caldart.example.org
+To: {to}
 Auto-Submitted: auto-replied
 MIME-Version: 1.0
 Content-Type: multipart/report; report-type=delivery-status;

@@ -1,9 +1,10 @@
 """Reading delivery-status reports, and the bounce mailbox's address.
 
 ``apps.mail.bounces.parse_report`` turns one message from the bounce mailbox into the
-permanent failures it reports, read from real-shaped Postfix, Gmail and Exchange
-reports under ``backend/tests/bounce_reports/``; ``parse_imap_url`` reads
-``BOUNCE_IMAP_URL``.  See ``docs/developer/email.rst``, "Bounces".
+permanent failures it reports and the addresses it was delivered to, read from
+real-shaped Postfix, Gmail and Exchange reports under ``backend/tests/bounce_reports/``;
+``parse_imap_url`` reads ``BOUNCE_IMAP_URL``.  See ``docs/developer/email.rst``,
+"Bounces".
 """
 
 from __future__ import annotations
@@ -36,24 +37,43 @@ def test_a_hard_bounce_reports_its_recipient_status_and_diagnostic(
     assert report.failures == (FailedRecipient("gone@example.com", "5.1.1", POSTFIX_DIAGNOSTIC),)
 
 
-def test_a_report_reads_the_message_id_from_the_returned_headers(
-    bounce_report: BounceReport,
-) -> None:
-    """The original's ``Message-ID`` comes from its ``text/rfc822-headers`` copy."""
-    report = parse_report(bounce_report("hard_bounce", message_id="<abc.1@caldart.test>"))
+def test_a_report_names_the_addresses_it_was_delivered_to(bounce_report: BounceReport) -> None:
+    """``Delivered-To``, ``X-Original-To`` and ``To`` are read in that order."""
+    report = parse_report(
+        bounce_report(
+            "hard_bounce",
+            delivered_to="first@caldart.test",
+            original_to="second@caldart.test",
+            to="third@caldart.test",
+        )
+    )
 
     assert report is not None
-    assert report.message_id == "<abc.1@caldart.test>"
+    assert report.addressed_to == (
+        "first@caldart.test",
+        "second@caldart.test",
+        "third@caldart.test",
+    )
 
 
-def test_a_report_reads_the_message_id_from_the_returned_message(
-    bounce_report: BounceReport,
-) -> None:
-    """The original's ``Message-ID`` comes from a ``message/rfc822`` copy of it too."""
-    report = parse_report(bounce_report("attached_original", message_id="<abc.2@caldart.test>"))
+def test_an_address_named_twice_is_listed_once(bounce_report: BounceReport) -> None:
+    """The same address in every header is one address."""
+    report = parse_report(bounce_report("hard_bounce", envelope="bounces+7.ab@caldart.test"))
 
     assert report is not None
-    assert report.message_id == "<abc.2@caldart.test>"
+    assert report.addressed_to == ("bounces+7.ab@caldart.test",)
+
+
+def test_an_address_header_with_a_display_name_reads_as_its_address(
+    bounce_report: BounceReport,
+) -> None:
+    """``To: CalDART <bounces@...>`` names the address alone."""
+    report = parse_report(
+        bounce_report("no_original", to="CalDART <bounces+7.ab@caldart.test>", delivered_to="")
+    )
+
+    assert report is not None
+    assert report.addressed_to == ("bounces+7.ab@caldart.test",)
 
 
 def test_a_gmail_hard_bounce_reports_its_failure(bounce_report: BounceReport) -> None:
@@ -70,12 +90,13 @@ def test_a_gmail_hard_bounce_reports_its_failure(bounce_report: BounceReport) ->
     )
 
 
-def test_a_report_without_the_original_has_no_message_id(bounce_report: BounceReport) -> None:
-    """With no copy of the original the message id is ``""``; the failure still reads."""
+def test_a_report_without_the_original_still_reports_its_failure(
+    bounce_report: BounceReport,
+) -> None:
+    """A report carrying no copy of the original message reads all the same."""
     report = parse_report(bounce_report("no_original", status="5.1.10"))
 
     assert report is not None
-    assert report.message_id == ""
     assert report.failures == (
         FailedRecipient(
             "gone@example.com",

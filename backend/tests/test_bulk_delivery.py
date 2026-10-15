@@ -39,6 +39,7 @@ from apps.mail.bounces import check_bounces
 from apps.mail.models import EmailLog, EmailStatus
 from apps.members.models import MemberProfile
 from caldart.exceptions import DomainError
+from caldart.mail import signed_bounce_address
 from tests.conftest import BounceReport, FakeMailbox, audit_messages, read_csv, role_matrix
 from tests.factories import (
     BulkEmailFactory,
@@ -151,13 +152,16 @@ def bounce(row: BulkEmailRecipient, detail: str = BEA_BOUNCE) -> EmailLog:
 def test_a_bounce_the_bounce_check_reads_later_marks_the_bulk_copy(
     management: User, fake_mailbox: FakeMailbox, bounce_report: BounceReport
 ) -> None:
-    """The report's ``Message-ID`` names the copy; it reads bounced, with the detail."""
+    """A report to the copy's signed address marks it bounced, with the detail."""
     bulk = BulkEmailFactory(sender=management, status=BulkEmailStatus.QUEUED, start_at=PAST)
     add_to_batch(bulk, make_person("bea@example.test", "Bea", "Bell"))
     send_now(bulk)
     copy = row_of(bulk, "bea@example.test")
+    entry = EmailLog.objects.get(message_id=copy.message_id)
     fake_mailbox(
-        bounce_report("hard_bounce", recipient="bea@example.test", message_id=copy.message_id)
+        bounce_report(
+            "hard_bounce", recipient="bea@example.test", envelope=signed_bounce_address(entry.pk)
+        )
     )
 
     check_bounces()

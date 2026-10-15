@@ -985,6 +985,9 @@ def recorded_events() -> Iterator[RecordedEvents]:
 #: The directory of real-shaped delivery reports ``bounce_report`` reads.
 BOUNCE_REPORTS_DIR = Path(__file__).resolve().parent / "bounce_reports"
 
+#: The bounce address the fake mailbox's reports return to, unsigned.
+FAKE_BOUNCE_ADDRESS = "bounces@caldart.example.org"
+
 #: What a report's placeholders read when a test names none: a hard bounce.
 _BOUNCE_REPORT_DEFAULTS: dict[str, str] = {
     "recipient": "gone@example.com",
@@ -1000,8 +1003,8 @@ FAKE_BOUNCE_IMAP_URL = "imaps://bounces%40caldart.example.org:s3cret@imap.exampl
 class BounceReport(Protocol):
     """Render one report under ``backend/tests/bounce_reports/`` as raw message bytes."""
 
-    def __call__(self, name: str, **fields: str) -> bytes:
-        """Answer the report ``name`` with ``fields`` written over its defaults."""
+    def __call__(self, name: str, *, envelope: str = FAKE_BOUNCE_ADDRESS, **fields: str) -> bytes:
+        """Answer the report ``name`` sent to ``envelope``, with ``fields`` over it."""
 
 
 @pytest.fixture
@@ -1015,11 +1018,18 @@ def bounce_report() -> BounceReport:
     retried) and ``auto_reply`` (an out-of-office answer, no report at all).  Each of
     ``recipient``, ``message_id``, ``action`` and ``status`` defaults to a permanent
     failure for ``gone@example.com`` of ``<original.1@caldart.example.org>``.
+
+    ``envelope`` is the address the report was returned to, as the mailbox shows it:
+    the ``To`` the reporting server wrote and the ``Delivered-To`` (and, in the Postfix
+    report, ``X-Original-To``) the delivering server added.  It defaults to the bare
+    :data:`FAKE_BOUNCE_ADDRESS`; ``to``, ``delivered_to`` and ``original_to`` set one
+    of those headers alone.
     """
 
-    def render(name: str, **fields: str) -> bytes:
+    def render(name: str, *, envelope: str = FAKE_BOUNCE_ADDRESS, **fields: str) -> bytes:
         template = (BOUNCE_REPORTS_DIR / f"{name}.eml").read_text(encoding="utf-8")
-        return template.format_map({**_BOUNCE_REPORT_DEFAULTS, **fields}).encode()
+        addressed = {"to": envelope, "delivered_to": envelope, "original_to": envelope}
+        return template.format_map({**_BOUNCE_REPORT_DEFAULTS, **addressed, **fields}).encode()
 
     return render
 
@@ -1137,10 +1147,13 @@ def no_email_types(db: None) -> None:
 def fake_mailbox(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> FakeMailbox:
     """Point ``BOUNCE_IMAP_URL`` at a :class:`FakeImap` holding the messages given.
 
-    ``imaplib.IMAP4_SSL`` is replaced for the one test, so the bounce check opens the
-    fake rather than the network, and ``BOUNCE_IMAP_URL`` is
+    ``BOUNCE_ADDRESS`` is :data:`FAKE_BOUNCE_ADDRESS` from the start of the test, so a
+    report can carry a signed bounce address before the mailbox is installed.
+    Installing it replaces ``imaplib.IMAP4_SSL`` for the one test, so the bounce check
+    opens the fake rather than the network, and sets ``BOUNCE_IMAP_URL`` to
     :data:`FAKE_BOUNCE_IMAP_URL`.  Returns the fake, to read back what the check did.
     """
+    settings.BOUNCE_ADDRESS = FAKE_BOUNCE_ADDRESS
 
     def install(*messages: bytes, refuse: Exception | None = None) -> FakeImap:
         fake = FakeImap(list(messages), refuse=refuse)

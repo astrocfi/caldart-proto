@@ -181,7 +181,8 @@ sent to it, or until a user administrator clears it on :doc:`user-record`.
    Nothing is marked, and every message stays in the mailbox for the next run.
 #. Press **Run now**. The result reads, for example, *Would mark 1 bounced, leave 1
    unmatched, ignore 2, and skip 0.* *Bounced* counts the emails matched to a bounce,
-   *unmatched* the bounces CalDART could not tie to an email it sent in the last week,
+   *unmatched* the bounces that did not come back to the return address of an email
+   CalDART sent, which change nothing,
    *ignored* the messages that were not a refusal for good, and *skip* the messages left
    unread because the mail server would not hand them over or they were too large to be a
    bounce.
