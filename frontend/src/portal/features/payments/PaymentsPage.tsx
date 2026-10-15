@@ -3,7 +3,7 @@
  * CalDART, and about money CalDART will take next.
  *
  * Reading order is the order things matter: what is about to happen, what has
- * happened, and what the member's accountant will ask for.  Somebody with no
+ * happened, and what the member's accountant will ask for.  Somebody without a
  * membership to renew -- a life member or a friend -- is not offered an automatic
  * renewal, though one they still hold stays on screen so they can turn it off;
  * everybody may give on a schedule.
@@ -30,7 +30,7 @@ export function PaymentsPage(): JSX.Element {
   const renewal = useRenewal();
   // Until the membership is known the card stays, as it does for a member whose
   // membership cannot be read: hiding it would take their own controls away.  A friend,
-  // and a member who has not paid their first dues, have nothing to renew.
+  // and a member who has not paid their first dues, don't have anything to renew.
   const renews =
     membership.data === undefined ||
     (!membership.data.is_lifetime && !isWithoutTerm(membership.data.status));

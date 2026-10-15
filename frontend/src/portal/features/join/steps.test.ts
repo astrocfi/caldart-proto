@@ -33,7 +33,7 @@ const FRIEND: MembershipStatus = {
 const NONE: MembershipStatus = { ...FRIEND, status: 'none' };
 
 describe('furthestJoinStep', () => {
-  it('starts a visitor with no session at the account step', () => {
+  it('starts a visitor without a session at the account step', () => {
     expect(furthestJoinStep(null)).toBe('account');
   });
 
@@ -84,7 +84,7 @@ const CURRENT: MembershipStatus = {
 };
 
 describe('isOnboarded', () => {
-  it('is false with nobody signed in', () => {
+  it('is false when nobody is signed in', () => {
     expect(isOnboarded(null)).toBe(false);
   });
 
@@ -117,7 +117,7 @@ describe('isOnboarded', () => {
     expect(isOnboarded(user)).toBe(true);
   });
 
-  it('counts a verified account an administrator created as joined, with no term or profile', () => {
+  it('counts a verified account an administrator created as joined, without a term or profile', () => {
     const user = makeUser({
       admin_created: true,
       email_verified: true,
@@ -156,7 +156,7 @@ describe('holdFriendPayStep', () => {
     expect(furthestJoinStep(user)).toBe('pay');
   });
 
-  it('holds nobody else', () => {
+  it("doesn't hold anybody else", () => {
     holdFriendPayStep(7);
 
     expect(isOnboarded(makeUser({ id: 8, kind: 'friend', membership: FRIEND }))).toBe(true);
@@ -180,7 +180,7 @@ describe('joiningAs', () => {
     expect(joiningAs(makeUser({ kind: 'friend', membership: FRIEND }))).toBe('friend');
   });
 
-  it('walks nobody at all through as a member', () => {
+  it("doesn't walk anybody through as a member", () => {
     expect(joiningAs(null)).toBe('member');
   });
 });

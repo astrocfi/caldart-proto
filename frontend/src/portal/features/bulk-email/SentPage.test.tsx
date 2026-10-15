@@ -119,7 +119,7 @@ describe('SentPage', () => {
     expect(tableHeaders(table).at(-1)).toBe('Actions');
   });
 
-  it('tells a DART leader with nothing sent where their emails will show', async () => {
+  it("tells a DART leader who hasn't sent anything where their emails will show", async () => {
     answerSender(LEADER_SENDER);
     answerSent([]);
     renderWithProviders(<SentPage />);
@@ -139,7 +139,7 @@ describe('SentPage', () => {
     );
   });
 
-  it('offers no way to write one to a DART leader who has nobody to send to', async () => {
+  it("doesn't offer a way to write one to a DART leader who doesn't have anybody to send to", async () => {
     answerSender(NO_DART_SENDER);
     answerSent([]);
     renderWithProviders(<SentPage />);
@@ -147,7 +147,7 @@ describe('SentPage', () => {
     expect(screen.queryByRole('link', { name: 'New email' })).toBeNull();
   });
 
-  it('tells a DART leader with no DART why, with the way to My profile', async () => {
+  it('tells a DART leader without a DART why, with the way to My profile', async () => {
     answerSender(NO_DART_SENDER);
     answerSent([]);
     renderWithProviders(<SentPage />);

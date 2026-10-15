@@ -163,7 +163,7 @@ export function useRunReminders(): UseMutationResult<ReminderRunResult, unknown,
     mutationFn: (dryRun: boolean) =>
       api.post<ReminderRunResult>('/system/reminders/run', { dry_run: dryRun }),
     onSuccess: (_result, dryRun) => {
-      // A dry run writes nothing, so there is no new log row to fetch.
+      // A dry run doesn't write anything, so there isn't a new log row to fetch.
       if (dryRun) return;
       void queryClient.invalidateQueries({ queryKey: ['system', 'reminders', 'log'] });
       void queryClient.invalidateQueries({ queryKey: ['system', 'emails'] });
@@ -233,8 +233,8 @@ export function useRenewalScan(id: number | null): UseQueryResult<RenewalScan> {
  * subscription and DART roster that is due.
  *
  * A real run moves the subscriptions' dates and the rosters' last-sent times
- * and writes to the email log, so those are read again; a dry run changes
- * nothing.
+ * and writes to the email log, so those are read again; a dry run doesn't
+ * change anything.
  */
 export function useRunScheduledReports(): UseMutationResult<ReportRunResult, unknown, boolean> {
   const queryClient = useQueryClient();
@@ -260,7 +260,7 @@ export interface StatementsRunOptions {
  * Runs the year-end statement sender (or a rehearsal) via `POST /system/statements/run`.
  *
  * A real run writes `YearStatement` rows and sends mail, so the email log is
- * read again; a dry run changes nothing.
+ * read again; a dry run doesn't change anything.
  */
 export function useRunStatements(): UseMutationResult<
   StatementsRunResult,
@@ -291,7 +291,7 @@ export function useBounceStatus(): UseQueryResult<BounceStatus> {
  * bounce mailbox and marks every email that bounced.
  *
  * A real run changes email log rows and flags accounts, so the log and the user and
- * member records are read again; a dry run changes nothing.
+ * member records are read again; a dry run doesn't change anything.
  */
 export function useRunBounces(): UseMutationResult<BounceRunResult, unknown, boolean> {
   const queryClient = useQueryClient();

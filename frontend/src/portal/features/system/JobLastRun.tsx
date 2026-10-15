@@ -18,7 +18,7 @@ export interface JobLastRunProps {
   lead?: string;
 }
 
-/** The line, or nothing while the jobs load or when they didn't load. */
+/** The line once the jobs have loaded; null while they load or when they didn't load. */
 export function JobLastRun({ job, lead = 'Last run' }: JobLastRunProps): JSX.Element | null {
   const jobs = useJobs();
   const status = jobs.data?.find((row) => row.job === job);

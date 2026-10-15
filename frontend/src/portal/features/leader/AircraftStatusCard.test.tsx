@@ -24,7 +24,7 @@ describe('isInsured', () => {
     ).toBe(go);
   });
 
-  it('reads a current policy nobody has verified as no go', () => {
+  it('reads a current policy nobody has verified as a no-go', () => {
     expect(
       isInsured(
         {

@@ -356,7 +356,7 @@ describe('<ProfileFieldsets/>', () => {
     );
   });
 
-  it.each(['IFR rated', 'Home airport city'])('offers no %s field', (label) => {
+  it.each(['IFR rated', 'Home airport city'])("doesn't offer a %s field", (label) => {
     renderFieldsets();
     expect(screen.queryByLabelText(label)).not.toBeInTheDocument();
   });
@@ -398,7 +398,7 @@ describe('<ProfileFieldsets/>', () => {
     expect(screen.getByRole('option', { name: 'Loading DARTs…' })).toBeInTheDocument();
   });
 
-  it('offers no DART as a choice once the list has arrived', () => {
+  it('offers Not decided yet as a choice once the list has arrived', () => {
     renderFieldsets();
     expect(screen.getByRole('option', { name: 'Not decided yet' })).toBeInTheDocument();
   });
@@ -459,7 +459,7 @@ describe('<ProfileFieldsets/>', () => {
     );
   });
 
-  it('offers the kinds of photo ID, and nothing else about the document', () => {
+  it('offers only the kinds of photo ID about the document', () => {
     renderFieldsets();
     const select = screen.getByLabelText('Photo ID');
     expect(
@@ -486,7 +486,7 @@ describe('<ProfileFieldsets/>', () => {
     });
   });
 
-  it('shows no verification mark unless the caller passes the verified state', () => {
+  it("doesn't show a verification mark unless the caller passes the verified state", () => {
     renderFieldsets();
     expect(screen.queryByText(/verified/i)).not.toBeInTheDocument();
   });
@@ -536,7 +536,7 @@ describe('<ProfileFieldsets/>', () => {
     expect(screen.queryByText('Not yet verified')).not.toBeInTheDocument();
   });
 
-  it('shows no verified stamp on an item the member does not hold', () => {
+  it("doesn't show a verified stamp on an item the member does not hold", () => {
     renderFieldsets({ verification: ALL_VERIFIED });
     expect(screen.queryByText('Verified')).not.toBeInTheDocument();
   });
@@ -670,7 +670,7 @@ describe('<ProfileFieldsets/> address suggestions', () => {
     );
   });
 
-  it('keeps the state already chosen when the pick names none the form knows', async () => {
+  it("keeps the state already chosen when the pick doesn't name one the form knows", async () => {
     suggestAddresses([{ ...AMPHITHEATRE, state: '', county: '' }]);
     const user = userEvent.setup();
     const onChange = renderStateful({ ...EMPTY_PROFILE_FORM, state: 'OR' });
@@ -696,7 +696,7 @@ describe('<ProfileFieldsets/> address suggestions', () => {
     expect(screen.getByLabelText('City')).toHaveValue('Palo Alto');
   });
 
-  it('offers nothing while the server has no suggestions', async () => {
+  it("doesn't offer anything while the server doesn't have any suggestions", async () => {
     const queries = suggestAddresses([]);
     const user = userEvent.setup();
     renderStateful();

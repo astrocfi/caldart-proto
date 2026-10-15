@@ -2,10 +2,10 @@
  * `/donate` — give to CalDART once, or on a schedule.
  *
  * The page is the shared checkout in its contribution form, in a card of the page's
- * own: an amount, with none chosen at first and no "No thank you" to choose, since
+ * own: an amount, left unchosen at first and without a "No thank you" to choose, since
  * giving is the page's whole purpose, then **Make this a recurring donation** with how
- * often and the day of the first charge.  A gift taken now, recurring or not, thanks the giver and goes to
- * Payments, where the recurring donation is shown; one set up for a later day
+ * often and the day of the first charge.  A gift taken now, recurring or not, thanks the
+ * giver and goes to Payments, where the recurring donation is shown; one set up for a later day
  * does the same without taking anything today.  Any member or friend may give,
  * whatever their membership.  Somebody who already gives on a schedule is told so
  * first, and pointed to Payments to change it: a recurring donation set up here

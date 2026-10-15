@@ -70,7 +70,7 @@ describe('LeaderSearchPage', () => {
     expect(queries).toEqual(['reyes']);
   });
 
-  it('shows the name, the DART, and the verdict, and no email', async () => {
+  it('shows the name, the DART, and the verdict, but not the email', async () => {
     const user = setupUser();
     server.use(searchReturns([MARTA]));
 
@@ -138,7 +138,7 @@ describe('LeaderSearchPage', () => {
     expect(screen.queryByText('Member expired')).not.toBeInTheDocument();
   });
 
-  it('answers go or no-go on every row, so the list needs no click', async () => {
+  it("answers go or no-go on every row, so the list doesn't need a click", async () => {
     const user = setupUser();
     server.use(
       searchReturns([
@@ -268,7 +268,7 @@ describe('LeaderSearchPage', () => {
     expect(screen.getByText('Their account may have been deleted.')).toBeInTheDocument();
   });
 
-  it('offers the aircraft check when an N-number matches no member', async () => {
+  it("offers the aircraft check when an N-number doesn't match a member", async () => {
     const user = setupUser();
     server.use(searchReturns([]));
 

@@ -71,7 +71,7 @@ test('a treasurer reads the year of giving and can print a statement', async ({ 
   ).toBeVisible();
 
   // The seed spreads its payments over the past two years, so early in January
-  // the current year may hold none of them; last year always holds some.
+  // the current year may not hold any of them; last year always holds some.
   let rows = await contributionRows(page, thisYear);
   if ((await rows.count()) === 0) rows = await contributionRows(page, thisYear - 1);
 
@@ -133,7 +133,7 @@ test("a treasurer sees a life member's standing authority as a recurring donatio
   await expect(row).toContainText('Recurring donation · Yearly');
 });
 
-test('a plain member reaches none of the finance reports', async ({ page }) => {
+test('a plain member cannot reach any of the finance reports', async ({ page }) => {
   await signIn(page, DEMO.member);
   await page.goto('portal/admin/payments/reconciliation');
   await expect(page.getByRole('heading', { name: 'Not allowed' })).toBeVisible();

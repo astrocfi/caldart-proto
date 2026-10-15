@@ -111,7 +111,7 @@ test('CalDART management builds a batch from two filter sets and sends it', asyn
   expect(copy).toContain(subject);
   expect(copy).toContain('List-Unsubscribe-Post: List-Unsubscribe=One-Click');
 
-  // The copy's unsubscribe link opens a page that records nothing until its button is
+  // The copy's unsubscribe link opens a page that doesn't record anything until its button is
   // pressed, then turns Operational off; the manager turns it back on afterwards.
   const link = /<(https?:\/\/[^>\s]+\/mail\/unsubscribe\/[^>\s]+)>/.exec(copy);
   expect(link).not.toBeNull();

@@ -174,7 +174,7 @@ describe('CheckoutReturn', () => {
     expect(confirmations.count).toBe(1);
   });
 
-  it('complains about a link with no payment reference', async () => {
+  it('complains about a link without a payment reference', async () => {
     renderWithProviders(<CheckoutReturn onSuccess={() => {}} />, { route: '/join/done' });
     expect(await screen.findByText('Payment not confirmed')).toBeInTheDocument();
     expect(screen.getByText('That link is missing a payment reference.')).toBeInTheDocument();

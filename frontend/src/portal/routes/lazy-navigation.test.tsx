@@ -2,9 +2,9 @@
  * What a visitor sees while an on-demand page's module is still arriving.
  *
  * The root route's hydrate fallback covers the router's first load alone.  A
- * navigation made from inside the portal has no fallback: the router leaves
+ * navigation made from inside the portal doesn't have a fallback: the router leaves
  * the current screen in place until the page's module resolves, and the portal
- * adds no progress indicator of its own.  The developer guide describes that,
+ * doesn't add a progress indicator of its own.  The developer guide describes that,
  * so this file pins it.
  *
  * It stands apart from `index.test.tsx` because the page module mocked here
@@ -52,7 +52,7 @@ describe('a navigation to a page that loads on demand', () => {
     expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
   });
 
-  it('shows no loading indicator while the page module is on its way', async () => {
+  it("doesn't show a loading indicator while the page module is on its way", async () => {
     await startNavigationToMembers();
 
     expect(screen.queryByRole('status')).not.toBeInTheDocument();

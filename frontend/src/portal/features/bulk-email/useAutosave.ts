@@ -2,11 +2,11 @@
  * The compose screen's autosave: the subject and message as typed, saved once the
  * typing pauses, with a state the screen shows as a quiet *Saved* note.
  *
- * There is no Save button to forget. Send calls `flush` first, so the words on
+ * There isn't a Save button to forget. Send calls `flush` first, so the words on
  * the screen are the words that go. Saves run one at a time: a save asked for
  * while another is on its way waits for it, then saves whatever is newest, so two
  * requests never race and an older one never lands last. Words put back to the ones
- * the server holds need no request, and clear any refusal of the words in between.
+ * the server holds don't need a request, and clear any refusal of the words in between.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 

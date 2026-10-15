@@ -151,8 +151,8 @@ test('an unverified joiner sees only the verify screen, even after signing in ag
 }) => {
   const email = uniqueEmail('waiting');
   await registerAccount(page, email, { as: 'member', firstName: 'Vera' });
-  // Registering signs nobody in; signing in before following the link opens the verify
-  // step.
+  // Registering doesn't sign anybody in; signing in before following the link opens
+  // the verify step.
   await signInAsJoiner(page, email);
   await expect(page).toHaveURL(/\/portal\/join\/verify/);
   const rail = page.getByRole('navigation', { name: 'Portal sections' });
@@ -177,7 +177,7 @@ test('an unverified joiner sees only the verify screen, even after signing in ag
   await expect(page.getByText(`Verification message sent to ${email}.`)).toBeVisible();
   await expect(rail).toHaveCount(0);
 
-  // Following the link opens the profile step, still with no rail.
+  // Following the link opens the profile step, still without a rail.
   await followVerificationLink(page, email);
   await expect(page.getByRole('heading', { name: 'About you' })).toBeVisible();
   await expect(rail).toHaveCount(0);

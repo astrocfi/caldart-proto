@@ -48,7 +48,7 @@ export function makeRow(overrides: Partial<MemberRow> = {}): MemberRow {
   };
 }
 
-/** The member record's profile, with nothing verified yet. */
+/** The member record's profile, before anything is verified. */
 const PROFILE: AdminProfile = {
   phone: '415-555-0100',
   phone_extension: '',

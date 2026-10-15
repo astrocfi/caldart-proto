@@ -79,7 +79,7 @@ describe('DonatePage', () => {
     );
   });
 
-  it('says nothing of a recurring donation that is turned off', async () => {
+  it("doesn't mention a recurring donation that is turned off", async () => {
     holdDonation('canceled');
     mount();
 
@@ -93,14 +93,14 @@ describe('DonatePage', () => {
     expect(await screen.findByRole('heading', { name: 'Donate', level: 1 })).toBeInTheDocument();
   });
 
-  it('offers a friend a gift with no plan to buy', async () => {
+  it('offers a friend a gift without a plan to buy', async () => {
     mount();
 
     expect(await screen.findByRole('radio', { name: /Supporter/ })).toBeInTheDocument();
     expect(screen.queryByRole('radio', { name: /Annual/ })).not.toBeInTheDocument();
   });
 
-  it('opens with no amount chosen, no "No thank you", and no $0.00 to pay', async () => {
+  it('opens without an amount chosen, a "No thank you", or a $0.00 to pay', async () => {
     mount();
 
     await screen.findByRole('radio', { name: /Supporter/ });

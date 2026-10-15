@@ -120,7 +120,7 @@ const MEMBER_FILTERS: FilterField[] = [
   { key: 'expiring_within', label: 'Expiring within (days)', kind: 'number' },
 ];
 
-// The roles report has a section for every role but member, so member is no choice.
+// The roles report has a section for every role but member, so member isn't a choice.
 const ROLE_FILTERS: FilterField[] = [
   { key: 'search', label: 'Search', kind: 'search', placeholder: 'Name or email' },
   {

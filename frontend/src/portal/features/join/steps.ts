@@ -2,9 +2,9 @@
  * The join wizard's five steps and the rules for resuming one.
  *
  * Small functions so the resume logic can be tested on its own: given the signed-in
- * user (or nobody), which step should the visitor be on, and may they be on the step
- * the URL asks for?  The one thing they read beyond the user is the friend's pay step
- * this tab holds open (`holdFriendPayStep`).
+ * user (or null when nobody is signed in), which step should the visitor be on, and may
+ * they be on the step the URL asks for?  The one thing they read beyond the user is the
+ * friend's pay step this tab holds open (`holdFriendPayStep`).
  */
 import type { PersonKind, User } from '@/portal/api/types';
 
@@ -39,11 +39,11 @@ export const FRIEND_PAY_KEY = 'caldart.join.friend-pay';
 /**
  * Hold the pay step open for `userId` in this tab, or let it go with `null`.
  *
- * A friend owes nothing, so the server counts a friend with a complete profile as
+ * A friend doesn't owe anything, so the server counts a friend with a complete profile as
  * joined; the wizard still walks them through the pay step, and holds them there,
  * reload and all, until they pay or press **Continue without a gift**.  The hold lives
- * in this tab's session storage, so it ends with the tab; storage that cannot be used
- * holds nothing.
+ * in this tab's session storage, so it ends with the tab; where storage cannot be used,
+ * nothing is held.
  */
 export function holdFriendPayStep(userId: number | null): void {
   try {
@@ -76,7 +76,7 @@ export function nextJoinStep(step: JoinStep): JoinStep {
  * True when `user` has finished joining, so the rest of the portal is open to them.
  *
  * That takes a verified address, a complete profile, and, for somebody who chose to
- * be a member, a membership they have paid for: a stored friend owes nothing.  A
+ * be a member, a membership they have paid for: a stored friend doesn't owe anything.  A
  * member whose term has run out has joined already (renewing is not joining), and so
  * has a member who asked to become a friend (`friend_on` is set).  Nobody signed in
  * has not joined, and neither has an account whose pay step this tab holds open
@@ -105,7 +105,7 @@ function owesFirstDues(user: User): boolean {
  * verified yet means they still have to click the link we mailed; a session
  * without a usable profile means the profile step; a member who still owes their
  * first dues is at the pay step however often they leave and come back.  Everybody
- * else (`isOnboarded`) has joined.  A friend owes nothing, so the wizard offers a
+ * else (`isOnboarded`) has joined.  A friend doesn't owe anything, so the wizard offers a
  * friend the pay step on the way through from the profile step, and resumes there only
  * while this tab holds it open.  Because a step is left only by finishing it, this is
  * also the step the visitor last saw.

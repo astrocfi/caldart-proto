@@ -79,7 +79,7 @@ describe('TestSendButton', () => {
     );
   });
 
-  it('sends nothing when the latest words could not be saved', async () => {
+  it("doesn't send anything when the latest words could not be saved", async () => {
     const count = answerTest(() => HttpResponse.json({ to: 'pat@example.org' }));
     renderButton(false);
     await userEvent.click(screen.getByRole('button', { name: 'Send me a test' }));

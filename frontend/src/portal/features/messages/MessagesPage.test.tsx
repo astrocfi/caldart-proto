@@ -65,7 +65,7 @@ describe('MessagesPage', () => {
     ).toEqual(['Spring newsletter for Ann', 'March meeting']);
   });
 
-  it('says so when there are no messages yet', async () => {
+  it("says so when there aren't any messages yet", async () => {
     renderList([]);
     expect(await screen.findByText('No messages yet')).toBeVisible();
   });

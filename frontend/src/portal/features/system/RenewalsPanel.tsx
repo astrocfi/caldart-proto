@@ -41,7 +41,7 @@ export function renewalRunSummary(result: RenewalRunResult, dryRun: boolean): st
 /**
  * What each email template name, or a charge, reads as in the actions table.
  * `renewal_charged` reads by the charge itself, not "renewed", because a
- * contribution-only mandate's charge renews no membership.
+ * contribution-only mandate's charge doesn't renew a membership.
  */
 const ACTION_KIND_LABELS: Record<string, string> = {
   renewal_notice: 'Notice',

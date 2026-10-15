@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
 import { assertConsoleClean, expectConsoleMessage, installConsoleGuard } from './console';
 
 describe('assertConsoleClean', () => {
-  it('passes when the test wrote nothing', () => {
+  it("passes when the test didn't write anything", () => {
     installConsoleGuard();
 
     expect(() => assertConsoleClean()).not.toThrow();
@@ -45,7 +45,7 @@ describe('assertConsoleClean', () => {
     expect(() => assertConsoleClean()).toThrow(/\/a warning that stopped\//);
   });
 
-  it('leaves no declaration behind for the next test', () => {
+  it("doesn't leave a declaration behind for the next test", () => {
     installConsoleGuard();
     expectConsoleMessage(/never written/);
     expect(() => assertConsoleClean()).toThrow();

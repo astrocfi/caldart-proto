@@ -20,7 +20,7 @@ describe('isItemHeld', () => {
     ['certificate', { pilot_certificate_type: 'none' }],
     ['medical', { medical_type: 'none' }],
     ['photo_id', { photo_id_type: 'not_provided' }],
-  ] as const)('reads a %s marked none as not held', (item, override) => {
+  ] as const)('reads a %s the person does not hold as not held', (item, override) => {
     expect(isItemHeld(item, { ...PILOT, ...override })).toBe(false);
   });
 });

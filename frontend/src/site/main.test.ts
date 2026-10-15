@@ -90,7 +90,7 @@ describe('applyThemePreview', () => {
     root.dataset.theme = 'sierra';
   });
 
-  it('does nothing when the viewer is not an administrator', () => {
+  it("doesn't do anything when the viewer is not an administrator", () => {
     applyThemePreview(root, '?theme=night');
     expect(root.dataset.theme).toBe('sierra');
   });
@@ -107,7 +107,7 @@ describe('applyThemePreview', () => {
     expect(root.dataset.theme).toBe('sierra');
   });
 
-  it('ignores a URL with no theme parameter', () => {
+  it('ignores a URL without a theme parameter', () => {
     root.dataset.themePreview = 'allowed';
     applyThemePreview(root, '?page=2');
     expect(root.dataset.theme).toBe('sierra');

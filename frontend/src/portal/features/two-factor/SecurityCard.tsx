@@ -28,7 +28,7 @@ import { OtpField } from './OtpField';
 import { RecoveryCodesPanel } from './RecoveryCodesPanel';
 import { useFocusOnChange } from './focus';
 
-/** Why a role that requires two-factor sign-in has no Turn off button. */
+/** Why a role that requires two-factor sign-in doesn't have a Turn off button. */
 export const REQUIRED_SENTENCE =
   'Your role requires two-factor sign-in, so it cannot be turned off. If you lose your ' +
   'phone, sign in with a backup code, or ask a user administrator to reset it.';

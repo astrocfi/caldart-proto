@@ -13,7 +13,7 @@ configure({ reactStrictMode: true });
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 
-// jsdom lays nothing out, and has no way to measure a text selection: the rich text
+// jsdom doesn't lay anything out, and doesn't have a way to measure a text selection: the rich text
 // editor (ProseMirror) measures one to scroll it into view whenever a command
 // focuses the editor, so each measure answers an empty box.
 beforeAll(() => {
@@ -24,7 +24,7 @@ beforeAll(() => {
 
 // `restoreMocks` restores every spy before each test, so the guard is installed
 // afterwards rather than once for the whole run.  `scrollTo` is stubbed in the
-// same place: jsdom has no layout, so its own implementation only logs "Not
+// same place: jsdom doesn't lay pages out, so its own implementation only logs "Not
 // implemented", and the portal calls it on every navigation.
 beforeEach(() => {
   installConsoleGuard();
@@ -38,7 +38,7 @@ afterEach(() => {
   // one file cannot leave the next test running against a stopped clock.
   vi.useRealTimers();
   // Drop the cookies and the client's in-flight bootstrap together, so each test
-  // starts with no CSRF token and fetches its own.
+  // starts without a CSRF token and fetches its own.
   for (const cookie of document.cookie.split(';')) {
     const name = cookie.split('=')[0]?.trim();
     if (name) document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;

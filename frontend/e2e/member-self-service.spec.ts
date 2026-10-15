@@ -59,7 +59,7 @@ test('a member signs in, edits their profile and reads members-only content', as
   // Attach an airplane from the picker, then search for that registration on
   // its own: the picker leaves it out of the results and names it in a
   // sentence underneath.  Every registration begins with an N and a digit, so
-  // the search term and the result need no seeded make or model.
+  // the search term and the result don't need a seeded make or model.
   const search = page.getByRole('searchbox', { name: "Search CalDART's aircraft list" });
   await search.fill('N');
   const firstResult = page.getByRole('button', { name: /^N\d/ }).first();

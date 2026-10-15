@@ -38,7 +38,7 @@ function mount({
   return renderWithProviders(<PaymentsPage />, { route: '/payments' });
 }
 
-/** The lede once the membership is known to have nothing to renew. */
+/** The lede once it is known that the membership doesn't have anything to renew. */
 const NO_RENEWAL_LEDE = 'Your recurring donation, payments and receipts, and tax statements.';
 
 /** Queries scoped to one `<Card>`, found by its heading. */
@@ -83,7 +83,7 @@ describe('PaymentsPage', () => {
     expect(screen.queryByRole('heading', { name: 'Automatic renewal' })).not.toBeInTheDocument();
   });
 
-  it('offers a friend no automatic renewal, since a friend pays no dues', async () => {
+  it("doesn't offer a friend an automatic renewal, since a friend doesn't pay dues", async () => {
     mount({
       membership: { ...CURRENT_MEMBERSHIP, status: 'friend', plan: null, expires_on: null },
     });
@@ -159,7 +159,7 @@ describe('PaymentsPage', () => {
     expect(await screen.findByRole('cell', { name: 'Donation' })).toBeInTheDocument();
   });
 
-  it('offers no receipt for a payment whose money never arrived', async () => {
+  it("doesn't offer a receipt for a payment whose money never arrived", async () => {
     mount({
       payments: [makePaymentSummary({ status: 'failed', paid_on: null, receipt_sent_at: null })],
     });
@@ -184,7 +184,7 @@ describe('PaymentsPage', () => {
     expect(screen.getByText('$25.00')).toBeInTheDocument();
   });
 
-  it('says so plainly when the member has paid nothing yet', async () => {
+  it("says so plainly when the member hasn't paid anything yet", async () => {
     mount();
 
     expect(await screen.findByText('No payments yet')).toBeInTheDocument();
@@ -211,13 +211,13 @@ describe('PaymentsPage', () => {
     expect(statements.queryByText(/501\(c\)\(3\) wording/)).not.toBeInTheDocument();
   });
 
-  it('explains why a year of dues alone has no statement', async () => {
+  it("explains why a year of dues alone doesn't have a statement", async () => {
     mount();
 
     expect(await screen.findByText('No statements yet')).toBeInTheDocument();
   });
 
-  it('does not pass a failed statements read off as a year with nothing in it', async () => {
+  it('does not pass a failed statements read off as an empty year', async () => {
     mount({
       extra: [
         http.get(`${API}/me/payments/statements`, () =>

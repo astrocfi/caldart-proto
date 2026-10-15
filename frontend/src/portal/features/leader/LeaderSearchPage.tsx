@@ -129,7 +129,7 @@ interface MemberCheckProps {
 
 /**
  * The chosen member's status card, or why it could not be loaded.  **Back to search**
- * above the card is the way back, so the card offers no second one.
+ * above the card is the way back, so the card doesn't offer a second one.
  */
 function MemberCheck({ userId }: MemberCheckProps): JSX.Element {
   const status = useMemberStatus(userId);

@@ -4,7 +4,7 @@
  * `templates/cms/donate_page.html` renders the mount with the address the form reads
  * its configuration from and the address a redirected payment comes back to, and
  * holds the editor's thanks text hidden beside it.  The form runs outside the portal,
- * so it gets a query client and a toast queue of its own and no router.  Once a gift
+ * so it gets a query client and a toast queue of its own, but not a router.  Once a gift
  * has gone through the thanks text is shown.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';

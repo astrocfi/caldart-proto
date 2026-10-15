@@ -52,7 +52,7 @@ function renderCompose(state: BulkEmailState, ...roles: RoleSlug[]): void {
   });
 }
 
-/** An email with nothing written yet. */
+/** An email that is still empty. */
 function emptyDraft(): BulkEmailState {
   return { email: makeBulkEmail({ subject: '', body: '' }), batch: makeBatch([]) };
 }

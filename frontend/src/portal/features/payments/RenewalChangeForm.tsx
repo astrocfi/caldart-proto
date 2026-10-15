@@ -92,7 +92,7 @@ export function RenewalChangeForm({
     (contributionCents > 0 &&
       !config.contribution_tiers.some((tier) => tier.cents === contributionCents));
 
-  // The server refuses a donation of nothing, so it is stopped here rather than
+  // The server refuses a donation of $0, so it is stopped here rather than
   // at the API.
   const needsContribution = isDonation && contributionCents === 0;
   // A donation stands alone, so the server refuses one under its smallest; a renewal's

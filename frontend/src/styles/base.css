@@ -336,9 +336,9 @@ a:hover {
   display: none;
 }
 
-/* A field with no hint draws an empty slot in the hint's place.  It takes no room; in a
- * two-column form grid it holds the field's box in the box row, so the boxes of one row
- * line up without any space set aside where neither field has a hint. */
+/* A field without a hint draws an empty slot in the hint's place.  It doesn't take up
+ * any room; in a two-column form grid it holds the field's box in the box row, so the
+ * boxes of one row line up without any space set aside where neither field has a hint. */
 .field__hint-slot {
   display: block;
 }
@@ -402,14 +402,14 @@ a:hover {
   }
 
   /* A hidden hint keeps its row here, so the box stays level with its neighbor's, which
-   * still shows a hint or has none to show. */
+   * still shows a hint or doesn't have one to show. */
   :is(.form-grid, .aircraft-form__grid) > .field > .field__hint--hidden {
     display: block;
   }
 
   /* When both fields of a row are refused, neither shows its hint and nothing needs
-   * holding level: the hint row gives up its room, leaving no blank band between the
-   * labels and the boxes.  A row is a field in an odd place among the fields and the one
+   * holding level: the hint row gives up its room, without leaving a blank band between
+   * the labels and the boxes.  A row is a field in an odd place among the fields and the one
    * after it. */
   :is(.form-grid, .aircraft-form__grid)
     > .field:nth-child(odd of .field):has(> .field__hint--hidden):has(
@@ -436,7 +436,7 @@ a:hover {
   margin-left: 0.15em;
 }
 
-/* A control with no `type` attribute is a text box, and CSS's attribute
+/* A control without a `type` attribute is a text box, and CSS's attribute
  * selectors do not know that, so it is named here with the rest. */
 input:not([type]),
 input[type='text'],
@@ -577,7 +577,7 @@ legend {
 }
 
 /* ------------------------------------------------------- bare icon button */
-/* One icon and nothing else: no frame, so a row of records reads as a list
+/* Only an icon, without a frame, so a row of records reads as a list
    rather than as a wall of buttons.  It comes forward on hover and on focus. */
 .icon-button {
   display: inline-flex;
@@ -1127,8 +1127,8 @@ tfoot td {
  * the words around it, each line keeping its own edge.  The fill is the primary color
  * mixed 10% into the editor's ground; `theme-contrast.mjs` checks the text on that
  * fill and the muted edge against both of the editor's grounds in every theme (keep
- * its `CHIP_TINT` in step).  The selected ring is drawn inside the chip, so it covers
- * nothing beside it.  An unknown field has a dashed edge in the error color and says
+ * its `CHIP_TINT` in step).  The selected ring is drawn inside the chip, so it doesn't
+ * cover anything beside it.  An unknown field has a dashed edge in the error color and says
  * so in words. */
 .rich-text__field {
   padding: 0.05em var(--space-1);

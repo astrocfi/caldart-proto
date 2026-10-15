@@ -116,7 +116,7 @@ async function continueAsFriend(): Promise<void> {
 }
 
 describe('<PayStep/>', () => {
-  it('holds the checkout in the step’s own card, with one heading and no eyebrow', async () => {
+  it('holds the checkout in the step’s own card, with one heading and without an eyebrow', async () => {
     stubPayApi('member');
     const { container } = renderPayStep('member');
 
@@ -166,7 +166,7 @@ describe('<PayStep/> for a member who chooses to be a friend', () => {
 });
 
 describe('<PayStep/> when making the account a friend', () => {
-  it('waits on its button, so a second press sends nothing more', async () => {
+  it("waits on its button, so a second press doesn't send anything more", async () => {
     const kindCalls = stubPayApi('member');
     server.use(
       http.post(`${API}/me/kind/friend`, async () => {
@@ -239,7 +239,7 @@ describe('<PayStep/> for a friend who chooses to be a member', () => {
     expect(await screen.findByTestId('checkout-total')).toHaveTextContent('$45.00');
   });
 
-  it('changes nothing on the server until the dues are paid', async () => {
+  it("doesn't change anything on the server until the dues are paid", async () => {
     const kindCalls = stubPayApi('friend');
     renderPayStep('friend');
 

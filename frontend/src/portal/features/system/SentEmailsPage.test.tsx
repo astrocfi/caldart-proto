@@ -19,7 +19,7 @@ describe('SentEmailsPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('holds the email log and nothing else', async () => {
+  it('holds only the email log', async () => {
     server.use(...systemPageHandlers());
     renderWithProviders(<SentEmailsPage />);
 
@@ -27,7 +27,7 @@ describe('SentEmailsPage', () => {
     expect(document.querySelectorAll('section.card')).toHaveLength(1);
   });
 
-  it('carries no second heading under the page title', async () => {
+  it("doesn't carry a second heading under the page title", async () => {
     server.use(...systemPageHandlers());
     renderWithProviders(<SentEmailsPage />);
 

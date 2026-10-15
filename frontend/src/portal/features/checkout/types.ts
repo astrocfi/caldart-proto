@@ -29,7 +29,7 @@ export interface CheckoutProps {
   defaultAutoRenew?: boolean;
   /**
    * The level of the checkout's own headings, one under the heading over the card that
-   * holds it: 2 (the default) in a card with no title of its own under the page's
+   * holds it: 2 (the default) in a card without a title of its own under the page's
    * title, 3 in a card with one, such as the join wizard's **Pay your dues**.
    */
   headingLevel?: CheckoutHeadingLevel;

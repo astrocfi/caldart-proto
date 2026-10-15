@@ -80,7 +80,7 @@ describe('TemplatesPage', () => {
     expect(chip).toHaveClass('field-chip');
   });
 
-  it('says so when there is no template yet', async () => {
+  it("says so when there isn't a template yet", async () => {
     state.rows = [];
     renderWithProviders(<TemplatesPage />);
     expect(await screen.findByText('No templates yet')).toBeVisible();
@@ -116,7 +116,7 @@ describe('TemplatesPage', () => {
     );
   });
 
-  it('refuses a template with no name, focusing the Name box, before asking the server', async () => {
+  it('refuses a template without a name, focusing the Name box, before asking the server', async () => {
     const user = userEvent.setup();
     renderWithProviders(<TemplatesPage />);
     await user.click(await screen.findByRole('button', { name: 'New template' }));

@@ -244,7 +244,7 @@ const CALLSIGN_RE = /^(?:[KNW][A-Z]?|A[A-L])[0-9][A-Z]{1,3}$/;
 
 const CALLSIGN_MESSAGE = 'Enter a US amateur radio callsign, such as W6ABC.';
 
-/** The digits of a pilot certificate number, which holds nothing else. */
+/** The digits of a pilot certificate number, which doesn't hold anything else. */
 export const CERTIFICATE_NUMBER_DIGITS = 7;
 
 /** A certificate number as it is stored, matching `CERTIFICATE_NUMBER_RE` on the server. */

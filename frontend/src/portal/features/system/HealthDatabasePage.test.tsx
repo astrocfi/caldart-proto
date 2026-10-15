@@ -47,7 +47,7 @@ describe('HealthDatabasePage', () => {
     expect(
       await screen.findByText(
         'Loads the FAA aircraft data, which is what the N-number box on an aircraft form ' +
-          'offers. It runs every night and changes nothing else.',
+          "offers. It runs every night and doesn't change anything else.",
       ),
     ).toBeInTheDocument();
   });

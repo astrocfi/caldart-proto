@@ -1,15 +1,16 @@
 /**
  * `/renew` — renew an existing membership.
  *
- * The new term starts the day after the current one ends, so renewing early
- * costs nothing, and a lapsed membership's new year starts today; the lede says
+ * The new term starts the day after the current one ends, so renewing early doesn't
+ * lose any days, and a lapsed membership's new year starts today; the lede says
  * whichever applies, and the status card above the checkout says exactly what the
  * member has now, at the checkout's own width.  A member whose automatic renewal is on
- * is told what it will charge and when, and that they need do nothing; the checkout
- * waits behind **Renew now anyway**, so nobody pays twice by mistake.  A life member has nothing to renew and
- * gives through Donate like everyone else, so the page sends them to `/donate`.  A
- * friend has no membership to renew either (that includes a member who registered and
- * has not yet paid), so the page sends them on to `/membership/join`.
+ * is told what it will charge and when, and that they don't need to do anything; the
+ * checkout waits behind **Renew now anyway**, so nobody pays twice by mistake.  A life
+ * member doesn't have anything to renew and gives through Donate like everyone else, so
+ * the page sends them to `/donate`.  A friend doesn't have a membership to renew either
+ * (that includes a member who registered and has not yet paid), so the page sends them
+ * on to `/membership/join`.
  */
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
@@ -34,12 +35,12 @@ import { useMembership } from '@/portal/features/profile/api';
 import { refreshAfterPayment } from './refresh';
 import './join.css';
 
-/** Where a life member gives, having no term to renew. */
+/** Where a life member gives, since they don't have a term to renew. */
 export const LIFETIME_GIVING_PATH = '/donate';
 
 /** The lede for a membership that is still current. */
 const EARLY_LEDE =
-  'A renewal starts the day after your current term ends, so there is no penalty for ' +
+  "A renewal starts the day after your current term ends, so you don't lose any days by " +
   'renewing early.';
 
 /** The lede for a membership that has run out. */
@@ -55,10 +56,10 @@ type RenewalState =
 /**
  * What the member's automatic renewal will do, read off the mandate the server sends: an
  * active one charges on its day (`on`), or on its day again after a declined charge
- * (`retrying`, when `failure_count` is above 0); a `paused` one charges nothing, paused
- * after refused charges (`wasRefused`) or because the membership lapsed more than 30 days
- * before; anything else, including a recurring donation, renews
- * nothing (`none`).
+ * (`retrying`, when `failure_count` is above 0); a `paused` one doesn't charge anything,
+ * paused after refused charges (`wasRefused`) or because the membership lapsed more than
+ * 30 days before; anything else, including a recurring donation, doesn't renew anything
+ * (`none`).
  */
 export function renewalState(mandate: RenewalMandate | null | undefined): RenewalState {
   if (mandate === null || mandate === undefined || mandate.kind === 'contribution') {
@@ -173,7 +174,7 @@ interface AutomaticRenewalCardProps {
  * What automatic renewal will do, above the checkout: it will charge on its day, it is
  * trying again after a declined charge, or it is paused after a refused charge and the
  * member renews here.
- * Nothing when the member has none.
+ * Nothing when the member doesn't have one.
  */
 function AutomaticRenewalCard({
   state,

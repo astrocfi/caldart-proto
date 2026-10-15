@@ -98,7 +98,7 @@ function addressKey(pick: AddressSuggestion): string {
  * `value` with a picked address written into its street, city, state, ZIP code,
  * and county.  The address line 2 is the member's own and is left alone.  A state
  * the form does not offer keeps the one already chosen, and a county it does not
- * offer (every address outside California) reads as none.
+ * offer (every address outside California) is left blank.
  */
 function withPickedAddress(value: ProfileFormValues, pick: AddressSuggestion): ProfileFormValues {
   return {
@@ -169,7 +169,8 @@ export interface ProfileFieldsetsProps {
 /**
  * Render the profile fieldsets for whoever is editing the record.
  *
- * @param value - the profile being edited; the component holds no state of its own.
+ * @param value - the profile being edited; the component doesn't hold any state of its
+ *   own.
  * @param onChange - called with the whole next value on every edit.
  */
 export function ProfileFieldsets({
@@ -189,8 +190,8 @@ export function ProfileFieldsets({
 
   /**
    * The mark under an item's field, with the hint under the first; nothing without marks.
-   * An item the member does not hold (no certificate, no medical, no photo ID) has nothing
-   * to verify, so it carries no mark at all, and a medical whose date has passed reads
+   * An item the member does not hold (no certificate, no medical, no photo ID) doesn't
+   * have anything to verify, so it doesn't carry a mark, and a medical whose date has passed reads
    * *Expired* before its mark.
    */
   const mark = (item: VerificationItem): ReactNode => {

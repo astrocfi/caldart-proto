@@ -93,7 +93,7 @@ describe('<RenewPage/>', () => {
     expect(screen.getByText('06/30/2024')).toBeInTheDocument();
   });
 
-  it('sends a life member, who has nothing to renew, to Donate', async () => {
+  it("sends a life member, who doesn't have anything to renew, to Donate", async () => {
     renderRenew(detail({ expires_on: null, plan: 'Life', is_lifetime: true }));
 
     expect(await screen.findByText('Donate')).toBeInTheDocument();
@@ -124,7 +124,7 @@ describe('<RenewPage/>', () => {
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
   });
 
-  it('sends a friend, who has nothing to renew, to become a member', async () => {
+  it("sends a friend, who doesn't have anything to renew, to become a member", async () => {
     renderRenew(detail({ status: 'friend', expires_on: null, plan: null }));
 
     expect(await screen.findByText('Become a member')).toBeInTheDocument();

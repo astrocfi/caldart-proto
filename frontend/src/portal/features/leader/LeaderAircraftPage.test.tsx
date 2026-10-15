@@ -192,7 +192,7 @@ describe('LeaderAircraftPage search', () => {
     expect(await screen.findByText('No aircraft matches that')).toBeInTheDocument();
   });
 
-  it('has no Check aircraft button: the results are the answer', () => {
+  it("doesn't have a Check aircraft button: the results are the answer", () => {
     renderPage();
     expect(screen.queryByRole('button', { name: /Check aircraft/ })).not.toBeInTheDocument();
   });
@@ -243,7 +243,7 @@ describe('LeaderAircraftPage card', () => {
     expect(screen.getByText('Coverage expires soon')).toBeInTheDocument();
   });
 
-  it('says NOT INSURED when there is no policy at all', async () => {
+  it("says NOT INSURED when there isn't a policy at all", async () => {
     server.use(
       http.get(`${API}/leader/aircraft`, () =>
         HttpResponse.json(
@@ -474,7 +474,7 @@ describe('LeaderAircraftPage card', () => {
     expect(row.parentElement).toHaveTextContent(/Verified by Dana Leader on 05\/01\/2026$/);
   });
 
-  it('draws no mark on the insurance row while no policy is on file', async () => {
+  it("doesn't draw a mark on the insurance row while no policy is on file", async () => {
     server.use(
       http.get(`${API}/leader/aircraft`, () =>
         HttpResponse.json(
@@ -512,7 +512,7 @@ describe('LeaderAircraftPage card', () => {
     expect(calls.aircraft).toEqual([{ aircraftId: 1, body: { verified: true } }]);
   });
 
-  it('offers no Verify to a reader without a verifying role', async () => {
+  it("doesn't offer Verify to a reader without a verifying role", async () => {
     server.use(
       signedInAs(makeUser({ roles: ['member'] })),
       http.get(`${API}/leader/aircraft`, () => HttpResponse.json(makeVerifiedAircraft())),
@@ -523,7 +523,7 @@ describe('LeaderAircraftPage card', () => {
     expect(screen.queryByRole('button', { name: 'Verify' })).not.toBeInTheDocument();
   });
 
-  it('asks nothing until a registration is given', () => {
+  it("doesn't ask anything until a registration is given", () => {
     renderWithProviders(<LeaderAircraftPage />, { route: '/leader/aircraft' });
     expect(screen.queryByText(/INSURED/)).not.toBeInTheDocument();
   });

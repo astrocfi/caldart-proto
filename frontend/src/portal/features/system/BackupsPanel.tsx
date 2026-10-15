@@ -105,7 +105,8 @@ export function BackupsPanel(): JSX.Element {
       }
     >
       <p className="muted">
-        There is no restore button. To restore a backup, ask the person who installed the site.
+        The portal doesn&apos;t have a restore button. To restore a backup, ask the person who
+        installed the site.
       </p>
       <JobLastRun job="backup" lead="Last nightly backup" />
 

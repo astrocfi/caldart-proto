@@ -57,7 +57,7 @@ describe('the page width', () => {
     expect(ruleBody('.page')).toContain('max-width: var(--portal-page-max);');
   });
 
-  it('lets no card escape that width, a card holding a table included', () => {
+  it("doesn't let any card escape that width, a card holding a table included", () => {
     expect(css).not.toContain('.card:has(.data-table)');
   });
 });
@@ -92,7 +92,7 @@ describe('the join wizard card', () => {
   });
 
   // One width for every step, so the card's edges never move between steps.
-  it('has no narrower or wider variant for some steps', () => {
+  it("doesn't have a narrower or wider variant for some steps", () => {
     expect(joinCss).not.toMatch(/join-card--(narrow|wide)|join-shell--wide/);
   });
 });

@@ -45,7 +45,7 @@ describe('MemberVerificationPanel', () => {
     expect(screen.getByLabelText('Medical verified')).not.toBeChecked();
   });
 
-  it('offers no box for an item the person does not hold', () => {
+  it("doesn't offer a box for an item the person does not hold", () => {
     renderPanel();
     expect(screen.queryByLabelText('Photo ID verified')).not.toBeInTheDocument();
   });
@@ -59,7 +59,7 @@ describe('MemberVerificationPanel', () => {
     expect(screen.queryByLabelText('Pilot certificate verified')).not.toBeInTheDocument();
   });
 
-  it('says there is nothing to verify when the person holds none of the items', async () => {
+  it("says there isn't anything to verify when the person doesn't hold any of the items", async () => {
     const user = userEvent.setup();
     renderPanel();
 

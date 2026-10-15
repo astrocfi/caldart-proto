@@ -34,7 +34,7 @@ describe('InsuranceVerificationCard', () => {
     );
   });
 
-  it('reads No insurance on file for an aircraft with none on record', () => {
+  it('reads No insurance on file for an aircraft without any on record', () => {
     renderWithProviders(
       <InsuranceVerificationCard
         aircraft={makeVerifiedAircraft({
@@ -64,7 +64,7 @@ describe('InsuranceVerificationCard', () => {
     );
   });
 
-  it('offers no Verify to a reader without a verifying role', () => {
+  it("doesn't offer Verify to a reader without a verifying role", () => {
     renderWithProviders(<InsuranceVerificationCard aircraft={makeVerifiedAircraft()} />);
     expect(screen.queryByRole('button', { name: 'Verify' })).not.toBeInTheDocument();
   });

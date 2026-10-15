@@ -21,7 +21,7 @@ function term(plan: Plan): string {
 /**
  * The plan radio cards at the top of the checkout.
  *
- * A choice of one is no choice: with a single plan on offer the section names it in
+ * A choice of one isn't a choice: with a single plan on offer the section names it in
  * plain text (its name, price, and term) rather than drawing a radio group with one
  * option.
  */

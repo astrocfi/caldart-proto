@@ -3,12 +3,11 @@
  *
  * Choose a plan, optionally add a contribution, then pay with whichever
  * providers this deployment has keys for.  The first plan `GET /payments/config`
- * lists is chosen until somebody picks another; where the server lists none, the
- * form says no membership plan is set up and offers no way to pay for one.  In
- * `contribute` mode there is no
- * plan to choose: the payment buys no membership term, which is the only thing
- * a life member can do here, so one is shown this form whatever mode was asked
- * for.
+ * lists is chosen until somebody picks another; where the server doesn't list any, the
+ * form says that no membership plan is set up and doesn't offer a way to pay for one.
+ * In `contribute` mode there isn't a plan to choose: the payment doesn't buy a
+ * membership term, which is the only thing a life member can do here, so one is shown
+ * this form whatever mode was asked for.
  *
  * A contribution can be made a recurring donation, monthly, quarterly, or
  * yearly.  With the first charge today it is paid now and the method saved for
@@ -18,14 +17,14 @@
  * the server, and the widget then asks, in the server's words, whether to move it:
  * a contribution lives in one place.
  *
- * A finished payment is reported through `onSuccess` and nothing else: the flow
+ * A finished payment is reported only through `onSuccess`: the flow
  * that hosts the widget owns the queries a payment moves, so the refresh happens
  * once, where the keys are known.
  *
- * The widget draws no card, eyebrow, or title of its own: every host already puts it
+ * The widget doesn't draw a card, eyebrow, or title of its own: every host already puts it
  * under a heading that says what is being paid for, inside a card of its own.  A
- * donation (`contribute` mode) offers no "No thank you" and starts with no amount
- * chosen, since giving is the point of the form; dues offer it, preselected, since a
+ * donation (`contribute` mode) doesn't offer "No thank you" and starts without an
+ * amount chosen, since giving is the point of the form; dues offer it, preselected, since a
  * contribution on top of them is an extra.
  *
  * A host where giving is optional passes `onSkip`: the widget then offers **Continue
@@ -123,7 +122,7 @@ export function Checkout({
     [config],
   );
 
-  // A life member has nothing left to buy, and the server refuses a plan from
+  // A life member doesn't have anything left to buy, and the server refuses a plan from
   // them, so every mode collapses to the contribution form.
   const isLifetime = user?.membership.is_lifetime ?? false;
   const effectiveMode: CheckoutMode = isLifetime ? 'contribute' : mode;
@@ -169,8 +168,8 @@ export function Checkout({
   const offered = config.plans.map((entry) => entry.slug);
   const effectivePlan = plan !== null && offered.includes(plan) ? plan : (offered[0] ?? null);
 
-  // A server with no plan set up has nothing to sell a member; becoming a friend
-  // and a donation still work without one.
+  // A server without a plan set up doesn't have anything to sell a member; becoming
+  // a friend and a donation still work without one.
   if (!isContributing && effectivePlan === null) {
     return (
       <div className="checkout">
@@ -197,7 +196,7 @@ export function Checkout({
     ? contributionCents > 0
     : selectedPlan !== null && selectedPlan.duration_days !== null;
 
-  // The server refuses a payment of nothing, so a contribution waits for an
+  // The server refuses a payment of $0, so a contribution waits for an
   // amount rather than starting a provider that cannot be paid.
   const needsContribution = isContributing && contributionCents === 0;
   // A donation stands alone, so the server refuses one under its smallest; dues take any
@@ -250,7 +249,7 @@ export function Checkout({
         maxCents={config.max_contribution_cents}
         minCents={isContributing ? config.donation_minimum_cents : undefined}
         onChange={(next) => setContributionCents(next)}
-        // A donation stands on its own: there are no dues to add it to, and giving is
+        // A donation stands on its own: there aren't any dues to add it to, and giving is
         // the point, so nothing is preselected and "No thank you" is not offered.
         legend={isContributing ? 'Your donation' : 'Add a contribution'}
         amountLabel={isContributing ? 'Donation amount' : undefined}
@@ -390,7 +389,7 @@ interface SkipFooterProps {
 /**
  * The **Continue without a gift** button, drawn whether or not the payment options
  * loaded, so a host where giving is optional is never left without a way on.  It is the
- * main button while there is nothing to pay, and a quiet one under the payment methods
+ * main button while there isn't anything to pay, and a quiet one under the payment methods
  * once there is.
  */
 function SkipFooter({ onSkip, isLead, isPending }: SkipFooterProps): JSX.Element | null {

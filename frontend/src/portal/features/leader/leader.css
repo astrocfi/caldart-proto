@@ -1,7 +1,7 @@
 /*
  * The DART leader check, sized for a phone held at arm's length on a ramp.
  * Color never carries the verdict on its own — the band says GO or NO-GO in
- * words.  High contrast, and no decoration for its own sake.
+ * words.  High contrast, without decoration for its own sake.
  */
 
 .leader-card {
@@ -228,8 +228,8 @@
 }
 
 /* The member check's row: the name, then the DART that tells namesakes apart, in a
-   column of its own so the DARTs line up down the list.  A phone has no room for two
-   columns of names, so there the DART sits under the name, still lined up. */
+   column of its own so the DARTs line up down the list.  A phone doesn't have room for
+   two columns of names, so there the DART sits under the name, still lined up. */
 .leader-search__who {
   display: grid;
   flex: 1 1 auto;
@@ -284,7 +284,7 @@
 }
 
 /* The chosen record's cards take the focus as a whole when a result is picked, so a
-   screen reader reads them from the top; the cards themselves need no ring for it. */
+   screen reader reads them from the top; the cards themselves don't need a ring for it. */
 .leader-selected:focus {
   outline: none;
 }

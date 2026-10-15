@@ -92,8 +92,8 @@ export function people(count: number): string {
 }
 
 /**
- * `38 people will receive this email; 4 are skipped.`: what the batch comes to; with
- * nobody skipped, `38 people will receive this email.`
+ * `38 people will receive this email; 4 are skipped.`: what the batch comes to; when
+ * nobody is skipped, `38 people will receive this email.`
  */
 export function batchSentence(receiving: number, skipped: number): string {
   if (skipped === 0) return `${people(receiving)} will receive this email.`;
@@ -102,9 +102,9 @@ export function batchSentence(receiving: number, skipped: number): string {
 }
 
 /**
- * `Added 12 people; 3 were already in the batch.`: what one add did.  With nobody
- * there already it is `Added 12 people.`, and with nobody found at all `Nobody matches
- * these filters.`
+ * `Added 12 people; 3 were already in the batch.`: what one add did.  When nobody
+ * was there already it is `Added 12 people.`, and when the add didn't find anybody at all
+ * `Nobody matches these filters.`
  */
 export function addSentence(result: BulkEmailAddResult): string {
   if (result.added === 0 && result.already_present === 0) return 'Nobody matches these filters.';
@@ -165,9 +165,10 @@ export function progressSentence(email: BulkEmailDetail, now: Date = new Date())
 
 /**
  * `Sent to 37 people. 1 failed and 4 were skipped.`: what a finished or stopped
- * send came to, leaving out a count of nobody (`Sent to 37 people. 2 failed.`).  With
- * nothing failed or skipped it is `Sent to 51 people. Everyone was sent a copy.`  Copies that came back undelivered later are counted as sent and
- * then named: `2 came back undelivered.`
+ * send came to, leaving out a count of zero (`Sent to 37 people. 2 failed.`).  When
+ * nothing failed or was skipped it is `Sent to 51 people. Everyone was sent a copy.`
+ * Copies that came back undelivered later are counted as sent and then named: `2 came
+ * back undelivered.`
  */
 export function resultSentence(
   email: Pick<BulkEmailDetail, 'status' | 'sent_count' | 'failed_count' | 'skipped_count'> & {
@@ -178,7 +179,7 @@ export function resultSentence(
   const bounced = email.bounced_count ?? 0;
   const returned = bounced === 0 ? '' : ` ${bounced} came back undelivered.`;
   const sent = `Sent to ${people(wentCount(email))}.`;
-  // A count of nobody is left out, so the line names only what happened.
+  // A count of zero is left out, so the line names only what happened.
   const misses = [
     email.failed_count === 0 ? null : `${email.failed_count} failed`,
     email.skipped_count === 0

@@ -8,11 +8,11 @@
  * step's own heading.  The step shows the kind the wizard names in `joiningAs`, which
  * starts as the kind the visitor chose when they registered.
  *
- * A friend owes no dues, so a friend's step offers a donation alone, and its
+ * A friend doesn't owe dues, so a friend's step offers a donation alone, and its
  * **Continue without a gift** button moves on without paying.  Under the donation,
  * **I changed my mind, I want to be a member** swaps the step to a member's: nothing
- * changes on the server until a membership is paid for.  A member's step has no way
- * past paying but one: **Join as a friend instead (no dues)** under the plans swaps the
+ * changes on the server until a membership is paid for.  A member's step has only one
+ * way past paying: **Join as a friend instead (no dues)** under the plans swaps the
  * step to a friend's.  An account the server still holds as a member is made a friend
  * (`POST /me/kind/friend`) as it leaves a friend's step, by a donation or without one.
  */
@@ -84,7 +84,7 @@ export function PayStep({
   if (joiningAs === 'friend') {
     return (
       <Card key="friend" className="join-card" title="Donate to CalDART">
-        <p className="muted join__intro">Friends pay no dues. A donation of any size helps.</p>
+        <p className="muted join__intro">Friends don't pay dues. A donation of any size helps.</p>
         <Checkout
           mode="contribute"
           headingLevel={3}

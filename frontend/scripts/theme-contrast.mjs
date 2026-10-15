@@ -9,8 +9,8 @@
  * read raw would report a contrast the reader never sees), and checks the
  * pairs that `base.css` and `site.css` actually paint text with.
  *
- * A theme whose slug is in `GROUND_IS_NOT_A_SURFACE` paints no text on
- * `--color-bg` at all, so its pairs are measured against the panel instead.
+ * A theme whose slug is in `GROUND_IS_NOT_A_SURFACE` doesn't paint any text on
+ * `--color-bg`, so its pairs are measured against the panel instead.
  *
  * Run with `--json` to emit the same results as JSON for the preview gallery.
  * Exits non-zero when any pair misses its threshold.
@@ -215,7 +215,7 @@ function checkTheme(slug, tokens) {
     const fgValue = tokens[pair.fg];
     const bgValue = tokens[pair.bg];
     if (fgValue === undefined || bgValue === undefined) {
-      throw new Error(`${slug}: ${pair.fg} or ${pair.bg} resolves to nothing`);
+      throw new Error(`${slug}: ${pair.fg} or ${pair.bg} doesn't resolve to a value`);
     }
     const under = pair.over === undefined ? null : parseHex(tokens[pair.over]);
     const bgRaw = parseHex(bgValue);
@@ -243,7 +243,7 @@ function checkTheme(slug, tokens) {
 /** Reads `tokens.css` and every theme file, returning `{ slug, rows }` per theme. */
 export function auditThemes() {
   const defaults = readColorBlock(readFileSync(join(STYLES_DIR, 'tokens.css'), 'utf8'), /^:root$/);
-  if (defaults === null) throw new Error('tokens.css has no `:root` block');
+  if (defaults === null) throw new Error("tokens.css doesn't have a `:root` block");
 
   const files = readdirSync(THEMES_DIR)
     .filter((name) => name.endsWith('.css'))
@@ -253,7 +253,7 @@ export function auditThemes() {
     const css = readFileSync(join(THEMES_DIR, file), 'utf8');
     const overrides = readColorBlock(css, new RegExp(`\\[data-theme=['"]${slug}['"]\\]`));
     if (overrides === null)
-      throw new Error(`${file} declares no :root[data-theme='${slug}'] block`);
+      throw new Error(`${file} doesn't declare a :root[data-theme='${slug}'] block`);
     return { slug, rows: checkTheme(slug, resolveTheme(defaults, overrides)) };
   });
 }

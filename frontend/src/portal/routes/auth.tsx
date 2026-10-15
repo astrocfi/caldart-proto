@@ -4,7 +4,7 @@
  * These sit in `publicRoutes`, outside the shell's `RequireAuth`, so
  * `/change-password` and `/change-email` carry their own guard.  `/verify-email`
  * and `/undo-email-change` are public: a link from an email may be opened in a
- * browser with no session.
+ * browser without a session.
  * `/change-email` stays open to a reader who has not finished joining, so a
  * mistyped address can be corrected from the verify step; `/change-password` does
  * not.

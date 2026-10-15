@@ -15,7 +15,7 @@ export interface InsuranceDraft {
   liability_per_occurrence: string;
   liability_per_person: string;
   hull: string;
-  /** `YYYY-MM-DD`, or empty for no date. */
+  /** `YYYY-MM-DD`, or empty when there isn't a date. */
   insurance_expiration: string;
   verified: boolean;
 }
@@ -77,8 +77,9 @@ export function isPolicyOnFile(draft: InsuranceDraft): boolean {
 
 /**
  * The request body: the fields that differ from the ones the panel opened with, and
- * whether the insurance is verified, never verified while no policy is on file.  An untouched field is left out, so it is left
- * alone; a blank liability is no cover and a blank hull no hull value, as on the form.
+ * whether the insurance is verified, never verified while no policy is on file.  An
+ * untouched field is left out, so it is left alone; a blank liability is sent as 0 and a
+ * blank hull as null, as on the form.
  */
 export function insurancePayload(
   initial: InsuranceDraft,

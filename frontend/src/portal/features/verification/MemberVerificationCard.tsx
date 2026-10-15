@@ -63,7 +63,7 @@ export interface MemberVerificationCardProps {
 
 /**
  * Lists a person's three items with their marks, and opens the panel on **Verify**.  An
- * item the person does not hold has no mark, and a lapsed medical reads *Expired* before
+ * item the person does not hold doesn't have a mark, and a lapsed medical reads *Expired* before
  * its mark.
  */
 export function MemberVerificationCard({

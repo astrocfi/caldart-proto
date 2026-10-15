@@ -3,9 +3,9 @@
  *
  * The member picks the plan that will renew, the contribution to renew beside
  * it, and the provider that will hold the method.  Only plans with a duration
- * are offered: a membership for life has nothing to renew.  The first of them the
- * server lists is chosen until the member picks another, and a server with no plan
- * set up at all says so and offers no way to save a method.
+ * are offered: a membership for life doesn't have anything to renew.  The first of them
+ * the server lists is chosen until the member picks another, and a server without a
+ * plan set up says so and doesn't offer a way to save a method.
  *
  * The day of the first charge is the member's own.  It opens on the day their
  * membership runs out, which is the day the charge is wanted on, and it takes any
@@ -31,7 +31,7 @@ export interface RenewalSetupProps {
   /**
    * The day the membership runs out, which the first charge opens on.
    *
-   * Null for a member with no term at all, who opens on today instead.
+   * Null for a member without a term, who opens on today instead.
    */
   expiresOn?: IsoDate | null;
   /** Abandon the flow and go back to the card as it was. */

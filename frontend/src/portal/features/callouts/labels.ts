@@ -10,7 +10,7 @@ export const ANSWER_LABELS: Record<CalloutAnswerKind, string> = {
   unavailable: 'Not available',
 };
 
-/** The tone of each answer's dot, and of no answer. */
+/** The tone of each answer's dot, and of the dot for somebody who hasn't answered. */
 export function answerTone(answer: CalloutAnswerKind | null): StatusTone {
   if (answer === 'available') return 'current';
   if (answer === 'limited') return 'expiring';

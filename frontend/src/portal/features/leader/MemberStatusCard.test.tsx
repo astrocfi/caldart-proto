@@ -94,7 +94,7 @@ describe('isGo / noGoReasons', () => {
     ]);
   });
 
-  it('gives a non-pilot one reason, and none for the items they do not hold', () => {
+  it("gives a non-pilot one reason, and doesn't give one for the items they do not hold", () => {
     const status = makeStatus({
       certificate: { type: 'none', number: '', ratings: [], verification: NOT_VERIFIED },
       medical: { type: 'none', expiration: null, is_current: false, verification: NOT_VERIFIED },
@@ -104,7 +104,7 @@ describe('isGo / noGoReasons', () => {
     expect(noGoReasons(status)).toEqual(['Not a pilot']);
   });
 
-  it('gives a pilot with no medical one reason for it', () => {
+  it('gives a pilot without a medical one reason for it', () => {
     const status = makeStatus({
       medical: { type: 'none', expiration: null, is_current: false, verification: NOT_VERIFIED },
       go_no_go: { membership: true, medical: false, verified: false },
@@ -125,7 +125,7 @@ describe('isGo / noGoReasons', () => {
     expect(noGoReasons(status)).toEqual(['Medical expired']);
   });
 
-  it('says a pilot with no photo ID on file has none, not that it is unverified', () => {
+  it("says a pilot without a photo ID on file doesn't have one, not that it is unverified", () => {
     const status = makeStatus({
       photo_id: { type: 'not_provided', verification: NOT_VERIFIED },
       go_no_go: { membership: true, medical: true, verified: false },
@@ -276,7 +276,7 @@ describe('MemberStatusCard', () => {
     expect(within(row).getByText(new RegExp(reason))).toBeInTheDocument();
   });
 
-  it('says so when the member has no aircraft', () => {
+  it("says so when the member doesn't have an aircraft", () => {
     renderWithProviders(
       <MemberStatusCard userId={7} status={makeStatus({ aircraft: [] })} today={TODAY} />,
     );
@@ -330,7 +330,7 @@ describe('MemberStatusCard', () => {
     expect(screen.getByText(/Palo Alto DART · DART leader · Verifier/)).toBeInTheDocument();
   });
 
-  it('says so when the person has no DART', () => {
+  it("says so when the person doesn't have a DART", () => {
     renderWithProviders(
       <MemberStatusCard userId={7} status={makeStatus({ dart: null })} today={TODAY} />,
     );
@@ -353,7 +353,7 @@ describe('MemberStatusCard', () => {
     expect(within(row).queryByText('Insured')).not.toBeInTheDocument();
   });
 
-  it('draws no mark beside items a non-pilot does not hold', () => {
+  it("doesn't draw a mark beside items a non-pilot does not hold", () => {
     renderWithProviders(
       <MemberStatusCard
         userId={7}
@@ -493,7 +493,7 @@ describe('MemberStatusCard verification', () => {
     expect(calls.verifier).toEqual([]);
   });
 
-  it('makes nobody a verifier when the question is cancelled', async () => {
+  it("doesn't make anybody a verifier when the question is canceled", async () => {
     const user = userEvent.setup();
     const calls = emptyVerificationCalls();
     server.use(...verificationHandlers(calls));
@@ -506,7 +506,7 @@ describe('MemberStatusCard verification', () => {
     expect(calls.verifier).toEqual([]);
   });
 
-  it('offers no verifier button on your own card', async () => {
+  it("doesn't offer a verifier button on your own card", async () => {
     server.use(signedInAs(makeUser({ id: 7, roles: ['member', 'dart_leader'] })));
     renderWithProviders(<MemberStatusCard userId={7} status={makeStatus()} today={TODAY} />);
     await screen.findByRole('button', { name: 'Verify' });

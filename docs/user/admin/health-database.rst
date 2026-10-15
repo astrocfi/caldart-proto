@@ -140,9 +140,9 @@ confirms it, and the backup heads the table.
 the server: a backup on the same disk as the database is lost with it. Take a backup before
 every upgrade, before any bulk change, and before anyone experiments with the data.
 
-The panel says so: *There is no restore button. To restore a backup, ask the person who
-installed the site.* Restoring replaces everything in the database and is done on the
-server with the site stopped.
+The panel says so: *The portal doesn't have a restore button. To restore a backup, ask the
+person who installed the site.* Restoring replaces everything in the database and is done
+on the server with the site stopped.
 
 A line under that note reads *Last nightly backup*, the date and time the server last took
 its own, and how that run ended, with **View log** beside it (:doc:`job-log`). The nightly

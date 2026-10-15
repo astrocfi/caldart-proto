@@ -4,14 +4,14 @@
  * The search half is `<AircraftPicker/>` from `@/portal/features/aircraft`;
  * this page attaches and detaches what it hands back, opens `<AircraftEditor/>`
  * on an attached aircraft the member added (any aircraft, for an account
- * administrator) directly under that aircraft's line, and shows the insurance a DART leader will check, in the words every
- * aircraft list uses (`InsuranceDot`, dated), with each liability limit labeled, and
- * whether an authority has verified the policy (no mark while no policy is on file,
- * since there is nothing to verify).  A plane somebody else added offers no **Edit**:
- * the line says who to write to instead, at the site's contact address.  While a
- * plane's trashcan asks to confirm, its line shows that confirmation alone.  The coverage
- * policy's note to members stands above the list, and an aircraft the policy
- * excludes is marked with the reason.
+ * administrator) directly under that aircraft's line, and shows the insurance a DART
+ * leader will check, in the words every aircraft list uses (`InsuranceDot`, dated), with
+ * each liability limit labeled, and whether an authority has verified the policy (no
+ * mark while no policy is on file, since there isn't anything to verify).  A plane
+ * somebody else added doesn't offer **Edit**: the line says who to write to instead, at
+ * the site's contact address.  While a plane's trashcan asks to confirm, its line shows
+ * that confirmation alone.  The coverage policy's note to members stands above the list,
+ * and an aircraft the policy excludes is marked with the reason.
  */
 import { AircraftPicker, InsuranceDot, useCoveragePolicy } from '@/portal/features/aircraft';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -136,7 +136,8 @@ function MyAircraftList(): JSX.Element {
                 <span>{[plane.make, plane.model].filter(Boolean).join(' ') || 'Unknown type'}</span>
                 <InsuranceDot aircraft={plane} withDate />
                 {plane.insurance_expiration === null ? null : (
-                  // With no policy on file there is nothing to verify yet, so no mark.
+                  // Without a policy on file there isn't anything to verify yet, so it doesn't
+                  // get a mark.
                   <VerifiedMark verification={{ verified: plane.insurance_verified }} pending />
                 )}
                 {plane.coverage.excluded ? <StatusDot tone="expired" label="Not covered" /> : null}

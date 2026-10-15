@@ -4,7 +4,7 @@
  * Nothing is charged here: the element collects a card and confirms a
  * SetupIntent, which is what gives CalDART permission to charge it again when
  * the membership runs out.  `confirmSetup` runs with `redirect: 'if_required'`,
- * so a card that needs no bank confirmation never leaves the page; one that does
+ * so a card that doesn't need a bank confirmation never leaves the page; one that does
  * comes back to `/portal/payments` with the SetupIntent and the authority it was
  * for in the query string, and that authority's card confirms it there.
  *
@@ -40,7 +40,7 @@ import type { RenewalPanelProps } from './types';
  * request does, so a member typing an amount digit by digit asks Stripe for one
  * SetupIntent rather than one per keystroke.  The object handed back keeps its
  * identity for as long as the JSON does, which is what lets the effect depend on
- * it and nothing else.
+ * it alone.
  */
 function useSettledSetup(fields: Omit<RenewalSetupFields, 'provider'>): RenewalSetupRequest {
   const wanted = JSON.stringify(renewalSetupRequest({ ...fields, provider: 'stripe' }));
@@ -153,7 +153,7 @@ function StripeSetupForm({
   onDecline,
 }: {
   scope: MandateScope;
-  /** Why the last card was declined, shown until the next try; null for none. */
+  /** Why the last card was declined, shown until the next try; null when it wasn't. */
   declined: string | null;
   onDone: () => void;
   /** Called with Stripe's reason when a card is declined, to start another setup. */

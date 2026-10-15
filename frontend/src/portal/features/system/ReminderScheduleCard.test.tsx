@@ -145,7 +145,7 @@ describe('<ReminderScheduleCard/>', () => {
     );
   });
 
-  it('offers no field or Save button when read-only', async () => {
+  it("doesn't offer a field or a Save button when read-only", async () => {
     serveSchedule(SAVED);
     renderWithProviders(<ReminderScheduleCard readOnly />);
 

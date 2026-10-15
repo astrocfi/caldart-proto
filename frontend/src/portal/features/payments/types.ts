@@ -8,7 +8,7 @@ export interface RenewalPanelProps {
   scope: MandateScope;
   /**
    * The slug of the plan that will renew; never a plan that lasts for life, and
-   * null for a recurring donation, which renews nothing.
+   * null for a recurring donation, which doesn't renew anything.
    */
   plan: string | null;
   contributionCents: number;

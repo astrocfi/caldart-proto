@@ -1,6 +1,6 @@
 /**
- * Bulk email as a DART leader sends it: to the members and friends of the DART on the
- * leader's own profile, and nobody else.  The compose screen names that DART in place
+ * Bulk email as a DART leader sends it: only to the members and friends of the DART on
+ * the leader's own profile.  The compose screen names that DART in place
  * of the DART filter; the leader sends to themselves alone, found by address, so no
  * other spec's inbox changes; the system administrator runs the background sender;
  * and CalDART management then sees the send with its sender and its DART.

@@ -140,7 +140,8 @@ describe('BackupsPanel', () => {
 
     expect(
       await screen.findByText(
-        'There is no restore button. To restore a backup, ask the person who installed the site.',
+        "The portal doesn't have a restore button. To restore a backup, ask the person who " +
+          'installed the site.',
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText(/BACKUP_DIR|db_restore|[Dd]ump/)).toBeNull();

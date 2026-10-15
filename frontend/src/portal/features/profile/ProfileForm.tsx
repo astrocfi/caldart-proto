@@ -85,7 +85,7 @@ export function ProfileForm({
     if (submitted || touched[key]) visible[key] = message;
   }
 
-  // Leaving a box nobody typed in says nothing about it.
+  // Leaving a box nobody typed in doesn't say anything about it.
   function handleFieldBlur(key: keyof ProfileFormValues): void {
     if (values[key] === initialValues[key]) return;
     setTouched((left) => ({ ...left, [key]: true }));

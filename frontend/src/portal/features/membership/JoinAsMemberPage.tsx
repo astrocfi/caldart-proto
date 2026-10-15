@@ -1,8 +1,8 @@
 /**
  * `/membership/join` — a friend of CalDART pays dues and becomes a member.
  *
- * The page is the join checkout and nothing else: paying for a plan is what makes a
- * friend a member, the moment the payment succeeds.  Leaving the page changes nothing.
+ * The page is the join checkout alone: paying for a plan is what makes a
+ * friend a member, the moment the payment succeeds.  Leaving the page doesn't change anything.
  */
 import { useQueryClient } from '@tanstack/react-query';
 import type { JSX } from 'react';

@@ -35,7 +35,7 @@ export interface LeaderLookupProps<T> {
   aboveSearch?: ReactNode;
   /** The query-string key that holds the chosen record. */
   param: string;
-  /** The chosen record from the raw query-string value, or `null` when it names none. */
+  /** The chosen record from the raw query-string value, or `null` when it doesn't name one. */
   parse: (raw: string) => string | null;
   /** The search box's label. */
   label: string;
@@ -54,7 +54,7 @@ export interface LeaderLookupProps<T> {
   rowValue: (row: T) => string;
   /** The inside of a result row: what the record is, then a `GoMark`. */
   renderRow: (row: T) => ReactNode;
-  /** What to say when a search finds nothing. */
+  /** What to say when a search doesn't find anything. */
   renderEmpty: (term: string) => ReactNode;
   /** The chosen record's card; **Back to search** above it returns to the search. */
   renderSelected: (value: string) => ReactNode;

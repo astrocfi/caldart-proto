@@ -31,9 +31,9 @@ function renderCallout(callout: CalloutDetail = makeCallout(), client?: QueryCli
 
 /**
  * The links in Ann Able's row, as `[text, href]` pairs, once `client` has read the
- * reader's roles. The test client keeps nothing nobody is watching, so the seeded user
+ * reader's roles. The test client drops whatever nobody is watching, so the seeded user
  * is gone before the page mounts and the roles arrive from `/auth/me` a moment after
- * the table; the read waits for that answer, so an empty list means no link.
+ * the table; the read waits for that answer, so an empty list means there isn't a link.
  */
 async function annsLinks(client: QueryClient): Promise<[string | null, string | null][]> {
   const table = await answersTable();
@@ -161,7 +161,7 @@ describe('CalloutDetailPage', () => {
     expect(await screen.findByText(CLOSED_MESSAGE)).toBeInTheDocument();
   });
 
-  it('offers no Close now once the callout has closed', async () => {
+  it("doesn't offer Close now once the callout has closed", async () => {
     renderCallout(makeCallout({ is_open: false, closed_at: '2026-04-07T16:00:00Z' }));
 
     await answersTable();

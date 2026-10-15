@@ -69,9 +69,9 @@ export function CheckoutReturn({ onSuccess, action }: CheckoutReturnProps): JSX.
 }
 
 export interface SettledPaymentOptions {
-  /** The payment the browser came back for; `NaN` when the link carried none. */
+  /** The payment the browser came back for; `NaN` when the link didn't carry one. */
   paymentId: number;
-  /** Stripe's intent, as the redirect named it; empty when it named none. */
+  /** Stripe's intent, as the redirect named it; empty when it didn't name one. */
   paymentIntentId: string;
   /** The calls that confirm and read the payment. */
   endpoints: PaymentEndpoints;
@@ -84,7 +84,7 @@ export interface SettledPaymentOptions {
  *
  * Calls `onSuccess` once the payment has succeeded, and answers the sentence to show
  * when it cannot be confirmed (declined, still processing after `POLL_TIMEOUT_MS`, or
- * a link with no payment), or null while it is still being confirmed.
+ * a link without a payment), or null while it is still being confirmed.
  */
 export function useSettledPayment({
   paymentId,
@@ -101,7 +101,7 @@ export function useSettledPayment({
     }
 
     // Every run owns its requests and its wait, so a run that is torn down takes
-    // them with it and the run that replaces it starts from nothing.
+    // them with it and the run that replaces it starts from scratch.
     const controller = new AbortController();
     const { signal } = controller;
 

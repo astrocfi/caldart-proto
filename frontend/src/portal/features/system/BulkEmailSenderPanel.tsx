@@ -5,8 +5,8 @@
  * The sender runs every minute on its own. Each run starts every bulk email whose
  * start time has come and sends it, paced to the mail provider's limit, so a run by
  * hand matters only where no timer is running, such as on a developer's machine.
- * There is no dry run: the sender only ever sends what CalDART management has
- * already pressed Send on. A run that found nothing waiting says only that.
+ * There isn't a dry run: the sender only ever sends what CalDART management has
+ * already pressed Send on. A run that didn't find anything waiting says only that.
  */
 import type { JSX } from 'react';
 
@@ -17,7 +17,7 @@ import { JobPanel, NothingDue, RunNowButton } from './JobPanel';
 
 /** What the panel says when another run was already sending. */
 export const SENDER_BUSY =
-  'The sender is already running, so this run did nothing. Try again in a minute.';
+  "The sender is already running, so this run didn't do anything. Try again in a minute.";
 
 /** The sentence shown after a run; one that ran out of time says the rest carries on. */
 export function senderRunSummary(result: BulkEmailRunResult): string {
@@ -64,7 +64,7 @@ interface SenderResultProps {
   run: ReturnType<typeof useRunBulkEmailSender>;
 }
 
-/** What the last sender run did, or why it did nothing; nothing before the first run. */
+/** What the last sender run did, or why it didn't do anything; nothing before the first run. */
 function SenderResult({ run }: SenderResultProps): JSX.Element | null {
   if (run.isError) {
     return (

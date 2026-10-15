@@ -4,8 +4,8 @@
  * A page restricted to some roles redirects anyone else to the guide's front page,
  * and the sidebar leaves out every page the reader cannot open. A plain member keeps
  * the three captions and the member screens; the system administrator sees every
- * group. The search index the server hands a member names none of the pages they
- * cannot open, so their search finds nothing that only those pages say.
+ * group. The search index the server hands a member doesn't name any of the pages they
+ * cannot open, so their search doesn't find anything that only those pages say.
  */
 import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
@@ -126,7 +126,7 @@ test('the system administrator opens an administrator page', async ({ page }) =>
   await expect(page).toHaveURL(/\/docs\/admin\/health-database\/$/);
 });
 
-test("a member's search index names no administrator page", async ({ page }) => {
+test("a member's search index doesn't name an administrator page", async ({ page }) => {
   await signIn(page, DEMO.member);
   const index = await readSearchIndex(page);
 
@@ -134,7 +134,9 @@ test("a member's search index names no administrator page", async ({ page }) => 
   expect(index.docnames.filter(isAdministratorPage)).toEqual([]);
 });
 
-test('a word only administrator pages carry finds nothing for a member', async ({ page }) => {
+test('a word only administrator pages carry does not find anything for a member', async ({
+  page,
+}) => {
   await signIn(page, DEMO.sysadmin);
   const word = administratorOnlyWord(await readSearchIndex(page));
   expect(word).toBeDefined();

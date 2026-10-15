@@ -59,7 +59,7 @@ test('an account an administrator created sets its password, then opens the dash
   await expect(page.getByText(/didn.t load|could not be read/)).toHaveCount(0);
 });
 
-test('a member record with no term reads whole at phone width, with no sideways scroll', async ({
+test('a member record without a term reads whole at phone width, without a sideways scroll', async ({
   page,
 }) => {
   const path = await createMember(page, uniqueEmail('noterm'));
@@ -73,7 +73,7 @@ test('a member record with no term reads whole at phone width, with no sideways 
   expect(overflow).toBeLessThanOrEqual(0);
 });
 
-test('New member lines up the names with no hint above either box', async ({ page }) => {
+test('New member lines up the names without a hint above either box', async ({ page }) => {
   await page.setViewportSize(DESKTOP);
   await signIn(page, DEMO.accountadmin);
   await page.goto('portal/admin/members/new');

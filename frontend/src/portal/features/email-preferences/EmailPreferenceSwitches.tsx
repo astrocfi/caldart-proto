@@ -70,7 +70,7 @@ export function EmailPreferenceSwitches({
   if (preferences.data.length === 0) {
     return (
       <EmptyState
-        title="There is nothing to turn off"
+        title="Nothing can be turned off"
         description="No type of bulk email can be turned off at the moment."
       />
     );

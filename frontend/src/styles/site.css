@@ -176,8 +176,8 @@
   background: var(--color-primary);
 }
 
-/* The drop-down is hidden until the pointer is over its section, and needs no
- * script.  Tabbing onto the section's link opens it too -- `:focus-visible`,
+/* The drop-down is hidden until the pointer is over its section, and doesn't need
+ * a script.  Tabbing onto the section's link opens it too -- `:focus-visible`,
  * not `:focus`, so a mouse click on that link never leaves the menu hanging
  * open.  Nothing is reachable only this way: the link goes to the section's
  * own page, which lists the same children in its "In this section" panel. */

@@ -32,7 +32,7 @@ import { useApplyTemplate, useCreateTemplate, useTemplates } from './reuseApi';
 export const REPLACE_WARNING =
   "This replaces the subject, the message, and the address for replies you have with the template's, and the type too when the template has one. The recipient list stays.";
 
-/** What a failed request says when the server gave no sentence of its own. */
+/** What a failed request says when the server didn't give a sentence of its own. */
 const FALLBACK_ERROR = "The template wasn't used. Try again in a moment.";
 
 /**

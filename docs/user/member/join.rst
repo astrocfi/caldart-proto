@@ -172,7 +172,7 @@ or choosing to be a friend instead.
 #. **How would you like to pay?** Choose a tab and pay. The tabs are described
    below.
 
-A friend's step is headed **Donate to CalDART** instead: *Friends pay no dues. A
+A friend's step is headed **Donate to CalDART** instead: *Friends don't pay dues. A
 donation of any size helps.* It offers a donation alone, without an amount chosen,
 paid the same ways, with the option **Make this a recurring donation** (see
 :doc:`donate`). While no amount is chosen, **Continue without a gift** is the
@@ -217,9 +217,9 @@ Step 5: Done
 
 The lede reads *You are a member of CalDART.*, or *You are a friend of CalDART.* for
 a friend. The step is headed **Welcome to CalDART**, with your membership status and
-the date your membership runs until. A life member reads *You are a life member. There is
-nothing more to pay, ever.* A friend reads *You are a friend of CalDART: no dues,
-no expiry. Become a member any time.*
+the date your membership runs until. A life member reads *You are a life member. You never
+have to pay anything more.* A friend reads *You are a friend of CalDART, without dues
+or an expiry date. Become a member any time.*
 
 If you paid on the step before, it adds that a receipt is on its way to your inbox,
 with the PDF attached, subject *CalDART: your receipt for $45.00* (with your own

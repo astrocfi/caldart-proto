@@ -72,7 +72,7 @@ describe('CalloutsPage', () => {
     expect(await screen.findByText('No callout has been sent')).toBeInTheDocument();
   });
 
-  it('tells a DART leader with no DART why, rather than sending them to Compose', async () => {
+  it('tells a DART leader without a DART why, rather than sending them to Compose', async () => {
     answerSender(NO_DART_SENDER);
     renderList([]);
 
@@ -80,7 +80,7 @@ describe('CalloutsPage', () => {
     expect(screen.queryByRole('link', { name: 'New email' })).toBeNull();
   });
 
-  it('tells a DART leader with no DART why there is nothing to write, not how to write one', async () => {
+  it("tells a DART leader without a DART why there isn't anything to write, not how to write one", async () => {
     answerSender(NO_DART_SENDER);
     renderList([]);
 

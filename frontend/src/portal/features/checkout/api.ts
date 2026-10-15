@@ -22,8 +22,8 @@ export const PAYMENTS_CONFIG_KEY = ['payments', 'config'] as const;
 /**
  * True when a rejection is `fetch` refusing to run because its `AbortSignal` fired.
  *
- * An aborted request carries no news about the payment, so a caller that asked for the
- * abort has nothing to report to the member.
+ * An aborted request doesn't carry any news about the payment, so a caller that asked
+ * for the abort doesn't have anything to report to the member.
  */
 export function isAbortError(caught: unknown): boolean {
   return caught instanceof DOMException && caught.name === 'AbortError';
@@ -44,16 +44,16 @@ function isRenewalContribution(caught: ApiError): boolean {
 }
 
 /**
- * What a payment panel shows for a request that failed, or null for nothing.
+ * What a payment panel shows for a request that failed, or null when the panel stays quiet.
  *
  * The server's refusal of a donation because the member's renewal already takes a
  * contribution is a question, not an error: its sentence goes to
  * `onRenewalContribution`, for the checkout to ask whether to move the contribution,
- * and the panel shows nothing.  Any other `ApiError` shows the server's message, and
+ * and the panel doesn't show anything.  Any other `ApiError` shows the server's message, and
  * anything else `fallback`.
  *
  * @param caught - What the request rejected with.
- * @param fallback - The panel's own wording for a failure that carries none.
+ * @param fallback - The panel's own wording for a failure that doesn't carry one.
  * @param onRenewalContribution - Handed the server's sentence for that one refusal.
  * @returns The message to show, or null.
  */
@@ -80,8 +80,8 @@ export type CheckoutFields = Pick<
  * The `POST /payments/checkout` body for `fields`, paid with `provider`.
  *
  * `cadence` travels only with a standing authority, and
- * `remove_renewal_contribution` only when the member agreed to it: the server's
- * defaults are a yearly authority and no move.
+ * `remove_renewal_contribution` only when the member agreed to it: the server defaults
+ * to a yearly authority and leaves the renewal's contribution where it is.
  */
 export function checkoutRequest(
   {

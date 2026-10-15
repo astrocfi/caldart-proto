@@ -140,7 +140,7 @@ describe('RenewalsPanel', () => {
     expect(chargeRow).toHaveTextContent('$70.00');
   });
 
-  it('says nothing was due when a rehearsal finds no actions', async () => {
+  it("says that nothing was due when a rehearsal doesn't find any actions", async () => {
     server.use(
       http.post(`${API}/system/renewals/run`, () => HttpResponse.json({ ...RESULT, actions: [] })),
     );
@@ -226,7 +226,7 @@ describe('RenewalsPanel', () => {
     expect(heading).toHaveFocus();
   });
 
-  it('charges nothing when the confirmation is waved off', async () => {
+  it("doesn't charge anything when the confirmation is waved off", async () => {
     const bodies: unknown[] = [];
     server.use(
       http.post(`${API}/system/renewals/run`, async ({ request }) => {

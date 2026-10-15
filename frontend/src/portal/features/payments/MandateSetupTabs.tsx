@@ -33,7 +33,8 @@ export interface MandateSetupTabsProps {
 /**
  * One tab per provider that can hold a saved method, over that provider's panel.
  *
- * Renders nothing when the deployment offers no such provider; the caller says so.
+ * Doesn't render anything when the deployment doesn't offer such a provider; the caller
+ * says so.
  */
 export function MandateSetupTabs({
   config,

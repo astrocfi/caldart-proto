@@ -24,7 +24,7 @@ export interface MemberVerificationDraft {
   pilot_certificate_type: PilotCertificateType;
   certificate_number: string;
   medical_type: MedicalType;
-  /** `YYYY-MM-DD`, or empty for no date. */
+  /** `YYYY-MM-DD`, or empty when there isn't a date. */
   medical_expiration: string;
   photo_id_type: PhotoIdType;
   /** The items checked as verified. */

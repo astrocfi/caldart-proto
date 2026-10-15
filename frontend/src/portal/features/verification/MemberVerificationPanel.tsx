@@ -50,7 +50,7 @@ export interface MemberVerificationPanelProps {
   onClose: () => void;
   /**
    * Offer only the checks, for a screen whose own form edits the fields: the member
-   * record.  The panel then sends no field, only which items are verified.
+   * record.  The panel then doesn't send a field, only which items are verified.
    */
   checksOnly?: boolean;
   /** What the record holds for each item, shown beside its box when only checks are offered. */
@@ -60,7 +60,7 @@ export interface MemberVerificationPanelProps {
 /**
  * Edits a person's verified fields and checks the items an authority has checked.  Only
  * an item the person holds gets a box: *Not a pilot*, a medical of *None*, and a photo
- * ID of *Not provided* have nothing to verify.
+ * ID of *Not provided* don't have anything to verify.
  */
 export function MemberVerificationPanel({
   userId,
@@ -79,7 +79,8 @@ export function MemberVerificationPanel({
   const formRef = useRef<HTMLFormElement>(null);
   const refusal = useRefusedSubmit(formRef, verify.error);
   const errors = saveErrors(verify.error, FORM_FIELDS);
-  // An item the person does not hold has nothing to verify, so it gets no box.
+  // An item the person does not hold doesn't have anything to verify, so it doesn't
+  // get a box.
   const held = ITEM_SLUGS.filter((item) => isItemHeld(item, draft));
 
   const set = <Key extends MemberField>(field: Key, value: MemberVerificationDraft[Key]): void =>

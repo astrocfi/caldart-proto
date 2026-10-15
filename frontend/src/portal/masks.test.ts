@@ -44,7 +44,7 @@ describe('maskExtension', () => {
 });
 
 describe('maskPostalCode', () => {
-  it('keeps five digits and no more', () => {
+  it('keeps five digits and drops the rest', () => {
     expect(maskPostalCode('95035-1234')).toBe('95035');
   });
 });

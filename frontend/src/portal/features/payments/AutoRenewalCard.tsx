@@ -4,7 +4,7 @@
  * `MandateCard` is one component for both of a person's authorities: the
  * automatic renewal, which renews their membership each year, and the recurring
  * donation, which gives monthly, quarterly, or yearly.  Each has four faces, one
- * per mandate status, and a fifth for somebody who has none.  Every one of them
+ * per mandate status, and a fifth for somebody who doesn't have one.  Every one of them
  * says plainly whether CalDART will charge anything, and what to press to change
  * that.
  *
@@ -59,7 +59,7 @@ export interface MandateCardProps {
  * One standing authority's state, with the controls that change it.
  *
  * A mandate that is `pending` was started and never finished, so it is offered
- * the same way as no mandate at all: the only useful thing to do with it is to
+ * the same way as a missing mandate: the only useful thing to do with it is to
  * set it up again.
  */
 export function MandateCard({ scope }: MandateCardProps): JSX.Element {
@@ -206,7 +206,7 @@ export function MandateCard({ scope }: MandateCardProps): JSX.Element {
 
 interface RenewalSummaryProps {
   mandate: RenewalMandate | null;
-  /** The day the membership runs out, or null when it never does or there is none. */
+  /** The day the membership runs out, or null when it never does or there isn't one. */
   expiresOn: IsoDate | null;
 }
 

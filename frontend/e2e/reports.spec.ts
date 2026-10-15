@@ -23,7 +23,7 @@ test('an account administrator subscribes somebody to the member report, sends i
   await page.getByLabel('Report', { exact: true }).selectOption('members');
   const form = page.getByRole('form', { name: 'Add a scheduled report' });
 
-  // The treasurer holds no role that may read the member report.
+  // The treasurer doesn't hold a role that may read the member report.
   await form.getByLabel(/^Recipient email/).fill(DEMO.treasurer);
   await form.getByRole('button', { name: 'Add emailed report' }).click();
   await expect(form.getByRole('alert')).toHaveText(

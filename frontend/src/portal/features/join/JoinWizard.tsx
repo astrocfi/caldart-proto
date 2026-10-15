@@ -5,8 +5,8 @@
  * step the visitor may be on is derived from the server's view of them
  * (session, `email_verified`, `profile_complete`, membership), so closing the
  * tab half way through and coming back lands you where you left off.  Going
- * back is always allowed; skipping ahead is not.  The verify step has nothing to
- * offer an address that is already verified, so the wizard passes over it.
+ * back is always allowed; skipping ahead is not.  The verify step doesn't have anything
+ * to offer an address that is already verified, so the wizard passes over it.
  *
  * The one exception is a visitor coming back from a redirect-based payment
  * method: Stripe returns them to `/join/done?payment_id=…`, and at that
@@ -14,7 +14,7 @@
  * to `/join/pay` and throw the payment reference away, so the wizard holds the
  * `done` step and lets `<ReturnStep/>` settle the payment first.
  *
- * A friend walks the same five steps, but owes no dues: their pay step offers a
+ * A friend walks the same five steps, but doesn't owe dues: their pay step offers a
  * donation they may skip.  A friend joining for the first time who finishes the
  * profile step has their pay step held open in this tab (`holdFriendPayStep`), so a
  * reload stays on it and the rest of the portal stays shut until they give or press
@@ -34,10 +34,10 @@
  * on the step they are now on rather than on the page body.
  *
  * An account an administrator created has joined already and owes only the verify
- * step, so it sees that step alone, under its own title, with no list of steps.
+ * step, so it sees that step alone, under its own title, without a list of steps.
  *
  * Until the wizard is finished it is the whole portal: `RequireOnboarded` sends
- * every other screen here, and the layout draws no rail.
+ * every other screen here, and the layout doesn't draw a rail.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
@@ -158,8 +158,8 @@ export function JoinWizard(): JSX.Element {
     return <Navigate to={`/join/${current}`} replace />;
   }
 
-  // Somebody who has joined has nothing to save or pay here, so browsing back into the
-  // wizard cannot charge them twice or turn a member into a friend.
+  // Somebody who has joined doesn't have anything to save or pay here, so browsing back
+  // into the wizard cannot charge them twice or turn a member into a friend.
   if (!returning && isOnboarded(user) && (current === 'profile' || current === 'pay')) {
     return <Navigate to="/" replace />;
   }

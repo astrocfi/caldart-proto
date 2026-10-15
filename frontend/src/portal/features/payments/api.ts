@@ -70,9 +70,10 @@ export interface RenewalSetupFields {
 /**
  * The setup body for a plan that may be absent.
  *
- * A donation names no plan at all, and the field is left out rather than sent as
+ * A donation doesn't name a plan, and the field is left out rather than sent as
  * null.  `cadence` and `remove_renewal_contribution` travel only when they say
- * something: the server's defaults are a yearly authority and no move.
+ * something: the server defaults to a yearly authority and leaves the renewal's
+ * contribution where it is.
  */
 export function renewalSetupRequest({
   plan,
@@ -97,8 +98,8 @@ export function renewalSetupRequest({
  * Start saving a payment method, via `POST /me/renewal/setup` or `/me/donation/setup`.
  *
  * The answer carries whatever the chosen provider's browser SDK needs: a Stripe
- * SetupIntent secret, a PayPal vault setup token, or nothing at all for the mock
- * provider.  Nothing is charged, and the mandate stays `pending` until it is
+ * SetupIntent secret or a PayPal vault setup token, while the mock provider doesn't
+ * need anything.  Nothing is charged, and the mandate stays `pending` until it is
  * confirmed.
  *
  * Pass `signal` to abandon the attempt.  One that fires before `fetch`

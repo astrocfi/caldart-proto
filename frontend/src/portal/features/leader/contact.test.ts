@@ -12,7 +12,7 @@ describe('contactHref', () => {
     expect(contactHref(text)).toBe(href);
   });
 
-  it.each([[''], ['Ask at the front desk'], ['555-01']])('links nothing for %j', (text) => {
+  it.each([[''], ['Ask at the front desk'], ['555-01']])("doesn't link anything for %j", (text) => {
     expect(contactHref(text)).toBeNull();
   });
 });

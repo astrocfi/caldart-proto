@@ -48,7 +48,7 @@ export const API = '*/api/v1';
 /** The value the default `GET /auth/csrf` handler hands out. */
 export const TEST_CSRF_TOKEN = 'test-csrf-token';
 
-/** What an account that chose to be a member and holds no paid term reads as. */
+/** What an account that chose to be a member and doesn't hold a paid term reads as. */
 export const NO_MEMBERSHIP: MembershipStatus = {
   status: 'none',
   expires_on: null,
@@ -95,7 +95,7 @@ export function makeUser(overrides: Partial<User> = {}): User {
 /**
  * Build an `/admin/users/{id}` payload: `makeUser`, plus when the address was
  * verified, keeping `email_verified` in step with `email_verified_at` the way
- * the server does, and no bounce unless `email_bounced_at` names one.
+ * the server does, and without a bounce unless `email_bounced_at` names one.
  */
 export function makeAdminUser(overrides: Partial<AdminUser> = {}): AdminUser {
   const {
@@ -131,8 +131,8 @@ export function makeAdminUser(overrides: Partial<AdminUser> = {}): AdminUser {
 
 /**
  * Build an `/admin/users/{id}` record: `makeAdminUser`, plus the term facts the record
- * words the membership by, with a term on file and nothing pending or set aside, and the
- * roles a plain user administrator may change on somebody else's record.
+ * words the membership by, with a term on file and without anything pending or set aside,
+ * and the roles a plain user administrator may change on somebody else's record.
  */
 export function makeAdminUserDetail(overrides: Partial<AdminUserDetail> = {}): AdminUserDetail {
   const {
@@ -247,20 +247,22 @@ export const handlers = [
     return HttpResponse.json(found);
   }),
   // The register's header and the Health and database page read the registry's state as
-  // they mount: by default, one successful import and none running.
+  // they mount: by default, one import has succeeded and none is running.
   http.get(`${API}/aircraft/registry`, () => HttpResponse.json(makeRegistryStatus())),
   // Every scheduled job's panel reads the jobs' states; by default none has a run.
   http.get(`${API}/system/jobs`, () => HttpResponse.json([])),
   // Both reminder screens read the reminder schedule; by default nobody has changed it.
   http.get(`${API}/admin/reminders/schedule`, () => HttpResponse.json(makeReminderSchedule())),
-  // My aircraft and the register read the coverage policy; by default it excludes nothing.
+  // My aircraft and the register read the coverage policy; by default it doesn't exclude
+  // anything.
   http.get(`${API}/aircraft/coverage-policy`, () =>
     HttpResponse.json({ excluded_categories: [], excluded_airworthiness: [], note: '' }),
   ),
   // The N-number typeahead on the aircraft form asks this as the box is typed into;
   // by default no registration starts with what was typed, so no list opens.
   http.get(`${API}/aircraft/registrations`, () => HttpResponse.json([])),
-  // One registration by its N-number; by default the registry has no such registration.
+  // One registration by its N-number; by default the registry doesn't have that
+  // registration.
   http.get(`${API}/aircraft/registry/:nNumber`, ({ params }) =>
     HttpResponse.json(
       { detail: `No registration for ${String(params.nNumber)} in the registry.` },
@@ -686,8 +688,8 @@ export interface NotificationsStub {
 
 /**
  * Handlers for the notifications screen, answering with whatever the caller
- * passes.  They keep the subscriptions in a store: a `POST` adds one bound to
- * no account, a `PATCH` merges its body into the one it names, and a `DELETE`
+ * passes.  They keep the subscriptions in a store: a `POST` adds one that isn't
+ * bound to an account, a `PATCH` merges its body into the one it names, and a `DELETE`
  * drops it, so the list read after each shows the change.
  */
 export function notificationHandlers({

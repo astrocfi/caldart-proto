@@ -112,7 +112,7 @@ describe('SentEmailPage', () => {
     );
   });
 
-  it('says the log keeps no copy of a message that belongs to no record', async () => {
+  it("says the log doesn't keep a copy of a message that doesn't belong to a record", async () => {
     renderEmail(FAILED);
     expect(
       await screen.findByText(
