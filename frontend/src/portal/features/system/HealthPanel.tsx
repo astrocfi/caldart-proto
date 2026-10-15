@@ -132,7 +132,7 @@ function upgradeCheck(health: Health): HealthCheck {
   };
 }
 
-/** `count` and a word, such as *1 failed* or *2 late*, or `null` for none. */
+/** `count` and a word, such as *1 failed* or *2 late*, or `null` for a count of 0. */
 function tally(count: number, word: string): string | null {
   return count === 0 ? null : `${count} ${word}`;
 }
@@ -150,6 +150,14 @@ function scheduledJobsCheck(health: Health, now: Date): HealthCheck {
       value: 'Unknown',
       verdict: 'warn',
       note: 'The database could not be reached to check.',
+    };
+  }
+  if (health.scheduled_jobs === null) {
+    return {
+      ...base,
+      value: 'Unknown',
+      verdict: 'warn',
+      note: `The record of the jobs' runs could not be read. Tell ${INSTALLER}.`,
     };
   }
   const problems = health.scheduled_jobs.filter(isJobProblem);

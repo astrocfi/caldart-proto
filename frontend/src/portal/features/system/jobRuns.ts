@@ -15,6 +15,12 @@ export const OUTCOME: Record<JobRunOutcome, { tone: StatusTone; label: string }>
   stopped: { tone: 'expired', label: 'Stopped' },
 };
 
+/**
+ * The key a run opened from a job's log sets in the history state, so the run's page
+ * knows the log, with its page and filter, is one step back.
+ */
+export const FROM_JOB_LOG = 'fromJobLog';
+
 /** Where each job's log is. */
 export function jobLogPath(job: string): string {
   return `/system/jobs/${encodeURIComponent(job)}`;

@@ -210,6 +210,13 @@ describe('the scheduled jobs check', () => {
     expect(jobsCheck(health({ scheduled_jobs: [waiting] })).verdict).toBe('ok');
   });
 
+  it('cannot judge the jobs while their record is unreadable', () => {
+    expect(jobsCheck(health({ scheduled_jobs: null }))).toMatchObject({
+      value: 'Unknown',
+      verdict: 'warn',
+    });
+  });
+
   it('cannot judge the jobs while the database is down', () => {
     expect(jobsCheck(health({ db: 'error: down' }))).toMatchObject({
       value: 'Unknown',

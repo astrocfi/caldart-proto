@@ -72,7 +72,7 @@ export function RegistryPanel(): JSX.Element {
       </p>
 
       {status.data === undefined ? null : <p role="status">{registryImportSummary(status.data)}</p>}
-      <JobLastRun job="registry" lead="Last nightly load" />
+      <JobLastRun job="registry" lead="Last load" />
 
       {status.isError ? (
         <p className="field__error" role="alert">

@@ -456,13 +456,30 @@ export function useJobs(): UseQueryResult<JobStatus[]> {
   });
 }
 
-/** One page of `job`'s recorded runs, newest first, via `GET /system/jobs/{job}/runs`. */
-export function useJobRuns(job: string, page: number): UseQueryResult<Paginated<JobRun>> {
+/** What one page of a job's runs is asked for. */
+export interface JobRunsQuery {
+  /** The job's key, such as `renewals`. */
+  job: string;
+  /** The page, from 1. */
+  page: number;
+  /** `failed` for the runs that failed or stopped, `''` for every run. */
+  outcome: string;
+}
+
+/** One page of a job's recorded runs, newest first, via `GET /system/jobs/{job}/runs`. */
+export function useJobRuns({
+  job,
+  page,
+  outcome,
+}: JobRunsQuery): UseQueryResult<Paginated<JobRun>> {
   return useQuery({
-    queryKey: [...JOBS_KEY, job, 'runs', page] as const,
+    queryKey: [...JOBS_KEY, job, 'runs', outcome, page] as const,
     queryFn: () =>
       api.get<Paginated<JobRun>>(`/system/jobs/${encodeURIComponent(job)}/runs`, {
-        query: { page: page > 1 ? page : undefined },
+        query: {
+          page: page > 1 ? page : undefined,
+          outcome: outcome === '' ? undefined : outcome,
+        },
       }),
     placeholderData: keepPreviousData,
   });

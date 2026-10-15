@@ -1873,8 +1873,8 @@ export interface Health {
   last_backup: IsoDateTime | null;
   version: string;
   debug: boolean;
-  /** Each scheduled job's state, as `GET /system/jobs` answers it; empty while `db` is down. */
-  scheduled_jobs: JobStatus[];
+  /** Each scheduled job's state, as `GET /system/jobs` answers it; null while unreadable. */
+  scheduled_jobs: JobStatus[] | null;
 }
 
 /**

@@ -3,8 +3,8 @@
  * own: when it ran, who started it, how it ended, its error, and everything it wrote, in
  * a monospace block as the server's terminal shows it.
  */
-import type { JSX, ReactNode } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import type { JSX, MouseEvent, ReactNode } from 'react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { ApiError } from '@/portal/api/client';
 import type { JobRunDetail } from '@/portal/api/types';
@@ -14,11 +14,37 @@ import { EmptyState } from '@/portal/components/EmptyState';
 import { Page } from '@/portal/components/Page';
 import { StatusDot } from '@/portal/components/StatusDot';
 import { useJobRun } from './api';
-import { OUTCOME, duration, jobLogPath, startedBy } from './jobRuns';
+import { FROM_JOB_LOG, OUTCOME, duration, jobLogPath, startedBy } from './jobRuns';
 import './jobLog.css';
 
 /** How much of a run's output the server keeps, its tail, in KB (65,536 characters). */
 export const OUTPUT_LIMIT_KB = 64;
+
+interface BackToLogProps {
+  job: string;
+  name: string;
+}
+
+/**
+ * **Back to the … log**: the log with its page and filter as they were, when the log is
+ * where the run was opened from; the log's first page otherwise, such as for a link
+ * from a panel or the health check.
+ */
+function BackToLog({ job, name }: BackToLogProps): JSX.Element {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isFromLog = (location.state as Record<string, unknown> | null)?.[FROM_JOB_LOG] === true;
+  const handleClick = (event: MouseEvent<HTMLAnchorElement>): void => {
+    if (!isFromLog) return;
+    event.preventDefault();
+    void navigate(-1);
+  };
+  return (
+    <Link to={jobLogPath(job)} onClick={handleClick}>
+      Back to the {name} log
+    </Link>
+  );
+}
 
 /** Renders one recorded run, or why it cannot be shown. */
 export function JobRunPage(): JSX.Element {
@@ -49,7 +75,7 @@ export function JobRunPage(): JSX.Element {
     );
   }
 
-  const back = <Link to={jobLogPath(run.data.job)}>Back to the {run.data.name} log</Link>;
+  const back = <BackToLog job={run.data.job} name={run.data.name} />;
   return (
     <Page title={`${run.data.name} run`} actions={back}>
       <RunCard run={run.data} />
