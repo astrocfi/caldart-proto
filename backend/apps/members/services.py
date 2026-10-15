@@ -513,8 +513,9 @@ def delete_member(actor: User, target: User) -> None:
     A tombstone is never deleted, since it holds a deleted member's payments: that
     refusal is :func:`refuse_tombstone_change`'s ``DomainError``.  Nobody may delete
     themselves (reason ``self_delete``); only a system administrator may delete one
-    (``system_admin_target``); and nobody may delete an account holding a role they do
-    not hold (``roles_not_held``, :data:`ROLES_NOT_HELD_DELETE_REFUSED`), the guard
+    (``system_admin_target``); and nobody may delete an account holding a two-factor
+    role they do not hold (``roles_not_held``, :data:`ROLES_NOT_HELD_DELETE_REFUSED`); a
+    DART leader or a verifier is no obstacle.  That is the guard
     deactivating and blocking follow
     (:func:`apps.accounts.services.may_edit_protected_fields`).  Roles are judged on
     effective roles, so a Django superuser counts as a system administrator and holds

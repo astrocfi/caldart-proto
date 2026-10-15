@@ -2067,7 +2067,7 @@ Rules:
   to the guard on moving the ``system_admin`` role, and to the account-edit
   guard (:ref:`account-edit-guard`), which lets an administrator change another
   account's ``email``, deactivate, reactivate, or block it only while holding
-  every role that account holds.
+  every guarded (two-factor) role that account holds.
 - ``STAFF_ROLE_SLUGS`` is every slug except ``member``, and is what
   ``can_access_members_content`` tests.
 - ``manage.py seed_plans`` creates or updates the annual and life plans from

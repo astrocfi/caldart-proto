@@ -1,8 +1,9 @@
-"""Deleting a member follows the account-edit guard.
+"""Deleting and deactivating a member follow the account-edit guard.
 
-``DELETE /admin/members/{user_id}`` is refused 403 unless the caller holds every role
-the account holds, as deactivating and blocking it are; a system administrator, a
-role-less Django superuser among them, holds them all.
+``DELETE /admin/members/{user_id}`` is refused 403, and ``POST .../deactivate`` 400,
+unless the caller holds every two-factor role the account holds; member, DART leader,
+and verifier do not count.  A system administrator, a role-less Django superuser among
+them, holds them all.
 """
 
 from __future__ import annotations
@@ -13,7 +14,14 @@ import pytest
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
-from apps.accounts.roles import ACCOUNT_ADMIN, MEMBER, SYSTEM_ADMIN, TREASURER
+from apps.accounts.roles import (
+    ACCOUNT_ADMIN,
+    DART_LEADER,
+    MEMBER,
+    SYSTEM_ADMIN,
+    TREASURER,
+    VERIFIER,
+)
 from apps.members.services import ROLES_NOT_HELD_DELETE_REFUSED
 from tests.conftest import audit_messages, role_matrix
 from tests.factories import UserFactory
@@ -28,20 +36,37 @@ def detail(user: User) -> str:
     return f"{MEMBERS}/{user.pk}"
 
 
-# The system administrator's own refusal is pinned in test_members_admin.py; this matrix
-# covers every role an account administrator may or may not hold.
-@pytest.mark.parametrize(
-    ("slug", "allowed"),
-    [case for case in role_matrix(MEMBER, ACCOUNT_ADMIN) if case[0] != SYSTEM_ADMIN],
-)
-def test_an_account_admin_deletes_only_an_account_whose_roles_they_hold(
+#: The target roles an account administrator may act on: their own two-factor role and
+#: every role that is not one.  The system administrator's own refusal is pinned in
+#: test_members_admin.py, so the matrices leave that role out.
+ACCOUNT_ADMIN_REACH = [
+    case
+    for case in role_matrix(MEMBER, VERIFIER, DART_LEADER, ACCOUNT_ADMIN)
+    if case[0] != SYSTEM_ADMIN
+]
+
+
+@pytest.mark.parametrize(("slug", "allowed"), ACCOUNT_ADMIN_REACH)
+def test_an_account_admin_deletes_only_an_account_whose_two_factor_roles_they_hold(
     account_admin_client: APIClient, slug: str, allowed: bool
 ) -> None:
-    """A target holding a role the account administrator lacks stays."""
+    """A target holding a two-factor role the account administrator lacks stays."""
     target = UserFactory(email="target@example.test", roles=[MEMBER, slug])
     response = account_admin_client.delete(detail(target))
 
     assert response.status_code == (204 if allowed else 403)
+
+
+@pytest.mark.parametrize(("slug", "allowed"), ACCOUNT_ADMIN_REACH)
+def test_an_account_admin_deactivates_only_an_account_whose_two_factor_roles_they_hold(
+    account_admin_client: APIClient, slug: str, allowed: bool
+) -> None:
+    """The member record's deactivation follows the same rule."""
+    target = UserFactory(email="target@example.test", roles=[MEMBER, slug])
+    account_admin_client.post(f"{detail(target)}/deactivate")
+
+    target.refresh_from_db()
+    assert target.is_active is (not allowed)
 
 
 def test_the_refusal_says_why(account_admin_client: APIClient, treasurer: User) -> None:

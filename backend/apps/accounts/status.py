@@ -158,8 +158,8 @@ def deactivate_account(actor: User, target: User) -> None:
 
     Refused with ``DomainError``, in this order and changing nothing: a donor ("A
     donor has no portal account to deactivate."), the actor's own account ("You cannot
-    deactivate your own account."), an account holding roles the actor does not hold
-    ("You cannot activate or deactivate an account that holds roles you do not
+    deactivate your own account."), an account holding two-factor roles the actor does
+    not hold ("You cannot activate or deactivate an account that holds roles you do not
     hold." -- which is how a system administrator's account is kept from anyone but
     another system administrator), and an account already deactivated ("That account
     is already deactivated.").  The first three are recorded at WARNING as
@@ -196,12 +196,12 @@ def reactivate_account(actor: User, target: User) -> None:
     """Set ``target``'s active flag again on ``actor``'s behalf.
 
     Refused with ``DomainError``, in this order and changing nothing: a donor ("A
-    donor has no portal account to reactivate."), an account holding roles the actor
-    does not hold ("You cannot activate or deactivate an account that holds roles you
-    do not hold."), an account a user administrator has blocked from reactivating ("A
-    user administrator has blocked this account from reactivating. Allow reactivation
-    on its user record first."), and an account already active ("That account is
-    already active.").  The first three are recorded at WARNING as
+    donor has no portal account to reactivate."), an account holding two-factor roles
+    the actor does not hold ("You cannot activate or deactivate an account that holds
+    roles you do not hold."), an account a user administrator has blocked from
+    reactivating ("A user administrator has blocked this account from reactivating.
+    Allow reactivation on its user record first."), and an account already active
+    ("That account is already active.").  The first three are recorded at WARNING as
     ``account.activate`` with the reasons ``donor_account``, ``roles_not_held``, and
     ``reactivation_blocked``.
 
@@ -238,11 +238,11 @@ def check_block(actor: User, target: User, *, blocked: bool) -> None:
 
     Raises ``DomainError``, in this order: a donor ("A donor has no portal account to
     block."), the actor's own account ("You cannot block your own account."), and an
-    account holding roles the actor does not hold ("You cannot block or unblock an
-    account that holds roles you do not hold.").  Each is recorded at WARNING as
-    ``account.block`` or ``account.unblock`` with the reason ``donor_account``,
-    ``self_deactivation``, or ``roles_not_held``.  Returns ``None`` when the change is
-    allowed.  Who may call this at all is the endpoint's rule.
+    account holding two-factor roles the actor does not hold ("You cannot block or
+    unblock an account that holds roles you do not hold.").  Each is recorded at
+    WARNING as ``account.block`` or ``account.unblock`` with the reason
+    ``donor_account``, ``self_deactivation``, or ``roles_not_held``.  Returns ``None``
+    when the change is allowed.  Who may call this at all is the endpoint's rule.
     """
     action = audit.ACCOUNT_BLOCK if blocked else audit.ACCOUNT_UNBLOCK
     if is_donor(target):

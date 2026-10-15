@@ -71,9 +71,10 @@ DEFAULT_ORG_NAME = "CalDART"
 SECONDS_PER_DAY = 86_400
 
 #: The fields an administrator may change on another account only while holding
-#: every role that account holds.  The email address is a takeover route: it is the
-#: login and the target of a reset link.  The active flag is guarded the same way,
-#: but it is not an edit: see ``apps.accounts.status``.
+#: every two-factor role that account holds (:func:`may_edit_protected_fields`).  The
+#: email address is a takeover route: it is the login and the target of a reset link.
+#: The active flag is guarded the same way, but it is not an edit: see
+#: ``apps.accounts.status``.
 PROTECTED_ACCOUNT_FIELDS: tuple[str, ...] = ("email",)
 
 #: The account columns :func:`update_account` writes, in the order it writes them.
@@ -265,6 +266,9 @@ def update_account(actor: User | str, target: User, changes: AccountChanges) -> 
     which changes only once its new owner follows a link
     (``apps.accounts.email_change.request_email_change``): ``email`` is ignored here.
 
+    A role write locks the account's row first and reads its groups afresh
+    (:func:`_lock_roles`), so two role writes to one account never interleave.
+
     A value that would not really alter the account is not a change.  A role list
     the account already holds is not written
     at all: rebuilding the Django flags from it would strip a ``createsuperuser``
@@ -294,6 +298,7 @@ def update_account(actor: User | str, target: User, changes: AccountChanges) -> 
     roles = changes.get("roles")
 
     if roles is not None:
+        _lock_roles(target)
         roles = _checked_roles(actor, target, roles)
     kind = changes.get("kind")
     if kind is not None and is_donor(target):
@@ -327,10 +332,13 @@ def update_account(actor: User | str, target: User, changes: AccountChanges) -> 
     return target
 
 
+@transaction.atomic
 def set_verifier(actor: User, target: User, *, wanted: bool) -> User:
     """Give ``target`` the verifier role when ``wanted``, or take it away, and return it.
 
-    The target's role list is rebuilt with ``verifier`` added or removed and written
+    The target's row is locked and its roles read afresh (:func:`_lock_roles`), so a
+    role another request granted meanwhile is kept.  The role list is rebuilt from
+    them with ``verifier`` added or removed and written
     through :func:`update_account` under ``actor``, so the change is audited as
     ``account.roles`` and raised as ``roles_changed``, and every other role the target
     holds is kept.  A list that changes nothing writes, records and raises nothing.
@@ -338,9 +346,24 @@ def set_verifier(actor: User, target: User, *, wanted: bool) -> User:
     refused with ``DomainPermissionError`` (:data:`OWN_ROLES_REFUSED`).  Who may call
     this is the endpoint's rule, not this function's.
     """
+    _lock_roles(target)
     held = [slug for slug in target.roles if slug != VERIFIER]
     roles = [*held, VERIFIER] if wanted else held
     return update_account(actor, target, {"roles": roles})
+
+
+def _lock_roles(target: User) -> None:
+    """Lock ``target``'s row until the transaction ends, and forget its loaded groups.
+
+    Two role writes to one account then run one after the other, and each judges and
+    records its change against the groups the account holds when it runs, not the ones
+    a queryset prefetched before another write committed.  Call it inside a
+    transaction.
+    """
+    User.objects.select_for_update().filter(pk=target.pk).first()
+    prefetched = vars(target).get("_prefetched_objects_cache")
+    if isinstance(prefetched, dict):
+        prefetched.pop("groups", None)
 
 
 def _raise_edit_event(action: str, logged: AuditFields, *, actor: User | str, target: User) -> None:
@@ -477,16 +500,21 @@ def _moves_system_admin(target: User, wanted: set[str]) -> bool:
 def may_edit_protected_fields(actor: User | str, target: User) -> bool:
     """True when ``actor`` may write ``target``'s protected fields at all.
 
-    The actor must hold every role the target holds; a system administrator, including
-    a Django superuser without the role group or the command actor, holds them all.
-    This judges the pair of accounts, not a particular edit: a caller who may not write
-    these fields may still change names and profile fields.  The same rule guards
-    deactivating, reactivating, and blocking an account (``apps.accounts.status``).
+    The actor must hold every guarded role (``GUARDED_ROLES``, the two-factor roles) the
+    target holds; ``member``, ``verifier``, and ``dart_leader`` do not count.  Both sides
+    are effective roles (:func:`effective_roles`), so a Django superuser counts as a
+    system administrator, and a system administrator, the command actor included,
+    holds them all.  This judges the pair of accounts, not a particular edit: a caller
+    who may not write these fields may still change names and profile fields.  The same
+    rule guards deactivating, reactivating, and blocking an account
+    (``apps.accounts.status``), sending it a password reset or requiring a new password,
+    and deleting it (``apps.members.services.delete_member``).
     """
     actor_roles = effective_roles(actor)
     if SYSTEM_ADMIN in actor_roles:
         return True
-    return len(effective_roles(target) - actor_roles) == 0
+    lacking = (effective_roles(target) - actor_roles) & set(GUARDED_ROLES)
+    return len(lacking) == 0
 
 
 def check_account_edit(
@@ -500,11 +528,12 @@ def check_account_edit(
     that resends every field is not treated as a change to the address.  Names are
     never protected.
 
-    A protected change is refused unless the actor holds every role the target holds;
-    a system administrator, including a Django superuser without the role, holds them
-    all.  Raises ``DomainValidationError`` against ``email``, and returns ``None`` when
-    the edit is allowed.  Every refusal is recorded in the audit log at WARNING with
-    the two account ids, the field names and a reason, and no personal data.
+    A protected change is refused unless the actor holds every guarded role the target
+    holds (:func:`may_edit_protected_fields`); a system administrator, including a
+    Django superuser without the role, holds them all.  Raises ``DomainValidationError``
+    against ``email``, and returns ``None`` when the edit is allowed.  Every refusal is
+    recorded in the audit log at WARNING with the two account ids, the field names and
+    a reason, and no personal data.
     """
     changed = _protected_changes(target, changes)
     if len(changed) == 0 or may_edit_protected_fields(actor, target):

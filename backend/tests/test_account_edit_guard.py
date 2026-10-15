@@ -2,8 +2,9 @@
 
 A protected change -- the email address on a member record edit, or deactivating the
 account through either record's own action -- is refused unless the actor holds every
-role the target holds.  The user record never changes the address at all.  A Django
-superuser counts as a system administrator whether or not the role group was ever added.
+two-factor role the target holds; member, DART leader, and verifier do not count.  The
+user record never changes the address at all.  A Django superuser counts as a system
+administrator whether or not the role group was ever added.
 These cases replay the takeover the guard closes, check the edits that stay allowed,
 and mark that a caller who may also write roles reaches no further over a second
 request, since nobody changes their own roles.  What a refusal writes to the audit log
@@ -19,7 +20,14 @@ from django.core import mail
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
-from apps.accounts.roles import ACCOUNT_ADMIN, DART_LEADER, MEMBER, SYSTEM_ADMIN, USER_ADMIN
+from apps.accounts.roles import (
+    ACCOUNT_ADMIN,
+    DART_LEADER,
+    MEMBER,
+    SYSTEM_ADMIN,
+    TREASURER,
+    USER_ADMIN,
+)
 from apps.accounts.services import EMAIL_CHANGE_REFUSED
 from apps.accounts.status import SELF_DEACTIVATION_REFUSED, STATUS_CHANGE_REFUSED
 from tests.factories import UserFactory
@@ -119,17 +127,30 @@ def test_an_account_admin_cannot_change_a_user_admins_email(
     assert user_admin.email == "useradmin@example.test"
 
 
-def test_a_user_admin_cannot_deactivate_a_dart_leader(
-    api_client: APIClient, user_admin: User, dart_leader: User
+def test_a_user_admin_cannot_deactivate_a_treasurer(
+    api_client: APIClient, user_admin: User, treasurer: User
 ) -> None:
-    """Any role the actor lacks protects the account, administrative or not."""
+    """A two-factor role the actor lacks protects the account."""
     api_client.force_login(user_admin)
-    response = api_client.post(f"{user_detail(dart_leader)}/deactivate")
+    response = api_client.post(f"{user_detail(treasurer)}/deactivate")
 
     assert response.status_code == 400
     assert response.json() == {"detail": STATUS_CHANGE_REFUSED}
-    dart_leader.refresh_from_db()
-    assert dart_leader.is_active is True
+    treasurer.refresh_from_db()
+    assert treasurer.is_active is True
+
+
+@pytest.mark.parametrize("target_fixture", ["dart_leader", "verifier"])
+def test_a_user_admin_may_deactivate_an_account_with_only_open_roles(
+    api_client: APIClient, user_admin: User, request: pytest.FixtureRequest, target_fixture: str
+) -> None:
+    """DART leader and verifier are not two-factor roles, so they protect nobody."""
+    target: User = request.getfixturevalue(target_fixture)
+    api_client.force_login(user_admin)
+    api_client.post(f"{user_detail(target)}/deactivate")
+
+    target.refresh_from_db()
+    assert target.is_active is False
 
 
 def test_an_account_admin_cannot_deactivate_themselves(
@@ -317,24 +338,37 @@ def test_the_roles_guard_keeps_a_role_less_superuser_active(
 # Roles: how far a second request reaches
 # --------------------------------------------------------------------------
 def test_a_user_admin_cannot_lift_the_refusal_by_granting_themselves_the_missing_role(
-    api_client: APIClient, user_admin: User, dart_leader: User
+    api_client: APIClient, user_admin: User, treasurer: User
 ) -> None:
     """Nobody changes their own roles, so the guard holds over a second request.
 
-    Taking ``dart_leader`` for themselves is refused 403, and the account it was
+    Taking ``treasurer`` for themselves is refused 403, and the account it was
     protecting stays out of reach.
     """
     api_client.force_login(user_admin)
     granted = api_client.patch(
-        user_detail(user_admin), {"roles": [MEMBER, USER_ADMIN, DART_LEADER]}, format="json"
+        user_detail(user_admin), {"roles": [MEMBER, USER_ADMIN, TREASURER]}, format="json"
     )
     assert granted.status_code == 403
 
-    response = api_client.post(f"{user_detail(dart_leader)}/deactivate")
+    response = api_client.post(f"{user_detail(treasurer)}/deactivate")
 
     assert response.status_code == 400
-    dart_leader.refresh_from_db()
-    assert dart_leader.is_active is True
+    treasurer.refresh_from_db()
+    assert treasurer.is_active is True
+
+
+def test_a_user_admin_cannot_lift_the_refusal_by_taking_the_role_off_the_target(
+    api_client: APIClient, user_admin: User, treasurer: User
+) -> None:
+    """Nor by taking the two-factor role off the account, which they may not move."""
+    api_client.force_login(user_admin)
+    stripped = api_client.patch(user_detail(treasurer), {"roles": [MEMBER]}, format="json")
+    assert stripped.status_code == 400
+
+    response = api_client.post(f"{user_detail(treasurer)}/deactivate")
+
+    assert response.status_code == 400
 
 
 def test_a_user_admin_cannot_grant_themselves_the_system_admin_role(

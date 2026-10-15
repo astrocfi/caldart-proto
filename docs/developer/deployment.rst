@@ -971,11 +971,11 @@ With ``--admin-email`` the step creates the first real administrator::
 ``create_admin`` makes the account a superuser with the ``member``,
 ``system_admin``, and ``website_admin`` roles, no usable password, and a
 verified address, and prints one line: a password-reset link, which the
-installer's summary repeats.  The role grant is audited as ``account.roles``
-under ``actor=command`` and raises the ``roles_changed`` notification
-(:doc:`notification-events`), naming *A command on the server* as the actor.  Open it to set the password.  ``system_admin``
-plus ``is_superuser`` is what unlocks ``/portal/system/`` and the Wagtail
-admin.  Both require two-factor sign-in, so the first sign-in after setting the
+installer's summary repeats.  Open it to set the password.  The role grant is
+audited as ``account.roles`` under ``actor=command`` and raises the
+``roles_changed`` notification (:doc:`notification-events`), naming *A command
+on the server* as the actor.  ``system_admin`` plus ``is_superuser`` is what
+unlocks ``/portal/system/`` and the Wagtail admin.  Both require two-factor sign-in, so the first sign-in after setting the
 password asks the administrator to set up an authenticator app and save the
 backup codes before it opens the portal (:ref:`api-two-factor`).  Keep those
 codes.  An administrator who loses both the phone and the codes asks another

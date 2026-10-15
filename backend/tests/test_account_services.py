@@ -13,6 +13,7 @@ from apps.accounts.roles import (
     DART_LEADER,
     MEMBER,
     SYSTEM_ADMIN,
+    TREASURER,
     WEBSITE_ADMIN,
 )
 from apps.accounts.services import (
@@ -253,11 +254,19 @@ def test_names_are_never_protected(user_admin: User, account_admin: User) -> Non
     assert account_admin.first_name == "Marta"
 
 
-def test_a_dart_leaders_email_is_protected_from_a_user_admin(user_admin: User) -> None:
-    """Every role counts towards the guard, administrative or not."""
-    target = UserFactory(email="target@example.test", roles=[MEMBER, DART_LEADER])
+def test_a_treasurers_email_is_protected_from_a_user_admin(user_admin: User) -> None:
+    """A two-factor role the actor lacks counts towards the guard."""
+    target = UserFactory(email="target@example.test", roles=[MEMBER, TREASURER])
     with pytest.raises(DomainValidationError, match=re.escape(EMAIL_CHANGE_REFUSED)):
         request_email_change(user_admin, target, "taken.over@example.test")
+
+
+def test_a_dart_leaders_email_is_open_to_an_account_admin(account_admin: User) -> None:
+    """DART leader is not a two-factor role, so it does not count towards the guard."""
+    target = UserFactory(email="target@example.test", roles=[MEMBER, DART_LEADER])
+    request_email_change(account_admin, target, "moved@example.test")
+    target.refresh_from_db()
+    assert target.pending_email == "moved@example.test"
 
 
 def test_an_account_admin_may_change_a_plain_members_email(account_admin: User) -> None:

@@ -655,11 +655,12 @@ The delete is refused when
 * the target is the caller — you cannot delete your own account, whatever roles
   you hold;
 * the target is a ``system_admin``, unless the caller is a ``system_admin``; or
-* the target holds any role the caller does not, the account-edit guard that
-  deactivating and blocking follow (``accounts.services.may_edit_protected_fields``,
-  :doc:`api-auth`): an account administrator deletes a plain member or another
-  account administrator, but not a treasurer, a user administrator, a DART leader,
-  or anybody else holding a role they lack.
+* the target holds a guarded (two-factor) role the caller does not, the account-edit
+  guard that deactivating and blocking follow
+  (``accounts.services.may_edit_protected_fields``, :doc:`api-auth`): an account
+  administrator deletes a plain member, a DART leader, a verifier, or another account
+  administrator, but not a treasurer, a user administrator, or anybody else holding a
+  two-factor role they lack.
 
 The role tests read *effective* roles, so a Django superuser without the role group
 counts as a system administrator on either side, and a system administrator holds

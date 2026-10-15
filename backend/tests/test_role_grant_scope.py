@@ -14,7 +14,10 @@ import logging
 
 import pytest
 from django.contrib.admin.sites import site as admin_site
+from django.contrib.auth.models import Group, Permission
+from django.db import connection
 from django.test import Client, RequestFactory
+from django.test.utils import CaptureQueriesContext
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
@@ -29,7 +32,13 @@ from apps.accounts.roles import (
     USER_ADMIN,
     VERIFIER,
 )
-from apps.accounts.services import OWN_ROLES_REFUSED, ROLE_NOT_HELD_REFUSED, set_verifier
+from apps.accounts.services import (
+    OWN_ROLES_REFUSED,
+    ROLE_CHANGE_REFUSED,
+    ROLE_NOT_HELD_REFUSED,
+    set_verifier,
+    update_account,
+)
 from caldart.exceptions import DomainPermissionError
 from tests.conftest import audit_messages, role_matrix
 from tests.factories import UserFactory
@@ -48,6 +57,11 @@ HOLDABLE_GUARDED = [slug for slug in GUARDED_ROLES if slug != SYSTEM_ADMIN]
 def detail(user: User) -> str:
     """``/admin/users/{id}`` for ``user``."""
     return f"{USERS}/{user.pk}"
+
+
+def verifier_url(user: User) -> str:
+    """``/leader/members/{user_id}/verifier`` for ``user``."""
+    return f"/api/v1/leader/members/{user.pk}/verifier"
 
 
 @pytest.fixture
@@ -230,7 +244,8 @@ def test_nobody_may_change_their_own_roles(
     api_client.force_login(actor)
     response = api_client.patch(detail(actor), {"roles": [*actor.roles, DART_LEADER]})
 
-    assert (response.status_code, response.json()) == (403, {"detail": OWN_ROLES_REFUSED})
+    assert response.status_code == 403
+    assert response.json() == {"detail": OWN_ROLES_REFUSED}
 
 
 def test_taking_away_your_own_role_is_refused_too(api_client: APIClient, user_admin: User) -> None:
@@ -268,6 +283,60 @@ def test_a_dart_leader_may_not_make_themselves_a_verifier(dart_leader: User) -> 
     """The member check's verifier toggle writes roles too, under the same rule."""
     with pytest.raises(DomainPermissionError, match=OWN_ROLES_REFUSED):
         set_verifier(dart_leader, dart_leader, wanted=True)
+
+
+def test_your_own_verifier_card_answers_403(api_client: APIClient, dart_leader: User) -> None:
+    """``PUT /leader/members/{own id}/verifier`` is the own-roles refusal."""
+    api_client.force_login(dart_leader)
+    response = api_client.put(verifier_url(dart_leader), {"verifier": True}, format="json")
+
+    assert response.status_code == 403
+    assert response.json() == {"detail": OWN_ROLES_REFUSED}
+
+
+def test_a_dart_leader_may_make_a_treasurer_a_verifier(
+    api_client: APIClient, dart_leader: User, treasurer: User
+) -> None:
+    """Verifier is open to every role writer, whatever guarded roles the target holds."""
+    api_client.force_login(dart_leader)
+    api_client.put(verifier_url(treasurer), {"verifier": True}, format="json")
+
+    treasurer.refresh_from_db()
+    assert treasurer.roles == [MEMBER, VERIFIER, TREASURER]
+
+
+def test_a_dart_leader_may_not_make_a_role_less_superuser_a_verifier(
+    api_client: APIClient, dart_leader: User, bare_superuser: User
+) -> None:
+    """Rebuilding its role list would take the superuser flag away, so it is refused."""
+    api_client.force_login(dart_leader)
+    response = api_client.put(verifier_url(bare_superuser), {"verifier": True}, format="json")
+
+    assert response.json() == {"roles": [ROLE_CHANGE_REFUSED]}
+
+
+# --------------------------------------------------------------------------
+# Two role writes to one account
+# --------------------------------------------------------------------------
+def test_a_role_write_locks_the_account(user_admin: User, member: User) -> None:
+    """The account's row is locked before the roles are judged."""
+    with CaptureQueriesContext(connection) as queries:
+        update_account(user_admin, member, {"roles": [MEMBER, DART_LEADER]})
+
+    locks = [query["sql"] for query in queries.captured_queries if "FOR UPDATE" in query["sql"]]
+    assert len(locks) >= 1
+
+
+def test_a_verifier_grant_keeps_a_role_granted_meanwhile(dart_leader: User, member: User) -> None:
+    """A grant judged on groups loaded earlier does not undo one committed since."""
+    stale = User.objects.prefetch_related("groups").get(pk=member.pk)
+    assert stale.roles == [MEMBER]
+    User.objects.get(pk=member.pk).add_role(TREASURER)
+
+    set_verifier(dart_leader, stale, wanted=True)
+
+    member.refresh_from_db()
+    assert member.roles == [MEMBER, VERIFIER, TREASURER]
 
 
 # --------------------------------------------------------------------------
@@ -313,11 +382,11 @@ def test_a_saved_record_lists_the_roles_too(
 # --------------------------------------------------------------------------
 # The Django admin
 # --------------------------------------------------------------------------
-@pytest.mark.parametrize("field", ["groups", "is_superuser", "is_staff"])
+@pytest.mark.parametrize("field", ["groups", "is_superuser", "is_staff", "user_permissions"])
 def test_the_django_admin_shows_the_role_fields_read_only(
     superuser: User, member: User, field: str
 ) -> None:
-    """Roles and the flags they set change on the user record alone."""
+    """Roles, their flags, and per-user permissions change on the user record alone."""
     model_admin = admin_site._registry[User]
     request = RequestFactory().get("/")
     request.user = superuser
@@ -325,24 +394,69 @@ def test_the_django_admin_shows_the_role_fields_read_only(
     assert field in model_admin.get_readonly_fields(request, member)
 
 
-def test_posting_groups_to_the_django_admin_changes_no_role(superuser: User, member: User) -> None:
-    """A role posted to the change form is ignored."""
+@pytest.fixture
+def posted_admin_form(superuser: User, member: User) -> User:
+    """``member`` after a superuser posts the Django admin change form granting it all.
+
+    The form posts the system administrator group, both flags, and a permission; the
+    post itself must be accepted, so a refused form cannot pass for an ignored field.
+    """
     browser = Client()
     browser.force_login(superuser)
     group = User.objects.get(pk=superuser.pk).groups.get()
+    permission = Permission.objects.get(codename="change_user")
     response = browser.post(
         f"/django-admin/accounts/user/{member.pk}/change/",
         {
             "first_name": member.first_name,
             "last_name": member.last_name,
             "groups": [group.pk],
+            "user_permissions": [permission.pk],
             "is_superuser": "on",
             "is_staff": "on",
             "date_joined_0": "2026-01-01",
             "date_joined_1": "00:00:00",
         },
     )
-
     assert response.status_code == 302
     member.refresh_from_db()
-    assert (member.roles, member.is_superuser) == ([MEMBER], False)
+    return member
+
+
+def test_posting_groups_to_the_django_admin_changes_no_role(posted_admin_form: User) -> None:
+    """A role posted to the change form is ignored."""
+    assert posted_admin_form.roles == [MEMBER]
+
+
+def test_posting_the_superuser_flag_to_the_django_admin_changes_nothing(
+    posted_admin_form: User,
+) -> None:
+    """The superuser flag stays as the roles set it."""
+    assert posted_admin_form.is_superuser is False
+
+
+def test_posting_the_staff_flag_to_the_django_admin_changes_nothing(
+    posted_admin_form: User,
+) -> None:
+    """So does the staff flag."""
+    assert posted_admin_form.is_staff is False
+
+
+def test_posting_a_permission_to_the_django_admin_changes_nothing(
+    posted_admin_form: User,
+) -> None:
+    """Per-user permissions are not written either."""
+    assert posted_admin_form.user_permissions.count() == 0
+
+
+def test_the_django_admin_offers_no_group_screens(superuser: User) -> None:
+    """Role groups are not renamed, deleted, or given permissions in the Django admin."""
+    browser = Client()
+    browser.force_login(superuser)
+
+    assert browser.get("/django-admin/auth/group/").status_code == 404
+
+
+def test_the_django_admin_registers_no_group_admin() -> None:
+    """``Group`` is unregistered, not merely hidden."""
+    assert Group not in admin_site._registry

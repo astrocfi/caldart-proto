@@ -148,9 +148,11 @@ Rules the site enforces
   you may not move is refused whole, naming the role: *You cannot give or take away a role
   you do not hold yourself: Treasurer.*
 - **The account's status is guarded.** You can deactivate, reactivate, or block an account,
-  send it a password reset, or require a new password of it, only when you hold every role
-  it holds. As a user administrator you can act on an ordinary member, or another user
-  administrator, and nobody else with a role you lack.
+  send it a password reset, or require a new password of it, only when you hold every
+  two-factor role it holds (:doc:`../roles`). Member, Verifier, and DART leader do not
+  count. As a user administrator you can act on an ordinary member, a DART leader, a
+  verifier, or another user administrator, and on nobody else with a two-factor role you
+  lack.
 
 Some accounts, typically the one the site was installed with, hold full system access
 without the System administrator role checked. They count as a system administrator here, so
@@ -223,8 +225,9 @@ your own roles. Ask another administrator.* means just that. *You cannot activat
 deactivate an account that holds roles you do not hold.*, *You cannot block or unblock an
 account that holds roles you do not hold.*, *You cannot send a password reset to an account
 that holds roles you do not hold.*, and *You cannot require a new password for an account
-that holds roles you do not hold.* mean the account holds a role you lack; ask a system
-administrator, or a colleague who holds every role that account holds. *That
+that holds roles you do not hold.* mean the account holds a two-factor role you lack; ask a
+system administrator, or a colleague who holds every two-factor role that account holds.
+*That
 account is deactivated, so no reset email was sent.* means the account was deactivated while
 the page was open; reload and reactivate it first. *That account is already deactivated.*
 and *That account is already active.* mean somebody changed it while the page was open;

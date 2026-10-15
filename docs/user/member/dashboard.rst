@@ -140,4 +140,6 @@ reload the page
 first. Then look at **Recent payments**: a payment marked **Failed** moved no
 money, so try again from :doc:`renew`. A payment marked **Paid** with no
 membership behind it is a fault; tell the office the date and the amount. If a menu
-entry you expect is missing, you lack the role; a user administrator can grant it.
+entry you expect is missing, you lack the role; a user administrator can grant it, or for a
+two-factor role a system administrator or a user administrator who holds it (see
+:doc:`../roles`).

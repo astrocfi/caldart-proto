@@ -958,14 +958,22 @@ or a ``system_admin`` — not a ``verifier`` or an ``account_admin``.
 ``verifier`` added or removed and writes it through
 ``accounts.services.update_account``, so the change is audited as
 ``account.roles`` and raised as ``roles_changed``, the member's other roles are
-kept, and a list that changes nothing writes nothing.  A user administrator can
-grant the role from ``PATCH /admin/users/{id}`` too (:doc:`api-auth`).
+kept, and a list that changes nothing writes nothing.  ``update_account``'s role
+rules apply (:doc:`api-auth`): nobody changes their own roles, and a role-less Django
+superuser's role list is a system administrator's to write, since rebuilding it would
+take the superuser flag away.  ``verifier`` is not a guarded role, so the target's
+other roles, two-factor ones included, never stand in the way.  A user administrator
+can grant the role from ``PATCH /admin/users/{id}`` too.
 
 Statuses:
 
 * **200** — the status card, whose ``is_verifier`` reads the result.
-* **400** — ``verifier`` missing or not a boolean.
-* **403** — the caller holds none of the three roles.
+* **400** — ``verifier`` missing or not a boolean; or, from a caller who is not a
+  system administrator, a target that is a superuser with no ``system_admin`` role
+  group: ``{"roles": ["Only a system administrator can grant or take away the System
+  administrator role."]}``.
+* **403** — the caller holds none of the three roles, or the target is the caller:
+  ``{"detail": "You cannot change your own roles. Ask another administrator."}``.
 * **404** — no account has that ``user_id``, or it is a donor or deactivated.
 
 ``GET /leader/aircraft?n_number=``

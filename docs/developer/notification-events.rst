@@ -181,7 +181,8 @@ Accounts
      - ``accounts.services.update_account`` when the role list really changes, whatever
        asked: ``PATCH /admin/users/{id}``, ``accounts.services.set_verifier`` behind
        ``PUT /leader/members/{user_id}/verifier``, and the ``create_admin`` command; the
-       Django admin shows the roles read-only, so every role write passes through it
+       Django admin shows the roles and per-user permissions read-only and has no group
+       screens, so every role write passes through it
      - ``user``; ``added`` and ``removed``, lists of role slugs in privilege order;
        ``actor``, the account that made the change, or ``"command"``
        (``audit.COMMAND_ACTOR``) for a management command, which the email names as

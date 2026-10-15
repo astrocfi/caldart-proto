@@ -1442,9 +1442,11 @@ Every refusal after the slugs writes a WARNING audit line ``action=account.roles
 with ``reason=own_account``, ``system_admin_role``, or ``roles_not_held``.  A write
 that goes through is audited as ``account.roles`` with the slugs ``added`` and
 ``removed`` and raises ``roles_changed`` (:doc:`notification-events`).  The Django
-admin shows ``groups``, ``is_superuser``, and ``is_staff`` read-only, so roles change
-only through ``accounts.services.update_account``: this endpoint, the member check's
-verifier toggle, and ``create_admin``.
+admin shows ``groups``, ``is_superuser``, ``is_staff``, and ``user_permissions``
+read-only, and offers no group screens at all (``Group`` is unregistered), so roles
+change only through ``accounts.services.update_account``: this endpoint, the member
+check's verifier toggle, and ``create_admin``.  A role write locks the account's row
+first, so two role writes to one account run one after the other.
 
 Statuses: **200** with the updated payload; **400** for an unknown role slug,
 a move of ``system_admin`` by a caller who is not one, a move of a guarded role
@@ -1783,8 +1785,10 @@ The rule, in the order it is applied:
 #. **Nobody may deactivate or block their own account**, whatever roles they
    hold; ``POST /auth/deactivate`` (:ref:`api-deactivation`) is the one
    self-service path.
-#. **Otherwise the actor must hold every role the target holds.**  A system
-   administrator holds every role, so one always passes.
+#. **Otherwise the actor must hold every guarded role the target holds**
+   (``GUARDED_ROLES``, the two-factor roles; ``member``, ``verifier``, and
+   ``dart_leader`` do not count).  A system administrator holds every role, so one
+   always passes.
 
 Both sides of that last comparison use *effective* roles:
 ``accounts.services.effective_roles`` adds ``system_admin`` whenever
@@ -1792,19 +1796,18 @@ Both sides of that last comparison use *effective* roles:
 which sets the flag without adding the role group, is therefore protected — and
 protects — like any other system administrator.
 
-Worked through the roles: an account administrator may change a plain member's
-address but not a DART leader's or a user administrator's, a user administrator
-may deactivate a plain member but not an account administrator, and a system
-administrator may do either to anybody.  Every role counts, administrative or
-not.  Names are outside the guard entirely.
+Worked through the roles: an account administrator may change the address of a
+plain member, a DART leader, or a verifier, but not a user administrator's; a user
+administrator may deactivate any of those three, or another user administrator, but
+not an account administrator; and a system administrator may do either to anybody.
+Only the two-factor roles count.  Names are outside the guard entirely.
 
 What the guard measures is the write in front of it, against the roles the two
 accounts hold when it arrives.  A user administrator cannot widen it by granting
-themselves the role they lack, since nobody changes their own roles.  They can take
-an unguarded role (``member``, ``verifier``, or ``dart_leader``) off the target and
-send the refused status action again, since moving those is the role's purpose; a
-guarded role they do not hold they can neither grant nor take away, so an account
-holding one stays out of their reach by either route.  Against an account
+themselves the role they lack, since nobody changes their own roles, nor by taking it
+off the target: the only roles that protect an account are the guarded ones, which
+they can neither grant nor take away without holding them.  An account holding one
+stays out of their reach by either route.  Against an account
 administrator the guard is absolute in one request as well as two, because
 ``PATCH /admin/members/{user_id}`` has no ``roles`` field at all.
 
