@@ -24,6 +24,7 @@ from apps.darts.models import Dart
 from apps.members.models import MemberProfile, Membership
 from apps.members.services import account_kind
 from apps.payments.models import Payment, PaymentKind, RenewalMandate
+from caldart.audit import COMMAND_ACTOR
 from caldart.dates import format_display_date
 from caldart.mail import org_name
 from caldart.reports import money_label
@@ -59,6 +60,10 @@ AUTO_RENEWAL_OFF_HOW: dict[str, str] = {
 
 #: Who gave a refund when no account did.
 DASHBOARD_ACTOR = "The payment provider's dashboard"
+
+#: Who changed an account's roles when a management command did, such as
+#: ``create_admin``, rather than a signed-in account.
+COMMAND_ACTOR_NAME = "A command on the server"
 
 
 @dataclass(frozen=True)
@@ -426,11 +431,18 @@ def _account_active(verb: str) -> Callable[[Mapping[str, object]], Built]:
 
 
 def _roles_changed(payload: Mapping[str, object]) -> Built:
-    """``roles_changed``: the roles given, the roles taken, and the roles held now."""
+    """``roles_changed``: who changed them, the roles given and taken, and those held now.
+
+    The actor is the account that made the change, or :data:`COMMAND_ACTOR_NAME` when
+    a management command made it (``audit.COMMAND_ACTOR``).
+    """
     user = _required(payload, "user", User)
-    actor = _required(payload, "actor", User)
+    if payload.get("actor") == COMMAND_ACTOR:
+        who = COMMAND_ACTOR_NAME
+    else:
+        who = _required(payload, "actor", User).display_name
     return (
-        f"{actor.display_name} changed {user.display_name}'s roles",
+        f"{who} changed {user.display_name}'s roles",
         [
             ("Added", _role_labels(_words(payload, "added"))),
             ("Removed", _role_labels(_words(payload, "removed"))),

@@ -152,7 +152,8 @@ _EVENTS: tuple[Event, ...] = (
         "roles_changed",
         "Roles changed",
         "Accounts",
-        "An administrator granted or took away a role.",
+        "A role was granted or taken away, by an administrator, by a DART leader making a "
+        "verifier, or by a command on the server.",
         _ACCOUNT_ROLES,
     ),
     Event(

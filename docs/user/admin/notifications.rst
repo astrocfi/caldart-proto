@@ -158,8 +158,12 @@ Accounts
 *Notification: Account reactivated*
    A deactivated account is brought back.
 *Notification: Roles changed*
-   A user administrator grants or takes away a role. It lists the roles added, removed, and
-   held now.
+   Any account's roles change, whoever or whatever changed them: a user administrator or a
+   system administrator on the user record, a DART leader or user administrator making
+   somebody a verifier from the member check, or a command run on the server, such as the
+   one that sets up the first system administrator. The headline names who made the change
+   (*A command on the server* for a command) and whose roles changed, and the email lists
+   the roles added, removed, and held now.
 *Notification: Email address changed*
    Somebody confirms a changed email address. It gives the old and the new address.
 *Notification: Profile changed*

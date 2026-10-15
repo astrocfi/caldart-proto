@@ -25,7 +25,6 @@ from apps.accounts.services import (
     update_account,
 )
 from apps.accounts.status import clear_password_and_end_sessions
-from apps.notifications.dispatch import suspended
 from caldart import audit
 from caldart.mail import send_logging_refusal
 
@@ -96,8 +95,8 @@ class Command(BaseCommand):
     :func:`apps.accounts.services.update_account`, the same service an
     administration screen uses, under the command actor
     (:data:`caldart.audit.COMMAND_ACTOR`), so the audit log records ``account.roles``
-    with ``actor=command``; the notification an interactive role change would raise
-    is suspended, since there is nobody signed in for it to name.  Running the
+    with ``actor=command`` and raises ``roles_changed`` naming the command actor, so
+    every address subscribed to role changes hears of it.  Running the
     command again for an address that already holds all three roles grants nothing
     further and records no ``account.roles`` line.
 
@@ -157,8 +156,7 @@ class Command(BaseCommand):
                 changes["first_name"] = options["first_name"]
             if promoted and options["last_name"] != "":
                 changes["last_name"] = options["last_name"]
-            with suspended():
-                update_account(audit.COMMAND_ACTOR, user, changes)
+            update_account(audit.COMMAND_ACTOR, user, changes)
 
         if not promoted:
             self.stdout.write(build_reset_url(user))
