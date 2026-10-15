@@ -369,11 +369,12 @@ list, in full:
        (``REHEARSE_WEB_SERVER=apache|nginx``, ``REHEARSE_KEEP=1``); slow,
        opt-in, and not run by CI; see :doc:`testing`
    * - ``lint``
-     - ``lint-backend``, ``lint-shell``, ``lint-frontend``, then
-       ``lint-spelling``
+     - ``lint-backend``, ``lint-shell``, ``lint-frontend``,
+       ``lint-spelling``, then ``lint-wording``
    * - ``lint-backend``
-     - ``ruff check``, ``ruff format --check`` and ``mypy`` over ``backend``
-       and ``frontend/e2e/prefix_proxy.py``
+     - ``ruff check``, ``ruff format --check`` and ``mypy`` over ``backend``,
+       ``frontend/e2e/prefix_proxy.py``, ``scripts/check_wording.py``, and
+       ``scripts/wording_words.py``
    * - ``lint-shell``
      - ``shellcheck`` over every script under ``deploy/`` and ``scripts/``
    * - ``lint-frontend``
@@ -382,6 +383,10 @@ list, in full:
        (:doc:`theming`)
    * - ``lint-spelling``
      - ``codespell`` — American spelling and common typos
+   * - ``lint-wording``
+     - ``scripts/check_wording.py`` — a negative object or complement, held
+       to the per-file counts in ``scripts/wording-baseline.txt``; see
+       :doc:`testing`
    * - ``format``
      - ``ruff format``, ``ruff check --fix``, ``prettier --write``
    * - ``check``
@@ -568,7 +573,7 @@ Five commands must be green, and CI runs all five on every pull request:
 
    $ make test     # pytest + vitest; a warning fails the run
    $ make lint     # ruff, mypy, shellcheck, tsc, eslint (no warnings), prettier,
-                   # codespell
+                   # codespell, the wording check
    $ make check    # manage.py check, makemigrations --check, spectacular,
                    # check-deploy, npm run typecheck and npm run build
    $ make docs     # sphinx-build -n -W: nitpicky, warnings are errors

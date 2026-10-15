@@ -244,7 +244,7 @@ REHEARSE_KEEP_FLAG = $(call flag,REHEARSE_KEEP,keep)
         dev-frontend build test test-backend test-frontend coverage coverage-backend \
         coverage-frontend e2e screenshots rehearse-deploy \
         lint lint-backend lint-shell \
-        lint-frontend lint-spelling format check check-backend check-deploy check-frontend \
+        lint-frontend lint-spelling lint-wording format check check-backend check-deploy check-frontend \
         audit audit-backend audit-frontend backup restore reminders bounces bulk-email sandbox-check \
         docs guide shell \
         superuser read-docs collectstatic clean
@@ -640,12 +640,17 @@ rehearse-deploy: ## Rehearse the server install in a throwaway systemd container
 	  echo "==> The rehearsal on $(REHEARSE_WEB_SERVER)$${prefix:+ under $$prefix}$${port:+ with gunicorn on $$port}$${dbport:+ and Postgres on $$dbport}$${seed:+, seeded ($$seed)} passed"
 
 # ----------------------------------------------------------------- lint
-lint: lint-backend lint-shell lint-frontend lint-spelling ## ruff + mypy + shellcheck + tsc + eslint + prettier + contrast + codespell
+lint: lint-backend lint-shell lint-frontend lint-spelling lint-wording ## ruff + mypy + shellcheck + tsc + eslint + prettier + contrast + codespell + wording
+
+# The wording check is Python kept under scripts/, so mypy checks it beside the backend.
+# Its word lists sit beside it in scripts/wording_words.py.
+WORDING_CHECK := scripts/check_wording.py
+WORDING_WORDS := scripts/wording_words.py
 
 lint-backend: ## ruff check + ruff format --check + mypy
 	$(UV) run ruff check .
 	$(UV) run ruff format --check .
-	$(UV) run mypy backend $(E2E_PROXY)
+	$(UV) run mypy backend $(E2E_PROXY) $(WORDING_CHECK) $(WORDING_WORDS)
 
 # Every shell script: the server installer under deploy/ and the developer
 # conveniences under scripts/.  shellcheck comes from the shellcheck-py wheel in
@@ -661,6 +666,13 @@ lint-shell: ## shellcheck over deploy/ and scripts/
 lint-spelling: ## codespell over docs, prose and code
 	$(UV) run codespell --check-hidden README.rst CLAUDE.md docs backend frontend/src \
 	  frontend/e2e frontend/scripts scripts .github deploy .claude
+
+# The prose rule that puts a negation on the verb, never on its object or complement,
+# over the tree lint-spelling scans.  scripts/wording-baseline.txt holds the hits each file
+# had when the check arrived: a file may not exceed its count, and a rewrite that
+# lowers one lowers the baseline in the same change (--update-baseline).
+lint-wording: ## a negative object or complement (scripts/check_wording.py), against its baseline
+	$(UV) run python $(WORDING_CHECK)
 
 lint-frontend: ## tsc --noEmit + eslint + prettier --check
 	cd frontend && $(NPM) run typecheck
