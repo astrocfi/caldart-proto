@@ -203,7 +203,8 @@ which and offers the way through. See :doc:`member/members-only-content`.
 A menu entry I expect is missing, or a screen says Not allowed
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You lack the role for it. A user administrator can grant it. See :doc:`roles` and
+You lack the role for it. A user administrator can grant it, though a two-factor role only
+a system administrator or a user administrator who holds it can grant. See :doc:`roles` and
 :doc:`admin/index`.
 
 Can I close my account?

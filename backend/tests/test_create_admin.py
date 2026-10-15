@@ -555,18 +555,15 @@ def test_raises_roles_changed_naming_the_command_actor(
     assert roles_changed[0]["actor"] == audit.COMMAND_ACTOR
 
 
-def test_runs_the_role_write_with_notifications_suspended(
+def test_the_dispatcher_builds_the_role_change_for_the_command_actor(
     capsys: pytest.CaptureFixture[str],
     caplog: pytest.LogCaptureFixture,
-    mailoutbox: list[EmailMessage],
     django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
 ) -> None:
-    """The role write suspends notifications, so the dispatcher never hears it.
+    """The dispatcher hears the role write and builds its message without an error.
 
-    Without ``suspended()``, the subscribed dispatcher would try to build the
-    ``roles_changed`` message for the command actor, fail because it names no real
-    ``User``, and log an error naming the event -- caught, not raised, so only this
-    log line would betray a removed ``suspended()`` block.
+    A message it cannot build is logged, not raised, so only this log line would show
+    the command actor's role change going unbuilt.
     """
     with (
         caplog.at_level(logging.ERROR, logger="apps.notifications.dispatch"),
@@ -575,7 +572,6 @@ def test_runs_the_role_write_with_notifications_suspended(
         call_command("create_admin", email="new.admin@example.test")
 
     assert caplog.text == ""
-    assert mailoutbox == []
 
 
 # --------------------------------------------------------------------------

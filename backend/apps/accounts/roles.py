@@ -87,3 +87,8 @@ MFA_REQUIRED_ROLES: tuple[str, ...] = (
     WEBSITE_ADMIN,
     SYSTEM_ADMIN,
 )
+
+#: The roles only a holder of the role, or a system administrator, may grant or take away:
+#: the two-factor roles, since each opens other people's accounts, money, or the public
+#: website.  Any user administrator may grant and take away every other role.
+GUARDED_ROLES: tuple[str, ...] = MFA_REQUIRED_ROLES

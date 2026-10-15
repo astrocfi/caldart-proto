@@ -88,6 +88,7 @@ from apps.accounts.services import (
     effective_roles,
     is_donor,
     lock_address,
+    may_edit_protected_fields,
     normalized_email,
     send_email_verification,
     send_password_invitation,
@@ -151,6 +152,7 @@ type ProfileChanges = dict[str, Any]
 
 SELF_DELETE_REFUSED = "You cannot delete your own account."
 SYSTEM_ADMIN_DELETE_REFUSED = "Only a system administrator can delete a system administrator."
+ROLES_NOT_HELD_DELETE_REFUSED = "You cannot delete an account that holds roles you do not hold."
 #: Why a tombstone's record refuses an edit, a membership term, or a delete.
 TOMBSTONE_CHANGE_REFUSED = (
     "This record keeps a deleted member's payments in the books and cannot be changed."
@@ -506,14 +508,19 @@ def hand_over_payments(actor: User, target: User) -> dict[str, int]:
 
 @transaction.atomic
 def delete_member(actor: User, target: User) -> None:
-    """Delete ``target``'s account and everything hanging off it, refused three ways.
+    """Delete ``target``'s account and everything hanging off it, refused four ways.
 
     A tombstone is never deleted, since it holds a deleted member's payments: that
     refusal is :func:`refuse_tombstone_change`'s ``DomainError``.  Nobody may delete
-    themselves; only a system administrator may delete one, judged on effective roles,
-    so a Django superuser counts as one; each of those raises
-    ``DomainPermissionError``.  A refusal writes nothing and is audited at WARNING with a
-    reason.
+    themselves (reason ``self_delete``); only a system administrator may delete one
+    (``system_admin_target``); and nobody may delete an account holding a two-factor
+    role they do not hold (``roles_not_held``, :data:`ROLES_NOT_HELD_DELETE_REFUSED`); a
+    DART leader or a verifier is no obstacle.  That is the guard
+    deactivating and blocking follow
+    (:func:`apps.accounts.services.may_edit_protected_fields`).  Roles are judged on
+    effective roles, so a Django superuser counts as a system administrator and holds
+    every role.  Each of those three raises ``DomainPermissionError``.  A refusal writes
+    nothing and is audited at WARNING with its reason.
 
     Payments outlive the account: :func:`hand_over_payments` moves them to a tombstone
     first.  The profile, terms, automatic payments and statements go with the account.
@@ -526,6 +533,8 @@ def delete_member(actor: User, target: User) -> None:
     target_is_system_admin = SYSTEM_ADMIN in effective_roles(target)
     if target_is_system_admin and SYSTEM_ADMIN not in effective_roles(actor):
         _refuse_delete(actor, target, audit.REASON_SYSTEM_ADMIN_TARGET, SYSTEM_ADMIN_DELETE_REFUSED)
+    if not may_edit_protected_fields(actor, target):
+        _refuse_delete(actor, target, audit.REASON_ROLES_NOT_HELD, ROLES_NOT_HELD_DELETE_REFUSED)
     fields = hand_over_payments(actor, target)
     target_id = target.pk
     target.delete()

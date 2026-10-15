@@ -53,10 +53,10 @@ def kinds(user: User) -> list[str]:
 # --------------------------------------------------------------------------
 # What writes an entry
 # --------------------------------------------------------------------------
-def test_a_role_change_records_what_was_added_and_removed(user_admin: User, member: User) -> None:
+def test_a_role_change_records_what_was_added_and_removed(system_admin: User, member: User) -> None:
     """Two roles granted, then one taken away, are two entries naming each role."""
-    update_account(user_admin, member, {"roles": [MEMBER, TREASURER, VERIFIER]})
-    update_account(user_admin, member, {"roles": [MEMBER, TREASURER]})
+    update_account(system_admin, member, {"roles": [MEMBER, TREASURER, VERIFIER]})
+    update_account(system_admin, member, {"roles": [MEMBER, TREASURER]})
     first, second = member.account_changes.order_by("id")
     assert (first.kind, first.added, first.removed) == ("roles", [VERIFIER, TREASURER], [])
     assert (second.kind, second.added, second.removed) == ("roles", [], [VERIFIER])

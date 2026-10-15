@@ -178,9 +178,15 @@ Accounts
        ``accounts.status.reactivate_account`` when an administrator reactivates it
      - ``user``, ``actor``
    * - ``roles_changed``
-     - ``accounts.services.update_account`` when the role list really changes
+     - ``accounts.services.update_account`` when the role list really changes, whatever
+       asked: ``PATCH /admin/users/{id}``, ``accounts.services.set_verifier`` behind
+       ``PUT /leader/members/{user_id}/verifier``, and the ``create_admin`` command; the
+       Django admin shows the roles and per-user permissions read-only and has no group
+       screens, so every role write passes through it
      - ``user``; ``added`` and ``removed``, lists of role slugs in privilege order;
-       ``actor``
+       ``actor``, the account that made the change, or ``"command"``
+       (``audit.COMMAND_ACTOR``) for a management command, which the email names as
+       *A command on the server*
    * - ``email_changed``
      - ``accounts.email_change.complete_email_change``, when the link mailed to the
        new address completes a change of address (:ref:`api-email-change`), whether

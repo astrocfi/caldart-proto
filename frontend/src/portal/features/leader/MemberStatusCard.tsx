@@ -12,6 +12,7 @@ import { useCallback, useRef, useState } from 'react';
 import type { JSX } from 'react';
 
 import type { LeaderStatus, MembershipState } from '@/portal/api/types';
+import { useAuth } from '@/portal/auth/useAuth';
 import { MEMBERSHIP_STATUS_LABELS } from '@/portal/choices';
 import { Button } from '@/portal/components/Button';
 import { ConfirmButton } from '@/portal/components/ConfirmButton';
@@ -296,16 +297,18 @@ interface VerifierButtonProps {
 }
 
 /**
- * *Make a verifier* or *Remove as verifier*, for a DART leader or user administrator.
+ * *Make a verifier* or *Remove as verifier*, for a DART leader or user administrator, on
+ * anybody's card but their own: nobody changes their own roles.
  *
  * Either one changes the person's roles, so it asks first, with the focus on Cancel,
  * as a role change on Roles waits for Save changes.
  */
 function VerifierButton({ userId, status }: VerifierButtonProps): JSX.Element | null {
   const canGrant = useCanGrantVerifier();
+  const { user: me } = useAuth();
   const setVerifier = useSetVerifier(userId);
   const toast = useToast();
-  if (!canGrant) return null;
+  if (!canGrant || me?.id === userId) return null;
 
   const wanted = !status.is_verifier;
   const label = wanted ? 'Make a verifier' : 'Remove as verifier';

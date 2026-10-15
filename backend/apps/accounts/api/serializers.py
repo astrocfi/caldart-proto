@@ -23,6 +23,7 @@ from apps.accounts.models import (
 from apps.accounts.roles import ROLE_SLUGS
 from apps.accounts.services import (
     AccountChanges,
+    assignable_roles,
     effective_roles,
     is_donor,
     normalized_email,
@@ -528,24 +529,34 @@ class AdminUserSerializer(UserSerializer):
 
 
 class AdminUserDetailSerializer(AdminUserSerializer):
-    """``/admin/users/{id}``: the list's row, plus two facts about the terms.
+    """``/admin/users/{id}``: the list's row, two facts about the terms, and the roles.
 
     The user record words the membership as the member record does, and a user
     administrator cannot read the terms, so the record carries what the wording needs:
     ``has_terms`` (the account holds any term at all) and ``has_suspended_term`` (a
-    deactivation set one aside).  The list leaves them out, since each costs a query per
-    row.
+    deactivation set one aside).  ``assignable_roles`` lists the role slugs the caller may
+    grant or take away on this account, in privilege order
+    (:func:`apps.accounts.services.assignable_roles`): empty on the caller's own record,
+    and the role boxes outside it are grayed out.  The list leaves all three out, since
+    each costs a query per row or depends on the row.
     """
 
     has_terms = serializers.SerializerMethodField()
     has_suspended_term = serializers.SerializerMethodField()
+    assignable_roles = serializers.SerializerMethodField()
 
     class Meta(AdminUserSerializer.Meta):
         fields = [
             *AdminUserSerializer.Meta.fields,
             "has_terms",
             "has_suspended_term",
+            "assignable_roles",
         ]
+
+    @extend_schema_field(serializers.ListField(child=serializers.ChoiceField(choices=ROLE_SLUGS)))
+    def get_assignable_roles(self, obj: User) -> list[str]:
+        """The role slugs the caller may grant or take away on the account."""
+        return assignable_roles(self.context["request"].user, obj)
 
     def get_has_terms(self, obj: User) -> bool:
         """True when the account holds any membership term, of any status."""

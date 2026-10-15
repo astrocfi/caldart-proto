@@ -653,12 +653,20 @@ The delete is refused when
 * the target is a tombstone, which holds a deleted account's payments
   (:ref:`api-members-tombstone`);
 * the target is the caller — you cannot delete your own account, whatever roles
-  you hold; or
-* the target is a ``system_admin``, unless the caller is a ``system_admin``.
+  you hold;
+* the target is a ``system_admin``, unless the caller is a ``system_admin``; or
+* the target holds a guarded (two-factor) role the caller does not, the account-edit
+  guard that deactivating and blocking follow
+  (``accounts.services.may_edit_protected_fields``, :doc:`api-auth`): an account
+  administrator deletes a plain member, a DART leader, a verifier, or another account
+  administrator, but not a treasurer, a user administrator, or anybody else holding a
+  two-factor role they lack.
 
-The two role tests read *effective* roles, so a Django superuser without the
-role group counts as a system administrator on either side.  A refusal writes
-nothing.
+The role tests read *effective* roles, so a Django superuser without the role group
+counts as a system administrator on either side, and a system administrator holds
+every role.  A refusal writes nothing and is audited at WARNING as ``member.delete``
+with ``reason=self_delete``, ``system_admin_target``, ``roles_not_held``, or
+``tombstone``.
 
 Payments are kept.  A payment is revenue or a donation, and the accounts must
 not change after the fact, so ``Payment.user`` is ``PROTECT`` (:doc:`data-model`).
@@ -699,9 +707,10 @@ Statuses:
 * **204** — the account is gone, with an empty body.
 * **400** — the target is a tombstone: ``{"detail": "This record keeps a deleted
   member's payments in the books and cannot be changed."}``.
-* **403** — one of the two other refusals, as ``{"detail": "..."}``: "You cannot
-  delete your own account." or "Only a system administrator can delete a
-  system administrator."
+* **403** — one of the three other refusals, as ``{"detail": "..."}``: "You cannot
+  delete your own account.", "Only a system administrator can delete a
+  system administrator.", or "You cannot delete an account that holds roles you do
+  not hold."
 * **404** — no account has that id.
 
 .. _api-members-tombstone:

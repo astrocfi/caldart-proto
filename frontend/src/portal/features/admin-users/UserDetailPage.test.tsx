@@ -15,6 +15,7 @@ import { UserDetailPage } from './UserDetailPage';
 const ROLES = [
   { slug: 'member', description: 'Own profile, own payments and membership.' },
   { slug: 'dart_leader', description: 'Look up any member before a flight.' },
+  { slug: 'treasurer', description: 'Every payment, fee, and refund.' },
   { slug: 'system_admin', description: 'Everything, plus backups and health.' },
 ];
 
@@ -841,7 +842,7 @@ describe('UserDetailPage', () => {
     expect(await screen.findByText('Not yet paid')).toBeInTheDocument();
   });
 
-  it('grays out System administrator for a user administrator, and says why', async () => {
+  it('grays out System administrator when the record says you may not change it', async () => {
     stubDetail();
     renderDetail();
     const box = await screen.findByRole('checkbox', { name: 'System administrator' });
@@ -855,11 +856,85 @@ describe('UserDetailPage', () => {
     expect(box).toHaveAccessibleDescription(/only a system administrator can give or take away/i);
   });
 
+  it('grays out a role you do not hold yourself', async () => {
+    stubDetail();
+    renderDetail();
+    const box = await screen.findByRole('checkbox', { name: 'Treasurer' });
+    expect(box).toBeDisabled();
+  });
+
+  it('says only a holder or a system administrator can change a role you do not hold', async () => {
+    stubDetail();
+    renderDetail();
+    const box = await screen.findByRole('checkbox', { name: 'Treasurer' });
+    expect(box).toHaveAccessibleDescription(
+      /only somebody who holds this role, or a system administrator, can give or take it away/i,
+    );
+  });
+
+  it('lets you change a role the record says you may', async () => {
+    stubDetail({ target: { ...TARGET, assignable_roles: ['member', 'dart_leader', 'treasurer'] } });
+    renderDetail();
+    const box = await screen.findByRole('checkbox', { name: 'Treasurer' });
+    expect(box).toBeEnabled();
+  });
+
   it('lets a system administrator change the System administrator role', async () => {
-    stubDetail({ me: makeUser({ id: 1, roles: ['member', 'system_admin'] }) });
+    stubDetail({
+      me: makeUser({ id: 1, roles: ['member', 'system_admin'] }),
+      target: {
+        ...TARGET,
+        assignable_roles: ['member', 'dart_leader', 'treasurer', 'system_admin'],
+      },
+    });
     renderDetail();
     const box = await screen.findByRole('checkbox', { name: 'System administrator' });
     expect(box).toBeEnabled();
+  });
+
+  describe('on your own record', () => {
+    function stubOwn() {
+      stubDetail({
+        me: makeUser({ id: 7, roles: ['member', 'user_admin'] }),
+        target: { ...TARGET, roles: ['member', 'user_admin'], assignable_roles: [] },
+      });
+    }
+
+    it('offers no role box', async () => {
+      stubOwn();
+      renderDetail();
+      await screen.findByRole('heading', { name: 'Priya Raman' });
+
+      expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    });
+
+    it('offers no Save changes', async () => {
+      stubOwn();
+      renderDetail();
+      await screen.findByRole('heading', { name: 'Priya Raman' });
+
+      expect(screen.queryByRole('button', { name: /save changes/i })).not.toBeInTheDocument();
+    });
+
+    it('says why the roles cannot be changed here', async () => {
+      stubOwn();
+      renderDetail();
+      await screen.findByRole('heading', { name: 'Priya Raman' });
+
+      expect(
+        screen.getByText('You cannot change your own roles. Ask another administrator.'),
+      ).toBeVisible();
+    });
+
+    it('lists the roles you hold', async () => {
+      stubOwn();
+      renderDetail();
+      await screen.findByRole('heading', { name: 'Priya Raman' });
+
+      expect(screen.getByRole('list', { name: 'Your roles' })).toHaveTextContent(
+        'MemberUser administrator',
+      );
+    });
   });
 
   it('lists who changed the roles and status in the History card', async () => {

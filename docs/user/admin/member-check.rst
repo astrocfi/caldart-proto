@@ -165,7 +165,7 @@ Making someone a verifier
 
 A DART leader, a user administrator, and a system administrator also see **Make a
 verifier** under the person's name, or **Remove as verifier** when they already hold the
-role. It asks first, saying what the change means, with **Cancel** already chosen, so a
+role, on everybody's card but their own: nobody changes their own roles. It asks first, saying what the change means, with **Cancel** already chosen, so a
 stray Enter changes nothing. Press **Yes, make a verifier** (or **Yes, remove as
 verifier**) to change the role; a toast confirms it. **Cancel**, or Escape, leaves the role
 as it was.

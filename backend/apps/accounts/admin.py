@@ -1,12 +1,26 @@
-"""Django admin for accounts."""
+"""Django admin for accounts.
+
+The role groups are not on the Django admin at all: Django's own group screens are
+unregistered, so no role group is renamed, deleted, or given permissions there.  A role
+changes only on the portal's user record, through
+:func:`apps.accounts.services.update_account`, which audits it and raises
+``roles_changed``.
+"""
 
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
+from django.contrib.auth.models import Group
 from django.core.exceptions import PermissionDenied
 from django.http import HttpRequest, HttpResponse
 from django.utils.translation import gettext_lazy as _
 
 from apps.accounts.models import User
+
+#: The fields a role write sets, which only the user record changes, and the per-user
+#: permissions, which CalDART grants only through roles.
+ROLE_FIELDS: tuple[str, ...] = ("groups", "is_superuser", "is_staff", "user_permissions")
+
+admin.site.unregister(Group)
 
 
 # django-stubs types ModelAdmin as generic, but Django's own class carries no
@@ -56,11 +70,14 @@ class UserAdmin(DjangoUserAdmin):  # type: ignore[type-arg]
     )
 
     def get_readonly_fields(self, request: HttpRequest, obj: User | None = None) -> list[str]:
-        """The stamps, the address, and whichever flag would leave it active and blocked.
+        """The stamps, the address, the roles, and the flag that would leave it blocked.
 
         The address is never edited here: a change of address waits for its new owner
         and tells the old address (``apps.accounts.email_change``), which this form
-        would bypass.
+        would bypass.  Nor are the roles (``groups``), the superuser and staff flags
+        they set, or ``user_permissions``: a role changes on the portal's user record,
+        through :func:`apps.accounts.services.update_account`, which refuses a change to
+        your own roles, audits the change, and raises ``roles_changed``.
 
         While ``reactivation_blocked`` is set, ``is_active`` is read-only, so a blocked
         account cannot be switched back on here; while the account is active,
@@ -71,7 +88,7 @@ class UserAdmin(DjangoUserAdmin):  # type: ignore[type-arg]
         fields = list(super().get_readonly_fields(request, obj))
         if obj is None:
             return fields
-        fields.append("email")
+        fields.extend(["email", *ROLE_FIELDS])
         if obj.reactivation_blocked:
             fields.append("is_active")
         elif obj.is_active:
