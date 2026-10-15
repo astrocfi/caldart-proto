@@ -1660,6 +1660,7 @@
       "contribution_tiers": "array<ref:ContributionTier>",
       "counties": "array<string>",
       "darts": "array<ref:DartRef>",
+      "donation_minimum_cents": "integer",
       "max_contribution_cents": "integer",
       "paypal_client_id": "string",
       "providers": "array<ref:PaymentProviderEnum>",
@@ -1670,6 +1671,7 @@
       "contribution_tiers",
       "counties",
       "darts",
+      "donation_minimum_cents",
       "max_contribution_cents",
       "paypal_client_id",
       "providers",
@@ -3365,6 +3367,7 @@
   "PaymentsConfig": {
     "properties": {
       "contribution_tiers": "array<ref:ContributionTier>",
+      "donation_minimum_cents": "integer",
       "max_contribution_cents": "integer",
       "paypal_client_id": "string",
       "plans": "array<ref:Plan>",
@@ -3373,6 +3376,7 @@
     },
     "required": [
       "contribution_tiers",
+      "donation_minimum_cents",
       "max_contribution_cents",
       "paypal_client_id",
       "plans",

@@ -463,9 +463,31 @@ AUTH_THROTTLE_RATES = {
     "auth_email_change": _throttle_rate("AUTH_THROTTLE_EMAIL_CHANGE", "10/hour"),
     # Starting a gift on the public donation page, which may make a donor account.
     "donate": _throttle_rate("AUTH_THROTTLE_DONATE", "10/hour"),
+    # Confirming or capturing a gift on the public donation page.
+    "donate_confirm": _throttle_rate("AUTH_THROTTLE_DONATE_CONFIRM", "30/hour"),
     # Every endpoint that takes a two-factor code, signed in or not.
     "auth_mfa": _throttle_rate("AUTH_THROTTLE_MFA", "10/min"),
 }
+
+# Rate limits for the signed-in payment endpoints, read by ``apps.payments.throttling``
+# and counted per account.  ``payment_start`` covers checkout and starting to save a
+# method for an automatic renewal or a recurring donation; ``payment_confirm`` covers
+# confirming a Stripe payment and capturing a PayPal one.  A scope mapped to ``None``
+# is off.
+PAYMENT_THROTTLE_RATES = {
+    "payment_start": _throttle_rate("PAYMENT_THROTTLE_START", "30/hour"),
+    "payment_confirm": _throttle_rate("PAYMENT_THROTTLE_CONFIRM", "30/hour"),
+}
+
+# The smallest gift, in cents, that a payer may choose on its own: a donation from the
+# portal or the public donation page, one-time or recurring.  A contribution added to a
+# membership fee has no minimum.
+DONATION_MINIMUM_CENTS = env.int("DONATION_MINIMUM_CENTS", default=500)
+if DONATION_MINIMUM_CENTS < 1:
+    raise ImproperlyConfigured(
+        f"DONATION_MINIMUM_CENTS must be a whole number of cents of at least 1. "
+        f"Got {DONATION_MINIMUM_CENTS!r}."
+    )
 
 # The per-address sign-in lockout, read by ``apps.accounts.lockout``: this many failed
 # attempts (a wrong password or a wrong two-factor code) for one email address within

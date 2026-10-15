@@ -150,9 +150,10 @@ def mark_succeeded(
     cost as :func:`settled_fees` works it out from ``fee_cents`` and
     ``net_cents``, and activates a term for the payment's plan when it has one.
     CalDART's own receipt is then emailed to the payer with its PDF attached,
-    outside the transaction that moved the payment: a mail server that refuses
-    it is logged and leaves ``receipt_sent_at`` null, never undoing the
-    membership the money bought.  Returns the row as saved.
+    once the transaction the caller is in commits (at once when there is none): a
+    mail server that refuses it is logged and leaves ``receipt_sent_at`` null, never
+    undoing the membership the money bought, and no row lock is held while it is
+    sent.  Returns the row as saved.
 
     A checkout that asked for automatic renewal leaves the payer a ``pending``
     :class:`~apps.payments.models.RenewalMandate`; this is where it becomes
@@ -181,7 +182,9 @@ def mark_succeeded(
         payment, wallet=wallet, raw=raw, provider_ref=provider_ref, fees=(fee_cents, net_cents)
     )
     if transitioned and not payment.renewal_attempts.exists() and not is_tombstone(payment.user):
-        send_receipt(payment)
+        # After the commit, so a caller holding the payment's row lock never waits on
+        # the mail server, and a rolled-back success mails nobody.
+        transaction.on_commit(lambda: send_receipt(payment), robust=True)
     return payment
 
 

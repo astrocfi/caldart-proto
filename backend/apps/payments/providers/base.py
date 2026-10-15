@@ -196,6 +196,15 @@ class Provider:
         """
         raise NotImplementedError
 
+    def abandon_setup(self, mandate: RenewalMandate) -> None:
+        """Close whatever :meth:`start_mandate` left open for ``mandate`` at the provider.
+
+        Called before a pending mandate's setup is replaced or thrown away, so a setup
+        nobody will confirm cannot be used again.  Does nothing by default; a provider
+        whose setup stays usable on its own, as a Stripe SetupIntent does, closes it.
+        Never raises: a provider that cannot be reached is logged and left alone.
+        """
+
     def confirm_mandate(self, mandate: RenewalMandate, **kwargs: Any) -> MandateMethod:
         """Read back the method the member just saved, verified with the provider.
 

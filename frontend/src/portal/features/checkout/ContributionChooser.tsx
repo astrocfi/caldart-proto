@@ -45,6 +45,8 @@ export interface ContributionChooserProps {
   onChange: (cents: number) => void;
   /** The largest amount the server will accept, in cents. */
   maxCents: number;
+  /** The smallest amount the server will accept for a donation, in cents; none for dues. */
+  minCents?: number;
   /** True while the member is typing their own amount. */
   isOther: boolean;
   onOther: (isOther: boolean) => void; // codespell:ignore onother
@@ -67,6 +69,23 @@ const DUES_HINT =
 /** What the chooser says over a donation, where there are no dues to add it to. */
 export const DONATION_HINT = 'Gifts to CalDART, a 501(c)(3), are tax deductible.';
 
+/** The amounts an amount of one's own may run between, as the box's hint says them. */
+function amountRange(minCents: number | undefined, maxCents: number): string {
+  const most = formatCents(maxCents, { whole: true });
+  if (minCents === undefined) return `Up to ${most}.`;
+  return `From ${formatCents(minCents, { whole: true })} up to ${most}.`;
+}
+
+/**
+ * What a donation under the server's smallest is told, e.g. "A donation must be at least $5."
+ *
+ * @param minCents The smallest donation the server accepts, in cents.
+ * @returns The sentence the form shows in place of a way to pay.
+ */
+export function donationMinimumMessage(minCents: number): string {
+  return `A donation must be at least ${formatCents(minCents, { whole: true })}.`;
+}
+
 function label(tier: ContributionTier): string {
   if (tier.cents === 0) return 'No thank you';
   return `${tier.label} · ${formatCents(tier.cents, { whole: true })}`;
@@ -78,6 +97,7 @@ export function ContributionChooser({
   value,
   onChange,
   maxCents,
+  minCents,
   isOther,
   onOther, // codespell:ignore onother
   disabled = false,
@@ -135,8 +155,7 @@ export function ContributionChooser({
             {amountLabel}
           </label>
           <p className="field__hint" id={`${otherId}-hint`}>
-            Up to {formatCents(maxCents, { whole: true })}. For more than that, talk to the
-            treasurer.
+            {amountRange(minCents, maxCents)} For more than that, talk to the treasurer.
           </p>
           <div className="checkout__other-input">
             <span aria-hidden="true" className="num">

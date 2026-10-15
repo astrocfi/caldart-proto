@@ -148,6 +148,7 @@ def test_the_statement_total_leaves_the_gift_out(api_client: APIClient, member: 
     assert statement_data(member, timezone.localdate().year).total_cents == 0
 
 
+@pytest.mark.usefixtures("run_on_commit")
 def test_the_receipt_greets_the_account_holder(api_client: APIClient, member: User) -> None:
     """The email is to the member, so it greets the member, not the name typed."""
     settle(api_client, start_gift(api_client, member.email))
@@ -155,6 +156,7 @@ def test_the_receipt_greets_the_account_holder(api_client: APIClient, member: Us
     assert f"Hello {member.first_name}," in str(mail.outbox[-1].body)
 
 
+@pytest.mark.usefixtures("run_on_commit")
 def test_the_receipt_says_how_the_gift_was_made(api_client: APIClient, member: User) -> None:
     """The member is told the gift came from the public page, and whom to ask."""
     settle(api_client, start_gift(api_client, member.email))

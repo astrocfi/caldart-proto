@@ -25,7 +25,10 @@ import { Field } from '@/portal/components/Field';
 import { formatCents } from '@/portal/components/Money';
 import { useToast } from '@/portal/components/Toast';
 import { CadenceChooser } from '@/portal/features/checkout/CadenceChooser';
-import { ContributionChooser } from '@/portal/features/checkout/ContributionChooser';
+import {
+  ContributionChooser,
+  donationMinimumMessage,
+} from '@/portal/features/checkout/ContributionChooser';
 import { PlanChooser } from '@/portal/features/checkout/PlanChooser';
 import { usePaymentsConfig } from '@/portal/features/checkout/api';
 import { useUpdateRenewal } from './api';
@@ -92,6 +95,10 @@ export function RenewalChangeForm({
   // The server refuses a donation of nothing, so it is stopped here rather than
   // at the API.
   const needsContribution = isDonation && contributionCents === 0;
+  // A donation stands alone, so the server refuses one under its smallest; a renewal's
+  // contribution rides on the dues and takes any amount.
+  const isBelowMinimum =
+    isDonation && contributionCents > 0 && contributionCents < config.donation_minimum_cents;
   // An empty box is valid HTML, and an empty date is not a date the API takes, so
   // the form waits for one rather than sending it.
   const needsChargeDate = nextChargeOn === '';
@@ -139,6 +146,7 @@ export function RenewalChangeForm({
         tiers={config.contribution_tiers}
         value={contributionCents}
         maxCents={config.max_contribution_cents}
+        minCents={isDonation ? config.donation_minimum_cents : undefined}
         onChange={(next) => setContributionCents(next)}
         isOther={showsOther}
         // codespell:ignore-next-line onother
@@ -181,6 +189,12 @@ export function RenewalChangeForm({
         </p>
       ) : null}
 
+      {isBelowMinimum ? (
+        <p className="renewal-setup__blocked" role="status">
+          {donationMinimumMessage(config.donation_minimum_cents)}
+        </p>
+      ) : null}
+
       {needsChargeDate ? (
         <p className="renewal-setup__blocked" role="status">
           Choose the day of the next charge.
@@ -194,7 +208,10 @@ export function RenewalChangeForm({
       ) : null}
 
       <div className="cluster">
-        <Button type="submit" disabled={update.isPending || needsContribution || needsChargeDate}>
+        <Button
+          type="submit"
+          disabled={update.isPending || needsContribution || isBelowMinimum || needsChargeDate}
+        >
           {update.isPending ? 'Saving…' : 'Save changes'}
         </Button>
         <Button variant="quiet" onClick={handleDone}>

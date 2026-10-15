@@ -2,8 +2,9 @@
 
 Nobody signs in to give on the public site, so every view here allows an anonymous
 caller.  The session authentication class still enforces CSRF on every unsafe
-method, so only a page served by this site can start or finish a gift, and starting
-one is throttled by client address under the ``donate`` rate.  Starting a gift
+method, so only a page served by this site can start or finish a gift.  Starting one
+is throttled by client address under the ``donate`` rate, and confirming one with
+Stripe or capturing it with PayPal under the ``donate_confirm`` rate.  Starting a gift
 answers a token (:func:`apps.payments.donations.donation_token`); every call that
 finishes or reads that payment must bring it back, and a missing, forged, expired or
 mismatched token reads exactly as an unknown payment does: 404.
@@ -27,7 +28,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.accounts.throttling import DonateThrottle
+from apps.accounts.throttling import DonateConfirmThrottle, DonateThrottle
 from apps.darts.models import Dart
 from apps.members.models import CALIFORNIA_COUNTIES, US_STATE_CHOICES
 from apps.members.services import donor_membership
@@ -97,6 +98,9 @@ class DonationsConfigView(APIView):
     def get(self, request: Request) -> Response:
         """200 with the providers, their keys, the amounts, and the profile's choices.
 
+        The amounts are the tiers, the largest gift, and the smallest
+        (``DONATION_MINIMUM_CENTS``).
+
         ``counties`` are California's counties by name, ``darts`` the active DARTs as
         ``{id, name}`` in name order, and ``states`` every state as ``{value, label}``.
         Open to anyone and not throttled.
@@ -107,6 +111,7 @@ class DonationsConfigView(APIView):
             "paypal_client_id": settings.PAYPAL_CLIENT_ID,
             "contribution_tiers": CONTRIBUTION_TIERS,
             "max_contribution_cents": MAX_CONTRIBUTION_CENTS,
+            "donation_minimum_cents": settings.DONATION_MINIMUM_CENTS,
             "counties": list(CALIFORNIA_COUNTIES),
             "darts": Dart.objects.filter(is_active=True).order_by("name"),
             "states": [{"value": code, "label": name} for code, name in US_STATE_CHOICES],
@@ -137,7 +142,8 @@ class DonationCheckoutView(APIView):
         The answer is the same whoever holds the address: one that belongs to a member's
         or a friend's account gives to that account, and the details sent are never
         written onto it.  400 by field for a detail the profile's rules refuse, for a
-        gift of nothing, and for a provider that is not configured; 400 with ``detail``
+        gift of nothing or of less than ``DONATION_MINIMUM_CENTS``, and for a provider
+        that is not configured; 400 with ``detail``
         when the provider refuses to start.  Any refusal writes nothing.
         """
         serializer = DonationCheckoutSerializer(data=request.data)
@@ -173,6 +179,7 @@ class DonationStripeConfirmView(APIView):
     """``POST /donations/stripe/confirm`` -- verify with Stripe, then settle the gift."""
 
     permission_classes = [AllowAny]
+    throttle_classes = [DonateConfirmThrottle]
 
     @extend_schema(
         request=DonationStripeConfirmSerializer, responses={200: PaymentResultSerializer}
@@ -182,7 +189,8 @@ class DonationStripeConfirmView(APIView):
 
         404 without the payment's token; 400 keyed by ``payment_id`` for a payment
         started with another provider; 400 with ``detail`` when Stripe disagrees or
-        cannot be reached.
+        cannot be reached; 429 past the ``donate_confirm`` rate.  A gift that is no
+        longer pending is answered as it stands, without asking Stripe.
         """
         serializer = DonationStripeConfirmSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -199,6 +207,7 @@ class DonationPayPalCaptureView(APIView):
     """``POST /donations/paypal/capture`` -- capture the order, then settle the gift."""
 
     permission_classes = [AllowAny]
+    throttle_classes = [DonateConfirmThrottle]
 
     @extend_schema(
         request=DonationPayPalCaptureSerializer, responses={200: PaymentResultSerializer}
@@ -208,7 +217,9 @@ class DonationPayPalCaptureView(APIView):
 
         404 without the payment's token; 400 keyed by ``payment_id`` for a payment
         started with another provider; 400 with ``detail`` when PayPal reports anything
-        but a completed capture for the right amount, or cannot be reached.
+        but a completed capture for the right amount, or cannot be reached; 429 past the
+        ``donate_confirm`` rate.  A gift that is no longer pending is answered as it
+        stands, without asking PayPal.
         """
         serializer = DonationPayPalCaptureSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

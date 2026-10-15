@@ -52,6 +52,7 @@ from apps.payments.renewals.mandates import (
     save_method,
 )
 from apps.payments.renewals_report import mandate_queryset
+from apps.payments.throttling import PaymentConfirmThrottle, PaymentStartThrottle
 
 #: What ``DELETE /me/renewal``, ``/me/donation`` and ``/admin/renewals/{id}`` answer with.
 DELETE_RESPONSE_DESCRIPTION = "The authority is off.  The body is empty."
@@ -156,8 +157,9 @@ class MyRenewalView(APIView):
         completes.
 
         404 when the caller holds no mandate of this kind; 400 naming
-        ``contribution_cents`` for an amount outside what a checkout would accept, and
-        for a contribution on a renewal while the caller holds a recurring donation;
+        ``contribution_cents`` for an amount outside what a checkout would accept, for a
+        donation under ``DONATION_MINIMUM_CENTS``, and for a contribution on a renewal
+        while the caller holds a recurring donation;
         400 naming ``next_charge_on`` for a day that has already gone by, ``plan`` for
         a plan that is not on offer, ``cadence`` for a renewal on any cadence but
         yearly, and ``auto_renew`` for anything the authority could not charge again
@@ -217,6 +219,7 @@ class MyRenewalSetupView(APIView):
     """``POST /me/renewal/setup`` and ``/me/donation/setup`` -- start saving a method."""
 
     permission_classes = [IsAuthenticated]
+    throttle_classes = [PaymentStartThrottle]
     donation = False
 
     @extend_schema(request=RenewalSetupSerializer, responses={200: RenewalSetupResponseSerializer})
@@ -239,8 +242,10 @@ class MyRenewalSetupView(APIView):
         yearly, ``contribution_cents`` for a contribution on a renewal while the
         caller holds a recurring donation, ``auto_renew`` for a renewal with no plan
         or with one that never expires, for a life member who names a plan, and for
-        a donation of nothing, and ``detail`` when the provider refuses to start, in
-        which case nothing is written.
+        a donation of nothing, ``contribution_cents`` for a donation under
+        ``DONATION_MINIMUM_CENTS``, and ``detail`` when the provider refuses to start,
+        in which case nothing is written.  429 past the caller's ``payment_start`` rate,
+        which checkout shares.
         A donation asked for while the caller's renewal takes a contribution is
         ``400 {"detail": ..., "code": "renewal_contribution"}`` unless the body
         carries ``remove_renewal_contribution: true``, which takes that contribution
@@ -281,6 +286,7 @@ class MyRenewalConfirmView(APIView):
     """``POST /me/renewal/confirm`` and ``/me/donation/confirm`` -- save the method."""
 
     permission_classes = [IsAuthenticated]
+    throttle_classes = [PaymentConfirmThrottle]
     donation = False
 
     @extend_schema(request=RenewalConfirmSerializer, responses={200: RenewalEnvelopeSerializer})
@@ -289,8 +295,10 @@ class MyRenewalConfirmView(APIView):
 
         The body carries the provider's handle on what the browser did:
         ``setup_intent_id`` for Stripe, ``setup_token`` for PayPal, neither for
-        the mock provider.  404 when the caller started no setup of this kind, and
-        400 naming ``detail`` when the provider will not confirm what it is given.
+        the mock provider.  404 when the caller started no setup of this kind, 400
+        naming ``detail`` when the provider will not confirm what it is given, and 429
+        past the caller's ``payment_confirm`` rate.  A Stripe SetupIntent that declined
+        the card is canceled as it is refused.
         """
         payload = RenewalConfirmSerializer(data=request.data)
         payload.is_valid(raise_exception=True)

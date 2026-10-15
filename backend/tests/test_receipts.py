@@ -78,6 +78,7 @@ def succeeded_payment(
 # --------------------------------------------------------------------------
 # The receipt email
 # --------------------------------------------------------------------------
+@pytest.mark.usefixtures("run_on_commit")
 def test_a_succeeded_payment_emails_the_payer_a_receipt(
     api_client: APIClient,
     member: User,
@@ -93,6 +94,7 @@ def test_a_succeeded_payment_emails_the_payer_a_receipt(
     assert [message.to for message in mailoutbox] == [[member.email]]
 
 
+@pytest.mark.usefixtures("run_on_commit")
 def test_the_receipt_carries_the_pdf_as_an_attachment(
     member: User, annual_plan: MembershipPlan, mailoutbox: list[EmailMultiAlternatives]
 ) -> None:
@@ -107,6 +109,7 @@ def test_the_receipt_carries_the_pdf_as_an_attachment(
     assert content.startswith(b"%PDF")
 
 
+@pytest.mark.usefixtures("run_on_commit")
 def test_the_receipt_subject_names_the_organization_and_the_amount(
     member: User, annual_plan: MembershipPlan, mailoutbox: list[EmailMultiAlternatives]
 ) -> None:
@@ -118,6 +121,7 @@ def test_the_receipt_subject_names_the_organization_and_the_amount(
     assert mailoutbox[0].subject == "CalDART: your receipt for $55.00"
 
 
+@pytest.mark.usefixtures("run_on_commit")
 def test_the_receipt_stamps_when_it_was_sent(
     member: User, annual_plan: MembershipPlan, mailoutbox: list[EmailMultiAlternatives]
 ) -> None:
@@ -130,6 +134,7 @@ def test_the_receipt_stamps_when_it_was_sent(
     assert payment.receipt_sent_at is not None
 
 
+@pytest.mark.usefixtures("run_on_commit")
 def test_a_second_confirmation_sends_no_second_receipt(
     member: User, annual_plan: MembershipPlan, mailoutbox: list[EmailMultiAlternatives]
 ) -> None:

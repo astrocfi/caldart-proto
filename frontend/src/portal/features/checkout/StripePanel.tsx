@@ -4,7 +4,8 @@
  * Card, Apple Pay, Google Pay and Link all arrive through this one element:
  * the server enabled `automatic_payment_methods`, so Stripe shows whichever
  * the browser and the account support.  Opening the tab creates the
- * PaymentIntent; changing the amount afterwards quietly creates a new one.
+ * PaymentIntent; changing the amount afterwards quietly creates a new one, and so
+ * does a decline, since the server cancels a declined intent.
  *
  * `confirmPayment` runs with `redirect: 'if_required'`, so the common case
  * never leaves the page.  A method that insists on a redirect comes back to
@@ -12,7 +13,7 @@
  */
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
-import type { Appearance, Stripe } from '@stripe/stripe-js';
+import type { Appearance, Stripe, StripeError } from '@stripe/stripe-js';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { JSX } from 'react';
 
@@ -116,6 +117,11 @@ export function StripePanel({
 }: StripePanelProps): JSX.Element {
   const [intent, setIntent] = useState<Intent | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Each decline asks for a PaymentIntent of its own: the server cancels a declined
+  // intent, so its client secret takes no second card.  The reason stays on screen
+  // over the fresh form.
+  const [attempt, setAttempt] = useState(0);
+  const [declined, setDeclined] = useState<string | null>(null);
   const settled = useSettledCheckout(fields);
 
   const stripePromise = useMemo(() => stripeFor(publishableKey), [publishableKey]);
@@ -150,7 +156,12 @@ export function StripePanel({
     return () => {
       controller.abort();
     };
-  }, [settled, onRenewalContribution, endpoints]);
+  }, [settled, onRenewalContribution, endpoints, attempt]);
+
+  function handleDecline(message: string): void {
+    setDeclined(message);
+    setAttempt((count) => count + 1);
+  }
 
   if (error) {
     return (
@@ -175,7 +186,9 @@ export function StripePanel({
   return (
     <div className="checkout__panel">
       <Elements
-        key={intent.clientSecret}
+        // The attempt as well as the secret, so the form after a decline always starts
+        // afresh with the reason on screen.
+        key={`${attempt}:${intent.clientSecret}`}
         stripe={stripePromise}
         options={{ clientSecret: intent.clientSecret, appearance }}
       >
@@ -183,7 +196,9 @@ export function StripePanel({
           paymentId={intent.paymentId}
           amountCents={amountCents}
           endpoints={endpoints}
+          declined={declined}
           onSuccess={handleSuccess}
+          onDecline={handleDecline}
         />
       </Elements>
     </div>
@@ -194,7 +209,30 @@ interface StripeFormProps {
   paymentId: number;
   amountCents: number;
   endpoints: PaymentEndpoints;
+  /** Why the last payment was declined, shown until the next try; null for none. */
+  declined: string | null;
   onSuccess: ProviderPanelProps['onSuccess'];
+  /** Called with Stripe's reason when a payment is declined, to start another. */
+  onDecline: (message: string) => void;
+}
+
+/**
+ * Whether Stripe's `error` is a decline, after which the intent is finished with.
+ *
+ * Only a refused card (`card_error`), or an intent Stripe hands back waiting for
+ * another method, counts. Any other error, such as a dropped connection or a fault at
+ * Stripe, may have come after the money moved, so the same intent has to be kept:
+ * starting another could take the money twice.
+ *
+ * @param error What `confirmPayment` or `confirmSetup` answered with.
+ * @returns True when a fresh intent is the way to try again.
+ */
+export function isStripeDecline(error: StripeError): boolean {
+  return (
+    error.type === 'card_error' ||
+    error.payment_intent?.status === 'requires_payment_method' ||
+    error.setup_intent?.status === 'requires_payment_method'
+  );
 }
 
 /** The Payment Element plus its submit button, confirming the intent on submit. */
@@ -202,11 +240,13 @@ function StripeForm({
   paymentId,
   amountCents,
   endpoints,
+  declined,
   onSuccess,
+  onDecline,
 }: StripeFormProps): JSX.Element {
   const stripe = useStripe();
   const elements = useElements();
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(declined);
   const [busy, setBusy] = useState(false);
   const mounted = useRef(true);
 
@@ -216,6 +256,19 @@ function StripeForm({
       mounted.current = false;
     };
   }, []);
+
+  /**
+   * Have the server ask Stripe about a declined intent, which fails the payment and
+   * cancels the intent there without waiting for the webhook.  The answer is not
+   * needed: the decline is already known, and a fresh payment follows either way.
+   */
+  async function reportDecline(intentId: string): Promise<void> {
+    try {
+      await endpoints.confirmStripe(paymentId, intentId);
+    } catch {
+      // The webhook reports the same decline, so a failure here costs nothing.
+    }
+  }
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -231,7 +284,13 @@ function StripeForm({
       });
 
       if (confirmation.error) {
-        setError(confirmation.error.message ?? 'That payment could not be completed.');
+        const message = confirmation.error.message ?? 'That payment could not be completed.';
+        if (!isStripeDecline(confirmation.error)) {
+          setError(message);
+          return;
+        }
+        await reportDecline(confirmation.error.payment_intent?.id ?? '');
+        onDecline(message);
         return;
       }
 

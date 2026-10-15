@@ -27,6 +27,7 @@ from rest_framework.test import APIClient
 from apps.accounts.models import User
 from apps.members.models import Membership, MembershipPlan
 from apps.payments.models import (
+    MandateStatus,
     Payment,
     PaymentProvider,
     PaymentStatus,
@@ -34,13 +35,14 @@ from apps.payments.models import (
     Refund,
     RefundReason,
     RefundStatus,
+    RenewalMandate,
 )
 from apps.payments.providers import stripe as stripe_provider
 from apps.payments.providers.base import ProviderUnavailableError
-from apps.payments.providers.stripe import wallet_from_intent
+from apps.payments.providers.stripe import SETUP_INTENT_KEY, wallet_from_intent
 from apps.payments.refunds import issue_refund
 from apps.payments.services import create_checkout, fees_are_known
-from tests.factories import UserFactory
+from tests.factories import RenewalMandateFactory, UserFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -130,14 +132,49 @@ class PaymentIntentsService(Protocol):
         """Return the PaymentIntent named by ``intent_id``."""
         ...
 
+    def cancel(
+        self,
+        intent_id: str,
+        params: dict[str, Any] | None = None,
+        options: dict[str, Any] | None = None,
+    ) -> stripe.PaymentIntent:
+        """Cancel the PaymentIntent named by ``intent_id``."""
+        ...
 
-def fake_stripe_client(payment_intents: PaymentIntentsService) -> SimpleNamespace:
-    """A stand-in for ``stripe.StripeClient`` exposing ``v1.payment_intents`` only.
 
-    ``payment_intents`` answers the ``create`` and ``retrieve`` calls the provider
-    makes, so a fake such as ``FakeIntents`` stands in for the whole SDK client.
+class FakeSetupIntents:
+    """Stand-in for ``v1.setup_intents`` that records the SetupIntents it cancels."""
+
+    def __init__(self) -> None:
+        """Start with nothing canceled."""
+        self.canceled: list[str] = []
+
+    def cancel(
+        self,
+        intent_id: str,
+        params: dict[str, Any] | None = None,
+        options: dict[str, Any] | None = None,
+    ) -> stripe.SetupIntent:
+        """Record the cancel and answer a canceled SetupIntent."""
+        self.canceled.append(intent_id)
+        return stripe.SetupIntent.construct_from(
+            {"id": intent_id, "object": "setup_intent", "status": "canceled"}, SECRET_KEY
+        )
+
+
+def fake_stripe_client(
+    payment_intents: PaymentIntentsService, setup_intents: FakeSetupIntents | None = None
+) -> SimpleNamespace:
+    """A stand-in for ``stripe.StripeClient`` exposing ``v1.payment_intents``.
+
+    ``payment_intents`` answers the ``create``, ``retrieve``, and ``cancel`` calls the
+    provider makes, so a fake such as ``FakeIntents`` stands in for the whole SDK
+    client; ``setup_intents``, when given, answers ``v1.setup_intents`` too.
     """
-    return SimpleNamespace(v1=SimpleNamespace(payment_intents=payment_intents))
+    v1 = SimpleNamespace(payment_intents=payment_intents)
+    if setup_intents is not None:
+        v1.setup_intents = setup_intents
+    return SimpleNamespace(v1=v1)
 
 
 class FakeIntents:
@@ -150,6 +187,9 @@ class FakeIntents:
         self.created: dict[str, Any] = {}
         self.create_options: dict[str, Any] = {}
         self.retrieved: dict[str, Any] = {}
+        self.canceled: list[str] = []
+        self.cancel_error: stripe.StripeError | None = None
+        self.setup = FakeSetupIntents()
 
     def create(
         self, params: dict[str, Any], options: dict[str, Any] | None = None
@@ -179,6 +219,18 @@ class FakeIntents:
         self.retrieved = {"id": intent_id, **(params or {})}
         return intent_object(self.payload)
 
+    def cancel(
+        self,
+        intent_id: str,
+        params: dict[str, Any] | None = None,
+        options: dict[str, Any] | None = None,
+    ) -> stripe.PaymentIntent:
+        """Record the cancel, or raise ``self.cancel_error`` when one is set."""
+        if self.cancel_error is not None:
+            raise self.cancel_error
+        self.canceled.append(intent_id)
+        return intent_object({**self.payload, "id": intent_id, "status": "canceled"})
+
 
 @pytest.fixture
 def fake_intents(monkeypatch: pytest.MonkeyPatch) -> FakeIntents:
@@ -188,7 +240,7 @@ def fake_intents(monkeypatch: pytest.MonkeyPatch) -> FakeIntents:
     def client() -> SimpleNamespace:
         # Through the real key lookup, so a missing key still refuses.
         fake.api_key = stripe_provider.secret_key()
-        return fake_stripe_client(fake)
+        return fake_stripe_client(fake, fake.setup)
 
     monkeypatch.setattr(stripe_provider, "stripe_client", client)
     return fake
@@ -416,6 +468,50 @@ def test_confirm_marks_a_canceled_intent_failed(
     payment.refresh_from_db()
     assert payment.status == PaymentStatus.FAILED
     assert Membership.objects.count() == 0
+
+
+def test_confirm_cancels_a_declined_intent(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, fake_intents: FakeIntents
+) -> None:
+    """A declined intent is canceled, so its client secret takes no other card."""
+    payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
+    fake_intents.payload = intent_payload(
+        payment, id="pi_declined", status="requires_payment_method"
+    )
+
+    api_client.force_login(member)
+    api_client.post(CONFIRM, {"payment_id": payment.pk, "payment_intent_id": "pi_declined"})
+
+    assert fake_intents.canceled == ["pi_declined"]
+
+
+def test_confirm_leaves_a_canceled_intent_alone(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, fake_intents: FakeIntents
+) -> None:
+    """An intent Stripe already canceled is not canceled again."""
+    payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
+    fake_intents.payload = intent_payload(payment, id="pi_gone", status="canceled")
+
+    api_client.force_login(member)
+    api_client.post(CONFIRM, {"payment_id": payment.pk, "payment_intent_id": "pi_gone"})
+
+    assert fake_intents.canceled == []
+
+
+def test_a_refused_cancel_still_answers_the_payment_failed(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, fake_intents: FakeIntents
+) -> None:
+    """Stripe refusing the cancel leaves the payment failed and the answer a 200."""
+    payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
+    fake_intents.payload = intent_payload(payment, id="pi_stuck", status="requires_payment_method")
+    unreachable = stripe.APIConnectionError("Stripe is down.")  # type: ignore[no-untyped-call]
+    fake_intents.cancel_error = unreachable
+
+    api_client.force_login(member)
+    response = api_client.post(CONFIRM, {"payment_id": payment.pk, "payment_intent_id": "pi_stuck"})
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "failed"
 
 
 def test_confirm_rejects_an_intent_still_processing(
@@ -750,7 +846,7 @@ def test_webhook_after_confirm_is_a_no_op(
 
 
 def test_webhook_marks_a_failure(
-    api_client: APIClient, member: User, annual_plan: MembershipPlan
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, fake_intents: FakeIntents
 ) -> None:
     """A failed-intent webhook marks the payment failed and grants no membership."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
@@ -763,6 +859,109 @@ def test_webhook_marks_a_failure(
     payment.refresh_from_db()
     assert payment.status == PaymentStatus.FAILED
     assert Membership.objects.count() == 0
+
+
+def test_a_failure_webhook_cancels_the_declined_intent(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, fake_intents: FakeIntents
+) -> None:
+    """A decline the webhook reports cancels the intent, so it takes no other card."""
+    payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
+    event = stripe_event(
+        "payment_intent.payment_failed",
+        intent_payload(payment, id="pi_hook_declined", status="requires_payment_method"),
+    )
+
+    post_webhook(api_client, event)
+
+    assert fake_intents.canceled == ["pi_hook_declined"]
+
+
+def test_a_late_failure_webhook_cancels_nothing_that_succeeded(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, fake_intents: FakeIntents
+) -> None:
+    """A decline reported after the payment succeeded leaves the intent alone."""
+    payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
+    post_webhook(api_client, succeeded_event(payment, "pi_late"))
+    event = stripe_event(
+        "payment_intent.payment_failed",
+        intent_payload(payment, id="pi_late", status="requires_payment_method"),
+    )
+
+    post_webhook(api_client, event)
+
+    assert fake_intents.canceled == []
+
+
+def setup_failed_event(mandate: RenewalMandate, setup_id: str) -> dict[str, Any]:
+    """A ``setup_intent.setup_failed`` event for ``mandate``'s SetupIntent."""
+    return stripe_event(
+        "setup_intent.setup_failed",
+        {
+            "id": setup_id,
+            "object": "setup_intent",
+            "status": "requires_payment_method",
+            "metadata": {"user_id": str(mandate.user_id), "mandate_id": str(mandate.pk)},
+        },
+    )
+
+
+def pending_stripe_donation(member: User, setup_id: str) -> RenewalMandate:
+    """A pending Stripe donation whose method is being saved through ``setup_id``."""
+    return RenewalMandateFactory(
+        user=member,
+        plan=None,
+        contribution_cents=2_000,
+        provider=PaymentProvider.STRIPE,
+        status=MandateStatus.PENDING,
+        method_ref="",
+        raw={SETUP_INTENT_KEY: setup_id},
+    )
+
+
+def test_a_failed_setup_cancels_the_setup_intent(
+    api_client: APIClient, member: User, fake_intents: FakeIntents
+) -> None:
+    """A declined SetupIntent is canceled, so its client secret takes no other card."""
+    mandate = pending_stripe_donation(member, "seti_declined")
+
+    post_webhook(api_client, setup_failed_event(mandate, "seti_declined"))
+
+    assert fake_intents.setup.canceled == ["seti_declined"]
+
+
+def test_a_canceled_setup_is_reported_handled(
+    api_client: APIClient, member: User, fake_intents: FakeIntents
+) -> None:
+    """A webhook that canceled the declined SetupIntent answers ``handled``."""
+    mandate = pending_stripe_donation(member, "seti_declined")
+
+    response = post_webhook(api_client, setup_failed_event(mandate, "seti_declined"))
+
+    assert json.loads(response.content) == {"received": True, "handled": True}
+
+
+def test_a_failed_setup_leaves_the_pending_mandate_to_the_next_setup(
+    api_client: APIClient, member: User, fake_intents: FakeIntents
+) -> None:
+    """The webhook changes no mandate: the member's next setup replaces a pending one."""
+    mandate = pending_stripe_donation(member, "seti_declined")
+
+    post_webhook(api_client, setup_failed_event(mandate, "seti_declined"))
+
+    assert RenewalMandate.objects.filter(pk=mandate.pk).exists()
+
+
+def test_a_failed_setup_whose_mandate_is_gone_is_still_canceled(
+    api_client: APIClient, member: User, fake_intents: FakeIntents
+) -> None:
+    """A SetupIntent whose mandate was discarded since is canceled all the same."""
+    mandate = pending_stripe_donation(member, "seti_orphan")
+    event = setup_failed_event(mandate, "seti_orphan")
+    mandate.delete()
+
+    post_webhook(api_client, event)
+
+    assert fake_intents.setup.canceled == ["seti_orphan"]
 
 
 def test_webhook_refuses_an_amount_that_does_not_match(

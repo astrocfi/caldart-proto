@@ -700,6 +700,7 @@ def test_a_completed_gift_reads_donor(
     assert response.json()["membership"]["status"] == "donor"
 
 
+@pytest.mark.usefixtures("run_on_commit")
 def test_a_completed_gift_emails_the_donor_a_receipt(
     api_client: APIClient, give: Callable[..., dict[str, Any]]
 ) -> None:
@@ -712,6 +713,7 @@ def test_a_completed_gift_emails_the_donor_a_receipt(
     assert [message.to for message in mail.outbox] == [[DONOR_EMAIL]]
 
 
+@pytest.mark.usefixtures("run_on_commit")
 def test_a_donors_receipt_has_no_payments_link(
     api_client: APIClient, give: Callable[..., dict[str, Any]]
 ) -> None:
@@ -728,6 +730,7 @@ def test_a_donors_receipt_has_no_payments_link(
     assert ("/portal/payments" in message.body, "/portal/payments" in html) == (False, False)
 
 
+@pytest.mark.usefixtures("run_on_commit")
 def test_a_members_receipt_keeps_its_payments_link(api_client: APIClient, member: User) -> None:
     """The portal's own contribution receipt still links to Payments."""
     api_client.force_login(member)
@@ -844,6 +847,7 @@ def stripe_intent(settings: Settings, monkeypatch: pytest.MonkeyPatch) -> dict[s
     return payload
 
 
+@pytest.mark.usefixtures("run_on_commit")
 def test_a_stripe_gift_is_confirmed_with_its_token(
     api_client: APIClient, stripe_intent: dict[str, Any]
 ) -> None:
@@ -883,6 +887,7 @@ def test_a_stripe_gift_is_confirmed_with_its_token(
     ) == (200, "succeeded", "donor", [[DONOR_EMAIL]])
 
 
+@pytest.mark.usefixtures("run_on_commit")
 @respx.mock
 def test_a_paypal_gift_is_captured_with_its_token(
     api_client: APIClient, settings: Settings

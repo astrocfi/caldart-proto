@@ -26,6 +26,8 @@ from apps.payments.api.serializers import (
     PayPalCheckoutResponseSerializer,
     StripeCheckoutResponseSerializer,
     StripeConfirmSerializer,
+    gift_minimum_message,
+    is_below_gift_minimum,
 )
 from apps.payments.donations import DONOR_PROFILE_FIELDS
 from apps.payments.models import MAX_CONTRIBUTION_CENTS, PaymentProvider
@@ -54,6 +56,7 @@ class DonationsConfigSerializer(serializers.Serializer[dict[str, Any]]):
     paypal_client_id = serializers.CharField(allow_blank=True)
     contribution_tiers = ContributionTierSerializer(many=True)
     max_contribution_cents = serializers.IntegerField()
+    donation_minimum_cents = serializers.IntegerField()
     counties = serializers.ListField(child=serializers.CharField())
     darts = DartRefSerializer(many=True)
     states = StateChoiceSerializer(many=True)
@@ -66,8 +69,10 @@ class DonationCheckoutSerializer(ProfileSerializer):
     as it is on every profile, and is stored as ``XXX-XXX-XXXX``.  The optional fields
     are the profile's own, under the profile's own rules (a five-digit ZIP code, a
     three-character airport, an active DART named by ``dart_id``), except that a
-    pilot certificate needs no number here.  ``contribution_cents`` runs from 1 to
-    ``MAX_CONTRIBUTION_CENTS``: nothing is refused with "Choose an amount to give."
+    pilot certificate needs no number here.  ``contribution_cents`` runs from
+    ``DONATION_MINIMUM_CENTS`` to ``MAX_CONTRIBUTION_CENTS``: nothing is refused with
+    "Choose an amount to give.", and less than the minimum with "A donation must be at
+    least $5.00." (the minimum as configured).
     There is no amount field: the gift is the contribution and nothing else.
     """
 
@@ -108,9 +113,15 @@ class DonationCheckoutSerializer(ProfileSerializer):
         return list(self.Meta.fields)
 
     def validate_contribution_cents(self, value: int) -> int:
-        """Refuse a gift of nothing with :data:`NO_AMOUNT_MESSAGE`."""
+        """Refuse a gift of nothing, and a gift under ``DONATION_MINIMUM_CENTS``.
+
+        Nothing is told :data:`NO_AMOUNT_MESSAGE`, and an amount under the minimum
+        :func:`~apps.payments.api.serializers.gift_minimum_message`.
+        """
         if value == 0:
             raise serializers.ValidationError(NO_AMOUNT_MESSAGE)
+        if is_below_gift_minimum(value):
+            raise serializers.ValidationError(gift_minimum_message())
         return value
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:

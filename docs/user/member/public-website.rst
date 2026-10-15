@@ -80,8 +80,9 @@ anybody, with no account and no password. Members and friends should give from t
 portal's :doc:`donate` screen instead, so the gift lands on their own record. The
 form:
 
-#. **Amount.** Choose a tier, or **Other amount** and type whole dollars. Without an
-   amount it says *Choose an amount to give.*
+#. **Amount.** Choose a tier, or **Other amount** and type whole dollars, from $5
+   up to $99,999. Without an amount it says *Choose an amount to give.*, and under $5
+   *A donation must be at least $5.*
 #. **About you.** The section opens with *Already have an account? Sign in to give
    from the portal.* **First name**, **Last name**, and **Email** (*Your receipt goes
    here*) are required. **Phone** is optional; the box takes ten digits and writes
@@ -98,7 +99,10 @@ form:
 Once the gift goes through, the form gives way to CalDART's thanks and *A receipt
 is on its way to rosa@example.org.* The receipt email has the PDF attached and the
 sentence *No goods or services were provided in exchange for this contribution.* A
-payment that fails leaves the form where it was, says why, and charges nothing.
+payment that fails leaves the form where it was, says why, and charges nothing; the
+card form clears for another card, and each try is a payment of its own. Too many
+tries from one connection within the hour are refused for a while: wait and try
+again.
 
 The page answers the same whatever address you give. A gift from an address that
 already has a portal account is that account's own gift, as if you had given from the

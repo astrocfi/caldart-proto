@@ -225,6 +225,10 @@ def begin_mandate(
     (:func:`take_contribution_off_renewal`), and a renewal that takes a contribution
     beside a recurring donation is refused by :func:`refuse_renewal_contribution`.
 
+    Whatever setup the replaced mandate left open at its provider is closed first
+    (:meth:`~apps.payments.providers.base.Provider.abandon_setup`), under the provider
+    it was begun with, so a Stripe SetupIntent nobody will confirm takes no card.
+
     Raises ``DomainValidationError`` keyed by :data:`AUTO_RENEW_FIELD` for
     anything :func:`check_renewable` refuses, and writes nothing when anything
     is refused.
@@ -242,6 +246,10 @@ def begin_mandate(
         charge_on = today
     else:
         charge_on = default_charge_date(user, today)
+    replaced = RenewalMandate.objects.filter(user=user, plan__isnull=renewable is None).first()
+    if replaced is not None:
+        # Its open setup is about to be forgotten, perhaps under another provider.
+        get_provider(replaced.provider).abandon_setup(replaced)
     mandate, _ = RenewalMandate.objects.update_or_create(
         user=user,
         plan__isnull=renewable is None,
@@ -411,9 +419,15 @@ def discard_pending_mandate(user: User) -> None:
     A pending mandate has no saved method, has charged nothing and has never been
     announced to anybody, so a checkout that declines automatic renewal deletes it
     outright rather than canceling it: there is no standing authority to withdraw
-    and nothing to tell the member.  A mandate in any other state is left alone.
+    and nothing to tell the member.  Each one's open setup at its provider is closed
+    first (:meth:`~apps.payments.providers.base.Provider.abandon_setup`), so a Stripe
+    SetupIntent nobody will confirm takes no card.  A mandate in any other state is
+    left alone.
     """
-    RenewalMandate.objects.filter(user=user, status=MandateStatus.PENDING).delete()
+    pending = list(RenewalMandate.objects.filter(user=user, status=MandateStatus.PENDING))
+    for mandate in pending:
+        get_provider(mandate.provider).abandon_setup(mandate)
+    RenewalMandate.objects.filter(pk__in=[mandate.pk for mandate in pending]).delete()
 
 
 def cancel_all_mandates(user: User, *, actor: User | None = None) -> None:

@@ -20,6 +20,8 @@ import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import { RenewalSetup } from './RenewalSetup';
 
+const confirmSetup = vi.fn();
+
 vi.mock('@stripe/stripe-js', () => ({
   loadStripe: () => Promise.resolve({ id: 'stripe-stub' }),
 }));
@@ -27,12 +29,13 @@ vi.mock('@stripe/stripe-js', () => ({
 vi.mock('@stripe/react-stripe-js', () => ({
   Elements: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   PaymentElement: () => <div data-testid="payment-element">Payment element</div>,
-  useStripe: () => ({ confirmSetup: vi.fn() }),
+  useStripe: () => ({ confirmSetup }),
   useElements: () => ({}),
 }));
 
 beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
+  confirmSetup.mockReset();
 });
 
 afterEach(() => {
@@ -77,4 +80,46 @@ describe('StripeRenewalPanel', () => {
       ]),
     );
   });
+
+  it('reports a declined card to the server, then starts a fresh setup', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const { setups } = mount();
+    const confirmations: unknown[] = [];
+    server.use(
+      http.post(`${API}/me/renewal/confirm`, async ({ request }) => {
+        confirmations.push(await request.json());
+        return HttpResponse.json(
+          { detail: "Stripe reports the setup as 'requires_payment_method'." },
+          { status: 400 },
+        );
+      }),
+    );
+    confirmSetup.mockResolvedValue({
+      error: {
+        type: 'card_error',
+        message: 'Your card was declined.',
+        setup_intent: { id: 'seti_1', status: 'requires_payment_method' },
+      },
+    });
+
+    await user.click(await screen.findByRole('button', { name: 'Save this card' }));
+
+    await waitFor(() => expect(setups).toHaveLength(2));
+    expect(confirmations).toEqual([{ setup_intent_id: 'seti_1', setup_token: '' }]);
+    expect(await screen.findByRole('alert')).toHaveTextContent('Your card was declined.');
+  });
+
+  it.each(['api_connection_error', 'api_error'])(
+    'keeps the same setup after an %s',
+    async (type) => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      const { setups } = mount();
+      confirmSetup.mockResolvedValue({ error: { type, message: 'Something went wrong.' } });
+
+      await user.click(await screen.findByRole('button', { name: 'Save this card' }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('Something went wrong.');
+      expect(setups).toHaveLength(1);
+    },
+  );
 });

@@ -9,7 +9,7 @@ from pathlib import Path
 
 from . import _dotenv  # noqa: F401  (imported for its side effect: it reads .env)
 from .base import *  # noqa: F403
-from .base import AUTH_THROTTLE_RATES, LOGGING, REPO_ROOT, env
+from .base import AUTH_THROTTLE_RATES, LOGGING, PAYMENT_THROTTLE_RATES, REPO_ROOT, env
 
 DEBUG = False
 ALLOWED_HOSTS = ["*", "testserver"]
@@ -27,6 +27,7 @@ STATIC_ROOT = Path(tempfile.mkdtemp(prefix=STATIC_ROOT_PREFIX))
 # Throttles are inert under test; the throttling test turns one back on with
 # ``override_settings`` rather than every other test racing a shared counter.
 AUTH_THROTTLE_RATES = dict.fromkeys(AUTH_THROTTLE_RATES, None)
+PAYMENT_THROTTLE_RATES = dict.fromkeys(PAYMENT_THROTTLE_RATES, None)
 
 # The sign-in lockout is off for the same reason; the lockout tests turn it on with the
 # ``settings`` fixture and clear the cache around themselves.

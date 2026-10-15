@@ -8,6 +8,7 @@
  */
 import { ApiError } from '@/portal/api/client';
 import type { PilotCertificateType } from '@/portal/api/types';
+import { donationMinimumMessage } from '@/portal/features/checkout/ContributionChooser';
 import { normalizePhone } from '@/portal/features/profile/form';
 import { VOLUNTEER_INTERESTS } from '@/portal/features/profile/constants';
 import { EMAIL_MESSAGE, isEmailAddress } from '@/portal/masks';
@@ -80,16 +81,18 @@ export const AMOUNT_MESSAGE = 'Choose an amount to give.';
 /**
  * The reasons `values` and `amountCents` cannot start a gift, empty when they can.
  *
- * An amount, both names, and an address that reads as one are required, and a phone
- * number, which is optional, must have ten digits when one is typed; nothing else
- * optional is checked here.
+ * An amount of at least `minimumCents`, both names, and an address that reads as one
+ * are required, and a phone number, which is optional, must have ten digits when one is
+ * typed; nothing else optional is checked here.
  */
 export function validateDonation(
   values: DonationFormValues,
   amountCents: number,
+  minimumCents: number,
 ): DonationFormErrors {
   const errors: DonationFormErrors = {};
   if (amountCents <= 0) errors.amount = AMOUNT_MESSAGE;
+  else if (amountCents < minimumCents) errors.amount = donationMinimumMessage(minimumCents);
   if (values.first_name.trim() === '') errors.first_name = 'Enter your first name.';
   if (values.last_name.trim() === '') errors.last_name = 'Enter your last name.';
   if (!isEmailAddress(values.email)) errors.email = EMAIL_MESSAGE;

@@ -375,9 +375,13 @@ In production, create the endpoint in the dashboard instead
 * ``charge.updated``, which carries a fee Stripe could not report at the
   moment of the charge;
 * ``charge.refunded``, which records a refund taken in the Stripe dashboard
-  (:doc:`api-refunds`).
+  (:doc:`api-refunds`);
+* ``setup_intent.setup_failed``, which cancels a SetupIntent that declined a card.
 
-The dashboard shows the endpoint's signing secret once it exists.
+The dashboard shows the endpoint's signing secret once it exists.  The webhook is
+required: ``payment_intent.payment_failed`` and ``setup_intent.setup_failed`` are
+how CalDART hears of every decline and cancels the intent, alongside the portal's
+own report (see `Radar rules for card testing`_).
 
 Without a correct secret every delivery is rejected with **400 Invalid Stripe
 signature** — which is the intended behavior, since an unverified webhook
@@ -399,6 +403,42 @@ Number                       What happens
 ===========================  =========================================
 
 The full list is at https://docs.stripe.com/testing.
+
+.. _payments-setup-radar:
+
+Radar rules for card testing
+----------------------------
+
+*Card testing* is somebody running stolen card numbers through a site's checkout
+to learn which ones work.  Each attempt costs a fee and a decline, and enough of
+them gets a merchant account reviewed or closed, which would stop members' dues
+along with it.  On its side, CalDART requires every public or portal donation to be
+at least ``DONATION_MINIMUM_CENTS``, and every checkout for a plan priced under that
+minimum to reach it with its contribution; rate-limits starting and confirming
+payments and saved methods per account and per address
+(:ref:`configuration-payment-limits`); and cancels a PaymentIntent or SetupIntent
+once it learns, from the portal or the webhook, that the intent declined a card.
+The webhook above is required for that.  Stripe Radar rules are the recommended
+control on Stripe's side.  They are set in the dashboard, so they are a step for
+whoever runs the Stripe account, in both test and live mode:
+
+#. Open **Radar → Rules**.  Leave Stripe's default rules on, including
+   ``Block if :risk_level: = 'highest'``.  Stripe's own card-testing protection is
+   part of Radar and needs nothing turned on.
+#. Turn on the default rule ``Block if :cvc_check: = 'fail'``, and add
+   ``Block if :address_zip_check: = 'fail'``.  The Payment Element asks for the CVC
+   and the ZIP code, so a real member's card passes both.
+#. With **Radar for Fraud Teams**, add velocity rules from the rule builder that
+   block an IP address, an email address, or a card after a few declines within an
+   hour; the builder lists the velocity attributes it offers.  Test a new rule
+   against past payments with the builder's preview before saving it.
+#. Under **Radar → Overview**, watch the declines.  A burst of small declined
+   payments from a few addresses is card testing: tighten the rules, and lower
+   ``PAYMENT_THROTTLE_*`` and ``AUTH_THROTTLE_DONATE*`` (:doc:`configuration`) until
+   it stops.
+
+Radar decides before the card is charged, so a blocked attempt reaches CalDART as
+an ordinary decline: the payment is marked ``failed`` and nothing is charged.
 
 Apple Pay
 ---------
@@ -711,12 +751,13 @@ and refund events, so run it with the full list instead:
 
    $ stripe listen --forward-to localhost:8000/api/v1/payments/stripe/webhook \
        --events payment_intent.succeeded,payment_intent.payment_failed,\
-   charge.refunded,charge.updated,setup_intent.succeeded
+   charge.refunded,charge.updated,setup_intent.succeeded,setup_intent.setup_failed
 
 ``payment_intent.succeeded`` and ``payment_intent.payment_failed`` are the
 checkout safety net; ``charge.updated`` is how a fee Stripe could not report
 at the moment of the charge arrives; ``charge.refunded`` is how a refund taken
-in the Stripe dashboard reaches the ledger (:doc:`api-refunds`).
+in the Stripe dashboard reaches the ledger (:doc:`api-refunds`);
+``setup_intent.setup_failed`` cancels a SetupIntent that declined a card.
 ``setup_intent.succeeded`` is not handled by ``handle_webhook`` at all: turning
 automatic renewal on from the Payments screen without paying anything saves
 the method synchronously, the moment the browser posts the setup intent id to
@@ -903,7 +944,10 @@ subclasses ``Provider`` from ``providers/base.py``:
 ``confirm(payment, **kwargs) -> bool``
     Verifies the payment with the provider, on the server, and marks it
     succeeded or failed through ``payments.services``.  Returns whether it
-    succeeded.
+    succeeded.  The confirm endpoints call it only for a ``pending`` payment, under
+    a lock on the payment's row held until it returns, and answer any other from
+    its row, so a payment that has settled or failed is never taken to the provider
+    again.
 ``handle_webhook(request) -> HttpResponse``
     Processes an asynchronous notification.  It must be idempotent: a
     provider may deliver the same event more than once, and it may arrive
@@ -939,8 +983,10 @@ Going live: checklist
    [ ] Stripe account activated (business details submitted and approved)
    [ ] STRIPE_PUBLISHABLE_KEY / STRIPE_SECRET_KEY swapped to pk_live_ / sk_live_
    [ ] Live-mode webhook endpoint created with payment_intent.succeeded,
-       payment_intent.payment_failed, charge.updated and charge.refunded;
-       STRIPE_WEBHOOK_SECRET is its signing secret
+       payment_intent.payment_failed, charge.updated, charge.refunded, and
+       setup_intent.setup_failed; STRIPE_WEBHOOK_SECRET is its signing secret
+   [ ] Radar rules for card testing set in live mode (see "Radar rules for
+       card testing" under Stripe)
    [ ] Apple Pay: production domain registered, association file deployed,
        /.well-known/... returns 200 over HTTPS, dashboard shows "Verified"
    [ ] Google Pay enabled in live-mode payment methods

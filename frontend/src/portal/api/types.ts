@@ -1168,6 +1168,8 @@ export interface PaymentsConfig {
   contribution_tiers: ContributionTier[];
   /** The largest contribution checkout accepts, in cents. */
   max_contribution_cents: number;
+  /** The smallest donation checkout accepts, in cents; dues take any contribution. */
+  donation_minimum_cents: number;
 }
 
 export interface CheckoutRequest {
@@ -1216,6 +1218,8 @@ export interface DonationsConfig {
   contribution_tiers: ContributionTier[];
   /** The largest gift the checkout accepts, in cents. */
   max_contribution_cents: number;
+  /** The smallest gift the checkout accepts, in cents. */
+  donation_minimum_cents: number;
   counties: string[];
   darts: Pick<Dart, 'id' | 'name'>[];
   states: StateChoice[];

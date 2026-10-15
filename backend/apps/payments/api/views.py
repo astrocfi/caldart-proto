@@ -51,6 +51,7 @@ from apps.payments.models import (
     MAX_CONTRIBUTION_CENTS,
     Payment,
     PaymentProvider,
+    PaymentStatus,
 )
 from apps.payments.providers import available_providers, get_provider
 from apps.payments.providers.base import PaymentError
@@ -60,6 +61,7 @@ from apps.payments.renewals.mandates import (
     discard_pending_mandate,
 )
 from apps.payments.services import create_checkout
+from apps.payments.throttling import PaymentConfirmThrottle, PaymentStartThrottle
 from apps.payments.webhook_throttling import PayPalWebhookThrottle
 
 #: What the webhook endpoints answer with.  The provider chooses the body, and
@@ -111,12 +113,34 @@ def confirm_payment(payment: Payment, provider: str, **arguments: str) -> None:
     Every confirm endpoint, the portal's and the public donation page's, calls this once
     it has loaded the payment.  A provider that refuses or cannot be reached raises
     DRF's ``ValidationError``, a 400 carrying its reason as ``detail``.
+
+    Only a ``pending`` payment is confirmed.  One that has succeeded, failed, or been
+    refunded is left as it is and the provider is not asked at all, so confirming it
+    again never takes money a second time, and a payment that failed is never tried
+    again through the intent or the order it was started with: paying after a decline
+    starts a payment of its own.
+
+    The payment's row is locked from the status check until the provider has answered,
+    so two confirms of one payment run one after the other and the second finds it
+    settled.  The lock is held for as long as the provider's calls take, which their
+    timeouts bound: up to about 80 seconds for a Stripe decline (the retrieve and the
+    cancel, 40 seconds each at worst) and about 40 for PayPal (the token and the
+    capture); a webhook for the same payment waits on it meanwhile.  The receipt is
+    mailed only once the lock is released (``mark_succeeded`` sends it on commit).
+    What the provider wrote is kept when it refuses, since the refusal is raised only
+    once the lock is released.
     """
-    try:
-        get_provider(provider).confirm(payment, **arguments)
-    except PaymentError as exc:
-        raise ValidationError({"detail": str(exc)}) from exc
+    refusal: PaymentError | None = None
+    with transaction.atomic():
+        locked = Payment.objects.select_for_update().get(pk=payment.pk)
+        if locked.status == PaymentStatus.PENDING:
+            try:
+                get_provider(provider).confirm(locked, **arguments)
+            except PaymentError as exc:
+                refusal = exc
     payment.refresh_from_db()
+    if refusal is not None:
+        raise ValidationError({"detail": str(refusal)}) from refusal
 
 
 def confirmed(payment: Payment, provider: str, **arguments: str) -> Response:
@@ -155,8 +179,9 @@ class PaymentsConfigView(APIView):
         """200 with what the checkout screen may offer.
 
         Names the configured providers, their publishable keys, the active plans,
-        the contribution tiers and the largest contribution checkout accepts.  Any
-        signed-in member may ask.
+        the contribution tiers, the largest contribution checkout accepts, and the
+        smallest donation it accepts (``DONATION_MINIMUM_CENTS``).  Any signed-in member
+        may ask.
         """
         plans = MembershipPlan.objects.filter(is_active=True)
         data = {
@@ -166,6 +191,7 @@ class PaymentsConfigView(APIView):
             "plans": plans,
             "contribution_tiers": CONTRIBUTION_TIERS,
             "max_contribution_cents": MAX_CONTRIBUTION_CENTS,
+            "donation_minimum_cents": settings.DONATION_MINIMUM_CENTS,
         }
         return Response(PaymentsConfigSerializer(data).data)
 
@@ -174,6 +200,7 @@ class CheckoutView(APIView):
     """``POST /payments/checkout`` -- create the pending payment and start it."""
 
     permission_classes = [IsAuthenticated]
+    throttle_classes = [PaymentStartThrottle]
 
     @extend_schema(request=CheckoutSerializer, responses={201: CheckoutResponseSerializer})
     def post(self, request: Request) -> Response:
@@ -186,7 +213,9 @@ class CheckoutView(APIView):
 
         A life member has nothing to renew, so a ``plan`` from one is a 400 naming
         ``plan``: their checkout is a contribution, with or without a standing
-        authority behind it.
+        authority behind it.  A checkout with no plan is a donation, which is a 400
+        naming ``contribution_cents`` under ``DONATION_MINIMUM_CENTS``.  429 past the
+        caller's ``payment_start`` rate, which saving a method shares.
 
         ``auto_renew`` asks for the method to be saved and charged again on a
         schedule: a ``pending`` mandate is created before the provider is started,
@@ -264,6 +293,7 @@ class StripeConfirmView(APIView):
     """``POST /payments/stripe/confirm`` -- verify with Stripe, then activate."""
 
     permission_classes = [IsAuthenticated]
+    throttle_classes = [PaymentConfirmThrottle]
 
     @extend_schema(request=StripeConfirmSerializer, responses={200: PaymentResultSerializer})
     def post(self, request: Request) -> Response:
@@ -272,7 +302,9 @@ class StripeConfirmView(APIView):
         The caller must own the payment, which must be a Stripe payment: anything
         else is a 404, or a 400 keyed by ``payment_id``.  400 as well when Stripe
         disagrees with our row or cannot be reached; the membership is activated
-        only when Stripe reports the intent as succeeded.
+        only when Stripe reports the intent as succeeded.  A payment that is no longer
+        pending is answered as it stands without asking Stripe
+        (:func:`confirm_payment`).  429 past the caller's ``payment_confirm`` rate.
         """
         serializer = StripeConfirmSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -292,6 +324,7 @@ class PayPalCaptureView(APIView):
     """``POST /payments/paypal/capture`` -- capture the order, then activate."""
 
     permission_classes = [IsAuthenticated]
+    throttle_classes = [PaymentConfirmThrottle]
 
     @extend_schema(request=PayPalCaptureSerializer, responses={200: PaymentResultSerializer})
     def post(self, request: Request) -> Response:
@@ -300,7 +333,9 @@ class PayPalCaptureView(APIView):
         The caller must own the payment, which must be a PayPal payment: anything
         else is a 404, or a 400 keyed by ``payment_id``.  400 as well when PayPal
         reports anything but a completed capture for the right amount, or cannot
-        be reached.
+        be reached.  A payment that is no longer pending is answered as it stands
+        without asking PayPal (:func:`confirm_payment`).  429 past the caller's
+        ``payment_confirm`` rate, which the Stripe confirm shares.
         """
         serializer = PayPalCaptureSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

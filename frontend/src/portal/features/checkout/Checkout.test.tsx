@@ -112,6 +112,7 @@ function config(overrides: Partial<PaymentsConfig> = {}): PaymentsConfig {
     plans: PLANS,
     contribution_tiers: TIERS,
     max_contribution_cents: 9_999_900,
+    donation_minimum_cents: 500,
     ...overrides,
   };
 }
@@ -508,6 +509,88 @@ describe('Checkout · Stripe', () => {
     expect(handleSuccess).not.toHaveBeenCalled();
   });
 
+  it('starts a payment of its own after a decline, keeping the reason on screen', async () => {
+    const user = userEvent.setup();
+    serveConfig(stripeConfig);
+    const requests = serveCheckout({ client_secret: 'pi_1_secret_abc' });
+    confirmPayment.mockResolvedValue({
+      error: { type: 'card_error', message: 'Your card was declined.' },
+    });
+    server.use(
+      http.post(`${API}/payments/stripe/confirm`, () =>
+        HttpResponse.json({ status: 'failed', membership: CURRENT_MEMBERSHIP }),
+      ),
+    );
+
+    renderWithProviders(<Checkout mode="join" onSuccess={() => {}} />);
+    await user.click(await screen.findByRole('button', { name: 'Pay $45.00' }));
+
+    await waitFor(() => expect(requests).toHaveLength(2));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Your card was declined.');
+  });
+
+  it('tells the server about a decline before starting again', async () => {
+    const user = userEvent.setup();
+    serveConfig(stripeConfig);
+    serveCheckout({ client_secret: 'pi_1_secret_abc' });
+    confirmPayment.mockResolvedValue({
+      error: {
+        type: 'card_error',
+        message: 'Your card was declined.',
+        payment_intent: { id: 'pi_1', status: 'requires_payment_method' },
+      },
+    });
+    const confirmations: unknown[] = [];
+    server.use(
+      http.post(`${API}/payments/stripe/confirm`, async ({ request }) => {
+        confirmations.push(await request.json());
+        return HttpResponse.json({ status: 'failed', membership: CURRENT_MEMBERSHIP });
+      }),
+    );
+
+    renderWithProviders(<Checkout mode="join" onSuccess={() => {}} />);
+    await user.click(await screen.findByRole('button', { name: 'Pay $45.00' }));
+
+    await waitFor(() =>
+      expect(confirmations).toEqual([{ payment_id: 77, payment_intent_id: 'pi_1' }]),
+    );
+  });
+
+  it.each(['api_connection_error', 'api_error'])(
+    'keeps the same payment after an %s, which may follow a charge',
+    async (type) => {
+      const user = userEvent.setup();
+      serveConfig(stripeConfig);
+      const requests = serveCheckout({ client_secret: 'pi_1_secret_abc' });
+      confirmPayment.mockResolvedValue({
+        error: { type, message: 'Something went wrong on our end.' },
+      });
+
+      renderWithProviders(<Checkout mode="join" onSuccess={() => {}} />);
+      await user.click(await screen.findByRole('button', { name: 'Pay $45.00' }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'Something went wrong on our end.',
+      );
+      expect(requests).toHaveLength(1);
+    },
+  );
+
+  it('keeps the same payment while the card details are incomplete', async () => {
+    const user = userEvent.setup();
+    serveConfig(stripeConfig);
+    const requests = serveCheckout({ client_secret: 'pi_1_secret_abc' });
+    confirmPayment.mockResolvedValue({
+      error: { type: 'validation_error', message: 'Your card number is incomplete.' },
+    });
+
+    renderWithProviders(<Checkout mode="join" onSuccess={() => {}} />);
+    await user.click(await screen.findByRole('button', { name: 'Pay $45.00' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Your card number is incomplete.');
+    expect(requests).toHaveLength(1);
+  });
+
   it('reports a checkout that could not be started', async () => {
     serveConfig(stripeConfig);
     server.use(
@@ -807,6 +890,39 @@ describe('Checkout · contributing', () => {
 
     expect(await screen.findByText('Choose a donation amount to continue.')).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Succeed' })).not.toBeInTheDocument();
+  });
+
+  it('waits for the smallest donation before it offers a way to pay', async () => {
+    const user = userEvent.setup();
+    serveConfig(config({ donation_minimum_cents: 500 }));
+    renderWithProviders(<Checkout mode="contribute" onSuccess={() => {}} />);
+
+    await user.click(await screen.findByRole('radio', { name: 'Other amount' }));
+    await user.type(screen.getByLabelText('Donation amount'), '4');
+
+    expect(screen.getByText('A donation must be at least $5.')).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Succeed' })).not.toBeInTheDocument();
+  });
+
+  it('offers a way to pay a donation of the smallest amount', async () => {
+    const user = userEvent.setup();
+    serveConfig(config({ donation_minimum_cents: 500 }));
+    renderWithProviders(<Checkout mode="contribute" onSuccess={() => {}} />);
+
+    await user.click(await screen.findByRole('radio', { name: 'Other amount' }));
+    await user.type(screen.getByLabelText('Donation amount'), '5');
+
+    expect(screen.getByRole('button', { name: 'Succeed' })).toBeInTheDocument();
+  });
+
+  it('says how small a donation may be', async () => {
+    const user = userEvent.setup();
+    serveConfig(config({ donation_minimum_cents: 500 }));
+    renderWithProviders(<Checkout mode="contribute" onSuccess={() => {}} />);
+
+    await user.click(await screen.findByRole('radio', { name: 'Other amount' }));
+
+    expect(screen.getByText(/From \$5 up to \$99,999/)).toBeInTheDocument();
   });
 
   it('shows a life member the contribution form even where a renewal was asked for', async () => {
