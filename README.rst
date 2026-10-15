@@ -136,6 +136,7 @@ Everyday commands:
    $ make e2e       # Playwright, end to end (see below)
    $ make screenshots  # every screen for each demo role, with an axe check
    $ make lint      # ruff + mypy + shellcheck + tsc + eslint + prettier + codespell
+                    # + the wording check
    $ make check     # system checks, migrations, deployment checks, build
    $ make docs      # Sphinx, nitpicky, warnings are errors
    $ make guide     # the user guide alone, as the site serves it at /docs/
@@ -210,7 +211,7 @@ the gates every pull request must pass:
 
    $ make test     # pytest + vitest; a warning fails the run
    $ make lint     # ruff, mypy, shellcheck, tsc, eslint (no warnings), prettier,
-                   # codespell
+                   # codespell, the wording check
    $ make check    # system checks, migrations, deployment checks, build
    $ make docs     # sphinx-build -n -W: nitpicky, warnings are errors
    $ make audit    # uv audit + npm audit: known vulnerabilities

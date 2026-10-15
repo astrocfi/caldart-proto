@@ -1286,6 +1286,7 @@ Linting and type-checking
    $ make lint-shell      # shellcheck over deploy/ and scripts/
    $ make lint-frontend   # tsc --noEmit, eslint --max-warnings 0, prettier --check
    $ make lint-spelling   # codespell over the prose, the code and the tests
+   $ make lint-wording    # a verb with a negative object, against its baseline
    $ make format          # fix what can be fixed automatically
 
 ``ruff`` is configured in ``pyproject.toml``: line length 100, target
@@ -1313,8 +1314,9 @@ selected.  ``ARG`` (an unused function argument) stays off, because nearly
 every diagnostic it raises is a Django or DRF signature such as ``get(self,
 request, *args, **kwargs)``, where the framework dictates the parameter list.
 
-``mypy`` type-checks ``backend`` — the application and the tests alike — as the
-third step of ``make lint-backend``.  ``[tool.mypy]`` in ``pyproject.toml`` sets
+``mypy`` type-checks ``backend`` — the application and the tests alike — and
+the two Python files kept outside it, ``frontend/e2e/prefix_proxy.py`` and
+``scripts/check_wording.py``, as the third step of ``make lint-backend``.  ``[tool.mypy]`` in ``pyproject.toml`` sets
 ``strict = true``, the ``mypy_django_plugin`` and ``mypy_drf_plugin`` plugins,
 and ``caldart.settings.test`` as the settings module the Django plugin reads;
 migrations are excluded.  ``disallow_subclassing_any`` is off because Wagtail's
@@ -1404,6 +1406,36 @@ this repository.  Two words are ignored repository-wide, ``nnumber``, and
 ``unparseable``; to keep any other word the dictionaries flag, end its line with
 a ``codespell:ignore`` comment naming the word rather than widening the list.
 
+``make lint-wording`` runs ``scripts/check_wording.py``, which holds the prose
+rule that a negation goes on the verb, never on its object.  Over the tree
+``lint-spelling`` scans, as git lists it, minus generated files (the OpenAPI
+description and its snapshot, whose text comes from the serializer docstrings
+the check reads at their source), lock files, and binaries, it flags a word
+from the script's ``FLAGGED_VERBS`` followed by ``no``, ``nothing``,
+``nobody``, ``none``, or ``no one``, across whitespace that may include one
+line break and a comment leader.  The match ignores case, an underscore joins
+words into an identifier that never matches, and ``None`` spelled that way is
+Python's value.  It passes over a verb form after an article or another
+determiner, which makes it a noun; ``no longer`` and the other adverbs listed
+in ``NOT_OBJECTS``; and the words in ``ALLOWED_WORDS``, which record the
+linking verbs, modals, prepositions, and conjunctions left alone on purpose.
+Each hit prints as ``path:line: text``, with a suggested rewrite below it when
+the verb is a simple present or past form.  To keep a line verbatim, such as
+a third party's error message, end it with a ``wording:ignore`` comment, or
+put a ``wording:ignore-next-line`` comment on the line above it.
+
+``scripts/wording-baseline.txt`` lists every file that held hits when the
+check arrived, with its count.  The check fails when a file has more hits
+than its count, when a file outside the list has any, and when a file has
+fewer: a change that rewrites hits runs ``uv run python
+scripts/check_wording.py --update-baseline`` and commits the lowered
+baseline with it.  ``--update-baseline`` refuses to raise a count unless
+``--accept-new`` is given as well.  ``--all`` lists every hit, ignoring the
+baseline, and exits 1 while any remains; ``--path`` limits it to a subtree,
+so ``--all --path docs/user`` shows what is left to rewrite in the user
+guide.  ``backend/tests/test_check_wording.py`` covers the matching, the
+markers, the suggestions, and the baseline.
+
 System checks and dependency audits
 ===================================
 
@@ -1456,7 +1488,7 @@ commands above run locally.
 **Backend**
     A PostgreSQL 16 service container, ``uv sync --frozen``, then
     ``make lint-backend``, ``make lint-shell``, ``make lint-spelling``,
-    ``make check-backend``, ``make check-deploy`` and ``make test-backend``.
+    ``make lint-wording``, ``make check-backend``, ``make check-deploy`` and ``make test-backend``.
 
 **Frontend**
     Node 22 and ``npm ci``, plus uv and ``uv sync`` because every frontend

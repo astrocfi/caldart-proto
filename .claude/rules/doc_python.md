@@ -52,6 +52,26 @@ Sphinx build requirements for all documentation in this repository. Docstring ru
   `codespell:ignore-next-line <word>` comment where the formatter will not leave a
   trailing one. Do not widen `ignore-words-list`: an entry there silences the word
   everywhere.
+- Put a negation on the verb, never on its object. Write "doesn't have a portal account",
+  "didn't take anything", "doesn't charge anyone", or a plain finding such as "No payment
+  found", in place of these:
+  "has no portal account", "took nothing", "charges nobody". <!-- wording:ignore -->
+  A negative subject is fine ("Nobody changes their own roles", "Nothing is due"), and so
+  are "there is no", "with no", and the like. This holds for UI labels, messages, emails,
+  docs, docstrings, comments, and test names alike. `make lint` enforces it with
+  `make lint-wording`, which runs `scripts/check_wording.py` over the tree codespell
+  scans (minus generated files, lock files, and binaries): it flags a verb from the
+  script's `FLAGGED_VERBS` followed, across whitespace, by `no`, `nothing`, `nobody`,
+  `none`, or `no one`, and prints a suggested rewrite where the verb is simple. The
+  script's `ALLOWED_WORDS` records the words deliberately left alone. To keep text that
+  must stay verbatim, such as a third party's error message or a test that pins one, end
+  the line with a `wording:ignore` comment, or precede it with a
+  `wording:ignore-next-line` comment. `scripts/wording-baseline.txt` holds each file's
+  count of hits from before the check: a file may not go above its count, and a change
+  that rewrites hits must lower the baseline in the same commit with
+  `uv run python scripts/check_wording.py --update-baseline`, which refuses to raise a
+  count. `--all` lists every hit, ignoring the baseline, and `--path <dir>` limits it to
+  a subtree.
 - Define each CalDART-specific term on first use, such as DART. Don't define
   standard aviation terms (N-number, BasicMed, medical classes, flight review):
   the readers are pilots and DART volunteers.
