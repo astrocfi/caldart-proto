@@ -12,7 +12,7 @@ from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema_fiel
 from rest_framework import serializers
 
 from apps.members.api.serializers import MembershipStatusSerializer, PlanSerializer
-from apps.members.models import Membership, MembershipPlan
+from apps.members.models import MemberProfile, Membership, MembershipPlan
 from apps.members.services import is_tombstone
 from apps.payments.dates import is_in_the_future
 from apps.payments.manual import MANUAL_METHOD_CHOICES
@@ -20,6 +20,7 @@ from apps.payments.models import (
     MAX_CONTRIBUTION_CENTS,
     MandateCadence,
     MandateProvider,
+    MandateStatus,
     Payment,
     PaymentKind,
     PaymentProvider,
@@ -32,7 +33,12 @@ from apps.payments.models import (
     RenewalScan,
 )
 from apps.payments.reconciliation import ReconciliationRow
-from apps.payments.renewals.charge import SETTLE_OUTCOMES, SETTLE_PAID
+from apps.payments.renewals.charge import (
+    CLOSED_BY_TREASURER_MESSAGE,
+    SETTLE_FAILED,
+    SETTLE_OUTCOMES,
+    SETTLE_PAID,
+)
 from apps.payments.renewals.mandates import (
     PAST_CHARGE_DATE_MESSAGE,
     RENEWAL_PLAN_MESSAGE,
@@ -484,8 +490,34 @@ class RefundIssuedSerializer(serializers.Serializer[dict[str, Any]]):
 # --------------------------------------------------------------------------
 # Automatic renewal
 # --------------------------------------------------------------------------
+#: What the member reads for a last charge a treasurer closed as failed, worded as
+#: the email they were sent.
+CLOSED_CHARGE_MEMBER_MESSAGE = "The last charge couldn't be completed."
+
+
+def _last_failed_error(mandate: RenewalMandate) -> str:
+    """What the mandate's most recent failed charge recorded, or an empty string.
+
+    The attempts are walked in Python, so a list view that has prefetched them
+    answers every row without a further query.
+    """
+    failed = [
+        attempt for attempt in mandate.attempts.all() if attempt.outcome == RenewalOutcome.FAILED
+    ]
+    if len(failed) == 0:
+        return ""
+    return max(failed, key=lambda attempt: attempt.pk).error
+
+
 class RenewalMandateSerializer(serializers.ModelSerializer[RenewalMandate]):
-    """One member's standing authority, as the member and finance screens read it."""
+    """One member's standing authority, as the member and finance screens read it.
+
+    With ``for_member`` true in the context, as the member's own ``/me/renewal`` and
+    ``/me/donation`` answer, a last charge a treasurer closed as failed reads as
+    :data:`CLOSED_CHARGE_MEMBER_MESSAGE` in ``last_error``; the finance screens read
+    what the attempt recorded.  ``last_charge_closed`` is true when the most recent
+    failed charge was one a treasurer closed, which was never refused.
+    """
 
     user_id = serializers.IntegerField(read_only=True)
     user_name = serializers.SerializerMethodField()
@@ -496,6 +528,7 @@ class RenewalMandateSerializer(serializers.ModelSerializer[RenewalMandate]):
     amount_cents = serializers.SerializerMethodField()
     next_charge_on = serializers.SerializerMethodField()
     last_error = serializers.SerializerMethodField()
+    last_charge_closed = serializers.SerializerMethodField()
 
     class Meta:
         model = RenewalMandate
@@ -520,6 +553,7 @@ class RenewalMandateSerializer(serializers.ModelSerializer[RenewalMandate]):
             "failure_count",
             "next_charge_on",
             "last_error",
+            "last_charge_closed",
             "last_charged_at",
             "canceled_at",
             "created_at",
@@ -558,17 +592,19 @@ class RenewalMandateSerializer(serializers.ModelSerializer[RenewalMandate]):
         return charge_date(obj)
 
     def get_last_error(self, obj: RenewalMandate) -> str:
-        """The reason the most recent failed charge was refused, or an empty string.
+        """The reason the most recent failed charge failed, or an empty string.
 
-        The attempts are walked in Python, so a list view that has prefetched them
-        answers every row without a further query.
+        A charge a treasurer closed reads as :data:`CLOSED_CHARGE_MEMBER_MESSAGE` for
+        the member (``for_member`` in the context).
         """
-        failed = [
-            attempt for attempt in obj.attempts.all() if attempt.outcome == RenewalOutcome.FAILED
-        ]
-        if len(failed) == 0:
-            return ""
-        return max(failed, key=lambda attempt: attempt.pk).error
+        error = _last_failed_error(obj)
+        if error == CLOSED_BY_TREASURER_MESSAGE and self.context.get("for_member", False):
+            return CLOSED_CHARGE_MEMBER_MESSAGE
+        return error
+
+    def get_last_charge_closed(self, obj: RenewalMandate) -> bool:
+        """Whether the most recent failed charge was closed by a treasurer."""
+        return _last_failed_error(obj) == CLOSED_BY_TREASURER_MESSAGE
 
 
 class RenewalEnvelopeSerializer(serializers.Serializer[dict[str, Any]]):
@@ -590,6 +626,7 @@ class RenewalAttemptSerializer(serializers.ModelSerializer[RenewalAttempt]):
     membership_id = serializers.IntegerField(read_only=True, allow_null=True)
     user_id = serializers.SerializerMethodField()
     user_name = serializers.SerializerMethodField()
+    mandate_kind = serializers.SerializerMethodField()
     payment_amount_cents = serializers.SerializerMethodField()
     payment_sent_at = serializers.SerializerMethodField()
 
@@ -598,6 +635,7 @@ class RenewalAttemptSerializer(serializers.ModelSerializer[RenewalAttempt]):
         fields = [
             "id",
             "mandate_id",
+            "mandate_kind",
             "membership_id",
             "payment_id",
             "user_id",
@@ -633,6 +671,71 @@ class RenewalAttemptSerializer(serializers.ModelSerializer[RenewalAttempt]):
     def get_user_name(self, obj: RenewalAttempt) -> str:
         """The display name of the member whose renewal this attempt is."""
         return obj.mandate.user.display_name
+
+    @extend_schema_field(serializers.ChoiceField(choices=MandateKind.choices))
+    def get_mandate_kind(self, obj: RenewalAttempt) -> str:
+        """What the attempt's mandate charges for: a renewal, a donation, or both."""
+        return mandate_kind(obj.mandate)
+
+
+class RenewalSettleResultSerializer(RenewalAttemptSerializer):
+    """``POST /admin/renewals/attempts/{id}/settle`` answer: the attempt, and who to call.
+
+    The attempt as :class:`RenewalAttemptSerializer` shapes it, plus what the treasurer
+    who closed a charge needs to get in touch.  The view puts the answer's ``outcome``
+    and ``member_emailed`` in the context.  For ``failed``, ``user_email`` is the
+    member's address and ``user_phone`` the phone number on their profile, an empty
+    string when they don't have one; for ``paid`` and ``released`` both are ``None``.
+    ``mandate_paused`` is true when the answer is ``failed`` and the attempt's mandate
+    stands paused afterwards, whoever paused it.  ``member_emailed`` says whether the
+    member is sent an email about this answer once it has gone.
+    """
+
+    user_email = serializers.SerializerMethodField()
+    user_phone = serializers.SerializerMethodField()
+    mandate_paused = serializers.SerializerMethodField()
+    member_emailed = serializers.SerializerMethodField()
+
+    class Meta(RenewalAttemptSerializer.Meta):
+        fields = [
+            *RenewalAttemptSerializer.Meta.fields,
+            "user_email",
+            "user_phone",
+            "mandate_paused",
+            "member_emailed",
+        ]
+        read_only_fields = fields
+
+    def _closed(self) -> bool:
+        """Whether the answer closed the charge as failed."""
+        return bool(self.context["outcome"] == SETTLE_FAILED)
+
+    def get_member_emailed(self, obj: RenewalAttempt) -> bool:
+        """Whether the member is emailed about this answer, as the view found."""
+        return bool(self.context["member_emailed"])
+
+    def get_mandate_paused(self, obj: RenewalAttempt) -> bool:
+        """Whether the answer closed the charge and the mandate stands paused."""
+        if not self._closed():
+            return False
+        return RenewalMandate.objects.filter(
+            pk=obj.mandate_id, status=MandateStatus.PAUSED
+        ).exists()
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_user_email(self, obj: RenewalAttempt) -> str | None:
+        """The member's email address for a closed charge, or ``None``."""
+        if not self._closed():
+            return None
+        return obj.mandate.user.email
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_user_phone(self, obj: RenewalAttempt) -> str | None:
+        """The profile phone for a closed charge (``""`` without one), or ``None``."""
+        if not self._closed():
+            return None
+        profile = MemberProfile.objects.filter(user_id=obj.mandate.user_id).first()
+        return profile.phone if profile is not None else ""
 
 
 class RenewalSettleSerializer(serializers.Serializer[dict[str, Any]]):

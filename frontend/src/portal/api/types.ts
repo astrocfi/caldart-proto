@@ -1364,8 +1364,13 @@ export interface RenewalMandate {
   /** The day of the next charge: the stored day, or a waiting charge's own. Null
    * only for a mandate that is not active. */
   next_charge_on: IsoDate | null;
-  /** Why the most recent charge was refused, or an empty string. */
+  /**
+   * Why the most recent failed charge failed, or an empty string. The member's own
+   * screens read a charge a treasurer closed in the member's words.
+   */
   last_error: string;
+  /** The most recent failed charge was closed by a treasurer, and was never refused. */
+  last_charge_closed: boolean;
   last_charged_at: IsoDateTime | null;
   canceled_at: IsoDateTime | null;
   created_at: IsoDateTime;
@@ -1380,6 +1385,8 @@ export interface RenewalEnvelope {
 export interface RenewalAttempt {
   id: number;
   mandate_id: number;
+  /** What the charge's mandate charges for: a renewal, a recurring donation, or both. */
+  mandate_kind: MandateKind;
   /** The term the charge renews; null for a recurring donation. */
   membership_id: number | null;
   payment_id: number | null;
@@ -1416,6 +1423,24 @@ export type RenewalSettleOutcome = 'paid' | 'released' | 'failed';
 export interface RenewalSettleRequest {
   outcome: RenewalSettleOutcome;
   reference?: string;
+}
+
+/**
+ * The answer to `POST /admin/renewals/attempts/{id}/settle`: the attempt as it stands, and
+ * how to reach the member, so a treasurer who closed the charge can get in touch.
+ */
+export interface RenewalSettleResult extends RenewalAttempt {
+  /** The member's address for a charge closed as failed; null for any other answer. */
+  user_email: string | null;
+  /**
+   * The phone number on the member's profile for a charge closed as failed, an empty
+   * string when they don't have one; null for any other answer.
+   */
+  user_phone: string | null;
+  /** The charge was closed as failed and the mandate stands paused. */
+  mandate_paused: boolean;
+  /** Whether the member is sent an email about this answer once it has gone. */
+  member_emailed: boolean;
 }
 
 /** `POST /me/renewal/setup` and `POST /me/donation/setup`. */

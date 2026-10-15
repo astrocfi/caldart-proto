@@ -301,8 +301,12 @@ def settle_in_doubt(
       scan charges the same payment again, under the same ``invoice_id``.
     * ``failed``: neither is right.  The attempt is closed as failed without a
       charge, the payment is marked failed, and an active mandate is paused, raising
-      ``auto_renewal_off`` with ``how="administrator"``; the member is not emailed,
-      and the ordinary renewal reminders take over.
+      ``auto_renewal_off`` with ``how="administrator"``, and the ordinary renewal
+      reminders take over.  The member of a mandate paused this way is emailed
+      ``renewal_failed`` with ``closed`` set (:func:`_closed_email`), once the
+      transaction has committed: it goes to ``defer`` when given, as the ``paid``
+      email does, and is otherwise queued with ``transaction.on_commit``.  A mandate
+      that was not active is left as it is, and the member isn't emailed.
 
     Every outcome clears ``flagged_at``, so a charge held in doubt again later is
     flagged again, and writes one ``renewal.settle`` audit record naming ``actor``,
@@ -350,8 +354,12 @@ def settle_in_doubt(
                 "updated_at",
             ]
         )
-        if outcome == SETTLE_FAILED:
-            _close_unpaid(attempt, payment)
+        if outcome == SETTLE_FAILED and _close_unpaid(attempt, payment):
+            deliver = _closed_email(attempt)
+            if defer is None:
+                transaction.on_commit(deliver)
+            else:
+                defer(deliver)
         audit.record(
             audit.RENEWAL_SETTLE,
             actor=actor,
@@ -373,21 +381,57 @@ def settle_in_doubt(
     return attempt
 
 
-def _close_unpaid(attempt: RenewalAttempt, payment: Payment) -> None:
-    """Fail the payment of an attempt a treasurer closed, and pause its mandate.
+def _close_unpaid(attempt: RenewalAttempt, payment: Payment) -> bool:
+    """Fail the payment of an attempt a treasurer closed, and say whether it paused one.
 
-    Nothing more is charged for the term automatically: an active mandate is paused
+    The member isn't charged for the term automatically: an active mandate is paused
     and raises ``auto_renewal_off`` with ``how="administrator"``, and the member's
-    renewal reminders take over.  The member is not emailed.
+    renewal reminders take over.  Returns ``True`` when the mandate was paused here,
+    and ``False`` for one that was not active, which is left as it is.
     """
     if payment.status != PaymentStatus.SUCCEEDED:
         mark_failed(payment, {"error": CLOSED_BY_TREASURER_MESSAGE})
     mandate = attempt.mandate
     if mandate.status != MandateStatus.ACTIVE:
-        return
+        return False
     mandate.status = MandateStatus.PAUSED
     mandate.save(update_fields=["status", "updated_at"])
     events.emit("auto_renewal_off", mandate=mandate, how="administrator")
+    return True
+
+
+def _closed_email(attempt: RenewalAttempt) -> Callable[[], None]:
+    """The email telling a member that a charge a treasurer closed paused their mandate.
+
+    The returned function sends ``renewal_failed`` with ``closed`` set, worded by the
+    mandate's kind like every renewal email: the charge couldn't be completed, the
+    mandate is paused so the member isn't charged automatically, and where to pay by
+    hand and turn it back on.  A renewal's email also names ``expires_on``, the day
+    the term the charge was for ends, with ``has_ended`` true once that day has gone
+    by; both are left out for a recurring donation and for a charge that doesn't name
+    a term.  The
+    send stamps the attempt's ``result_emailed_at``; a mail server that refuses it is
+    logged by :func:`send_mandate_email`, and the settlement stands.
+    """
+    mandate = attempt.mandate
+    term = attempt.membership
+    expires_on = term.ends_on if term is not None and mandate.plan_id is not None else None
+    has_ended = expires_on is not None and expires_on < timezone.localdate()
+
+    def deliver() -> None:
+        """Email the member that their mandate is paused, and stamp that it went."""
+        if not send_mandate_email(
+            mandate,
+            "renewal_failed",
+            closed=True,
+            next_on=None,
+            expires_on=expires_on,
+            has_ended=has_ended,
+        ):
+            return
+        RenewalAttempt.objects.filter(pk=attempt.pk).update(result_emailed_at=timezone.now())
+
+    return deliver
 
 
 def _take(

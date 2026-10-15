@@ -81,6 +81,16 @@ def payments_url() -> str:
     return f"{settings.SITE_URL.rstrip('/')}/portal/payments"
 
 
+def renew_url() -> str:
+    """Absolute link to the portal's Renew screen, where a member renews by hand."""
+    return f"{settings.SITE_URL.rstrip('/')}/portal/renew"
+
+
+def donate_url() -> str:
+    """Absolute link to the portal's Donate screen, where a recurring gift is set up."""
+    return f"{settings.SITE_URL.rstrip('/')}/portal/donate"
+
+
 # --------------------------------------------------------------------------
 # Email
 # --------------------------------------------------------------------------
@@ -89,7 +99,8 @@ def mandate_context(mandate: RenewalMandate, **extra: Any) -> dict[str, Any]:
 
     Carries the member's first name, the organization's name and contact
     address, the plan, the amount as the member reads it, the saved method's
-    label and the link to the portal's payments screen.  ``kind`` is the
+    label, and the links to the portal's payments, Renew, and Donate screens
+    (``payments_url``, ``renew_url``, and ``donate_url``).  ``kind`` is the
     mandate's :class:`MandateKind` and ``kind_label`` the words for it, which is
     how each template tells a renewal from a recurring donation.  ``plan_name`` is
     an empty string for a recurring donation, which names no plan, and
@@ -112,6 +123,8 @@ def mandate_context(mandate: RenewalMandate, **extra: Any) -> dict[str, Any]:
         "cadence_label": CADENCE_PHRASES[mandate.cadence],
         "method_label": mandate.method_label,
         "payments_url": payments_url(),
+        "renew_url": renew_url(),
+        "donate_url": donate_url(),
         "site_url": settings.SITE_URL.rstrip("/"),
     }
     context.update(extra)

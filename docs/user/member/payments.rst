@@ -112,6 +112,11 @@ The emails it sends
   receipt; no second one follows.
 * **When a charge is refused**: *CalDART: we could not renew your membership*, with
   the reason the bank gave.
+* **When the treasurer closes a charge that couldn't be completed**: the same
+  subject. Automatic renewal is paused, so you won't be charged automatically, and
+  the email says when your membership ends (or that it has ended), links the **Renew**
+  screen to renew by hand, and points to **Turn on again** on this screen. The
+  treasurer may get in touch with you too.
 
 If a charge is refused
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -121,7 +126,9 @@ that. If all four attempts are refused, automatic renewal switches itself off, y
 are told so, and the ordinary reminders take over. Your current membership runs to
 its end date as it would anyway. The card's status then reads **Stopped** and repeats
 the reason the last charge was refused. **Turn on again** saves another method and
-starts it again.
+starts it again. When the treasurer closed the last charge, the card says
+*Automatic renewal is paused because the last charge couldn't be completed, so you
+won't be charged automatically.* in place of the reason.
 
 If CalDART misses your charge day, for instance because the overnight run was not
 working, the next run takes the charge on the spot and the email says so. The new

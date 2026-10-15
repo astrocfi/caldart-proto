@@ -1,14 +1,42 @@
 {% extends "emails/renewal_base.html" %}
 
-{% block preheader %}{% if lapsed %}Automatic renewal is off: {{ error }}.{% else %}The card saved for your {{ kind_label }} was refused: {{ error }}.{% endif %}{% endblock %}
+{% block preheader %}{% if closed %}{% if kind == "contribution" %}Your recurring donation is paused, so you won't be charged automatically.{% else %}Automatic renewal is paused, so you won't be charged automatically.{% endif %}{% elif lapsed %}Automatic renewal is off: {{ error }}.{% else %}The card saved for your {{ kind_label }} was refused: {{ error }}.{% endif %}{% endblock %}
 
 {% block heading %}{% if kind == "contribution" %}We could not take your recurring donation{% else %}We could not renew your membership{% endif %}{% endblock %}
 
-{% block lede %}{% if lapsed %}{{ error|capfirst }}.{% else %}{{ method_label }} was refused: {{ error }}.{% endif %}{% endblock %}
+{% block lede %}{% if closed %}{% if kind == "contribution" %}Your recurring donation couldn't be completed, so it is paused.{% else %}Your automatic renewal couldn't be completed, so it is paused.{% endif %}{% elif lapsed %}{{ error|capfirst }}.{% else %}{{ method_label }} was refused: {{ error }}.{% endif %}{% endblock %}
 
 {% block body %}
   <p style="margin:0 0 14px 0;">Hello {{ first_name }},</p>
-  {% if lapsed %}
+  {% if closed %}
+  {% if kind == "contribution" %}
+    <p style="margin:0 0 14px 0;">
+      We couldn't complete your recurring donation of {{ amount }}
+      {{ cadence_label }}.
+    </p>
+    <p style="margin:0 0 14px 0;">
+      Your recurring donation is paused, so you won't be charged automatically.
+      You can give by hand, or set your recurring donation up again, from the
+      <a href="{{ donate_url }}" style="color:#1F4E79;">Donate screen</a>.
+    </p>
+  {% else %}
+    <p style="margin:0 0 14px 0;">
+      We couldn't complete the automatic renewal of your {{ plan_name }}
+      membership{% if kind == "both" %} and your contribution{% endif %}.
+    </p>
+    <p style="margin:0 0 14px 0;">
+      Automatic renewal is paused, so you won't be charged automatically.
+      {% if expires_on %}{% if has_ended %}Your membership ended on {{ expires_on|date:"F j, Y" }}.{% else %}Your membership runs until {{ expires_on|date:"F j, Y" }}.{% endif %}{% endif %}
+      We will send you the ordinary renewal reminders.
+    </p>
+    <p style="margin:0 0 14px 0;">
+      To renew by hand, open
+      <a href="{{ renew_url }}" style="color:#1F4E79;">Renew</a> in the portal. To
+      turn automatic renewal back on, press Turn on again on your My payments
+      screen.
+    </p>
+  {% endif %}
+  {% elif lapsed %}
     <p style="margin:0 0 14px 0;">
       We did not renew your {{ plan_name }} membership automatically: {{ error }}.
       Too much time had passed for us to charge {{ method_label }} without asking
@@ -57,4 +85,4 @@
   {% endif %}
 {% endblock %}
 
-{% block cta_label %}Update your payment method{% endblock %}
+{% block cta_label %}{% if closed %}{% if kind == "contribution" %}Open My payments{% else %}Turn automatic renewal back on{% endif %}{% else %}Update your payment method{% endif %}{% endblock %}

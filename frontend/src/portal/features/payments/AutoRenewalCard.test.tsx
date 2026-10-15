@@ -246,6 +246,29 @@ describe('AutoRenewalCard', () => {
     expect(screen.getByRole('button', { name: 'Turn on again' })).toBeInTheDocument();
   });
 
+  it('says a charge the treasurer closed couldn’t be completed', async () => {
+    mount(makeMandate({ status: 'paused', last_charge_closed: true }));
+
+    expect(
+      await screen.findByText(
+        'Automatic renewal and contribution is paused because the last charge couldn’t be completed, so you won’t be charged automatically.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('never calls a charge the treasurer closed refused', async () => {
+    mount(
+      makeMandate({
+        status: 'paused',
+        last_charge_closed: true,
+        last_error: 'The last charge couldn’t be completed.',
+      }),
+    );
+
+    await screen.findByText('Stopped');
+    expect(screen.queryByText(/refused|could not charge/)).not.toBeInTheDocument();
+  });
+
   it('says when a canceled mandate was turned off', async () => {
     mount(makeMandate({ status: 'canceled', canceled_at: '2026-05-04T10:00:00Z' }));
 

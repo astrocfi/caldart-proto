@@ -2377,6 +2377,13 @@
       "yearly"
     ]
   },
+  "MandateKindEnum": {
+    "enum": [
+      "renewal",
+      "both",
+      "contribution"
+    ]
+  },
   "MandateProviderEnum": {
     "enum": [
       "stripe",
@@ -3948,6 +3955,7 @@
       "id": "integer",
       "in_doubt": "boolean",
       "mandate_id": "integer",
+      "mandate_kind": "ref:MandateKindEnum",
       "membership_id": "integer|null",
       "noticed_at": "string(date-time)|null",
       "outcome": "ref:RenewalOutcomeEnum",
@@ -3967,6 +3975,7 @@
       "id",
       "in_doubt",
       "mandate_id",
+      "mandate_kind",
       "membership_id",
       "noticed_at",
       "outcome",
@@ -4003,7 +4012,8 @@
       "created_at": "string(date-time)",
       "failure_count": "integer",
       "id": "integer",
-      "kind": "ref:RenewalMandateKindEnum",
+      "kind": "ref:MandateKindEnum",
+      "last_charge_closed": "boolean",
       "last_charged_at": "string(date-time)|null",
       "last_error": "string",
       "method_brand": "string",
@@ -4029,6 +4039,7 @@
       "failure_count",
       "id",
       "kind",
+      "last_charge_closed",
       "last_charged_at",
       "last_error",
       "method_brand",
@@ -4044,13 +4055,6 @@
       "user_email",
       "user_id",
       "user_name"
-    ]
-  },
-  "RenewalMandateKindEnum": {
-    "enum": [
-      "renewal",
-      "both",
-      "contribution"
     ]
   },
   "RenewalOutcomeEnum": {
@@ -4119,6 +4123,56 @@
     },
     "required": [
       "outcome"
+    ]
+  },
+  "RenewalSettleResult": {
+    "properties": {
+      "attempted_at": "string(date-time)|null",
+      "created_at": "string(date-time)",
+      "error": "string",
+      "flagged_at": "string(date-time)|null",
+      "id": "integer",
+      "in_doubt": "boolean",
+      "mandate_id": "integer",
+      "mandate_kind": "ref:MandateKindEnum",
+      "mandate_paused": "boolean",
+      "member_emailed": "boolean",
+      "membership_id": "integer|null",
+      "noticed_at": "string(date-time)|null",
+      "outcome": "ref:RenewalOutcomeEnum",
+      "payment_amount_cents": "integer|null",
+      "payment_id": "integer|null",
+      "payment_sent_at": "string(date-time)|null",
+      "result_emailed_at": "string(date-time)|null",
+      "scheduled_on": "string(date)",
+      "user_email": "string|null",
+      "user_id": "integer",
+      "user_name": "string",
+      "user_phone": "string|null"
+    },
+    "required": [
+      "attempted_at",
+      "created_at",
+      "error",
+      "flagged_at",
+      "id",
+      "in_doubt",
+      "mandate_id",
+      "mandate_kind",
+      "mandate_paused",
+      "member_emailed",
+      "membership_id",
+      "noticed_at",
+      "outcome",
+      "payment_amount_cents",
+      "payment_id",
+      "payment_sent_at",
+      "result_emailed_at",
+      "scheduled_on",
+      "user_email",
+      "user_id",
+      "user_name",
+      "user_phone"
     ]
   },
   "RenewalSetupRequest": {
