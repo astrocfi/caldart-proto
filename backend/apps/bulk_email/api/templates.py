@@ -50,7 +50,7 @@ class EmailTemplateSerializer(serializers.ModelSerializer[EmailTemplate]):
     line of at most 200 characters, HTML of at most 100,000 characters saved
     sanitized, both may be blank, and neither may carry a recipient field token that
     cannot be filled in.  ``email_type`` is the id of a type the caller may send, or
-    null; ``email_type_name`` its name, blank for none.  ``reply_to`` is an address,
+    null; ``email_type_name`` its name, blank without one.  ``reply_to`` is an address,
     blank for the default.  ``created_by`` is the display name of who saved it, blank
     once that account is gone; it and the times are read-only.
     """
@@ -104,7 +104,7 @@ class EmailTemplateSerializer(serializers.ModelSerializer[EmailTemplate]):
         return value
 
     def get_email_type_name(self, template: EmailTemplate) -> str:
-        """The type's name, or ``""`` for none."""
+        """The type's name, or ``""`` without a type."""
         return template.email_type.name if template.email_type is not None else ""
 
     def get_created_by(self, template: EmailTemplate) -> str:
@@ -212,7 +212,7 @@ class DuplicateView(APIView):
         """201 with the fresh draft, the caller's own; the original is not changed.
 
         A DART leader reaches only their own emails (404 for any other), and one whose
-        profile names no DART is a 403 saying so.
+        profile doesn't name a DART is a 403 saying so.
         """
         bulk = email_for(request, pk)
         payload = DuplicateSerializer(data=request.data)

@@ -3,8 +3,8 @@
 Run every minute by ``deploy/systemd/caldart-bulk-email.timer`` in production.  It
 finishes any bulk email a stopped run left ``sending``, then starts and sends every
 queued one whose start time has come (``apps.bulk_email.job.run_sender``).  Safe to
-repeat and to overlap: a second run while one is working does nothing.  A copy the mail
-server refuses is recorded on its row, so the command exits cleanly whatever the
+repeat and to overlap: a second run while one is working doesn't do anything.  A copy the
+mail server refuses is recorded on its row, so the command exits cleanly whatever the
 server said.
 """
 

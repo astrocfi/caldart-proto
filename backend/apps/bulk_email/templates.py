@@ -32,7 +32,7 @@ from caldart.exceptions import DomainPermissionError
 #: How the add of a duplicate's copied people is named; ``{subject}`` is the original's.
 COPIED_LABEL = 'Copied from "{subject}"'
 
-#: What :data:`COPIED_LABEL` says for an original with no subject.
+#: What :data:`COPIED_LABEL` says for an original without a subject.
 NO_SUBJECT = "(no subject)"
 
 
@@ -72,11 +72,11 @@ def duplicate(bulk: BulkEmail, *, actor: User, copy_recipients: bool) -> BulkEma
     address, kind, and DART as they are now, so whether each receives a copy is worked
     out afresh, and a DART leader's copy skips everybody outside their DART as
     ``Not in your DART``.  Without it the batch is empty.  A mission callout's copy is a
-    callout too, with no answers and its answers closing two days ahead
+    callout too, without any answers and with its answers closing two days ahead
     (``apps.bulk_email.callouts.apply_settings``), ready for the next activation.
     ``bulk`` itself is not changed.  Raises ``DomainPermissionError`` with the sender's
-    reason when ``actor`` may send to nobody, such as a DART leader whose profile names
-    no DART.
+    reason when ``actor`` can't send to anybody, such as a DART leader whose profile
+    doesn't name a DART.
     """
     context = sender_context(actor)
     if not context.can_send:

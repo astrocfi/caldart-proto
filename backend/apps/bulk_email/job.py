@@ -26,10 +26,10 @@ other refusal fails the copy at once.  Between copies it reads ``stop_requested`
 by **Stop**: every copy not yet sent is then ``stopped`` and the email too.
 
 Only one run works at a time: a run holds a database advisory lock for as long as it
-works, and a second run that cannot take it does nothing.  A run given a time budget,
-as **Run now** gives one, stops claiming and sending once the budget is spent and leaves
-the email it was working on ``sending``, for the next run to finish.  A copy that fails
-in a way the mail server did not report (a bug, not a refusal) fails that copy with
+works, and a second run that cannot take it doesn't do anything.  A run given a time
+budget, as **Run now** gives one, stops claiming and sending once the budget is spent and
+leaves the email it was working on ``sending``, for the next run to finish.  A copy that
+fails in a way the mail server did not report (a bug, not a refusal) fails that copy with
 :data:`UNEXPECTED_REASON`, is logged with its traceback, and the run moves on to the
 next email.
 """
@@ -106,7 +106,7 @@ CONNECTION_ERRORS: tuple[type[Exception], ...] = (OSError,)
 SENDER_LOCK_KEY = 0x0B01_E3A1
 
 #: What a run that found another run working says.
-BUSY_MESSAGE = "Another run of the bulk email sender is working; this one did nothing."
+BUSY_MESSAGE = "Another run of the bulk email sender is working; this one didn't do anything."
 
 #: Why a due email went back unsent, kept on the email for the Drafts screen.
 NOT_SENT_TYPE = (
@@ -117,12 +117,12 @@ NOT_SENT_SENDER_DELETED = (
     "This email was not sent: the account that sent it has been deleted. Send it again "
     "from your own account."
 )
-NOT_SENT_NO_TYPE = "This email was not sent: it has no type. Choose a type and send again."
+NOT_SENT_NO_TYPE = "This email was not sent: it doesn't have a type. Choose a type and send again."
 NOT_SENT_DART_CHANGED = (
     "Your DART changed, so this email was not sent. Add the people again and send when it is ready."
 )
 NOT_SENT_NO_DART = (
-    "This email was not sent: your profile names no DART, so there is nobody to send to. "
+    "This email was not sent: your profile doesn't name a DART, so you can't send to anybody. "
     "Set your DART on My profile and send again."
 )
 
@@ -138,7 +138,7 @@ monotonic: Callable[[], float] = time.monotonic
 class SenderRun:
     """What one run of the sender did.
 
-    ``busy`` is true when another run held the lock and this one did nothing.
+    ``busy`` is true when another run held the lock and this one didn't do anything.
     ``emails`` counts the bulk emails it worked on; ``sent`` and ``failed`` the copies
     it tried, and ``skipped`` the people it set aside when it started an email.
     ``out_of_time`` is true when the run's time budget ran out with copies still to
@@ -220,11 +220,11 @@ def run_sender(now: datetime | None = None, *, budget_seconds: float | None = No
 
     ``now`` is the moment a queued email's ``start_at`` is compared with, the current
     time unless given.  ``budget_seconds`` limits how long the run works: once it is
-    spent the run claims nothing more and stops before its next copy, leaving that
+    spent the run doesn't claim anything more and stops before its next copy, leaving that
     email ``sending`` for the next run to finish, and the result says how many copies
     are left.  Without it the run works until nothing is due.  Returns what the run
     did; a run that finds another run working returns at once with ``busy`` set and
-    does nothing.
+    doesn't do anything.
     """
     moment = now if now is not None else timezone.now()
     run = SenderRun(deadline=None if budget_seconds is None else monotonic() + budget_seconds)
@@ -282,7 +282,7 @@ def _claim(now: datetime, run: SenderRun) -> BulkEmail | None:
     (:func:`_refuse`), and the next due email is taken instead.  A claimed email's
     ``reply_to`` becomes the address its copies carry
     (``apps.bulk_email.reply_to.claimed_reply_to``).  A mission callout whose answers
-    have closed sends nothing: its copies are skipped (:func:`_skip_if_closed`).
+    have closed isn't sent: its copies are skipped (:func:`_skip_if_closed`).
     """
     while True:
         with transaction.atomic():
@@ -323,8 +323,9 @@ def _skip_if_closed(bulk: BulkEmail) -> int:
     """Skip every pending copy of ``bulk`` when it is a callout that has closed.
 
     Each becomes ``skipped`` with ``apps.bulk_email.callouts.CLOSED_REASON``, so a timer
-    that runs late, or **Send the rest** after **Close now**, sends nobody a callout that
-    can no longer be answered.  ``skipped_count`` grows; answers how many were skipped.
+    that runs late, or **Send the rest** after **Close now**, never sends anybody a
+    callout that can no longer be answered.  ``skipped_count`` grows; answers how many
+    were skipped.
     """
     if closed_reason(bulk) == "":
         return 0
@@ -347,7 +348,7 @@ def _sender_refusal(bulk: BulkEmail) -> _Refusal | None:
     The sender's roles as they are now are checked against the type's
     ``sender_roles``, as **Send** checked them: an account deleted since, a role taken
     away, or a type changed to name other roles all refuse it.  So does a DART
-    leader's profile that names no DART any more (``apps.bulk_email.senders``), and,
+    leader's profile that doesn't name a DART any more (``apps.bulk_email.senders``), and,
     for an email that has not started, one whose DART changed so that nobody in the
     batch is in it.
     """
@@ -369,7 +370,7 @@ def _sender_refusal(bulk: BulkEmail) -> _Refusal | None:
 
 
 def _limit_leaves_nobody(bulk: BulkEmail, limit: DartLimit) -> bool:
-    """True when ``bulk`` has people in its batch and its DART limit allows none of them.
+    """True when ``bulk`` has people in its batch and its DART limit rules them all out.
 
     That happens when a DART leader's profile names another DART after **Send**: the
     batch was built in the old DART, and sending it would skip everybody.  Rows of
@@ -771,7 +772,7 @@ def apply_stop(bulk: BulkEmail) -> None:
     Each such row's reason names who pressed **Stop**, ``stopped_by``.  One
     ``bulk_email.stop`` audit line names that account and the copies stopped; it is
     written here, when the stop takes effect, so a stop that came too late to keep any
-    copy back writes none.  The email's counts are recounted from its rows
+    copy back doesn't write one.  The email's counts are recounted from its rows
     (:func:`recount`).
     """
     bulk.refresh_from_db(fields=["stopped_by"])
@@ -806,15 +807,15 @@ def apply_stop(bulk: BulkEmail) -> None:
 def _finish(bulk: BulkEmail) -> None:
     """Mark ``bulk`` sent once no copy is pending, and write its audit line.
 
-    A stop that arrived after the last copy has nothing left to stop: its request and
-    its ``stopped_by`` are cleared, and no stop is recorded.  The first time an email
-    finishes, ``sent_at`` is set and one ``bulk_email.send`` line written.  An email
-    finishing again after **Retry failed** keeps its first ``sent_at`` and writes
+    A stop that arrived after the last copy doesn't find anything left to stop: its
+    request and its ``stopped_by`` are cleared, and no stop is recorded.  The first time
+    an email finishes, ``sent_at`` is set and one ``bulk_email.send`` line written.  An
+    email finishing again after **Retry failed** keeps its first ``sent_at`` and writes
     :func:`_retry_finished`'s line instead, and a mission callout finishing a round of
     reminders writes ``callout.remind_finished``
     (``apps.bulk_email.callouts.reminder_finished``).  Every time, the email's counts are
     recounted from its rows (:func:`recount`), so a run that died between saving a row
-    and its count leaves no count off for good.
+    and its count never leaves a count off for good.
     """
     if bulk.recipients.filter(status=RecipientStatus.PENDING).exists():
         return

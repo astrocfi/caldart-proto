@@ -38,7 +38,7 @@ CONFLICT = OpenApiResponse(description="The callout's state does not allow it; c
 
 
 class CalloutCountsSerializer(serializers.Serializer[CalloutCounts]):
-    """How many people a callout reached, and how many gave each answer or none."""
+    """How many people a callout reached, and how many gave each answer, or didn't."""
 
     reached = serializers.IntegerField()
     available = serializers.IntegerField()
@@ -256,8 +256,8 @@ class CalloutRemindView(APIView):
     def post(self, request: Request, pk: int) -> Response:
         """200 with the callout, its reminders queued to send now.
 
-        409 for a callout that has not finished sending, has closed, or has nobody left
-        to remind.
+        409 for a callout that has not finished sending, has closed, or doesn't have
+        anybody left to remind.
         """
         bulk = callout_for(request, pk)
         try:
@@ -268,7 +268,7 @@ class CalloutRemindView(APIView):
 
 
 class CalloutCloseView(APIView):
-    """``POST /bulk-email/callouts/{id}/close`` -- **Close now**: take no more answers."""
+    """``POST /bulk-email/callouts/{id}/close`` -- **Close now**: stop taking answers."""
 
     permission_classes = BULK_EMAIL_PERMISSIONS
 

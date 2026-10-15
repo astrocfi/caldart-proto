@@ -4,7 +4,7 @@ An email links to each image by its absolute URL rather than carrying it, so a s
 to hundreds of people stays small.  :func:`store` checks an upload's type by its
 content and its size, scales it to fit an email, and keeps it under ``MEDIA_ROOT``
 in ``bulk-email/``, which the web server serves to anybody, signed in or not: a
-mail program fetching the image carries no session.  :func:`image_url` is the
+mail program fetching the image doesn't carry a session.  :func:`image_url` is the
 address every copy uses.
 """
 
@@ -146,7 +146,7 @@ def _processed(content: bytes) -> tuple[bytes, ImageFormat, int, int]:
 
 
 def _opened(content: bytes) -> Image.Image:
-    """Return ``content`` opened by Pillow, its header read and no pixel decoded.
+    """Return ``content`` opened by Pillow, its header read before any pixel is decoded.
 
     Raises :class:`ImageRefusedError` with :data:`WRONG_TYPE_MESSAGE` for content
     Pillow cannot identify, and with :data:`TOO_MANY_PIXELS_MESSAGE` for a canvas

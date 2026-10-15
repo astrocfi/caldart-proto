@@ -6,10 +6,10 @@ Every recipient's own copy carries three buttons, **Available**, **Available wit
 limits**, and **Not available**, each a link to the answer page with a token signed for
 that callout and that person (``apps.bulk_email.callout_links``).  The page shows the
 choice and a note field, and only its ``POST`` records the answer
-(:func:`record_answer`), so a mail scanner that follows every link records nothing.  A
-person may change their answer until the callout closes: at ``closes_at``, or sooner
-with **Close now** (:func:`close`).  The token has no age limit of its own; the close
-time rules.
+(:func:`record_answer`), so a mail scanner that follows every link doesn't record
+anything.  A person may change their answer until the callout closes: at ``closes_at``, or
+sooner with **Close now** (:func:`close`).  The token doesn't carry an age limit of its
+own; the close time rules.
 
 The copy a sender sees (the preview, a test copy, a copy on the delivery report) carries
 the buttons inert, pointing at ``callout_links.STAND_IN`` rather than a signed token, so
@@ -69,7 +69,7 @@ from caldart.reports import CSV_DOCUMENT_TYPE, ReportDocument, csv_rows
 
 log = logging.getLogger(__name__)
 
-#: How long a callout takes answers when the sender chooses no time: two days.
+#: How long a callout takes answers when the sender doesn't choose a time: two days.
 DEFAULT_OPEN_HOURS = 48
 
 #: The default close time is rounded up to the next whole multiple of this many minutes.
@@ -99,7 +99,7 @@ CLOSED_REASON = "Callout closed"
 NOT_SENT_MESSAGE = "This callout has not been sent."
 STILL_SENDING_MESSAGE = "This callout is still sending. Remind the others once it has finished."
 STOPPED_MESSAGE = "This callout was stopped. Send the rest first, then remind the others."
-EVERYBODY_ANSWERED_MESSAGE = "Everybody has answered, so there is nobody to remind."
+EVERYBODY_ANSWERED_MESSAGE = "Everybody has answered, so nobody is left to remind."
 NOBODY_TO_REMIND_MESSAGE = (
     "Nobody who has not answered can be sent a reminder now: each would be skipped, "
     "as the delivery report shows why."
@@ -127,7 +127,7 @@ class CalloutRow:
     """One person a callout reached, with their answer and what the member check shows.
 
     ``account`` is the person's account with its membership annotations.  ``answer`` is
-    their answer, ``None`` while they have given none.  ``go`` is the member check's
+    their answer, ``None`` while they haven't given one.  ``go`` is the member check's
     three verdicts, ``membership``, ``medical``, and ``verified``
     (``apps.aircraft.services.search_result``); the person is a go when all three hold.
     ``aircraft`` holds the N-numbers on their profile.
@@ -148,7 +148,7 @@ class CalloutRow:
 
 @dataclass(frozen=True)
 class CalloutCounts:
-    """How many people a callout reached, and how many gave each answer or none."""
+    """How many people a callout reached, and how many gave each answer, or didn't."""
 
     reached: int
     available: int
@@ -236,11 +236,11 @@ def apply_settings(
 
     ``is_callout`` true makes the email a callout: its :class:`Callout` row is made with
     ``closes_at``, or :func:`default_closes_at` when none is given, and its type becomes
-    Mission when ``actor`` is given and may send that (:func:`mission_type`), or none
-    when ``actor`` may not and the type was another, since a callout goes as Mission
-    only.  False
-    makes it an ordinary email again and deletes the row, which holds no answer before a
-    send.
+    Mission when ``actor`` is given and may send that (:func:`mission_type`), or is
+    cleared when ``actor`` may not and the type was another, since a callout goes as
+    Mission only.  False
+    makes it an ordinary email again and deletes the row, which doesn't hold an answer
+    before a send.
     ``closes_at`` alone moves the close time of an email that is a callout already; it
     must be after ``now``, or ``DomainValidationError`` keyed ``closes_at`` with
     :data:`CLOSES_PAST_MESSAGE` is raised, and it is ignored for an email that is not
@@ -323,10 +323,10 @@ def record_answer(
     replaced, and ``answered_at`` set to ``now``.  A new answer, or one whose answer
     changed, raises the :data:`ANSWER_EVENT` event (:func:`_raise_answer`) and writes one
     ``callout.answer`` audit line; a change to the note alone is saved without either,
-    so editing a note emails nobody, and the same answer and note sent again changes
-    nothing.  Raises ``DomainError`` with :data:`INACTIVE_MESSAGE` for a deactivated
-    account, :data:`CLOSED_MESSAGE` once the callout has closed, and ``ValueError`` for
-    an answer that is not one of the kinds; nothing is recorded then.
+    so editing a note doesn't email anybody, and the same answer and note sent again
+    don't change anything.  Raises ``DomainError`` with :data:`INACTIVE_MESSAGE` for a
+    deactivated account, :data:`CLOSED_MESSAGE` once the callout has closed, and
+    ``ValueError`` for an answer that is not one of the kinds; nothing is recorded then.
     """
     if answer not in CalloutAnswerKind.values:
         raise ValueError(f"Not a callout answer: {answer!r}")
@@ -356,7 +356,7 @@ def _raise_answer(bulk: BulkEmail, user: User, *, answer: str, note: str) -> Non
     """Raise :data:`ANSWER_EVENT` for ``user``'s ``answer`` to the callout ``bulk``.
 
     The payload carries plain values, so the notifications app, which sits beside this
-    one, needs nothing of it: ``user``; ``answer``, the answer in words; ``note``;
+    one, doesn't need anything of it: ``user``; ``answer``, the answer in words; ``note``;
     ``subject``, the callout's subject as the sender's own copy would read
     (:func:`display_subject`); ``callout_id``, the bulk email's id;
     and ``audience``, a function that answers whether an account may open the callout
@@ -443,7 +443,7 @@ def remind(bulk: BulkEmail, *, actor: User, now: datetime | None = None) -> Remi
     """**Remind non-responders**: queue the callout again for everybody yet to answer.
 
     Everybody the callout reached who has not answered, the people :func:`callout_rows`
-    lists with no answer, gets a row of a fresh round, one more than the highest so
+    lists without an answer, gets a row of a fresh round, one more than the highest so
     far, taking the account's name, address, kind, and DART
     as they are now and asked ``batch.skip_reason`` afresh, as **Retry failed** asks
     it: with the DART a DART leader's email is limited to, the type's opt-outs, and the
@@ -455,8 +455,8 @@ def remind(bulk: BulkEmail, *, actor: User, now: datetime | None = None) -> Remi
     that the sender may send the type and that nobody has turned it off.
     ``Callout.reminded_at`` is set.  Returns the round as a :class:`Reminder`.
 
-    Raises ``DomainError``, changing nothing, with :data:`NOT_SENT_MESSAGE` for a callout
-    that never started, :data:`STOPPED_MESSAGE` for a stopped one,
+    Raises ``DomainError``, without changing anything, with :data:`NOT_SENT_MESSAGE` for a
+    callout that never started, :data:`STOPPED_MESSAGE` for a stopped one,
     :data:`STILL_SENDING_MESSAGE` for one queued or sending, :data:`CLOSED_MESSAGE` once
     it has closed, :data:`EVERYBODY_ANSWERED_MESSAGE` when nobody is left, and
     :data:`NOBODY_TO_REMIND_MESSAGE` when everybody left would be skipped.  One
@@ -508,7 +508,7 @@ def is_reminder_finish(bulk: BulkEmail) -> bool:
     """True when the copies ``bulk`` just finished were a reminder round, not a retry.
 
     That is a callout reminded more recently than its latest **Retry failed**, or
-    reminded with no retry at all.
+    reminded and never retried.
     """
     callout = callout_of(bulk)
     if callout is None or callout.reminded_at is None:
@@ -542,7 +542,7 @@ def visible_callouts(user: User) -> QuerySet[BulkEmail]:
     CalDART management and a system administrator see every callout that has started
     sending.  A DART leader sees the ones they sent, and the ones sent to the DART on
     their own profile as it is now (``apps.bulk_email.senders.readable_by``); anybody
-    else sees none.
+    else doesn't see any.
     """
     if not user_has_any_role(user, (MANAGEMENT, DART_LEADER)):
         return BulkEmail.objects.none()
@@ -583,7 +583,7 @@ def callout_rows(bulk: BulkEmail) -> list[CalloutRow]:
 
 
 def counts_for(bulk: BulkEmail) -> CalloutCounts:
-    """How many people ``bulk``'s callout reached, and how many gave each answer or none.
+    """How many people ``bulk``'s callout reached, counted by answer, unanswered too.
 
     The people are those :func:`callout_rows` lists, counted without reading their
     profiles, so a list of callouts costs a few queries each.
@@ -627,9 +627,9 @@ def answers_document(bulk: BulkEmail) -> ReportDocument:
     """The callout's answers as a CSV, one row per person in :func:`callout_rows` order.
 
     The columns are :data:`ANSWERS_CSV_HEADER`: the name and address, the answer in
-    words (blank for none), the note, when it was given (``MM/DD/YYYY at h:mm AM`` in
-    the site's time zone, blank for none), the DART, the home airport, the aircraft
-    (N-numbers separated by commas), and ``GO`` or ``NO-GO``.  The file is named
+    words (blank without one), the note, when it was given (``MM/DD/YYYY at h:mm AM``
+    in the site's time zone, blank without an answer), the DART, the home airport, the
+    aircraft (N-numbers separated by commas), and ``GO`` or ``NO-GO``.  The file is named
     ``caldart-callout-<id>-answers.csv``.
     """
     rows = [

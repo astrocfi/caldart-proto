@@ -82,7 +82,7 @@ class DraftListCreateView(generics.ListAPIView[BulkEmail]):
         responses={201: BulkEmailDetailSerializer, 200: BulkEmailDetailSerializer},
     )
     def post(self, request: Request) -> Response:
-        """The caller's empty draft (200), or a fresh one when they have none (201)."""
+        """The caller's empty draft (200), or a fresh one when they lack one (201)."""
         opened = drafts.open_draft(acting_user(request))
         return detail_response(
             opened.bulk, code=status.HTTP_201_CREATED if opened.created else status.HTTP_200_OK

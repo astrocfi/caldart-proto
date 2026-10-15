@@ -13,7 +13,7 @@ recipient row when it went, never from the profile as it is now and never from a
 else's row.  Only bulk email is here: receipts, reminders, and other mail about the
 person's own account are not.  An email CalDART management has hidden
 (``BulkEmail.hidden_from_archive``) is not listed and cannot be opened, though its
-history stays.  There is no way to show a message to anybody it was not sent to.  A
+history stays.  A message can never be shown to anybody it was not sent to.  A
 mission callout's entry leads to the reader's own answer page instead
 (:attr:`Message.answer_url`).
 """

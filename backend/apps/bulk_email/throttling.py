@@ -51,7 +51,7 @@ class CalloutAnswerThrottle(SimpleRateThrottle):
 
     The counter is keyed by a hash of the link's token, so each recipient's link has its
     own budget and the token itself is never stored.  Call :meth:`allows` with the
-    request and the token; the answer page is a plain Django view, with no DRF view.
+    request and the token; the answer page is a plain Django view, without a DRF view.
     """
 
     scope = CALLOUT_ANSWER_SCOPE

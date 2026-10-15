@@ -47,7 +47,7 @@ from caldart.exceptions import DomainError, DomainValidationError
 from caldart.messages import when_missing
 from caldart.reports import CSV_MEDIA_TYPE, download_responses, report_response
 
-#: The answer to a group saved with no name.
+#: The answer to a group saved without a name.
 GROUP_NAME_MISSING = "Give the group a name."
 
 #: The refusal of a group name another group has, ignoring case.
@@ -242,7 +242,7 @@ def _groups() -> QuerySet[RecipientGroup]:
 
 
 def _group(pk: int) -> RecipientGroup:
-    """The group ``pk``; ``Http404`` when there is none."""
+    """The group ``pk``; ``Http404`` when it doesn't exist."""
     return get_object_or_404(_groups(), pk=pk)
 
 
@@ -266,7 +266,7 @@ class GroupListCreateView(generics.ListCreateAPIView[RecipientGroup]):
         return _groups()
 
     def perform_create(self, serializer: serializers.BaseSerializer[RecipientGroup]) -> None:
-        """Save the group, with nobody and no filters in it, the caller as its author.
+        """Save the group, empty of people and filters, the caller as its author.
 
         One ``recipient_group.create`` line names the group and its kind.
         """
@@ -487,7 +487,7 @@ class SaveGroupView(APIView):
 
         A taken name is a 400 keyed ``name``; a filter the member list does not have, or
         a value it refuses, a 400 keyed ``filters``.  A search on a DART leader's email
-        is held to the leader's DART; one whose leader names no DART is a 409.
+        is held to the leader's DART; one whose leader doesn't name a DART is a 409.
         """
         bulk = email_for(request, pk)
         payload = SaveGroupSerializer(data=request.data)

@@ -99,14 +99,14 @@ def visible_to(user: User) -> QuerySet[BulkEmail]:
 
 
 def open_draft(sender: User) -> OpenedDraft:
-    """``sender``'s empty draft, or a fresh one when they have none.
+    """``sender``'s empty draft, or a fresh one when they don't have one.
 
-    An empty draft has no subject, no message, and nobody in its batch.  When the
+    An empty draft has a blank subject, a blank message, and an empty batch.  When the
     sender has several, the oldest is handed back.  Either way the draft records the
     DART the sender may send to (``apps.bulk_email.senders.sender_context``): a DART
-    leader's profile DART, or none for CalDART management.  Raises
-    ``DomainPermissionError`` with ``NO_DART_MESSAGE`` for a sender who may send to
-    nobody, such as a DART leader whose profile names no DART.
+    leader's profile DART, and leaves it blank for CalDART management.  Raises
+    ``DomainPermissionError`` with ``NO_DART_MESSAGE`` for a sender who can't send to
+    anybody, such as a DART leader whose profile doesn't name a DART.
     A fresh draft's ``reply_to`` is the default
     (``apps.bulk_email.reply_to.default_reply_to``), which the compose screen shows for
     the sender to keep or change.
@@ -179,7 +179,7 @@ def update(bulk: BulkEmail, changes: dict[str, object], *, actor: User) -> BulkE
 
 
 def _is_mission(bulk: BulkEmail) -> bool:
-    """Whether ``bulk``'s type is Mission; an email with no type is not refused here."""
+    """Whether ``bulk``'s type is Mission; an email without a type is not refused here."""
     return bulk.email_type is None or bulk.email_type.is_mission
 
 
@@ -227,8 +227,8 @@ def queue(
 
     Raises ``DomainValidationError`` keyed ``subject``, ``body``, ``email_type``
     (:data:`NO_TYPE_MESSAGE`, or :data:`NOT_SENDABLE_MESSAGE` naming the type),
-    ``batch`` (``apps.bulk_email.senders.sender_notice`` for an email limited to no
-    DART, else :data:`NOBODY_MESSAGE`), ``confirm_count``, ``start_at``, or, for a
+    ``batch`` (``apps.bulk_email.senders.sender_notice`` for an email whose limit doesn't
+    name a DART, else :data:`NOBODY_MESSAGE`), ``confirm_count``, ``start_at``, or, for a
     mission callout whose answers would close by the time it starts, ``closes_at``, and
     ``DomainError`` once the email has started sending; nothing changes then.  An
     error among the checks that the fields above do not already refuse raises
@@ -351,7 +351,7 @@ def resume(bulk: BulkEmail, *, actor: User, now: datetime | None = None) -> Bulk
     or bounced address, an opt-out of the type, a person outside a DART leader's DART,
     or an address already sent this round makes it ``skipped`` with that reason, and
     ``skipped_count`` grows.  Every other stopped row goes back to ``pending``, and the
-    email is queued with ``start_at`` at ``now``, with no undo window; the background
+    email is queued with ``start_at`` at ``now``, without an undo window; the background
     sender sends those copies alone, and nobody already sent a copy is sent another.
     When every stopped row is skipped the email is still queued, and the sender marks
     it sent.  The email keeps its
@@ -412,8 +412,8 @@ def confirm_message(receiving: int) -> str:
 def _check_content(bulk: BulkEmail) -> None:
     """Refuse an email without a subject or a message, or one that cannot be filled in.
 
-    A message is missing when its sanitized HTML reads as no text at all (an empty
-    paragraph, say).  A token that cannot be filled in is refused as
+    A message is missing when its sanitized HTML doesn't read as any text at all (an
+    empty paragraph, say).  A token that cannot be filled in is refused as
     ``apps.bulk_email.render.check_message`` says, keyed by its field.
     """
     if bulk.subject.strip() == "":
@@ -427,7 +427,7 @@ def _check_content(bulk: BulkEmail) -> None:
 
 
 def _check_type(bulk: BulkEmail, actor: User) -> None:
-    """Refuse an email with no type, or one whose type ``actor`` may not send."""
+    """Refuse an email without a type, or one whose type ``actor`` may not send."""
     if bulk.email_type is None:
         raise DomainValidationError("email_type", NO_TYPE_MESSAGE)
     if bulk.email_type not in sendable_types(actor):

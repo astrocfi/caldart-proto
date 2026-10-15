@@ -4,8 +4,8 @@
 with their own field values and built exactly as the background sender builds a copy
 (``apps.bulk_email.render.render_for``): the same layout, the same two parts, the same
 footer and headers, and the same ``Reply-To``.  Only the subject differs, starting
-:data:`SUBJECT_PREFIX`.  A test is not part of the send: it adds nobody to the batch,
-counts toward nothing, and is in the email log under its own purpose,
+:data:`SUBJECT_PREFIX`.  A test is not part of the send: it doesn't add anybody to the
+batch or count toward anything, and is in the email log under its own purpose,
 :data:`PURPOSE`, so Sent emails shows it.  Every call sends one more copy.
 """
 
@@ -32,9 +32,9 @@ def send_test(bulk: BulkEmail, *, actor: User) -> str:
     link, and the email's ``Reply-To``, under a subject that starts
     :data:`SUBJECT_PREFIX`.  It goes to ``actor.email`` and is logged under
     :data:`PURPOSE` for that account.  An email the checks find errors in raises
-    ``apps.bulk_email.checks.ChecksFailedError`` and sends nothing, and a mail server
-    that refuses the copy raises ``caldart.mail.MailRefusedError`` (the failed send is
-    in the email log).
+    ``apps.bulk_email.checks.ChecksFailedError`` and doesn't send anything, and a mail
+    server that refuses the copy raises ``caldart.mail.MailRefusedError`` (the failed send
+    is in the email log).
     """
     refuse_on_errors(bulk)
     copy = render_for(bulk, actor, fill_values(bulk, actor), view_url="")

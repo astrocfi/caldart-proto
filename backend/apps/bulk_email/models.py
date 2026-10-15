@@ -112,7 +112,7 @@ class BulkEmail(TimestampedModel):
     the copies carry.  ``start_at`` is when the send begins: the end of the undo
     window or the time the sender chose, which ``scheduled`` says.
     ``confirm_count`` is the number of people the sender typed to confirm a large
-    send, null when the batch was small enough to need none.
+    send, null when the batch was small enough not to need one.
 
     ``started_at`` is when the background sender began, ``sent_at`` when the last copy
     had been tried, and ``stopped_at`` and ``stopped_by`` when and by whom a send was
@@ -180,7 +180,7 @@ class BulkEmail(TimestampedModel):
         indexes = [models.Index(fields=["status", "start_at"])]
 
     def __str__(self) -> str:
-        """Return the subject, or ``"(no subject)"`` for a draft that has none yet."""
+        """Return the subject, or ``"(no subject)"`` for a draft without one yet."""
         return self.subject or "(no subject)"
 
     @property
@@ -369,7 +369,7 @@ class EmailTemplate(TimestampedModel):
 
     ``name`` is unique, ignoring case.  ``subject`` and ``body`` are a message as a
     draft holds them: the body is sanitized HTML and both may carry recipient field
-    tokens.  ``email_type`` is the type a draft started from it takes, null for none
+    tokens.  ``email_type`` is the type a draft started from it takes, null without one
     and once that type is deleted; ``reply_to`` is the Reply-To address it takes, blank
     for the default.  ``created_by`` is who saved it, null once that account is
     deleted, and ``updated_at`` when it last changed.
@@ -504,7 +504,7 @@ class Callout(models.Model):
     ``closed_by`` is null as well once that account is deleted.  ``reminded_at`` is
     when **Remind non-responders** last queued a round of reminders, null before the
     first.  A callout whose ``closes_at`` has passed, or whose ``closed_at`` is set,
-    takes no answer.
+    doesn't take answers.
     """
 
     bulk_email = models.OneToOneField(BulkEmail, on_delete=models.CASCADE, related_name="callout")

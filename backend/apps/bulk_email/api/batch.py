@@ -111,7 +111,7 @@ class BatchMatchesView(APIView):
 
         A filter the member list does not have, or a value it refuses, is a 400 keyed
         ``filters``.  A DART leader's email is held to the leader's DART, and naming
-        another DART is a 400 keyed ``filters``; a leader with no DART is a 409.
+        another DART is a 400 keyed ``filters``; a leader without a DART is a 409.
         """
         bulk = email_for(request, pk)
         given = {key: str(value) for key, value in request.query_params.items()}

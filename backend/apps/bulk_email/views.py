@@ -2,12 +2,12 @@
 
 ``GET /mail/callout/<token>`` shows the callout's subject and message as the person's
 copy had it, the three answers (the one ``?answer=`` names chosen, else the person's
-current answer), a note field, and **Send answer**, and records nothing: a mail scanner
-that follows every link in a message must not answer for anybody.  ``POST`` to the same
-address records the answer (``apps.bulk_email.callouts.record_answer``) and shows it.
-Once the callout has closed both say so and record nothing, and so does a link whose
-account has since been deactivated.  A token that does not read is a 400 page.  Each link
-may send at most ``CALLOUT_ANSWER_THROTTLE_RATE`` answers
+current answer), a note field, and **Send answer**, and doesn't record anything: a mail
+scanner that follows every link in a message must not answer for anybody.  ``POST`` to the
+same address records the answer (``apps.bulk_email.callouts.record_answer``) and shows it.
+Once the callout has closed both say so and don't record anything, and the same holds
+for a link whose account has since been deactivated.  A token that does not read is a 400
+page.  Each link may send at most ``CALLOUT_ANSWER_THROTTLE_RATE`` answers
 (``apps.bulk_email.throttling.CalloutAnswerThrottle``).
 """
 
@@ -37,7 +37,7 @@ log = logging.getLogger(__name__)
 #: The page every state of the answer link renders.
 TEMPLATE = "bulk_email/callout.html"
 
-#: What the page says when **Send answer** is pressed with no answer chosen.
+#: What the page says when **Send answer** is pressed without an answer chosen.
 CHOOSE_MESSAGE = "Choose one of the three answers."
 
 #: The status of a page refused because the link has sent too many answers.
@@ -45,7 +45,7 @@ TOO_MANY_STATUS = 429
 
 
 # The answer page is opened from a link in an email, often in a mail program's own
-# browser with no session cookie; the signed token in the address is what authorizes
+# browser without a session cookie; the signed token in the address is what authorizes
 # the answer, and nothing the session could vouch for is changed, so the CSRF check
 # would refuse exactly the people the page exists for.
 @csrf_exempt
@@ -56,13 +56,13 @@ def callout_answer(request: HttpRequest, token: str) -> HttpResponse:
     The page's ``state`` is ``form`` on a GET while the callout takes answers, with the
     answer ``?answer=`` names chosen when it is one of the kinds, else the person's
     current one; ``done`` once a POST has recorded the answer; and ``closed`` on either
-    method once the callout has closed, which records nothing; ``inactive`` on either
-    method for an account since deactivated, saying the link no longer works, which
-    records nothing.  A POST with no answer, or one that is not a kind, shows ``form``
-    again with :data:`CHOOSE_MESSAGE` and status 400.  A POST past the link's limit of
-    answers renders ``busy`` with status 429 and records nothing.  A tampered token, or
-    one naming a callout or account since deleted, renders ``invalid`` with status 400
-    and records nothing.
+    method once the callout has closed, which doesn't record anything; ``inactive`` on
+    either method for an account since deactivated, saying the link no longer works,
+    which doesn't record anything.  A POST without an answer, or with one that is not a
+    kind, shows ``form`` again with :data:`CHOOSE_MESSAGE` and status 400.  A POST past
+    the link's limit of answers renders ``busy`` with status 429 and doesn't record
+    anything.  A tampered token, or one naming a callout or account since deleted,
+    renders ``invalid`` with status 400 and doesn't record anything.
     """
     try:
         callout, user = read_token(token)

@@ -87,7 +87,7 @@ describe('ComposePage', () => {
 
   it("says whose email it is when its sender's profile doesn't name a DART, in place of the filters", async () => {
     const notice =
-      'This email belongs to Lane Lead, whose profile names no DART, so nobody can be added.';
+      "This email belongs to Lane Lead, whose profile doesn't name a DART, so nobody can be added.";
     answerBulkEmail(draftState({ sender_notice: notice }));
     renderCompose(draftState({ sender_notice: notice }));
     expect(await screen.findByText(notice)).toBeVisible();

@@ -55,8 +55,8 @@ message, and batch all empty) is handed back with **200**; without one a fresh
 draft is made, with the caller as its sender, and answered with **201**.  Either
 way the body is the email, as ``GET /bulk-email/{id}`` answers it, recording the
 DART a DART leader sends to.  No body is taken.  A DART leader whose profile doesn't
-name a DART is **403** *Your profile names no DART, so there is nobody to send to. Set
-your DART on My profile.*, and no draft is made.
+name a DART is **403** *Your profile doesn't name a DART, so you can't send to anybody.
+Set your DART on My profile.*, and no draft is made.
 
 ``GET /bulk-email/drafts``
 --------------------------
@@ -161,8 +161,8 @@ email goes to, blank for CalDART management's: while the email can still change 
 is the sender's DART as it is now, and once it has started sending the DART it went
 to.  ``sender_notice`` is blank unless the email can still change and its sender is
 a DART leader whose profile doesn't name a DART, when it reads *This email belongs to
-<name>, whose profile names no DART, so nobody can be added.*, naming the sender, for
-whoever opens it; the compose screen shows it in place of the filters.  ``reply_to``
+<name>, whose profile doesn't name a DART, so nobody can be added.*, naming the sender,
+for whoever opens it; the compose screen shows it in place of the filters.  ``reply_to``
 is where replies to the email go, blank for ``default_reply_to``, the default for
 its sender (:ref:`bulk-email-reply-to`): a fresh draft starts with the default filled
 in, and once **Send** has queued the email ``reply_to`` is the address its copies
@@ -264,8 +264,8 @@ too), and ``reply_to``, and its ``email_type`` only when the caller may send tha
 type.  It records the DART the caller may send to, as ``POST /bulk-email/drafts``
 does: a DART leader duplicates only their own emails (any other id is **404**), their
 copy goes to their own DART alone, and one whose profile doesn't name a DART is
-**403** with *Your profile names no DART, so there is nobody to send to. Set your DART on My
-profile.*
+**403** with *Your profile doesn't name a DART, so you can't send to anybody. Set your
+DART on My profile.*
 A mission callout's copy is a callout too, ``is_callout`` true, without any answers
 and with its answers closing two days ahead (:ref:`api-bulk-email-callouts`).
 ``copy_recipients`` may be left out, and is false then: the batch starts empty.
@@ -490,7 +490,7 @@ reschedules it.  A refusal is **400** keyed by the field:
   caller's roles.
 - ``batch``: *Nobody in the batch can receive this email. Add people to the
   batch.*, or, for a DART leader's email whose sender's profile doesn't name a
-  DART, *This email belongs to <name>, whose profile names no DART, so nobody can be
+  DART, *This email belongs to <name>, whose profile doesn't name a DART, so nobody can be
   added.*, naming the sender.
 - ``confirm_count``: *Type the number of people this email goes to.* when it is
   missing, or *The batch has changed: it now holds 52 people. Type the new
@@ -652,8 +652,8 @@ Who the caller may send to.  **200**:
 ``is_management`` is true for CalDART management and a system administrator, who
 send to everyone, with ``dart`` null and ``dart_name`` blank.  For a DART leader
 ``dart`` and ``dart_name`` are the DART on their profile.  ``can_send`` is false for
-a leader whose profile doesn't name a DART, and ``reason`` then says *Your profile names no
-DART, so there is nobody to send to. Set your DART on My profile.*; it is blank
+a leader whose profile doesn't name a DART, and ``reason`` then says *Your profile doesn't
+name a DART, so you can't send to anybody. Set your DART on My profile.*; it is blank
 otherwise.  The compose screen shows that sentence in place of the form, and names a
 leader's DART as a fixed value in place of the DART filter; the Drafts and scheduled
 screen shows it too.  ``default_reply_to`` is where replies to the caller's email go
@@ -680,7 +680,7 @@ every finding, the errors first; an empty list when the checks don't find anythi
 .. code-block:: json
 
    [{"code": "empty_field", "level": "warning",
-     "message": "{dart_name} is empty for 41 of 120 people who receive this email, so their copies show nothing there. Add words to show instead, as in {dart_name|other words}, or take it out."},
+     "message": "{dart_name} is empty for 41 of 120 people who receive this email, so their copies don't show anything there. Add words to show instead, as in {dart_name|other words}, or take it out."},
     {"code": "link_broken", "level": "warning",
      "message": "This link does not load (the site answered with a 4xx error): https://caldart.org/old-page"}]
 
@@ -794,7 +794,7 @@ read-only, and **Stop** stops the retry as it stops **Send the rest**.  A refusa
   ``stopped`` one;
 - *This email is still sending. Retry the failed copies once it has finished.* for
   one ``queued`` or ``sending``;
-- *No copy failed, so there is nothing to retry.*
+- *No copy failed, so nothing is left to retry.*
 - *Nobody whose copy failed can be sent one now. Each is marked skipped, with the reason
   on their line.* when every failed copy was skipped; the skips are kept, and nothing is
   queued.
@@ -1018,7 +1018,7 @@ person's values as they are then.  **200** with the callout, the round in
 - *This callout is still sending. Remind the others once it has finished.* for one
   ``queued`` or ``sending``;
 - *This callout has closed.*;
-- *Everybody has answered, so there is nobody to remind.*;
+- *Everybody has answered, so nobody is left to remind.*;
 - *Nobody who has not answered can be sent a reminder now: each would be skipped, as
   the delivery report shows why.* when every person left would be skipped.
 

@@ -16,7 +16,7 @@ The background sender records each copy's immediate answer: ``sent``, ``failed``
 * **A recipient's copy.**  :func:`recipient_copy` rebuilds one person's copy exactly as
   it went, from the field values stored on the row when it was tried.
 * **Hiding.**  :func:`set_hidden` keeps a sent email off every recipient's **Email to me**
-  page (``apps.bulk_email.archive``) or puts it back, changing nothing else.
+  page (``apps.bulk_email.archive``) or puts it back, without changing anything else.
 """
 
 from __future__ import annotations
@@ -53,14 +53,14 @@ log = logging.getLogger(__name__)
 #: The longest reason a recipient row holds.
 REASON_MAX_LENGTH = 200
 
-#: A bounced copy's reason when the report carried no detail of its own.
+#: A bounced copy's reason when the report didn't carry a detail of its own.
 BOUNCED_REASON = "The receiving mail server refused it"
 
 #: Why **Retry failed** is refused.
 NOT_STARTED_MESSAGE = "This email has not been sent."
 STILL_SENDING_MESSAGE = "This email is still sending. Retry the failed copies once it has finished."
 STOPPED_MESSAGE = "This email was stopped. Send the rest first, then retry the failed copies."
-NOTHING_FAILED_MESSAGE = "No copy failed, so there is nothing to retry."
+NOTHING_FAILED_MESSAGE = "No copy failed, so nothing is left to retry."
 NOBODY_TO_RETRY_MESSAGE = (
     "Nobody whose copy failed can be sent one now. Each is marked skipped, with the "
     "reason on their line."
@@ -112,10 +112,10 @@ def mark_bounced(entry: EmailLog) -> BulkEmailRecipient | None:
     ``entry`` must be ``bounced`` and carry a ``message_id``.  The copy is the
     recipient row that went out with the same ``Message-ID`` and still reads ``sent``:
     it becomes ``bounced`` with the report's ``bounce_detail`` (cut to 200 characters,
-    or :data:`BOUNCED_REASON` when the report gave none) as its reason, and its email's
-    ``sent_count`` falls by one as its ``bounced_count`` rises by one.  A row that is
-    already ``bounced``, or any other row, is left alone, so the same report read twice
-    counts once.  Answers ``None`` when there is nothing to mark.
+    or :data:`BOUNCED_REASON` when the report didn't give one) as its reason, and its
+    email's ``sent_count`` falls by one as its ``bounced_count`` rises by one.  A row that
+    is already ``bounced``, or any other row, is left alone, so the same report read twice
+    counts once.  Answers ``None`` when nothing is left to mark.
     """
     if entry.status != EmailStatus.BOUNCED or entry.message_id == "":
         return None
@@ -132,7 +132,8 @@ def mark_bounced(entry: EmailLog) -> BulkEmailRecipient | None:
         row.reason = (entry.bounce_detail or BOUNCED_REASON)[:REASON_MAX_LENGTH]
         row.save(update_fields=["status", "reason", "updated_at"])
         # Counted in the database rather than from a copy in memory, so a bounce read
-        # while the background sender is still counting the same email loses nothing.
+        # while the background sender is still counting the same email never loses a
+        # count.
         BulkEmail.objects.filter(pk=row.bulk_email_id).update(
             sent_count=Greatest(F("sent_count") - 1, Value(0)),
             bounced_count=F("bounced_count") + 1,
@@ -156,8 +157,8 @@ def retry_failed(bulk: BulkEmail, *, actor: User, now: datetime | None = None) -
     ``skipped_count`` grows.  Every other
     failed row goes back to ``pending`` with its reason cleared.  Every failed row
     leaves ``failed_count``.  When any row went back to ``pending`` the email is queued
-    with ``start_at`` at ``now`` and no undo window, and the background sender sends
-    those copies alone, each filled in with the person's values as they are then.
+    with ``start_at`` at ``now`` and without an undo window, and the background sender
+    sends those copies alone, each filled in with the person's values as they are then.
     Bounced and skipped copies are not retried, nor is anyone already sent a copy of that
     round or of a later one, and nobody is queued twice.  The
     email keeps its ``started_at``, so it stays read-only (``BulkEmail.can_edit``), and
@@ -301,7 +302,7 @@ def recipient_copy(bulk: BulkEmail, recipient_id: int) -> RecipientCopy:
     round.  Raises ``BulkEmailRecipient.DoesNotExist`` for a row of another email, and
     ``DomainError`` with :data:`NOT_TRIED_MESSAGE` for a row whose copy was never tried
     (skipped, stopped, or not sent yet).  The copy is for the sender, not its
-    recipient, so its unsubscribe link is inert: it carries no token that could turn
+    recipient, so its unsubscribe link is inert: it doesn't carry a token that could turn
     the recipient's email off.
     """
     row = BulkEmailRecipient.objects.select_related("user").get(bulk_email=bulk, pk=recipient_id)

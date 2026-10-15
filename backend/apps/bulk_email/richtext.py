@@ -67,7 +67,7 @@ SCHEME_RE = re.compile(r"([A-Za-z][A-Za-z0-9+.-]*):")
 #: walks the tags recursively, never runs out of stack.
 MAX_NESTING_DEPTH = 32
 
-#: The tags that hold nothing, so they never deepen the nesting.
+#: The tags that can't hold anything, so they never deepen the nesting.
 _VOID_TAGS = frozenset({"br", "hr", "img"})
 
 #: How a horizontal rule reads in the plain-text part.
@@ -87,7 +87,7 @@ _WHITESPACE_RE = re.compile(r"\s+")
 
 
 def _scheme(url: str) -> str:
-    """Return the lower-cased scheme ``url`` starts with, or ``""`` when it has none."""
+    """Return the lower-cased scheme ``url`` starts with, or ``""`` without one."""
     match = SCHEME_RE.match(url.strip())
     return "" if match is None else match.group(1).lower()
 
@@ -114,7 +114,7 @@ _CLEANER = nh3.Cleaner(
     attributes=ALLOWED_ATTRIBUTES,
     attribute_filter=_filter_attribute,
     url_schemes=set(LINK_SCHEMES),
-    # A relative URL means nothing in a mail program, so it is dropped rather than
+    # A relative URL doesn't mean anything in a mail program, so it is dropped rather than
     # sent as a link that goes nowhere.
     url_relative="deny",
     link_rel=None,
@@ -134,7 +134,7 @@ def sanitize(html: str) -> str:
     an address that does not, such as ``javascript:alert(1)`` or a relative path, is
     removed and leaves the tag without it.  ``width`` and ``height`` must be whole
     numbers.  Comments are removed.  The answer is well formed: every tag kept is
-    closed.  Sanitizing an already sanitized message changes nothing.
+    closed.  Sanitizing an already sanitized message doesn't change anything.
     """
     return _CLEANER.clean(html)
 
@@ -143,7 +143,7 @@ class _DepthCounter(HTMLParser):
     """Measures how deeply the tags of an HTML fragment nest, without building a tree."""
 
     def __init__(self) -> None:
-        """Start at depth 0, with no tag seen."""
+        """Start at depth 0, before any tag is seen."""
         super().__init__(convert_charrefs=True)
         self.depth = 0
         self.deepest = 0
@@ -164,7 +164,7 @@ class _DepthCounter(HTMLParser):
 def nesting_depth(html: str) -> int:
     """Return how deeply the tags of ``html`` nest: 0 for plain text, 1 for ``<p>x</p>``.
 
-    ``br``, ``hr``, and ``img`` hold nothing and count for nothing.  The fragment is
+    ``br``, ``hr``, and ``img`` can't hold anything and don't count.  The fragment is
     read in one pass, however deep it goes, so it is safe to measure any input.
     """
     counter = _DepthCounter()
@@ -184,8 +184,8 @@ def html_to_text(html: str) -> str:
     ``----``.  A link reads ``text (url)``, or the address alone when the text is
     the address (with ``mailto:`` ignored); an image reads as its alt text.  Bold,
     italic, and the other inline styles leave plain text.  Runs of whitespace read as
-    one space, as in HTML, and the answer has no blank lines at either end.  It walks
-    the tags recursively, so the message must nest no deeper than
+    one space, as in HTML, and the answer doesn't have blank lines at either end.  It
+    walks the tags recursively, so the message must nest no deeper than
     :data:`MAX_NESTING_DEPTH`, which ``apps.bulk_email.render.body_problem`` checks
     before anything calls it on a sender's message.
     """
@@ -288,11 +288,11 @@ def _inline(node: object) -> str:
 
 
 def _link_text(link: Tag) -> str:
-    """Return a link as ``text (url)``, or one of the two when the other says nothing.
+    """Return a link as ``text (url)``, or one of the two when the other is empty.
 
     The address alone stands when the text is the address, ignoring a ``mailto:``
-    in front of it, or when the link has no text; the text alone stands when the
-    link has no address.
+    in front of it, or when the link doesn't have text; the text alone stands when the
+    link doesn't have an address.
     """
     text = _tidy(_inline_children(link))
     href = _attribute(link, "href").strip()

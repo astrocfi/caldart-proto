@@ -69,7 +69,7 @@ class RetryView(APIView):
     def post(self, request: Request, pk: int) -> Response:
         """200 with the email, queued to send its failed copies again now.
 
-        409 for an email that has not finished sending, or has no failed copy.
+        409 for an email that has not finished sending, or doesn't have a failed copy.
         """
         bulk = email_for(request, pk)
         try:

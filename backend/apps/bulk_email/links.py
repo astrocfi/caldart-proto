@@ -127,7 +127,7 @@ def own_addresses() -> frozenset[str]:
     """This server's own addresses, as far as name lookups reveal them.
 
     The addresses of ``SITE_URL``'s host and of this machine's host name and fully
-    qualified name; a name that does not resolve adds nothing.
+    qualified name; a name that does not resolve doesn't add any.
     """
     names = {urlsplit(str(settings.SITE_URL)).hostname, socket.gethostname(), socket.getfqdn()}
     addresses: set[str] = set()
@@ -203,7 +203,7 @@ async def _check_one(url: str, lookups: ThreadPoolExecutor, own: frozenset[str])
 
 
 async def _problem(url: str, lookups: ThreadPoolExecutor, own: frozenset[str]) -> Problem | None:
-    """The problem with ``url``, with no deadline of its own: see :func:`check_links`."""
+    """The problem with ``url``, without its own deadline: see :func:`check_links`."""
     try:
         status = await _link_status(url, lookups, own)
     except PrivateAddressError:
@@ -304,13 +304,13 @@ async def _pinned_address(
     The name is looked up in ``lookups``, under the link's own deadline.  Raises
     :class:`PrivateAddressError` when any address ``host`` resolves to is not public
     (:func:`is_public`) or is one of ``own``, since a host answering with one public
-    and one private address could be sent to either, and ``OSError`` when it resolves
-    to none.
+    and one private address could be sent to either, and ``OSError`` when it doesn't
+    resolve to any.
     """
     loop = asyncio.get_running_loop()
     addresses = await loop.run_in_executor(lookups, resolve, host, port)
     if len(addresses) == 0:
-        raise OSError("The host resolved to no address.")
+        raise OSError("The host didn't resolve to an address.")
     inside = set(own)
     if any(not is_public(address) or address in inside for address in addresses):
         raise PrivateAddressError(host)
