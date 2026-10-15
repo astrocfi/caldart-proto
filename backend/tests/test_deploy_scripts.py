@@ -178,7 +178,7 @@ def _machine_path(
 ) -> str:
     """A ``PATH`` whose command shims describe a machine, ahead of the real ones.
 
-    ``ss`` reports a listener on each port in ``listening`` and nothing else,
+    ``ss`` reports a listener only on each port in ``listening``,
     ``docker container inspect`` finds the CalDART database container only when
     ``container`` is true, the ``caldart`` user exists, with ``service_home`` as its
     home directory, only when ``service_home`` is given, and ``systemctl is-active``
@@ -355,7 +355,9 @@ def test_the_install_dry_run_succeeds(root: Path, etc: Path, tmp_path: Path) -> 
     assert result.returncode == 0, result.stderr
 
 
-def test_the_install_dry_run_changes_nothing(root: Path, etc: Path, tmp_path: Path) -> None:
+def test_the_install_dry_run_does_not_change_anything(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
     """A dry run writes neither the install record nor the environment file."""
     _install_dry_run(root, etc, tmp_path)
     assert list(etc.iterdir()) == []
@@ -415,7 +417,7 @@ def test_seed_content_loads_the_example_pages(root: Path, etc: Path, tmp_path: P
     assert _position(commands, "manage.py seed_content") > _position(commands, "migrate")
 
 
-def test_the_dry_run_prints_no_secret(root: Path, etc: Path, tmp_path: Path) -> None:
+def test_the_dry_run_does_not_print_a_secret(root: Path, etc: Path, tmp_path: Path) -> None:
     """The database password in the ``ALTER USER`` statement reads ``<generated>``."""
     commands = _commands(_install_dry_run(root, etc, tmp_path))
     alter = commands[_position(commands, "ALTER USER")]
@@ -460,7 +462,7 @@ def test_the_first_registry_import_starts_at_once(root: Path, etc: Path, tmp_pat
 
 
 def test_nginx_installs_nginx_and_never_apache(root: Path, etc: Path, tmp_path: Path) -> None:
-    """``--web-server nginx`` installs nginx's packages and touches no Apache command."""
+    """``--web-server nginx`` installs nginx's packages and skips every Apache command."""
     commands = _commands(_install_dry_run(root, etc, tmp_path, "--web-server", "nginx"))
     assert [command for command in commands if "apache" in command] == []
 
@@ -501,7 +503,7 @@ def test_no_www_asks_for_one_name(root: Path, etc: Path, tmp_path: Path) -> None
 def test_a_first_install_names_the_flag_it_is_missing(
     flag: str, root: Path, etc: Path, tmp_path: Path
 ) -> None:
-    """With no record and no environment file, a missing flag exits 2 naming it."""
+    """Without a record or an environment file, a missing flag exits 2 naming it."""
     index = FIRST_INSTALL.index(flag)
     args = (*FIRST_INSTALL[:index], *FIRST_INSTALL[index + 2 :])
     result = _install_dry_run(root, etc, tmp_path, flags=args)
@@ -584,7 +586,7 @@ def test_db_port_moves_postgres(root: Path, etc: Path, tmp_path: Path) -> None:
 def test_a_db_port_out_of_range_is_a_usage_error(
     port: str, root: Path, etc: Path, tmp_path: Path
 ) -> None:
-    """``--db-port`` takes an integer from 1024 to 65535 and nothing else."""
+    """``--db-port`` takes only an integer from 1024 to 65535."""
     result = _install_dry_run(root, etc, tmp_path, "--db-port", port)
     assert _errors(result) == [
         f"error: --db-port must be a port number from 1024 to 65535, not {port}"
@@ -611,7 +613,7 @@ def test_the_recorded_db_port_reaches_docker_compose(root: Path) -> None:
 
 
 def test_a_taken_port_stops_the_first_postgres_start(root: Path, etc: Path, tmp_path: Path) -> None:
-    """With no CalDART container yet, a listener on the port stops the install."""
+    """Without a CalDART container yet, a listener on the port stops the install."""
     result = _install_dry_run(root, etc, tmp_path, listening=(5432,))
     assert _errors(result) == [
         "error: port 5432 is already in use on this machine; "
@@ -687,7 +689,7 @@ def test_configure_writes_the_recorded_db_port(root: Path, etc: Path) -> None:
 
 
 def test_configure_writes_5432_by_default(env_file: Path) -> None:
-    """With no port recorded, ``DATABASE_URL`` connects to port 5432."""
+    """Without a port recorded, ``DATABASE_URL`` connects to port 5432."""
     assert _variables(env_file)["DATABASE_URL"].endswith("@localhost:5432/caldart")
 
 
@@ -705,7 +707,7 @@ def test_compose_runs_with_the_recorded_port(root: Path, etc: Path) -> None:
 
 
 def test_compose_defaults_to_5432(root: Path, etc: Path) -> None:
-    """With no install record, ``compose.sh`` uses port 5432."""
+    """Without an install record, ``compose.sh`` uses port 5432."""
     result = _run(
         _checkout(root) / "deploy" / "compose.sh", "--dry-run", "logs", "-f", "db", env=_env(etc)
     )
@@ -731,7 +733,7 @@ LOCAL_MAIL_INSTALL: Final = (
     "local",
 )
 
-#: The note ``configure.sh`` prints when ``--email local`` finds nothing on port 25.
+#: The note ``configure.sh`` prints when ``--email local`` finds port 25 free.
 PORT_25_NOTE: Final = (
     "Nothing listens on port 25 on this machine: mail fails until postfix is "
     "installed and listening on localhost."
@@ -739,12 +741,12 @@ PORT_25_NOTE: Final = (
 
 
 def test_email_local_notes_an_empty_port_25(root: Path, etc: Path, tmp_path: Path) -> None:
-    """``--email local`` with nothing on port 25 prints the note and carries on."""
+    """``--email local`` with port 25 free prints the note and carries on."""
     result = _install_dry_run(root, etc, tmp_path, flags=LOCAL_MAIL_INSTALL)
     assert PORT_25_NOTE in result.stderr.splitlines()
 
 
-def test_email_local_with_nothing_on_port_25_still_installs(
+def test_email_local_with_port_25_free_still_installs(
     root: Path, etc: Path, tmp_path: Path
 ) -> None:
     """The port 25 note is not an error: the dry run exits 0."""
@@ -752,10 +754,10 @@ def test_email_local_with_nothing_on_port_25_still_installs(
     assert result.returncode == 0, result.stderr
 
 
-def test_email_local_with_postfix_listening_prints_no_note(
+def test_email_local_with_postfix_listening_does_not_print_a_note(
     root: Path, etc: Path, tmp_path: Path
 ) -> None:
-    """With something on port 25 the install says nothing about mail."""
+    """With something on port 25 the install doesn't say anything about mail."""
     result = _install_dry_run(root, etc, tmp_path, flags=LOCAL_MAIL_INSTALL, listening=(25,))
     assert PORT_25_NOTE not in result.stderr.splitlines()
 
@@ -778,7 +780,7 @@ def test_email_takes_only_local(root: Path, etc: Path, tmp_path: Path) -> None:
 def test_a_first_install_without_mail_names_both_flags(
     root: Path, etc: Path, tmp_path: Path
 ) -> None:
-    """With neither mail flag and no environment file, the error names both."""
+    """With neither a mail flag nor an environment file, the error names both."""
     result = _install_dry_run(root, etc, tmp_path, flags=LOCAL_MAIL_INSTALL[:4])
     assert _errors(result) == [
         f"error: --email-url or --email local is required until {etc}/caldart.env exists"
@@ -883,7 +885,7 @@ def test_a_failing_command_keeps_its_exit_status(root: Path) -> None:
     assert result.returncode == 3
 
 
-def test_a_command_tested_in_a_condition_reports_nothing(root: Path) -> None:
+def test_a_command_tested_in_a_condition_does_not_report_anything(root: Path) -> None:
     """A command whose failure a condition handles is not an error."""
     result = _source_lib(root, 'log "Stage"; if false; then :; fi; false || true')
     assert result.stderr == ""
@@ -960,7 +962,7 @@ def test_configure_keeps_debug_off(env_file: Path) -> None:
     assert _variables(env_file)["DEBUG"] == "false"
 
 
-def test_configure_enables_no_mock_payments(env_file: Path) -> None:
+def test_configure_does_not_enable_mock_payments(env_file: Path) -> None:
     """No variable naming the mock provider is set."""
     assert [key for key in _variables(env_file) if "MOCK" in key] == []
 
@@ -1123,10 +1125,10 @@ def test_configure_notes_a_local_bounce_mailbox_without_plus_addresses(
     assert (PLUS_ADDRESS_NOTE in result.stderr.splitlines()) is noted
 
 
-def test_configure_without_a_bounce_address_says_nothing_of_plus_addresses(
+def test_configure_without_a_bounce_address_does_not_mention_plus_addresses(
     root: Path, etc: Path, tmp_path: Path
 ) -> None:
-    """With no ``--bounce-address`` there is no bounce mailbox to note."""
+    """Without a ``--bounce-address`` there isn't a bounce mailbox to note."""
     result = _configure(
         root,
         etc,
@@ -1166,7 +1168,7 @@ def test_certbot_keeps_the_hsts_default(env_file: Path) -> None:
 
 
 def test_configure_needs_a_hostname(root: Path, etc: Path) -> None:
-    """With no record and no ``--hostname`` the step exits 2 naming the flag."""
+    """Without a record or a ``--hostname`` the step exits 2 naming the flag."""
     result = _configure(root, etc, "--email-url", "smtp://localhost:25")
     assert result.returncode == 2
     assert _errors(result) == [f"error: --hostname is required to write {etc}/caldart.env"]
@@ -1244,7 +1246,7 @@ def exec_log(root: Path, etc: Path, tmp_path: Path) -> tuple[str, Path]:
 def test_configure_never_puts_a_secret_on_a_command_line(
     variable: str, exec_log: tuple[str, Path]
 ) -> None:
-    """The key, the database password, and the mail relay reach no program's arguments."""
+    """The key, database password, and mail relay never reach a program's arguments."""
     content, log = exec_log
     values = [
         line.split("=", 1)[1] for line in content.splitlines() if line.startswith(f"{variable}=")
@@ -1477,7 +1479,7 @@ def test_seed_runs_the_named_seeds_in_install_order(
 
 
 def test_seed_without_a_seed_is_a_usage_error(root: Path, etc: Path) -> None:
-    """``seed.sh`` with no seed named runs nothing and says which flags there are."""
+    """``seed.sh`` without a seed named doesn't run anything and lists the flags."""
     result = _run(_checkout(root) / "deploy" / "seed.sh", "--dry-run", env=_env(etc))
     assert (result.returncode, _errors(result)) == (
         2,
@@ -1571,7 +1573,7 @@ def test_reset_database_starts_the_site_and_the_registry_import_last(root: Path,
 def test_reset_database_says_when_nobody_can_sign_in(
     root: Path, etc: Path, flags: tuple[str, ...], warns: bool
 ) -> None:
-    """A reset with no administrator and no demo accounts says how to make one."""
+    """A reset without an administrator or demo accounts says how to make one."""
     result = _reset_dry_run(root, etc, *flags)
     assert ("no account can sign in yet" in result.stderr) is warns
 
@@ -1679,7 +1681,7 @@ def test_upgrade_refuses_a_detached_head_before_the_backup(git_checkout: Path, e
     ]
 
 
-def test_upgrade_of_a_detached_head_takes_no_backup(git_checkout: Path, etc: Path) -> None:
+def test_upgrade_of_a_detached_head_does_not_take_a_backup(git_checkout: Path, etc: Path) -> None:
     """The detached-HEAD refusal comes before anything runs."""
     git = shutil.which("git")
     assert git is not None
@@ -1794,7 +1796,7 @@ def test_uninstall_purge_composes_down_from_the_checkout(root: Path, etc: Path) 
     assert commands[_position(commands, "docker compose down -v") - 1] == f"cd {_checkout(root)}"
 
 
-def test_uninstall_dry_run_removes_nothing(root: Path, etc: Path) -> None:
+def test_uninstall_dry_run_does_not_remove_anything(root: Path, etc: Path) -> None:
     """The dry run of a purge leaves the deploy root in place."""
     _run(
         _checkout(root) / "deploy" / "uninstall.sh", "--dry-run", "--yes", "--purge", env=_env(etc)
@@ -1832,7 +1834,7 @@ def _record_checkout_layout(root: Path, etc: Path) -> None:
 
 @pytest.mark.parametrize("script", ["install.sh", *STEPS])
 def test_a_checkout_layout_is_refused(script: str, root: Path, etc: Path) -> None:
-    """The installer and every step stop, naming the runbook section, and run nothing."""
+    """The installer and every step stop before running, naming the runbook section."""
     _record_checkout_layout(root, etc)
     result = _run(_checkout(root) / "deploy" / script, "--dry-run", env=_env(etc))
     assert (_errors(result), _commands(result), result.returncode) == (
@@ -2144,14 +2146,14 @@ def test_an_unknown_tls_mode_names_the_three(root: Path, etc: Path, tmp_path: Pa
     assert _errors(result) == ["error: --tls must be certbot, self-signed, or existing, not none"]
 
 
-def test_existing_needs_no_certbot_email(root: Path, etc: Path, tmp_path: Path) -> None:
-    """``--tls existing`` obtains no certificate, so it needs no Let's Encrypt account."""
+def test_existing_does_not_need_a_certbot_email(root: Path, etc: Path, tmp_path: Path) -> None:
+    """``--tls existing`` skips certbot, so it doesn't need a Let's Encrypt account."""
     result = _install_dry_run(root, etc, tmp_path, flags=EXISTING_INSTALL)
     assert result.returncode == 0, result.stderr
 
 
 def test_existing_never_runs_certbot(root: Path, etc: Path, tmp_path: Path) -> None:
-    """``--tls existing`` installs no certbot package and runs no certbot command."""
+    """``--tls existing`` doesn't install a certbot package or run a certbot command."""
     commands = _commands(_install_dry_run(root, etc, tmp_path, flags=EXISTING_INSTALL))
     assert [command for command in commands if "certbot" in command] == []
 
@@ -2162,15 +2164,17 @@ def test_existing_still_installs_the_web_server(root: Path, etc: Path, tmp_path:
     assert "apache2" in commands[_position(commands, "apt-get install")].split()
 
 
-def test_existing_makes_no_certificate(root: Path, etc: Path, tmp_path: Path) -> None:
+def test_existing_does_not_make_a_certificate(root: Path, etc: Path, tmp_path: Path) -> None:
     """The existing site's certificate is the one browsers see: no ``openssl req``."""
     output = _install_dry_run(root, etc, tmp_path, flags=EXISTING_INSTALL).stdout
     assert "openssl req" not in output
 
 
 @pytest.mark.parametrize("web_server", ["apache", "nginx"])
-def test_existing_installs_no_vhost(web_server: str, root: Path, etc: Path, tmp_path: Path) -> None:
-    """``--tls existing`` writes nothing into the web server's sites directory."""
+def test_existing_does_not_install_a_vhost(
+    web_server: str, root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """``--tls existing`` doesn't write anything into the web server's sites directory."""
     commands = _commands(
         _install_dry_run(root, etc, tmp_path, "--web-server", web_server, flags=EXISTING_INSTALL)
     )
@@ -2214,7 +2218,7 @@ def test_existing_reloads_the_web_server(
 def test_without_attach_to_the_step_prints_the_include_line(
     web_server: str, root: Path, etc: Path, tmp_path: Path
 ) -> None:
-    """With no ``--attach-to`` the step says which line to add to the existing vhost."""
+    """Without ``--attach-to`` the step says which line to add to the existing vhost."""
     output = _install_dry_run(
         root, etc, tmp_path, "--web-server", web_server, flags=EXISTING_INSTALL
     ).stdout
@@ -2296,7 +2300,7 @@ def test_the_include_goes_in_the_https_block(
 def test_a_block_with_a_certificate_counts_as_https(
     web_server: str, site: str, attached: str, root: Path, tmp_path: Path
 ) -> None:
-    """A certificate or port 443 marks HTTPS; the plain-HTTP block gets no include."""
+    """A certificate or port 443 marks HTTPS; the include skips the plain-HTTP block."""
     vhost = tmp_path / "site.conf"
     vhost.write_text(site)
     result = _attach(root, web_server, vhost)
@@ -2344,7 +2348,7 @@ def test_a_failed_check_leaves_an_earlier_include_alone(root: Path, tmp_path: Pa
 
 
 def test_a_failed_check_without_an_insertion_names_the_step(root: Path, tmp_path: Path) -> None:
-    """With nothing to put back, the step stops saying the check failed."""
+    """Without anything to put back, the step stops saying the check failed."""
     vhost = tmp_path / "site.conf"
     vhost.write_text(APACHE_SITE_ATTACHED)
     result = _attach(root, "apache", vhost, then=f'{FAILING_CHECK["apache"]}; check_or_detach "$3"')
@@ -2363,7 +2367,7 @@ def test_a_failed_check_without_an_insertion_names_the_step(root: Path, tmp_path
 def test_without_an_https_block_every_block_gets_the_include(
     web_server: str, site: str, root: Path, tmp_path: Path
 ) -> None:
-    """A vhost that terminates no TLS (behind a proxy) gets the line in every block."""
+    """A vhost that doesn't terminate TLS (behind a proxy) gets the line in each block."""
     vhost = tmp_path / "site.conf"
     vhost.write_text(site)
     _attach(root, web_server, vhost)
@@ -2371,7 +2375,7 @@ def test_without_an_https_block_every_block_gets_the_include(
 
 
 @pytest.mark.parametrize(("web_server", "site"), [("apache", APACHE_SITE), ("nginx", NGINX_SITE)])
-def test_attaching_twice_changes_nothing(
+def test_attaching_twice_does_not_change_anything(
     web_server: str, site: str, root: Path, tmp_path: Path
 ) -> None:
     """A vhost already carrying the include line is left byte-identical."""
@@ -2418,10 +2422,10 @@ def test_attaching_through_a_symlink_edits_its_target(root: Path, tmp_path: Path
 @pytest.mark.parametrize(
     ("web_server", "block"), [("apache", "<VirtualHost>"), ("nginx", "server")]
 )
-def test_a_vhost_with_no_block_is_refused(
+def test_a_vhost_without_a_block_is_refused(
     web_server: str, block: str, root: Path, tmp_path: Path
 ) -> None:
-    """A file with nothing to include the snippet in stops the step naming the file."""
+    """A file without a block to include the snippet in stops the step naming the file."""
     vhost = tmp_path / "site.conf"
     vhost.write_text("# nothing here\n")
     result = _attach(root, web_server, vhost)
@@ -2460,7 +2464,7 @@ def test_the_snippet_serves_the_prefix(web_server: str, fragment: str, root: Pat
 
 
 @pytest.mark.parametrize("web_server", ["apache", "nginx"])
-def test_the_snippet_leaves_no_placeholder(web_server: str, root: Path) -> None:
+def test_the_snippet_does_not_leave_a_placeholder(web_server: str, root: Path) -> None:
     """Every ``__PREFIX__`` and ``/opt/caldart`` is replaced as the snippet is copied."""
     rendered = _render_snippet(root, SNIPPETS[web_server][0], PREFIX)
     assert [word for word in ("__PREFIX__", "/opt/caldart") if word in rendered] == []
@@ -2496,7 +2500,7 @@ def test_the_apache_snippet_keeps_media_ahead_of_the_proxy(root: Path) -> None:
     )
 
 
-def test_the_nginx_snippet_defines_no_upstream(root: Path) -> None:
+def test_the_nginx_snippet_does_not_define_an_upstream(root: Path) -> None:
     """A second include of the snippet must not define ``caldart_app`` again."""
     rendered = _render_snippet(root, SNIPPETS["nginx"][0], PREFIX)
     assert "upstream caldart_app" not in rendered
@@ -2518,7 +2522,7 @@ def test_the_nginx_upstream_names_gunicorn() -> None:
 def test_the_snippet_without_a_prefix_serves_the_whole_host(
     web_server: str, fragment: str, root: Path
 ) -> None:
-    """With no prefix the snippet proxies everything from ``/``."""
+    """Without a prefix the snippet proxies everything from ``/``."""
     assert fragment in _render_snippet(root, SNIPPETS[web_server][0], "")
 
 
@@ -2673,7 +2677,7 @@ def test_bootstrap_passes_the_prefix_and_attach_flags_through(tmp_path: Path) ->
 
 
 def test_uninstall_takes_the_include_line_out(root: Path, etc: Path, tmp_path: Path) -> None:
-    """The recorded vhost loses the include line and nothing else."""
+    """The recorded vhost loses only the include line."""
     vhost = tmp_path / "site.conf"
     vhost.write_text(APACHE_SITE_ATTACHED)
     (etc / "install.conf").write_text(f"CALDART_TLS=existing\nCALDART_ATTACH_TO={vhost}\n")
@@ -2726,7 +2730,7 @@ def test_a_working_docker_skips_the_docker_packages(etc: Path, root: Path, tmp_p
 
 
 def test_a_docker_without_compose_gets_only_compose(etc: Path, root: Path, tmp_path: Path) -> None:
-    """A Docker with no Compose v2 plugin keeps its engine and gains the plugin."""
+    """A Docker without the Compose v2 plugin keeps its engine and gains the plugin."""
     packages = _packages_dry_run(
         etc, root, tmp_path, 'case "$1" in compose) exit 1 ;; *) exit 0 ;; esac'
     )
@@ -2815,7 +2819,7 @@ def test_gunicorn_binds_to_the_port_in_its_environment(monkeypatch: pytest.Monke
 
 
 def test_gunicorn_binds_to_8001_without_the_variable(monkeypatch: pytest.MonkeyPatch) -> None:
-    """With no ``CALDART_GUNICORN_PORT`` gunicorn listens on 8001."""
+    """Without a ``CALDART_GUNICORN_PORT`` gunicorn listens on 8001."""
     assert _gunicorn_bind(monkeypatch, None) == "127.0.0.1:8001"
 
 
@@ -2845,7 +2849,7 @@ def test_a_record_without_the_gunicorn_port_reads_as_8001(root: Path) -> None:
 def test_a_gunicorn_port_out_of_range_is_a_usage_error(
     port: str, root: Path, etc: Path, tmp_path: Path
 ) -> None:
-    """``--gunicorn-port`` takes an integer from 1024 to 65535 and nothing else."""
+    """``--gunicorn-port`` takes only an integer from 1024 to 65535."""
     result = _install_dry_run(root, etc, tmp_path, "--gunicorn-port", port)
     assert _errors(result) == [
         f"error: --gunicorn-port must be a port number from 1024 to 65535, not {port}"
@@ -2894,7 +2898,7 @@ def test_a_rendered_file_proxies_to_the_chosen_port(source: str, how: str, root:
 
 
 @pytest.mark.parametrize(("source", "how"), GUNICORN_FILES)
-def test_a_rendered_file_keeps_no_8001(source: str, how: str, root: Path) -> None:
+def test_a_rendered_file_does_not_keep_8001(source: str, how: str, root: Path) -> None:
     """No ``8001`` survives in a file rendered for another port, comments included."""
     assert "8001" not in _render_with_port(root, source, how, GUNICORN_PORT)
 
@@ -2913,7 +2917,7 @@ def test_configure_writes_the_recorded_gunicorn_port(root: Path, etc: Path) -> N
 
 
 def test_configure_writes_8001_by_default(env_file: Path) -> None:
-    """With no gunicorn port recorded, the environment file names 8001."""
+    """Without a gunicorn port recorded, the environment file names 8001."""
     assert _variables(env_file)["CALDART_GUNICORN_PORT"] == "8001"
 
 
@@ -2926,7 +2930,7 @@ def test_configure_moves_the_port_in_an_existing_file(
     assert _variables(env_file)["CALDART_GUNICORN_PORT"] == "8101"
 
 
-def test_configure_moves_the_port_and_nothing_else(env_file: Path, root: Path, etc: Path) -> None:
+def test_configure_moves_only_the_port(env_file: Path, root: Path, etc: Path) -> None:
     """Moving the port rewrites that one line and keeps every other one."""
     before = env_file.read_text()
     (etc / "install.conf").write_text(MOVED_RECORD)
@@ -3050,7 +3054,7 @@ def test_upgrade_runs_docker_compose_with_the_recorded_db_port(
 
 
 @pytest.mark.parametrize("flag", ["--gunicorn-port", "--db-port"])
-def test_upgrade_takes_no_port_flag(flag: str, etc: Path) -> None:
+def test_upgrade_does_not_take_a_port_flag(flag: str, etc: Path) -> None:
     """A port flag given to ``upgrade.sh`` is a usage error naming ``install.sh``."""
     result = _run(DEPLOY_DIR / "upgrade.sh", flag, "8101", env=_env(etc))
     assert result.returncode == 2
@@ -3083,8 +3087,8 @@ def _check_function(
 ) -> subprocess.CompletedProcess[str]:
     """Run ``function`` from ``check.sh`` with ``record`` as the install record.
 
-    ``curl`` answers every request with ``curl_status`` and ``docker`` finds no
-    container, so the result depends on nothing the machine running the test has.
+    ``curl`` answers every request with ``curl_status`` and ``docker`` doesn't find a
+    container, so the result doesn't depend on anything the machine running the test has.
     """
     shims = tmp_path / "check-shims"
     shims.mkdir()
@@ -3121,7 +3125,7 @@ def test_the_check_dry_run_asks_gunicorn_on_the_recorded_port(root: Path, etc: P
 
 
 def test_the_check_dry_run_asks_gunicorn_on_8001_by_default(root: Path, etc: Path) -> None:
-    """With no gunicorn port recorded, the check asks port 8001."""
+    """Without a gunicorn port recorded, the check asks port 8001."""
     (etc / "install.conf").write_text("CALDART_HOSTNAME=caldart.test\n")
     result = _run(_checkout(root) / "deploy" / "steps" / "check.sh", "--dry-run", env=_env(etc))
     assert (
@@ -3137,7 +3141,7 @@ def test_a_gunicorn_that_does_not_answer_fails_the_check(root: Path, tmp_path: P
 
 
 def test_a_gunicorn_that_answers_passes_the_check(root: Path, tmp_path: Path) -> None:
-    """A ``200`` from gunicorn on the recorded port is no failure."""
+    """A ``200`` from gunicorn on the recorded port isn't a failure."""
     result = _check_function(
         root, tmp_path, "check_gunicorn", record=MOVED_RECORD, curl_status="200"
     )
@@ -3201,7 +3205,7 @@ def test_the_other_web_server_running_is_a_note_not_a_refusal(
 def test_behind_an_existing_site_the_other_web_server_is_not_mentioned(
     root: Path, etc: Path, tmp_path: Path
 ) -> None:
-    """With ``--tls existing`` CalDART holds no port, so a second server draws no note."""
+    """``--tls existing`` leaves ports free, so a second server doesn't draw a note."""
     result = _install_dry_run(
         root,
         etc,

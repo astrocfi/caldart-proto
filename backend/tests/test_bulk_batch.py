@@ -38,7 +38,7 @@ pytestmark = pytest.mark.django_db
 
 MARIN = {"county": "Marin"}
 FRIENDS_IN_MARIN = {"kind": "friend", "county": "Marin"}
-# A filter on kind alone would choose the role fixtures too, a role fixture with no paid
+# A filter on kind alone would choose the role fixtures too, a role fixture without a paid
 # term among the members; the county keeps it to a test's people.
 FRIENDS_IN_MARIN_AND_NAPA = {"kind": "friend", "county": "Marin,Napa"}
 
@@ -149,25 +149,25 @@ def test_a_row_keeps_the_name_address_kind_and_dart_at_the_add(
     )
 
 
-def test_a_member_with_no_term_is_kept_as_a_member(bulk: BulkEmail, management: User) -> None:
-    """A member who has not paid, whose membership reads none, is recorded as a member."""
+def test_a_member_without_a_term_is_kept_as_a_member(bulk: BulkEmail, management: User) -> None:
+    """An unpaid member, whose membership reads ``none``, is recorded as a member."""
     make_person("unpaid@example.test", "Una", "Paid")
     batch.add_filters(bulk, MARIN, actor=management)
     assert bulk.recipients.get().kind == "member"
 
 
 @pytest.mark.parametrize(("kind", "chosen"), [("member", True), ("friend", False)])
-def test_a_member_with_no_term_is_added_by_members_only_alone(
+def test_a_member_without_a_term_is_added_by_members_only_alone(
     bulk: BulkEmail, management: User, kind: str, *, chosen: bool
 ) -> None:
-    """Members only takes a member with no term yet; Friends only leaves them out."""
+    """Members only takes a member without a term yet; Friends only leaves them out."""
     make_person("unpaid@example.test", "Una", "Paid")
     batch.add_filters(bulk, {"kind": kind, "county": "Marin"}, actor=management)
     assert bulk.recipients.filter(email="unpaid@example.test").exists() is chosen
 
 
 def test_a_donor_is_never_added(bulk: BulkEmail, management: User) -> None:
-    """A donor is in no member list, so no add chooses one."""
+    """A donor isn't in a member list, so an add never chooses one."""
     make_person("member@example.test")
     UserFactory(email="donor@example.test", kind=AccountKind.DONOR)
     batch.add_filters(bulk, {}, actor=management)
@@ -206,7 +206,7 @@ def test_a_deactivated_account_is_listed_as_skipped(bulk: BulkEmail, management:
 
 
 def test_a_blank_address_is_listed_as_skipped(bulk: BulkEmail, management: User) -> None:
-    """An account with no address on file has nowhere to send to."""
+    """An account without an address on file has nowhere to send to."""
     account = make_person("blank@example.test")
     batch.add_filters(bulk, MARIN, actor=management)
     type(account).objects.filter(pk=account.pk).update(email="")
@@ -558,7 +558,7 @@ def test_the_batch_lists_every_person_with_the_counts_and_the_adds(
     }
 
 
-def test_removing_through_the_api_answers_no_content(
+def test_removing_through_the_api_answers_204(
     management_client: APIClient, bulk: BulkEmail, management: User
 ) -> None:
     """``DELETE .../batch/{rid}`` is a 204."""

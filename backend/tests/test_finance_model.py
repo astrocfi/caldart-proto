@@ -93,7 +93,7 @@ def test_paid_on_is_the_day_a_manual_payment_was_received() -> None:
 
 
 def test_paid_on_is_none_while_a_payment_is_still_pending() -> None:
-    """A payment nobody has completed has no ledger date at all."""
+    """A payment nobody has completed doesn't have a ledger date at all."""
     assert PaymentFactory(status=PaymentStatus.PENDING, completed_at=None).paid_on is None
 
 
@@ -104,7 +104,7 @@ def test_receipt_number_pads_the_primary_key_to_six_digits() -> None:
 
 
 def test_refunded_cents_sums_only_the_refunds_that_succeeded() -> None:
-    """A pending or failed refund adds nothing to what a payment has given back."""
+    """A pending or failed refund doesn't add to what a payment has given back."""
     payment = PaymentFactory(status=PaymentStatus.SUCCEEDED, amount_cents=10_000)
     RefundFactory(payment=payment, amount_cents=1_500, status=RefundStatus.SUCCEEDED)
     RefundFactory(payment=payment, amount_cents=2_500, status=RefundStatus.SUCCEEDED)
@@ -114,7 +114,7 @@ def test_refunded_cents_sums_only_the_refunds_that_succeeded() -> None:
 
 
 def test_refunded_cents_is_zero_when_nothing_was_given_back() -> None:
-    """A payment with no refund rows reports zero rather than ``None``."""
+    """A payment without refund rows reports zero rather than ``None``."""
     assert PaymentFactory(status=PaymentStatus.SUCCEEDED).refunded_cents == 0
 
 
@@ -145,8 +145,8 @@ def test_reconciling_a_payment_keeps_the_date_and_the_treasurer(treasurer: User)
     assert payment.reconciled_on == date(2026, 3, 1)
 
 
-def test_a_payment_starts_with_no_fee_and_no_receipt() -> None:
-    """Fee, net and the receipt stamp default to nothing until a provider reports them."""
+def test_a_payment_starts_without_a_fee_or_a_receipt() -> None:
+    """Fee, net and the receipt stamp stay empty until a provider reports them."""
     payment = PaymentFactory()
     assert payment.fee_cents == 0
     assert payment.net_cents == 0
@@ -171,8 +171,8 @@ def test_a_refund_is_described_by_its_amount_and_status() -> None:
     assert str(refund) == "Refund $25.00 (succeeded)"
 
 
-def test_a_refund_defaults_to_pending_with_no_provider_reference() -> None:
-    """A refund row starts pending, unsent and with nothing from the provider yet."""
+def test_a_refund_defaults_to_pending_without_a_provider_reference() -> None:
+    """A refund row starts pending, unsent, and without anything from the provider yet."""
     refund = Refund.objects.create(
         payment=PaymentFactory(status=PaymentStatus.SUCCEEDED),
         amount_cents=1_000,
@@ -207,7 +207,7 @@ def test_a_mandate_is_reached_from_its_member() -> None:
 
 
 def test_a_new_mandate_is_pending_until_a_payment_activates_it(member: User) -> None:
-    """A mandate created at checkout waits at ``pending`` with no charge behind it."""
+    """A mandate created at checkout waits at ``pending`` without a charge behind it."""
     mandate = RenewalMandateFactory(user=member, status=MandateStatus.PENDING)
     assert mandate.last_charged_at is None
     assert mandate.failure_count == 0
@@ -266,7 +266,7 @@ def test_an_attempt_is_described_by_its_date_and_outcome(member: User) -> None:
 
 
 def test_a_new_attempt_has_been_neither_noticed_nor_charged() -> None:
-    """An attempt starts scheduled, with no payment and none of its emails sent."""
+    """An attempt starts scheduled, without a payment, and with its emails unsent."""
     attempt = RenewalAttemptFactory()
     assert attempt.outcome == RenewalOutcome.SCHEDULED
     assert attempt.payment is None

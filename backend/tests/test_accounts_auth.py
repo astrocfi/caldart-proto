@@ -63,7 +63,7 @@ def test_register_creates_a_member(api_client: APIClient) -> None:
     )
 
 
-def test_register_answers_202_and_signs_nobody_in(api_client: APIClient) -> None:
+def test_register_answers_202_and_does_not_sign_anybody_in(api_client: APIClient) -> None:
     """The answer is the 202 every address gets, and no session comes with it."""
     response = api_client.post(REGISTER_URL, register_payload())
 
@@ -76,10 +76,10 @@ def test_register_never_echoes_the_password(api_client: APIClient) -> None:
     assert "password" not in response.json()
 
 
-def test_register_makes_no_second_account_for_a_taken_address(
+def test_register_does_not_make_a_second_account_for_a_taken_address(
     api_client: APIClient, member: User
 ) -> None:
-    """A registration reusing an existing address, in any case, duplicates no row."""
+    """A registration reusing an existing address, in any case, doesn't add a row."""
     api_client.post(REGISTER_URL, register_payload(email=member.email.upper()))
 
     assert User.objects.filter(email__iexact=member.email).count() == 1
@@ -138,7 +138,7 @@ def test_register_rolls_back_when_the_profile_cannot_be_created(
 # Password change
 # --------------------------------------------------------------------------
 def test_password_change_requires_authentication(api_client: APIClient) -> None:
-    """``POST /auth/password/change`` is 401 for a client with no session."""
+    """``POST /auth/password/change`` is 401 for a client without a session."""
     response = api_client.post(
         CHANGE_URL, {"current_password": "whatever", "new_password": GOOD_PASSWORD}
     )
@@ -398,7 +398,7 @@ def test_profile_complete_is_false_without_a_certificate_answer(
 
 
 def test_profile_complete_is_false_without_a_profile(api_client: APIClient) -> None:
-    """A member with no profile row at all is reported as incomplete."""
+    """A member without any profile row is reported as incomplete."""
     user = UserFactory(email="profileless@example.test", roles=[MEMBER])
     api_client.force_login(user)
     assert api_client.get(ME_URL).json()["profile_complete"] is False

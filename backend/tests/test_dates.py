@@ -61,7 +61,7 @@ def test_a_moment_just_after_utc_midnight_reads_the_local_day_before() -> None:
     ids=["midnight", "half-past-midnight", "before-noon", "noon", "late-evening"],
 )
 def test_a_moment_reads_on_the_12_hour_clock(hour: int, minute: int, expected: str) -> None:
-    """The hour has no leading zero, midnight and noon read 12, and AM or PM follows."""
+    """The hour lacks a leading zero, midnight and noon read 12, and AM or PM follows."""
     moment = dt.datetime(2026, 9, 27, hour, minute, tzinfo=PACIFIC)
 
     assert format_display_datetime(moment) == expected

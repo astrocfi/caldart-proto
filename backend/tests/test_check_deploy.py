@@ -145,8 +145,8 @@ def run_check_deploy(overrides: dict[str, str]) -> subprocess.CompletedProcess[s
     )
 
 
-def test_the_recipe_pins_no_secure_flag() -> None:
-    """The recipe sets no ``SECURE_*`` variable, so prod's own defaults are checked.
+def test_the_recipe_does_not_pin_a_secure_flag() -> None:
+    """The recipe doesn't set a ``SECURE_*`` variable, so prod's own defaults are checked.
 
     A pinned flag would answer the check with the recipe's value, and a regression that
     turned that default off would pass the gate.

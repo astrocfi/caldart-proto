@@ -143,7 +143,7 @@ def test_home_page_sidebar_links_each_event_to_its_own_page(
 def test_home_page_hides_the_events_box_when_every_event_has_passed(
     client: Client, site_settings: SiteSettings
 ) -> None:
-    """With nothing ahead the box disappears rather than standing empty."""
+    """When nothing is ahead the box disappears rather than standing empty."""
     home = site_settings.site.root_page.specific
     index = make_event_index(home)
     make_event_page(index, "last-year", "Last year's drill", days_ahead=-1)
@@ -487,7 +487,7 @@ def test_current_member_reads_the_page(
 def test_dart_leader_without_a_membership_reads_the_page(
     client: Client, walled_page: StandardPage, dart_leader: User
 ) -> None:
-    """A DART leader with no membership of their own still reads the walled page."""
+    """A DART leader without a membership of their own still reads the walled page."""
     assert dart_leader.membership_status["status"] == "none"
     client.force_login(dart_leader)
 
@@ -516,7 +516,7 @@ def test_a_page_that_is_not_walled_is_public(client: Client, site_settings: Site
 def test_members_only_news_post_is_walled(
     client: Client, site_settings: SiteSettings, member: User
 ) -> None:
-    """A members-only news post is walled off even for a member with no term."""
+    """A members-only news post is walled off even for a member without a term."""
     home = site_settings.site.root_page.specific
     index = make_news_index(home)
     post = make_news_page(index, "closed", "Briefing", members_only=True)
@@ -658,7 +658,7 @@ def test_404_page_uses_the_site_chrome(client: Client, site_settings: SiteSettin
 
 
 def test_500_template_renders_without_a_request_or_context() -> None:
-    """Django's 500 handler renders with no request, so no context processor runs."""
+    """Django's 500 handler renders without a request, so no context processor runs."""
     body = render_to_string("500.html")
     assert "Something went wrong at our end" in body
     assert "CalDART" in body

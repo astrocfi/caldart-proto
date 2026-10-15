@@ -68,7 +68,7 @@ def pat(annual_plan: MembershipPlan, today: date) -> User:
 
 @pytest.fixture
 def blank() -> User:
-    """A friend with no name, no profile, and no membership."""
+    """A friend without a name, a profile, or a membership."""
     return UserFactory(
         email="blank@example.test", first_name="", last_name="", kind=AccountKind.FRIEND
     )
@@ -155,8 +155,8 @@ def test_unknown_tokens_are_named_once_each_in_order() -> None:
     assert unknown_tokens(text) == ["nickname", "shoe_size"]
 
 
-def test_a_message_of_known_tokens_has_no_unknown_ones() -> None:
-    """Text using only catalog fields, and template syntax, has nothing unknown."""
+def test_a_message_of_known_tokens_does_not_have_unknown_ones() -> None:
+    """Text using only catalog fields, and template syntax, has only known tokens."""
     assert unknown_tokens("{first_name} {{ nickname }} {% now %}") == []
 
 
@@ -180,7 +180,7 @@ def test_each_field_reads_the_persons_value(pat: User, today: date) -> None:
 
 
 def test_a_person_without_details_reads_empty_values(blank: User) -> None:
-    """A friend with no name, profile, or membership reads blank but for two fields."""
+    """A friend without a name, profile, or membership reads blank but for two fields."""
     assert values_for(blank, CATALOG) == {
         "first_name": "",
         "last_name": "",
@@ -207,7 +207,7 @@ def test_a_lapsed_member_reads_expired_with_the_date_it_ran_out(
     }
 
 
-def test_a_lifetime_member_has_no_expiration(life_plan: MembershipPlan) -> None:
+def test_a_lifetime_member_does_not_have_an_expiration(life_plan: MembershipPlan) -> None:
     """A lifetime term never runs out, so the expiration is empty."""
     user = UserFactory(email="life@example.test")
     grant_membership(user, life_plan)
@@ -216,7 +216,7 @@ def test_a_lifetime_member_has_no_expiration(life_plan: MembershipPlan) -> None:
 
 
 def test_a_profile_without_a_dart_reads_an_empty_dart_name() -> None:
-    """A member whose profile names no DART has an empty ``dart_name``."""
+    """A member whose profile doesn't name a DART has an empty ``dart_name``."""
     user = UserFactory(email="nodart@example.test")
     MemberProfileFactory(user=user, dart=None)
     assert values_for(user, ["dart_name"]) == {"dart_name": ""}
@@ -260,8 +260,8 @@ def test_the_fallback_is_unused_when_there_is_a_value() -> None:
     assert substitute("Hi {first_name|friend}!", {"first_name": "Pat"}, escape=False) == ("Hi Pat!")
 
 
-def test_an_empty_value_with_no_fallback_leaves_nothing() -> None:
-    """With no fallback, an empty value is an empty string."""
+def test_an_empty_value_without_a_fallback_leaves_an_empty_string() -> None:
+    """Without a fallback, an empty value is an empty string."""
     assert substitute("DART: {dart_name}.", {"dart_name": ""}, escape=False) == "DART: ."
 
 
@@ -288,7 +288,7 @@ def test_template_syntax_arrives_literally() -> None:
 
 
 def test_a_token_without_a_value_is_left_as_written() -> None:
-    """A token whose name has no value given is not touched."""
+    """A token whose name isn't given a value is not touched."""
     assert substitute("{nickname} {first_name}", {"first_name": "Pat"}, escape=False) == (
         "{nickname} Pat"
     )

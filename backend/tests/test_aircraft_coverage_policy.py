@@ -79,7 +79,9 @@ def test_reading_the_policy_needs_a_signed_in_caller(api_client: APIClient) -> N
     assert api_client.get(POLICY_URL).status_code == 401
 
 
-def test_a_policy_never_written_excludes_nothing(api_client: APIClient, member: User) -> None:
+def test_a_policy_never_written_does_not_exclude_anything(
+    api_client: APIClient, member: User
+) -> None:
     """Before an administrator writes one, the policy is empty."""
     api_client.force_login(member)
     assert api_client.get(POLICY_URL).json() == {
@@ -242,7 +244,7 @@ def test_the_aircraft_check_shows_an_excluded_aircraft(leader_client: APIClient)
 
 
 def test_the_aircraft_check_says_when_no_category_is_recorded(leader_client: APIClient) -> None:
-    """An aircraft with no category is not excluded, and the check says so."""
+    """An aircraft without a category is not excluded, and the check says so."""
     _exclude(categories=["helicopter"])
     AircraftFactory(n_number="N55NC")
     body = leader_client.get(LEADER_AIRCRAFT_URL, {"n_number": "N55NC"}).json()
@@ -284,7 +286,7 @@ def _register_queries(client: APIClient) -> int:
 
 
 def test_the_register_reads_the_policy_once_per_page(admin_client: APIClient) -> None:
-    """Judging every row of a page costs no query per row."""
+    """Judging every row of a page doesn't cost a query per row."""
     _exclude(categories=["helicopter"])
     AircraftFactory(n_number="N1HE", category="helicopter")
     one_row = _register_queries(admin_client)

@@ -116,7 +116,7 @@ def script_prefix() -> Iterator[None]:
 def directives(response: HttpResponseBase) -> dict[str, list[str]]:
     """Parse a response's Content-Security-Policy header into directive -> sources.
 
-    Raises ``KeyError`` when the response carries no enforced policy, which is
+    Raises ``KeyError`` when the response doesn't carry an enforced policy, which is
     itself the failure a caller wants to see.
     """
     header = response.headers["Content-Security-Policy"]

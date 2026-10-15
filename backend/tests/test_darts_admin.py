@@ -100,15 +100,15 @@ def test_each_row_counts_the_members_on_that_dart(account_admin_client: APIClien
 
 
 def test_a_dart_nobody_is_on_counts_zero(account_admin_client: APIClient) -> None:
-    """``member_count`` is zero for a DART with no profiles on it."""
+    """``member_count`` is zero for a DART without any profiles on it."""
     DartFactory(name="Angwin")
     assert account_admin_client.get(LIST_URL).json()[0]["member_count"] == 0
 
 
-def test_a_dart_row_names_its_airports_and_no_town(account_admin_client: APIClient) -> None:
+def test_a_dart_row_names_its_airports_but_not_a_town(account_admin_client: APIClient) -> None:
     """A DART is its name, its airports, its website and whether it is active.
 
-    A team is identified by the fields it flies from, so the row carries no
+    A team is identified by the fields it flies from, so the row doesn't carry a
     town of its own.
     """
     DartFactory(name="Angwin", airport_identifiers="2O3")
@@ -118,7 +118,7 @@ def test_a_dart_row_names_its_airports_and_no_town(account_admin_client: APIClie
     assert "city" not in row
 
 
-def test_the_public_catalog_carries_no_town(api_client: APIClient, db: None) -> None:
+def test_the_public_catalog_does_not_carry_a_town(api_client: APIClient, db: None) -> None:
     """``GET /darts`` answers the same fields the administrator's screen edits."""
     DartFactory(name="Angwin", airport_identifiers="2O3")
     row = api_client.get("/api/v1/darts").json()[0]
@@ -206,7 +206,7 @@ def test_a_pasted_icao_list_is_stored_in_the_one_spelling(
 def test_a_list_separated_by_spaces_alone_is_read_as_a_list(
     account_admin_client: APIClient,
 ) -> None:
-    """A pasted list often has no commas, and no identifier holds a space."""
+    """A pasted list often doesn't have commas, and no identifier holds a space."""
     response = account_admin_client.post(
         LIST_URL, {"name": "Contra Costa", "airport_identifiers": "CCR C83"}, format="json"
     )
@@ -278,7 +278,7 @@ def test_retiring_a_dart_keeps_it_and_its_members(account_admin_client: APIClien
 # Deleting
 # --------------------------------------------------------------------------
 def test_deleting_a_dart_nobody_is_on_removes_it(account_admin_client: APIClient) -> None:
-    """A DART with no members and no pages is deleted outright."""
+    """A DART without members or pages is deleted outright."""
     dart = DartFactory(name="Angwin")
     assert account_admin_client.delete(detail_url(dart)).status_code == 204
     assert not Dart.objects.filter(pk=dart.pk).exists()
@@ -391,7 +391,7 @@ def test_a_contact_phone_that_is_not_ten_digits_is_refused(
 
 
 def test_a_contact_needs_a_name(account_admin_client: APIClient) -> None:
-    """A listing without a name names nobody."""
+    """A listing without a name doesn't name anybody."""
     response = account_admin_client.post(
         LIST_URL,
         {
@@ -463,7 +463,7 @@ def test_an_edit_that_leaves_the_contacts_out_keeps_them(
 
 
 def test_deleting_a_dart_takes_its_contacts_with_it(account_admin_client: APIClient) -> None:
-    """A contact belongs to its DART and has no life without it."""
+    """A contact belongs to its DART and doesn't exist without it."""
     dart = DartFactory(name="Angwin")
     DartContact.objects.create(dart=dart, name="Helen", title="DART leader")
 

@@ -37,8 +37,8 @@ def _sent(index: int = 0) -> EmailMultiAlternatives:
     """The message ``mail.outbox[index]``, typed as the multipart mail it always is.
 
     ``send_password_invitation`` always attaches an HTML alternative, but Django's
-    stubs type ``mail.outbox`` as the plain ``EmailMessage`` base class, which has
-    no ``alternatives`` attribute.
+    stubs type ``mail.outbox`` as the plain ``EmailMessage`` base class, which lacks an
+    ``alternatives`` attribute.
     """
     return cast(EmailMultiAlternatives, mail.outbox[index])
 
@@ -69,7 +69,7 @@ def invitation_link() -> str:
 def uid_and_token() -> tuple[str, str]:
     """The ``uid`` and ``token`` query parameters of the mailed link."""
     match = re.search(r"\?uid=([^&\s]+)&token=([^\s&\"<]+)", invitation_link())
-    assert match, "the invitation link carries no uid and token"
+    assert match, "the invitation link doesn't carry a uid and token"
     return match.group(1), match.group(2)
 
 
@@ -85,7 +85,7 @@ def test_the_link_is_built_from_site_url(
     assert invitation_link().startswith("https://caldart.example.org/portal/reset-password?uid=")
 
 
-def test_a_trailing_slash_on_site_url_gives_no_double_slash(
+def test_a_trailing_slash_on_site_url_does_not_give_a_double_slash(
     invitee: User, site_settings: SiteSettings, settings: Settings
 ) -> None:
     """A ``SITE_URL`` ending in a slash does not produce a doubled slash in the link."""
@@ -271,7 +271,7 @@ def test_a_password_posted_with_the_member_still_sends_the_invitation_alone(
     site_settings: SiteSettings,
     django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
 ) -> None:
-    """A posted password is ignored: the invitation goes, and no verification message."""
+    """A posted password is ignored: the invitation goes alone, without verification."""
     with django_capture_on_commit_callbacks(execute=True):
         account_admin_client.post(
             MEMBERS_URL,

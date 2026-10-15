@@ -212,7 +212,7 @@ def awkward_credentials(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> 
 
 
 def test_the_database_url_leaves_the_password_out(awkward_credentials: dict[str, Any]) -> None:
-    """The URL names the user and the database, and carries no password at all."""
+    """The URL names the user and the database, and doesn't carry a password at all."""
     assert (
         services.database_url() == "postgres://ann%20marie%40caldart@db.example.test:5433/caldart"
     )

@@ -1,6 +1,6 @@
 """The people a DART lists: any number of them, and which of them receive the roster.
 
-Covers the list having no cap, the ``receives_roster`` check on each person, the
+Covers the list being uncapped, the ``receives_roster`` check on each person, the
 ``roster_recipients`` count and ``roster_sent_at`` stamp the account administrator's
 DART screen reads, the public catalog leaving the check out, and the demo seed
 checking each team's leader and deputy leader.

@@ -2,7 +2,7 @@
 
 ``POST /bulk-email/{id}/test`` mails the caller the email as it is saved, filled in with
 the caller's own values and built as the background sender builds a copy, under a
-subject that starts ``[Test]``.  It touches nothing of the send and is in the email log
+subject that starts ``[Test]``.  It doesn't touch the send and is in the email log
 under ``bulk_email_test``.  The preview builds each person's copy the same way, so it
 ends with that person's own unsubscribe link.
 """
@@ -106,7 +106,7 @@ def test_only_management_sends_a_test(
 
 
 def test_a_leader_s_test_goes_to_the_leader_alone(api_client: APIClient) -> None:
-    """A leader's test of their own draft reaches them, and nobody in their batch."""
+    """A leader's test of their own draft reaches them alone, never their batch."""
     marin = DartFactory(name="Marin")
     leader = make_dart_leader("lane@example.test", marin)
     bulk = BulkEmailFactory(sender=leader, dart=marin, reply_to="")
@@ -143,7 +143,7 @@ def test_an_anonymous_caller_is_refused(api_client: APIClient, management: User)
 def test_a_test_goes_to_the_caller_alone(
     management_client: APIClient, management: User, greeting: BulkEmail
 ) -> None:
-    """One press is one message, to the caller's own address and nobody in the batch."""
+    """One press is one message, to the caller's own address alone, never to the batch."""
     response = management_client.post(endpoint(greeting))
     assert (response.json(), [message.to for message in mail.outbox]) == (
         {"to": management.email},
@@ -171,8 +171,8 @@ def test_the_body_is_the_copy_the_send_would_give_the_caller(
 ) -> None:
     """Both parts match the copy the background sender sends the same person.
 
-    All but the real copy's *View this email in your browser* line: a test is nobody's
-    message on Email to me, so it carries no such link.
+    All but the real copy's *View this email in your browser* line: a test isn't anybody's
+    message on Email to me, so it doesn't carry that link.
     """
     add_to_batch(greeting, management)
     with freeze_time(NOW):
@@ -214,9 +214,7 @@ def test_the_test_carries_the_reply_to(management: User, greeting: BulkEmail) ->
     assert mail.outbox[0].reply_to == ["marin@example.test"]
 
 
-def test_a_test_touches_nothing_of_the_send(
-    management_client: APIClient, greeting: BulkEmail
-) -> None:
+def test_a_test_does_not_touch_the_send(management_client: APIClient, greeting: BulkEmail) -> None:
     """The email stays a draft with the same batch, and no copy is counted."""
     management_client.post(endpoint(greeting))
     greeting.refresh_from_db()
@@ -291,10 +289,10 @@ def test_the_preview_footer_reads_as_the_person_s_copy_does(
     assert "because you have not turned it off" in html
 
 
-def test_the_preview_s_unsubscribe_link_unsubscribes_nobody(
+def test_the_preview_s_unsubscribe_link_does_not_unsubscribe_anybody(
     management_client: APIClient, greeting: BulkEmail
 ) -> None:
-    """The link in a preview holds no signed token, so a sender cannot turn Ann's off."""
+    """A preview's link doesn't hold a signed token, so a sender cannot turn Ann's off."""
     html = management_client.post(
         f"/api/v1/bulk-email/{greeting.pk}/preview", {}, format="json"
     ).json()["html"]
@@ -307,7 +305,7 @@ def test_the_preview_s_unsubscribe_link_unsubscribes_nobody(
 def test_the_sender_s_own_preview_carries_the_inert_link_too(
     management_client: APIClient, management: User
 ) -> None:
-    """With nobody in the batch, the caller's own preview has the same inert link."""
+    """With an empty batch, the caller's own preview has the same inert link."""
     bulk = BulkEmailFactory(sender=management)
     html = management_client.post(
         f"/api/v1/bulk-email/{bulk.pk}/preview", {}, format="json"

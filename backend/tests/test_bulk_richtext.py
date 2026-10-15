@@ -164,7 +164,7 @@ def test_sanitizing_closes_every_tag() -> None:
     assert sanitize("<p><strong>open") == "<p><strong>open</strong></p>"
 
 
-def test_sanitizing_twice_changes_nothing() -> None:
+def test_sanitizing_twice_does_not_change_anything() -> None:
     """A sanitized message passes through the sanitizer unchanged."""
     once = sanitize('<p onclick="x()">Hi <a href="javascript:x()">a</a><script>s</script></p>')
     assert sanitize(once) == once

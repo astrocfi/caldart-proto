@@ -161,7 +161,7 @@ def test_each_copy_is_filled_in_for_its_recipient(greeting: BulkEmail) -> None:
 
 
 def test_each_recipients_values_are_stored_at_send_time(greeting: BulkEmail) -> None:
-    """Each row keeps the values of the fields the message uses, and no others."""
+    """Each row keeps only the values of the fields the message uses."""
     send_now(greeting)
     row = greeting.recipients.get(email="ann@example.test")
     assert row.values == {"first_name": "Ann", "dart_name": "Marin"}
@@ -204,8 +204,8 @@ def test_a_rebuilt_copy_reads_as_sent_after_the_profile_changed(
     assert render_copy(greeting, row).subject == "Hello Ann"
 
 
-def test_a_message_without_fields_stores_no_values(management: User, ann: User) -> None:
-    """A copy that fills in nothing stores an empty object."""
+def test_a_message_without_fields_stores_an_empty_object(management: User, ann: User) -> None:
+    """A copy that doesn't fill in anything stores an empty object."""
     bulk = BulkEmailFactory(sender=management)
     add_to_batch(bulk, ann)
     send_now(bulk)
@@ -332,10 +332,10 @@ def test_sending_refuses_a_token_that_cannot_be_filled_in(
     )
 
 
-def test_sending_refuses_a_message_with_no_words(
+def test_sending_refuses_a_message_without_words(
     management_client: APIClient, greeting: BulkEmail
 ) -> None:
-    """A message of empty paragraphs is no message at all."""
+    """A message of empty paragraphs isn't a message at all."""
     BulkEmail.objects.filter(pk=greeting.pk).update(body="<p></p><p> </p>")
     response = management_client.post(detail_url(greeting, "send"), {}, format="json")
     assert (response.status_code, response.json()) == (400, {"body": ["Write the message."]})
@@ -373,7 +373,7 @@ def test_only_management_previews(
 def test_the_preview_starts_with_the_first_person(
     management_client: APIClient, greeting: BulkEmail
 ) -> None:
-    """With no row named, the preview is the first person's copy, Ann's."""
+    """Without a row named, the preview is the first person's copy, Ann's."""
     body = management_client.post(detail_url(greeting, "preview"), {}, format="json").json()
     bea_row = greeting.recipients.get(email="bea@example.test")
     assert {
@@ -400,7 +400,7 @@ def test_the_preview_starts_with_the_first_person(
 def test_the_preview_steps_to_the_chosen_person(
     management_client: APIClient, greeting: BulkEmail
 ) -> None:
-    """Naming Bea's row previews her copy, with Ann's row before it and none after."""
+    """Naming Bea's row previews her copy, with Ann's row before it and ``null`` after."""
     ann_row = greeting.recipients.get(email="ann@example.test")
     bea_row = greeting.recipients.get(email="bea@example.test")
     body = management_client.post(
@@ -417,7 +417,7 @@ def test_the_preview_steps_to_the_chosen_person(
 def test_the_preview_of_an_empty_batch_is_the_senders_own(
     management_client: APIClient, management: User
 ) -> None:
-    """With nobody in the batch, the preview fills in the sender's own values."""
+    """With an empty batch, the preview fills in the sender's own values."""
     bulk = BulkEmailFactory(sender=management, subject="Hi {first_name}")
     body = management_client.post(detail_url(bulk, "preview"), {}, format="json").json()
     assert (body["subject"], body["recipient"]["id"], body["position"], body["count"]) == (

@@ -81,8 +81,8 @@ def test_a_timeout_becomes_an_smtp_option() -> None:
     assert mailer["OPTIONS"]["timeout"] == 20
 
 
-def test_the_console_backend_takes_no_options() -> None:
-    """``consolemail://`` names the console backend and carries nothing else."""
+def test_the_console_backend_does_not_take_options() -> None:
+    """``consolemail://`` names the console backend alone."""
     parsed = email_url_settings(
         EMAIL_BACKEND=CONSOLE_BACKEND,
         EMAIL_HOST=None,

@@ -4,7 +4,7 @@
 published ``HomePage``, a default ``Site`` pointing at it, and a ``SiteSettings``
 row carrying a theme.  It has to reach that state from any of the states a
 database can be in -- empty, half-built, or pointed at the wrong page -- without
-undoing an administrator's edits, and running it twice must change nothing.
+undoing an administrator's edits, and running it twice must not change anything.
 """
 
 from __future__ import annotations
@@ -23,14 +23,14 @@ pytestmark = pytest.mark.django_db
 
 @pytest.fixture
 def empty_tree() -> Page:
-    """Wagtail's root page with no home page and no site under it."""
+    """Wagtail's root page without a home page or a site under it."""
     Site.objects.all().delete()
     HomePage.objects.all().delete()
     return Page.get_first_root_node()
 
 
 def test_an_empty_tree_gets_a_published_home_page(empty_tree: Page) -> None:
-    """With no home page at all, the seed creates one and publishes it."""
+    """Without any home page, the seed creates one and publishes it."""
     ensure_site_root()
 
     home = HomePage.objects.get()
@@ -95,7 +95,7 @@ def test_repairing_twice_leaves_one_home_page(empty_tree: Page) -> None:
 # run(): the settings row and the line it reports
 # --------------------------------------------------------------------------
 def test_run_creates_the_settings_row_with_the_default_theme(empty_tree: Page) -> None:
-    """A tree with no settings row gets one carrying the default theme."""
+    """A tree without a settings row gets one carrying the default theme."""
     ctx = run({})
 
     settings_row = SiteSettings.objects.get()

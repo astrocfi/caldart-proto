@@ -151,7 +151,7 @@ def register_payload(**overrides: str) -> dict[str, str]:
 # That resolution happens while Django starts up, before this module is even
 # imported -- pytest-django sets Django up in its own `pytest_load_initial_
 # conftests` hook, which runs before any conftest.py is collected -- so a
-# local run with nothing built falls through to `pytest_configure` below,
+# local run without a built frontend falls through to `pytest_configure` below,
 # which builds a stub manifest outside the checkout, overrides the already-
 # loaded `DJANGO_VITE` setting to point there, and forces django-vite to
 # re-read it (its `AppConfig.ready()` cached the -- then empty -- loader
@@ -260,7 +260,7 @@ def pytest_unconfigure(config: pytest.Config) -> None:
 
 
 def pytest_runtest_setup(item: pytest.Item) -> None:
-    """Skip a ``needs_frontend_build`` test with no real bundle, or fail it in CI.
+    """Skip a ``needs_frontend_build`` test without a real bundle, or fail it in CI.
 
     The marker states the requirement declaratively and this hook enforces it.
     A developer who has not run ``make build`` gets a skip naming the manifest
@@ -295,7 +295,7 @@ PAYMENT_MODULE_PREFIX = "test_payments"
 def _no_live_http(request: pytest.FixtureRequest) -> Iterator[None]:
     """Refuse any unmocked ``httpx`` call made by a payment test module.
 
-    Tests outside those modules run untouched.  The router asserts nothing about
+    Tests outside those modules run untouched.  The router doesn't assert anything about
     which routes were used, so a test may register more routes than it exercises,
     and it nests inside the ``respx.mock`` router an individual test starts, so
     routes that test registers still answer.
@@ -389,7 +389,7 @@ def password() -> str:
 
 @pytest.fixture
 def no_role_user(db: None) -> UserModel:
-    """Return a signed-in user with no roles at all."""
+    """Return a signed-in user who doesn't hold any role."""
     return UserFactory(email="nobody@example.test", roles=[])
 
 
@@ -509,7 +509,7 @@ def treasurer_client(api_client: APIClient, treasurer: UserModel) -> APIClient:
     """Return a DRF client already signed in as a treasurer.
 
     The treasurer holds the finance role and the member role, so the client reaches
-    every ``/admin/payments`` endpoint and none of ``/admin/members``.
+    every ``/admin/payments`` endpoint but not ``/admin/members``.
     """
     api_client.force_login(treasurer)
     return api_client
@@ -555,7 +555,7 @@ def member_is_current(member: UserModel, annual_plan: MembershipPlan) -> Members
     """Give the ``member`` fixture's account a term covering today.
 
     The aircraft register and a member's own aircraft are for current members
-    (``apps.aircraft.access``), and ``member`` holds no term, so a test that uses
+    (``apps.aircraft.access``), and ``member`` doesn't hold a term, so a test that uses
     aircraft as that member requests this, or a module marks itself with
     ``pytest.mark.usefixtures("member_is_current")``.
     """
@@ -603,7 +603,7 @@ def register(db: None, today: date) -> RegisterDict:
     days.  ``expiring`` is N9021K, a Piper Archer owned by Marta Reyes, whose cover
     expires in 10 days.  ``expired`` is N33MM, a Mooney M20J owned by Owen Delgado,
     whose cover expired 5 days ago.  ``missing`` is N44BE, a Beechcraft Bonanza owned by
-    an FBO, with no carrier, no amounts and no expiration on file.  ``expiring`` and
+    an FBO, without a carrier, amounts, or an expiration on file.  ``expiring`` and
     ``expired`` carry the factory's default carrier and amounts.
     """
     return {
@@ -718,8 +718,8 @@ def days() -> Callable[[int], timedelta]:
 # PDF text
 #
 # The reports are drawn by reportlab, which writes one compressed content
-# stream per page.  Reading the strings back out of those streams costs nothing
-# but ``zlib`` and ``base64``, and it lets a PDF test assert on the words the
+# stream per page.  Reading the strings back out of those streams needs only
+# ``zlib`` and ``base64``, and it lets a PDF test assert on the words the
 # document actually shows instead of on its length.
 # --------------------------------------------------------------------------
 #: A content stream together with the ``/Filter`` entry that describes it.
@@ -782,7 +782,7 @@ def pdf_page_text(pdf: bytes) -> list[list[str]]:
     reportlab writes one content stream per page in page order, so the outer list
     is the document's pages: ``pdf_page_text(body)[0]`` is the first page, and
     ``len(pdf_page_text(body))`` its page count.  Streams carrying any other filter
-    are skipped, since they hold no text.
+    are skipped, since they don't hold any text.
     """
     pages: list[list[str]] = []
     for stream in _PDF_STREAM_RE.finditer(pdf):
@@ -865,7 +865,7 @@ def golden(request: pytest.FixtureRequest) -> Golden:
     missing golden file fails naming the path and the switch that would write it.
 
     Running pytest with ``--update-golden`` rewrites the file from ``text`` instead of
-    comparing, and asserts nothing; read the diff before committing the result.
+    comparing, and doesn't assert anything; read the diff before committing the result.
 
     Line endings are never translated, in either direction, so a CSV export's ``\r\n``
     separators are part of what the comparison covers.
@@ -901,7 +901,7 @@ def email_template(tmp_path: Path, settings: Settings) -> str:
     ``first_name`` and ``total``, so rendering them against
     ``{"first_name": "Marta", "total": "$95.00"}`` gives
     ``"Dear Marta, your total is $95.00.\n"`` and its HTML paragraph, and
-    rendering them against nothing leaves both placeholders empty.  The directory
+    rendering them without a context leaves both placeholders empty.  The directory
     is added to the template search path for the one test alone.
     """
     directory = tmp_path / "emails"
@@ -948,7 +948,7 @@ def run_on_commit(monkeypatch: pytest.MonkeyPatch) -> None:
 def audit_log(caplog: pytest.LogCaptureFixture) -> Iterator[pytest.LogCaptureFixture]:
     """Capture the ``caldart.audit`` records a test provokes.
 
-    The audit logger does not propagate, so ``caplog`` alone sees nothing: its
+    The audit logger does not propagate, so ``caplog`` alone doesn't see a record: its
     handler is attached to the audit logger for the test and taken off again
     afterwards.
     """
@@ -998,7 +998,7 @@ BOUNCE_REPORTS_DIR = Path(__file__).resolve().parent / "bounce_reports"
 #: The bounce address the fake mailbox's reports return to, unsigned.
 FAKE_BOUNCE_ADDRESS = "bounces@caldart.example.org"
 
-#: What a report's placeholders read when a test names none: a hard bounce.
+#: What a report's placeholders read when a test doesn't name any: a hard bounce.
 _BOUNCE_REPORT_DEFAULTS: dict[str, str] = {
     "recipient": "gone@example.com",
     "message_id": "<original.1@caldart.example.org>",
@@ -1096,7 +1096,7 @@ class FakeImap:
         return "OK", [b"Logged in"]
 
     def select(self, mailbox: str, readonly: bool = False) -> tuple[str, list[bytes]]:
-        """Open ``mailbox`` and answer its message count, or ``NO`` for no such box."""
+        """Open ``mailbox`` and answer its message count, or ``NO`` for a missing box."""
         self.mailbox = mailbox
         self.readonly = readonly
         if mailbox not in self.mailboxes:
@@ -1148,7 +1148,7 @@ def no_email_types(db: None) -> None:
     """Delete the email types the migrations create, so a test builds exactly its own.
 
     Every database starts with Operational, Fundraising, and Mission; a test that lists
-    the types, or names one of its own Mission, starts from none instead.
+    the types, or names one of its own Mission, starts from an empty table instead.
     """
     EmailType.objects.all().delete()
 
@@ -1251,7 +1251,7 @@ PAYPAL_SANDBOX = "https://api-m.sandbox.paypal.com"
 
 @pytest.fixture
 def paypal_sandbox(settings: Settings) -> Iterator[None]:
-    """Fake sandbox PayPal credentials, with no cached token before or after."""
+    """Fake sandbox PayPal credentials, without a cached token before or after."""
     settings.PAYPAL_CLIENT_ID = "paypal-client"
     settings.PAYPAL_CLIENT_SECRET = "paypal-secret"  # noqa: S105 - a fake secret
     settings.PAYPAL_ENV = "sandbox"

@@ -1,7 +1,7 @@
 """Each DART's monthly roster, emailed to the people on its list checked to receive it.
 
 The roster is due on the first run in a month in which the DART has not been sent
-one; a DART with nobody to send it to is skipped as ``no_recipients``, and a checked
+one; a DART without anybody to send it to is skipped as ``no_recipients``, and a checked
 person without an address as ``no_email``.  ``GET /reports/rosters`` lists them and
 ``POST /reports/rosters/send`` sends every one now.
 """
@@ -59,7 +59,7 @@ def named_site(settings: Settings, site_settings: SiteSettings) -> None:
 
 # -- who is sent it -----------------------------------------------------------
 def test_only_the_checked_people_are_sent_the_roster(mailoutbox: list[EmailMessage]) -> None:
-    """One email per checked person with an address; an unchecked person gets none."""
+    """One email per checked person with an address; an unchecked person is skipped."""
     checked_dart()
 
     run_scheduled_reports(today=TODAY)
@@ -80,7 +80,7 @@ def test_each_checked_person_gets_an_email_of_their_own(mailoutbox: list[EmailMe
     ]
 
 
-def test_a_dart_with_nobody_checked_is_skipped(mailoutbox: list[EmailMessage]) -> None:
+def test_a_dart_without_a_checked_person_is_skipped(mailoutbox: list[EmailMessage]) -> None:
     """No checked person is ``no_recipients``, once for the DART."""
     dart = DartFactory()
     DartContactFactory(dart=dart, receives_roster=False)
@@ -90,10 +90,10 @@ def test_a_dart_with_nobody_checked_is_skipped(mailoutbox: list[EmailMessage]) -
     assert run.skipped_by_reason == {"no_recipients": 1}
 
 
-def test_a_dart_whose_checked_people_have_no_address_is_skipped(
+def test_a_dart_whose_checked_people_do_not_have_an_address_is_skipped(
     mailoutbox: list[EmailMessage],
 ) -> None:
-    """Checked people without an address are nobody to send to."""
+    """Checked people without an address can't be sent the roster."""
     dart = DartFactory()
     DartContactFactory(dart=dart, email="", receives_roster=True)
 
@@ -114,7 +114,7 @@ def test_a_checked_person_without_an_address_is_skipped_beside_the_others(
     assert (run.sent, run.skipped_by_reason) == (1, {"no_email": 1})
 
 
-def test_an_inactive_dart_is_sent_nothing(mailoutbox: list[EmailMessage]) -> None:
+def test_an_inactive_dart_is_not_sent_a_roster(mailoutbox: list[EmailMessage]) -> None:
     """A DART that has stood down is not sent a roster."""
     checked_dart(is_active=False)
 
@@ -155,7 +155,7 @@ def test_a_roster_is_due_once_a_month(
 
 
 def test_a_sent_roster_is_stamped(mailoutbox: list[EmailMessage], today: date) -> None:
-    """``roster_sent_at`` records the send, so the month's later runs send nothing."""
+    """``roster_sent_at`` records the send, so the month's later runs skip the DART."""
     dart = checked_dart()
 
     run_scheduled_reports()
@@ -186,7 +186,7 @@ def test_a_refused_roster_is_in_the_email_log(refusing_mail_server: None) -> Non
     assert EmailLog.objects.get().purpose == "dart_roster"
 
 
-def test_a_dry_run_sends_and_stamps_nothing(mailoutbox: list[EmailMessage]) -> None:
+def test_a_dry_run_does_not_send_or_stamp_anything(mailoutbox: list[EmailMessage]) -> None:
     """A rehearsal names the person and the DART, and leaves the roster due."""
     dart = checked_dart()
 
@@ -339,7 +339,7 @@ def test_send_now_stamps_the_dart(
 def test_send_now_as_a_dry_run_names_the_people(
     account_admin_client: APIClient, mailoutbox: list[EmailMessage]
 ) -> None:
-    """A rehearsal answers who would be sent the roster, and sends nothing."""
+    """A rehearsal answers who would be sent the roster, and doesn't send anything."""
     checked_dart()
 
     response = account_admin_client.post(SEND_URL, {"dry_run": True}, format="json")

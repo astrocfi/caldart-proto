@@ -76,8 +76,8 @@ def test_a_url_without_a_password_is_left_alone() -> None:
     assert cleansed == "https://caldart.example.org/portal"
 
 
-def test_a_failed_bounce_check_reports_no_password(fake_mailbox: FakeMailbox) -> None:
-    """The traceback of a failed check shows none of its frames' secrets."""
+def test_a_failed_bounce_check_does_not_report_a_password(fake_mailbox: FakeMailbox) -> None:
+    """The traceback of a failed check doesn't show any of its frames' secrets."""
     fake_mailbox(refuse=ConnectionRefusedError(111, "Connection refused"))
 
     with pytest.raises(BounceCheckError) as raised:

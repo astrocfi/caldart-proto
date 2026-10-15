@@ -65,7 +65,7 @@ DOCUMENTED_COLUMNS = (
     "profile_updated",
 )
 
-#: The header the CSV prints when the caller chooses no columns: the labels of
+#: The header the CSV prints when the caller doesn't choose any columns: the labels of
 #: the eleven default columns, which is what ``docs/developer/reports.rst`` shows.
 DEFAULT_HEADER = [
     "Name",
@@ -243,7 +243,7 @@ def test_csv_leaves_a_lifetime_expiry_blank(
 def test_csv_blanks_a_missing_certificate_and_medical(
     account_admin_client: APIClient, reportable: dict[str, User]
 ) -> None:
-    """A member with no certificate, medical or aircraft on file gets blank cells."""
+    """A member without a certificate, medical, or aircraft on file gets blank cells."""
     table = read_csv(account_admin_client.get(CSV_URL, ALL_COLUMNS))
     row = row_for(table, "lapsed@example.test")
     assert row["status"] == "Expired"
@@ -257,7 +257,7 @@ def test_csv_blanks_a_missing_certificate_and_medical(
 def test_a_pilot_without_the_instrument_rating_reads_no(
     account_admin_client: APIClient, reportable: dict[str, User]
 ) -> None:
-    """The Instrument cell reads No for a pilot whose ratings leave the instrument out."""
+    """The Instrument cell is ``No`` for a pilot whose ratings omit the instrument."""
     profile = reportable["lifer"].profile
     profile.ratings = ["asel"]
     profile.save(update_fields=["ratings"])
@@ -310,10 +310,10 @@ def test_csv_is_not_paginated(account_admin_client: APIClient, reportable: dict[
     assert len(table) - 1 == User.objects.count()
 
 
-def test_csv_with_no_matches_is_a_header_only(
+def test_csv_without_matches_is_a_header_only(
     account_admin_client: APIClient, reportable: dict[str, User]
 ) -> None:
-    """A filter matching nobody exports the header row alone."""
+    """A filter without matches exports the header row alone."""
     table = read_csv(account_admin_client.get(CSV_URL, {"search": "nobody-by-that-name"}))
     assert table == [DEFAULT_HEADER]
 
@@ -342,7 +342,7 @@ def test_pdf_is_a_valid_landscape_letter_document(
 def test_pdf_survives_an_empty_result_set(
     account_admin_client: APIClient, reportable: dict[str, User]
 ) -> None:
-    """A filter matching nobody still produces a valid PDF."""
+    """A filter without matches still produces a valid PDF."""
     response = account_admin_client.get(PDF_URL, {"search": "nobody-by-that-name"})
     assert response.status_code == 200
     assert response.content.startswith(b"%PDF-")
@@ -365,7 +365,7 @@ def test_pdf_subtitle_summarizes_the_applied_filters(reportable: dict[str, User]
 
 
 def test_pdf_subtitle_when_nothing_is_filtered(reportable: dict[str, User]) -> None:
-    """With no filters applied, the PDF subtitle is the default summary."""
+    """Without filters applied, the PDF subtitle is the default summary."""
     assert filter_summary(MEMBER_REPORT.query({}).filters) == "No filters applied"
 
 

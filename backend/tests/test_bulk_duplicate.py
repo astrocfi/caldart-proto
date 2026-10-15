@@ -186,7 +186,7 @@ def test_duplicating_leaves_the_original_unchanged(
 def test_a_type_the_caller_may_not_send_is_left_unchosen(
     management: User, other_manager: User
 ) -> None:
-    """The copy has no type when the caller may not send the original's."""
+    """The copy doesn't have a type when the caller may not send the original's."""
     board = EmailTypeFactory(name="Board", sender_roles=[])
     original = BulkEmailFactory(sender=other_manager, email_type=board)
     assert duplicate(original, actor=management, copy_recipients=False).email_type is None
@@ -293,10 +293,10 @@ def test_a_leader_cannot_duplicate_anothers_email(
     assert api_client.post(duplicate_url(sent), {}, format="json").status_code == 404
 
 
-def test_a_leader_whose_profile_names_no_dart_cannot_duplicate(
+def test_a_leader_whose_profile_does_not_name_a_dart_cannot_duplicate(
     api_client: APIClient, leader: User, leader_send: BulkEmail
 ) -> None:
-    """There is nobody to send to: 403 with the sender's reason, and no draft is made."""
+    """There isn't anybody to send to: 403 with the reason, and no draft is made."""
     MemberProfile.objects.filter(user=leader).update(dart=None)
     api_client.force_login(leader)
     before = BulkEmail.objects.count()

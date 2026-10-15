@@ -175,7 +175,7 @@ def test_an_administrators_change_meanwhile_tells_the_recovery_address(
 def test_the_recovery_address_cannot_be_registered(
     vera: User, api_client: APIClient, signed_in: Callable[[User], APIClient], run_on_commit: None
 ) -> None:
-    """Registering the address the account left opens no second account."""
+    """Registering the address the account left doesn't open a second account."""
     change_and_confirm(vera, signed_in(vera))
     api_client.logout()
 
@@ -200,7 +200,7 @@ def test_registering_the_recovery_address_tells_its_owner(
 def test_a_gift_from_the_recovery_address_goes_to_the_account(
     vera: User, signed_in: Callable[[User], APIClient], run_on_commit: None
 ) -> None:
-    """A public gift makes no donor of the address the account left."""
+    """A public gift doesn't make a donor of the address the account left."""
     change_and_confirm(vera, signed_in(vera))
 
     donor = donor_for(cast(DonorFields, {"first_name": "A", "last_name": "B", "email": OLD}))
@@ -359,7 +359,7 @@ def test_an_undo_link_works_on_its_last_day(
 
 
 def test_a_forged_undo_link_is_refused(api_client: APIClient, vera: User) -> None:
-    """A token signed under another salt proves nothing."""
+    """A token signed under another salt doesn't prove anything."""
     token = signing.dumps({"user": vera.pk, "from": "x@example.test", "to": OLD, "at": 0.0})
 
     response = api_client.post(UNDO_URL, {"token": token})
@@ -368,7 +368,7 @@ def test_a_forged_undo_link_is_refused(api_client: APIClient, vera: User) -> Non
 
 
 def test_an_undo_link_for_a_donor_is_refused(api_client: APIClient) -> None:
-    """A donor has no sign-in address to protect."""
+    """A donor doesn't have a sign-in address to protect."""
     donor = UserFactory(email=OLD, kind=AccountKind.DONOR)
     token = signing.dumps(
         {"user": donor.pk, "from": "x@example.test", "to": OLD, "at": timezone.now().timestamp()},
@@ -419,7 +419,7 @@ def test_undo_closes_the_account_when_the_old_address_is_taken(
 def test_closing_the_account_cancels_its_standing_authorities(
     vera: User, signed_in: Callable[[User], APIClient], run_on_commit: None
 ) -> None:
-    """A closed account is charged nothing further, as after any deactivation."""
+    """A closed account isn't charged anything further, as after any deactivation."""
     mandate = RenewalMandateFactory(user=vera)
 
     _taken_undo(vera, signed_in(vera))
@@ -428,10 +428,10 @@ def test_closing_the_account_cancels_its_standing_authorities(
     assert mandate.status == MandateStatus.CANCELED
 
 
-def test_undo_mails_no_reset_link_when_the_old_address_is_taken(
+def test_undo_does_not_mail_a_reset_link_when_the_old_address_is_taken(
     vera: User, signed_in: Callable[[User], APIClient], run_on_commit: None
 ) -> None:
-    """The account is closed, so there is nothing to reset; the owner asks the office."""
+    """The account is closed, so it can't be reset; the owner asks the office."""
     mail.outbox.clear()
     _taken_undo(vera, signed_in(vera))
 
@@ -441,7 +441,7 @@ def test_undo_mails_no_reset_link_when_the_old_address_is_taken(
 def test_a_closed_account_cannot_be_reset_by_whoever_holds_its_address(
     vera: User, signed_in: Callable[[User], APIClient], run_on_commit: None
 ) -> None:
-    """A reset request for the address the account was moved to mails nothing."""
+    """A reset request for the address the account was moved to doesn't mail anything."""
     _taken_undo(vera, signed_in(vera))
     mail.outbox.clear()
 

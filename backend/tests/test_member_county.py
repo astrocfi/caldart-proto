@@ -26,7 +26,7 @@ COOK_REFUSED = {"county": ["Select a valid choice. Cook is not one of the availa
 
 @pytest.fixture
 def county_members() -> dict[str, User]:
-    """Four members: two in Napa County, one in Santa Clara, and one with no county."""
+    """Four members: two in Napa County, one in Santa Clara, and one without a county."""
     people = {
         "napa": ("napa@example.test", "Napa"),
         "napa_too": ("napa2@example.test", "Napa"),
@@ -75,10 +75,10 @@ def test_a_county_outside_california_is_refused(
     assert response.json() == COOK_REFUSED
 
 
-def test_a_blank_county_narrows_nothing(
+def test_a_blank_county_does_not_narrow_anything(
     account_admin_client: APIClient, county_members: dict[str, User]
 ) -> None:
-    """``?county=`` with no value lists every member, the one with no county included."""
+    """``?county=`` without a value lists every member, the one without a county too."""
     assert "none@example.test" in listed_emails(account_admin_client, county="")
 
 
@@ -124,7 +124,7 @@ def test_the_county_column_is_off_by_default() -> None:
 def test_the_county_column_prints_the_profile_county(
     account_admin_client: APIClient, county_members: dict[str, User]
 ) -> None:
-    """A member's County cell is the county on their profile, blank when there is none."""
+    """A member's County cell is the county on their profile, or blank without one."""
     table = read_csv(account_admin_client.get(CSV_URL, {"columns": "email,county"}))
     counties = dict(table[1:])
     assert counties["sc@example.test"] == "Santa Clara"

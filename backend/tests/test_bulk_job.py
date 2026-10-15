@@ -376,7 +376,7 @@ def test_a_temporary_refusal_gives_up_after_three_retries(
 def test_a_permanent_refusal_is_not_retried(
     three: BulkEmail, script: list[Outcome], clock: FakeClock, settings: Settings
 ) -> None:
-    """A 550 fails the copy at once, with no retry, and the rest still go."""
+    """A 550 fails the copy at once, without a retry, and the rest still go."""
     settings.BULK_EMAIL_RATE_PER_MINUTE = 6000
     script.append(permanent())
     job.run_sender(now=NOW)
@@ -472,7 +472,7 @@ def test_send_the_rest_sends_only_the_copies_a_stop_left(
 def test_send_the_rest_starts_at_once(
     three: BulkEmail, management: User, stop_after_first: None, settings: Settings
 ) -> None:
-    """There is no undo window on **Send the rest**."""
+    """**Send the rest** doesn't have an undo window."""
     settings.BULK_EMAIL_UNDO_SECONDS = 120
     job.run_sender(now=NOW)
     resumed = drafts.resume(three, actor=management, now=NOW)
@@ -496,7 +496,7 @@ def test_send_the_rest_skips_a_person_deactivated_since_the_stop(
     ]
 
 
-def test_send_the_rest_sends_nothing_to_an_account_deleted_since_the_stop(
+def test_send_the_rest_does_not_send_to_an_account_deleted_since_the_stop(
     three: BulkEmail, management: User, stop_after_first: None
 ) -> None:
     """A deleted account's stored address is not sent the rest."""
@@ -518,7 +518,7 @@ def test_send_the_rest_counts_the_people_it_skips(
     assert (refreshed(three).sent_count, refreshed(three).skipped_count) == (2, 1)
 
 
-def test_send_the_rest_with_everybody_skipped_finishes_the_email_sending_nothing(
+def test_send_the_rest_with_everybody_skipped_finishes_the_email_without_sending_anything(
     three: BulkEmail, management: User, stop_after_first: None
 ) -> None:
     """When nobody the stop kept back can be sent it now, the email ends ``sent``."""
@@ -581,7 +581,7 @@ def another_run_working() -> Iterator[None]:
         second.close()
 
 
-def test_a_run_while_another_works_does_nothing(
+def test_a_run_while_another_works_does_not_send_anything(
     three: BulkEmail, another_run_working: None
 ) -> None:
     """The sender's lock keeps two runs from sending the same copies."""
@@ -619,7 +619,7 @@ def test_the_detail_reports_progress_while_sending(
 def test_no_finish_is_estimated_once_the_send_is_over(
     management_client: APIClient, three: BulkEmail
 ) -> None:
-    """A sent email has nothing left to estimate."""
+    """A sent email doesn't have anything left to estimate."""
     job.run_sender(now=NOW)
     assert (
         management_client.get(f"/api/v1/bulk-email/{three.pk}").json()["estimated_finish_at"]
@@ -630,7 +630,7 @@ def test_no_finish_is_estimated_once_the_send_is_over(
 # --------------------------------------------------------------------------
 # A stop that comes too late, and a stop during the pause
 # --------------------------------------------------------------------------
-def test_a_stop_on_the_last_copy_leaves_a_sent_email_with_no_stop(
+def test_a_stop_on_the_last_copy_leaves_a_sent_email_without_a_stop(
     management: User,
     clock: FakeClock,
     monkeypatch: pytest.MonkeyPatch,
@@ -720,7 +720,7 @@ def test_an_email_queued_again_refuses_every_change(
 def test_stop_on_an_email_queued_again_stops_it_at_once(
     management_client: APIClient, resumed: BulkEmail
 ) -> None:
-    """The sender has not picked it up yet, so the stop needs no run to take effect."""
+    """The sender has not picked it up yet, so the stop takes effect without a run."""
     management_client.post(f"/api/v1/bulk-email/{resumed.pk}/stop")
     resumed.refresh_from_db()
     assert (

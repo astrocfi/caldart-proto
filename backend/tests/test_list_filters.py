@@ -83,7 +83,7 @@ def reported(client: APIClient, **params: str) -> set[str]:
 def test_no_kind_lists_members_and_friends(
     account_admin_client: APIClient, people: dict[str, User]
 ) -> None:
-    """With no ``kind``, the list holds every active member and friend."""
+    """Without a ``kind``, the list holds every active member and friend."""
     assert listed(account_admin_client) == {"member@lf.test", "friend@lf.test", "pending@lf.test"}
 
 
@@ -111,10 +111,10 @@ def test_kind_friend_includes_a_member_whose_change_has_come(
     assert listed(account_admin_client, kind="friend") == {"friend@lf.test", "pending@lf.test"}
 
 
-def test_a_blank_kind_narrows_nothing(
+def test_a_blank_kind_does_not_narrow_anything(
     account_admin_client: APIClient, people: dict[str, User]
 ) -> None:
-    """``?kind=`` with no value is the same as no ``kind`` at all."""
+    """``?kind=`` without a value is the same as leaving ``kind`` out."""
     assert listed(account_admin_client, kind="") == listed(account_admin_client)
 
 
@@ -185,10 +185,10 @@ def test_a_deactivated_account_keeps_its_member_record(
     assert response.status_code == 200
 
 
-def test_is_active_narrows_nothing(
+def test_is_active_does_not_narrow_anything(
     account_admin_client: APIClient, people: dict[str, User]
 ) -> None:
-    """``?is_active=false`` narrows nothing: ``include_inactive`` is the one switch."""
+    """``?is_active=false`` doesn't narrow anything; ``include_inactive`` does."""
     assert "inactive@lf.test" not in listed(account_admin_client, is_active="false")
 
 
@@ -196,7 +196,7 @@ def test_is_active_narrows_nothing(
 def test_the_report_leaves_out_deactivated_accounts_and_donors(
     account_admin_client: APIClient, people: dict[str, User]
 ) -> None:
-    """The members report lists every active member and friend, and nobody else."""
+    """The members report lists exactly the active members and friends."""
     assert reported(account_admin_client) == {
         "member@lf.test",
         "friend@lf.test",

@@ -1,10 +1,11 @@
 """Mission callouts: the compose switch, the answer buttons, and the answer page.
 
 A callout is a bulk email whose copies carry three answer buttons, each a link signed for
-its recipient.  The page the link opens records nothing until **Send answer** posts it,
-and records nothing at all once the callout has closed.  Every copy a sender sees carries
-the buttons inert.  Each new or changed answer raises the ``callout_answer`` event.  See
-``docs/developer/bulk-email.rst`` and ``docs/developer/api-bulk-email.rst``.
+its recipient.  The page the link opens doesn't record anything until **Send answer**
+posts it, and doesn't record anything at all once the callout has closed.  Every copy a
+sender sees carries the buttons inert.  Each new or changed answer raises the
+``callout_answer`` event.  See ``docs/developer/bulk-email.rst`` and
+``docs/developer/api-bulk-email.rst``.
 """
 
 from __future__ import annotations
@@ -163,7 +164,7 @@ def test_the_default_close_time_is_two_days_ahead_rounded_up_to_the_half_hour() 
 def test_the_switch_clears_another_type_for_a_sender_who_may_not_send_mission(
     api_client: APIClient,
 ) -> None:
-    """A callout goes as Mission only: a leader whose role Mission omits has no type."""
+    """Callouts go as Mission only: a leader whose role Mission omits gets a null type."""
     only_management = mission()
     only_management.sender_roles = [MANAGEMENT]
     only_management.save()
@@ -226,7 +227,7 @@ def test_a_close_time_in_the_past_is_refused(
 def test_switching_back_makes_an_ordinary_email(
     management_client: APIClient, management: User
 ) -> None:
-    """Turning the switch off deletes the callout row, and the email has no close time."""
+    """Turning the switch off drops the callout row and clears the email's close time."""
     bulk = BulkEmailFactory(sender=management)
     management_client.patch(f"{API}/{bulk.pk}", {"is_callout": True}, format="json")
     body = management_client.patch(f"{API}/{bulk.pk}", {"is_callout": False}, format="json").json()
@@ -236,7 +237,7 @@ def test_switching_back_makes_an_ordinary_email(
 def test_send_refuses_a_callout_whose_answers_close_before_it_goes(
     management_client: APIClient, management: User, ann: User
 ) -> None:
-    """A schedule after the close time would collect no answers."""
+    """A schedule after the close time wouldn't collect any answers."""
     bulk = BulkEmailFactory(sender=management, email_type=mission(), is_callout=True)
     Callout.objects.create(bulk_email=bulk, closes_at=timezone.now() + timedelta(hours=2))
     add_to_batch(bulk, ann)
@@ -256,7 +257,7 @@ def test_send_refuses_a_callout_whose_answers_close_before_it_goes(
 def test_a_duplicated_callout_is_a_fresh_callout(
     management_client: APIClient, management: User, ann: User
 ) -> None:
-    """**Duplicate** of a callout is a callout again, open two days, with no answers."""
+    """**Duplicate** of a callout is a callout again, open two days, without answers."""
     bulk = sent_callout(management, ann)
     record_answer(bulk.callout, ann, answer="available", note="")
     with freeze_time("2026-08-01T15:10:00Z"):
@@ -309,7 +310,7 @@ def test_a_copy_links_its_answer_page_to_read_it_in_the_browser(
 def test_a_copy_on_the_delivery_report_carries_inert_buttons(
     management_client: APIClient, management: User, ann: User
 ) -> None:
-    """The copy a sender reads answers for nobody: every link carries the stand-in."""
+    """A sender's copy doesn't answer for anybody: every link carries the stand-in."""
     bulk = sent_callout(management, ann)
     row = bulk.recipients.get()
     body = management_client.get(f"{API}/{bulk.pk}/recipients/{row.pk}/copy").json()
@@ -367,10 +368,10 @@ def test_the_readers_own_copy_under_messages_carries_live_buttons(
 # --------------------------------------------------------------------------
 # The answer page
 # --------------------------------------------------------------------------
-def test_following_a_button_shows_its_answer_chosen_and_records_nothing(
+def test_following_a_button_shows_its_answer_chosen_and_does_not_record_anything(
     client: Client, management: User, ann: User
 ) -> None:
-    """A GET, such as a link scanner's, shows the form and records no answer."""
+    """A GET, such as a link scanner's, shows the form and doesn't record an answer."""
     bulk = sent_callout(management, ann)
     response = client.get(f"{page_url(token_for(bulk, ann))}?answer=limited")
     assert (response.status_code, CalloutAnswer.objects.count()) == (200, 0)
@@ -470,8 +471,8 @@ def test_the_page_preselects_the_answer_already_given(
     assert re.findall(r'value="(\w+)" checked', page) == ["unavailable"]
 
 
-def test_sending_no_answer_is_refused(client: Client, management: User, ann: User) -> None:
-    """**Send answer** with nothing chosen asks for a choice and records nothing."""
+def test_sending_without_an_answer_is_refused(client: Client, management: User, ann: User) -> None:
+    """**Send answer** without a choice asks for one and doesn't record anything."""
     bulk = sent_callout(management, ann)
     response = client.post(page_url(token_for(bulk, ann)), {"answer": "maybe"})
     assert (
@@ -509,7 +510,7 @@ def test_a_token_signed_for_another_purpose_is_refused(
 def test_a_token_naming_a_deleted_account_is_refused(
     client: Client, management: User, ann: User
 ) -> None:
-    """A link outlives nothing it names."""
+    """A link doesn't outlive anything it names."""
     bulk = sent_callout(management, ann)
     token = token_for(bulk, ann)
     ann.delete()
@@ -526,10 +527,10 @@ def test_the_token_carries_the_salt_of_its_purpose(management: User, ann: User) 
 
 
 @pytest.mark.parametrize("method", ["get", "post"])
-def test_an_expired_callout_records_nothing(
+def test_an_expired_callout_does_not_record_anything(
     client: Client, management: User, ann: User, method: str
 ) -> None:
-    """After ``closes_at`` the page says the callout has closed and records nothing."""
+    """After ``closes_at`` the page says it closed and doesn't record anything."""
     bulk = sent_callout(management, ann)
     Callout.objects.filter(pk=bulk.callout.pk).update(
         closes_at=timezone.now() - timedelta(minutes=1)
@@ -542,7 +543,7 @@ def test_an_expired_callout_records_nothing(
     ) == (200, True, 0)
 
 
-def test_a_callout_closed_by_hand_records_nothing(
+def test_a_callout_closed_by_hand_does_not_record_anything(
     client: Client, management: User, ann: User
 ) -> None:
     """After **Close now** a posted answer is not recorded."""
@@ -599,10 +600,10 @@ def test_the_events_audience_is_who_may_open_the_callout(
     assert (audience(management), audience(ann)) == (True, False)
 
 
-def test_the_same_answer_again_raises_nothing(
+def test_the_same_answer_again_does_not_raise_anything(
     management: User, ann: User, recorded_events: RecordedEvents
 ) -> None:
-    """Sending the same answer and note twice is no change."""
+    """Sending the same answer and note twice isn't a change."""
     bulk = sent_callout(management, ann)
     record_answer(bulk.callout, ann, answer="available", note="")
     record_answer(bulk.callout, ann, answer="available", note="")
@@ -718,7 +719,7 @@ def test_a_leader_can_be_subscribed_to_callout_answers(
 def test_a_deactivated_accounts_link_no_longer_works(
     client: Client, management: User, ann: User, method: str
 ) -> None:
-    """Ann's account was deactivated: her link records nothing and says why."""
+    """Ann's account was deactivated: her link doesn't record anything and says why."""
     bulk = sent_callout(management, ann)
     ann.is_active = False
     ann.save()
@@ -753,7 +754,7 @@ def test_a_deactivated_accounts_answer_is_not_listed(
     )
 
 
-def test_a_link_past_its_limit_of_answers_records_nothing(
+def test_a_link_past_its_limit_of_answers_does_not_record_anything(
     client: Client, management: User, ann: User, settings: Settings
 ) -> None:
     """With two answers an hour, the third is refused and the second stands."""
@@ -769,7 +770,7 @@ def test_a_link_past_its_limit_of_answers_records_nothing(
     )
 
 
-def test_editing_only_the_note_raises_no_event(
+def test_editing_only_the_note_does_not_raise_an_event(
     management: User, ann: User, recorded_events: RecordedEvents
 ) -> None:
     """A changed note is saved without a notification; a changed answer raises one."""

@@ -1,4 +1,4 @@
-"""The Django admin's accounts pages set nobody's password.
+"""The Django admin's accounts pages don't set anybody's password.
 
 A superuser can list and edit accounts at ``/django-admin/accounts/user/``, but the add
 form, the change-password page, and the password on the change form are closed: an
@@ -38,8 +38,10 @@ def test_the_change_form_opens(superuser_browser: Client, target: User) -> None:
     assert superuser_browser.get(f"{USERS_URL}{target.pk}/change/").status_code == 200
 
 
-def test_the_change_form_links_to_no_password_page(superuser_browser: Client, target: User) -> None:
-    """The form carries no password field, so no link to set one either."""
+def test_the_change_form_does_not_link_to_a_password_page(
+    superuser_browser: Client, target: User
+) -> None:
+    """The form doesn't carry a password field, so it doesn't link to one either."""
     response = superuser_browser.get(f"{USERS_URL}{target.pk}/change/")
     assert f"{target.pk}/password/" not in response.content.decode()
 
@@ -54,7 +56,9 @@ def test_the_change_password_page_is_closed(superuser_browser: Client, target: U
     assert superuser_browser.get(f"{USERS_URL}{target.pk}/password/").status_code == 403
 
 
-def test_posting_a_password_there_changes_nothing(superuser_browser: Client, target: User) -> None:
+def test_posting_a_password_there_does_not_change_the_password(
+    superuser_browser: Client, target: User
+) -> None:
     """A posted password is refused, and the account keeps the one its owner chose."""
     superuser_browser.post(
         f"{USERS_URL}{target.pk}/password/",

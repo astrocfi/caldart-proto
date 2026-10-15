@@ -116,7 +116,7 @@ def test_deactivating_your_own_account_is_refused(system_admin: User) -> None:
         deactivate_account(system_admin, system_admin)
 
 
-def test_a_refused_self_deactivation_writes_nothing(system_admin: User) -> None:
+def test_a_refused_self_deactivation_does_not_write_anything(system_admin: User) -> None:
     """A refused self-deactivation leaves the account active."""
     with pytest.raises(DomainError, match=re.escape(SELF_DEACTIVATION_REFUSED)):
         deactivate_account(system_admin, system_admin)
@@ -241,7 +241,7 @@ def test_a_system_admin_may_change_anybodys_email(system_admin: User, account_ad
 def test_an_email_resent_in_another_case_is_not_written_back(
     user_admin: User, account_admin: User
 ) -> None:
-    """It alters nothing, so it is dropped rather than refused -- or saved."""
+    """It doesn't alter anything, so it is dropped rather than refused -- or saved."""
     update_account(user_admin, account_admin, {"email": account_admin.email.upper()})
     account_admin.refresh_from_db()
     assert account_admin.email == "accountadmin@example.test"
@@ -280,7 +280,7 @@ def test_an_account_admin_may_change_a_plain_members_email(account_admin: User) 
 # --------------------------------------------------------------------------
 # update_account writes atomically
 # --------------------------------------------------------------------------
-def test_update_account_writes_nothing_when_the_role_sync_fails(
+def test_update_account_does_not_write_anything_when_the_role_sync_fails(
     system_admin: User, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """When ``sync_django_flags`` raises, none of the requested fields are written."""

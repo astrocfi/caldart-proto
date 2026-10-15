@@ -1,6 +1,6 @@
 """``make help`` lists every target declared in the Makefile's ``.PHONY`` line.
 
-A target with no trailing ``## `` comment, or whose name the help regex fails to
+A target without a trailing ``## `` comment, or whose name the help regex fails to
 match (digits included, since ``e2e`` is one), silently drops out of the listing
 without breaking the build.  These tests make that a failure.
 """
@@ -31,7 +31,7 @@ def _phony_targets() -> list[str]:
     """
     text = MAKEFILE.read_text()
     match = re.search(r"^\.PHONY:(.*?)(?<!\\)\n(?!\t)", text, re.MULTILINE | re.DOTALL)
-    assert match is not None, "Makefile has no .PHONY line"
+    assert match is not None, "Makefile doesn't have a .PHONY line"
     body = match.group(1).replace("\\\n", " ")
     return body.split()
 

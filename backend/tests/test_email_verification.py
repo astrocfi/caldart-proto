@@ -139,7 +139,7 @@ def test_verifying_records_the_audit_event(
     ]
 
 
-def test_a_second_click_on_the_same_link_changes_nothing(unverified: User) -> None:
+def test_a_second_click_on_the_same_link_does_not_change_anything(unverified: User) -> None:
     """Using a link twice succeeds both times and keeps the first verification time."""
     token = make_email_verification_token(unverified)
     verify_email(token)
@@ -272,7 +272,7 @@ def test_confirming_a_stale_address_leaves_the_account_unverified(unverified: Us
     assert unverified.email_verified is False
 
 
-def test_confirming_an_account_verified_meanwhile_writes_no_audit_line(
+def test_confirming_an_account_verified_meanwhile_does_not_write_an_audit_line(
     unverified: User, audit_log: pytest.LogCaptureFixture
 ) -> None:
     """Two concurrent confirmations stamp and audit the account once between them."""
@@ -410,7 +410,7 @@ def test_the_user_payload_says_verified(api_client: APIClient, verified: User) -
     assert api_client.get(ME_URL).json()["email_verified"] is True
 
 
-def test_creating_a_member_sends_no_verification(
+def test_creating_a_member_does_not_send_a_verification(
     account_admin: User, site_settings: SiteSettings, django_capture_on_commit_callbacks: OnCommit
 ) -> None:
     """A member an administrator creates is sent the invitation alone."""
@@ -444,7 +444,7 @@ def test_a_change_of_name_keeps_the_address_verified(
     signed_in: Callable[[User], APIClient],
     django_capture_on_commit_callbacks: OnCommit,
 ) -> None:
-    """Editing a name leaves the verification alone and mails nothing."""
+    """Editing a name leaves the verification alone and doesn't mail anything."""
     client = signed_in(user_admin)
     with django_capture_on_commit_callbacks(execute=True):
         client.patch(f"{USERS_URL}/{verified.pk}", {"first_name": "Veronica"}, format="json")
@@ -504,7 +504,7 @@ def test_resend_mails_an_unverified_address(
 def test_resend_refuses_a_verified_address(
     verified: User, signed_in: Callable[[User], APIClient]
 ) -> None:
-    """A member whose address is already verified gets 400 and no message."""
+    """A member whose address is already verified gets 400 and isn't sent a message."""
     response = signed_in(verified).post(RESEND_URL)
 
     assert response.status_code == 400

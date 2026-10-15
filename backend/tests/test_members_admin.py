@@ -344,7 +344,7 @@ def test_a_row_carries_every_profile_column_the_members_report_offers(
 def test_a_row_without_a_profile_reads_blank_profile_columns(
     account_admin_client: APIClient,
 ) -> None:
-    """An account with no profile has blank text, and null for the rating and the date."""
+    """An account without a profile has blank text, and null for the rating and date."""
     UserFactory(email="bare@example.test")
     (row,) = rows(account_admin_client.get(LIST_URL, {"search": "bare@example.test"}))
     assert {key: row[key] for key in PROFILE_COLUMNS} == {
@@ -360,10 +360,10 @@ def test_a_row_without_a_profile_reads_blank_profile_columns(
     }
 
 
-def test_a_row_reads_no_instrument_rating_for_somebody_who_is_not_a_pilot(
+def test_a_row_reads_a_null_instrument_rating_for_somebody_who_is_not_a_pilot(
     account_admin_client: APIClient, population: dict[str, User]
 ) -> None:
-    """The instrument rating is null, not false, for a member who holds no certificate."""
+    """The instrument rating is null, not false, for a member without a certificate."""
     profile = population["current"].profile
     profile.pilot_certificate_type = PilotCertificateType.NONE
     profile.save()
@@ -403,7 +403,7 @@ def test_status_filter_puts_each_member_in_one_bucket(
 def test_status_filter_partitions_the_table(
     account_admin_client: APIClient, population: dict[str, User]
 ) -> None:
-    """The four status buckets add up to the whole table, with no member in two."""
+    """The four status buckets add up to the whole table, and no member is in two."""
     total = account_admin_client.get(LIST_URL).json()["count"]
     counts = [
         account_admin_client.get(LIST_URL, {"status": value}).json()["count"]
@@ -454,7 +454,7 @@ def test_ordering_by_pilot_ranks_current_medicals_first(
 def test_a_member_who_never_paid_is_listed_under_not_yet_paid_alone(
     account_admin_client: APIClient, user_factory: type[UserFactory]
 ) -> None:
-    """Somebody who chose member and has not paid reads none, in no other bucket."""
+    """An unpaid member who chose member reads ``none``, and isn't in another bucket."""
     user_factory(email="unpaid@example.test", roles=["member"])
 
     buckets = {
@@ -546,9 +546,9 @@ def test_certificate_filter_any_licensed_skips_students_and_non_pilots(
 def test_medical_filter_any_medical_is_everyone_with_one_on_file(
     account_admin_client: APIClient, population: dict[str, User]
 ) -> None:
-    """``medical=any`` matches every class, and nobody whose medical is ``none``.
+    """``medical=any`` matches every class, but not somebody whose medical is ``none``.
 
-    Only the student in the fixture has no medical on file; the two profiles
+    Only the student in the fixture doesn't have a medical on file; the two profiles
     left at the factory's default carry a third-class one.
     """
     response = account_admin_client.get(LIST_URL, {"medical": "any"})
@@ -607,7 +607,7 @@ def fixed_name_population(population: dict[str, User], fixed_name_admin: User) -
 def test_ordering_by_name_is_the_default(
     account_admin_client: APIClient, fixed_name_population: dict[str, User]
 ) -> None:
-    """With no ordering given, the list sorts by last name."""
+    """Without an ordering given, the list sorts by last name."""
     names = [row["name"] for row in rows(account_admin_client.get(LIST_URL, {"page_size": 200}))]
     assert names == sorted(names, key=lambda value: value.split()[-1])
 
@@ -786,7 +786,7 @@ def test_detail_returns_the_whole_record(
 
 
 def test_detail_404s_for_an_unknown_id(account_admin_client: APIClient) -> None:
-    """The detail view returns a 404 for an id on file for no member."""
+    """The detail view returns a 404 for an id that isn't on file for a member."""
     assert account_admin_client.get(f"{LIST_URL}/999999").status_code == 404
 
 
@@ -819,7 +819,7 @@ def test_create_writes_the_account_and_its_profile(
     assert body["profile"]["phone"] == "408-555-0199"
     assert body["profile"]["ratings"] == ["instrument", "cfi"]
     assert body["profile"]["notes"] == "Joined at the Watsonville airshow."
-    # A created account holds no term, so it has no membership until one is granted.
+    # A created account doesn't hold a term, so its membership is ``none`` until a grant.
     assert body["membership"]["status"] == "none"
 
     user = User.objects.get(email="newbie@example.test")
@@ -895,7 +895,7 @@ def test_create_applies_the_same_profile_rules_as_the_member_form(
     assert set(response.json()["profile"]) == {"certificate_number"}
 
 
-def test_create_needs_nothing_but_an_email_and_the_names(account_admin_client: APIClient) -> None:
+def test_create_needs_only_an_email_and_the_names(account_admin_client: APIClient) -> None:
     """An administrator records what they were told, which may be little: no phone."""
     response = account_admin_client.post(
         LIST_URL,
@@ -946,7 +946,7 @@ def test_an_edit_refuses_a_blank_name(
 def test_an_edit_leaves_a_name_it_does_not_send_alone(
     account_admin_client: APIClient, population: dict[str, User]
 ) -> None:
-    """A PATCH that carries no name keeps the stored one."""
+    """A PATCH that doesn't carry a name keeps the stored one."""
     member = population["current"]
     first = member.first_name
     response = account_admin_client.patch(
@@ -1030,8 +1030,10 @@ def test_patch_rejects_an_email_already_in_use(
     assert response.status_code == 400
 
 
-def test_patch_creates_a_profile_when_the_account_has_none(account_admin_client: APIClient) -> None:
-    """A patch creates the profile row when the target account has none."""
+def test_patch_creates_a_profile_when_the_account_does_not_have_one(
+    account_admin_client: APIClient,
+) -> None:
+    """A patch creates the profile row when the target account doesn't have one."""
     bare = UserFactory(email="bare@example.test", roles=[MEMBER])
     response = account_admin_client.patch(
         detail_url(bare), {"profile": {"phone": "916-555-0000"}}, format="json"
@@ -1041,7 +1043,7 @@ def test_patch_creates_a_profile_when_the_account_has_none(account_admin_client:
 
 
 def test_put_is_not_offered(account_admin_client: APIClient, population: dict[str, User]) -> None:
-    """The detail endpoint offers no ``PUT``, only ``PATCH``."""
+    """The detail endpoint doesn't offer ``PUT``, only ``PATCH``."""
     assert account_admin_client.put(detail_url(population["current"]), {}).status_code == 405
 
 
@@ -1142,13 +1144,13 @@ def test_grant_to_an_expired_member_starts_today(
     assert response.json()["ends_on"] == (today + timedelta(days=364)).isoformat()
 
 
-def test_grant_of_a_lifetime_plan_has_no_end_date(
+def test_grant_of_a_lifetime_plan_does_not_have_an_end_date(
     account_admin_client: APIClient,
     population: dict[str, User],
     life_plan: MembershipPlan,
     today: date,
 ) -> None:
-    """Granting a lifetime plan leaves the term with no end date."""
+    """Granting a lifetime plan leaves the term without an end date."""
     member = population["never"]
     response = account_admin_client.post(grant_url(member), {"plan": life_plan.slug}, format="json")
     assert response.status_code == 201
@@ -1203,7 +1205,7 @@ def test_grant_refuses_a_start_date_after_today(
     annual_plan: MembershipPlan,
     today: date,
 ) -> None:
-    """A term granted to start tomorrow is a 400 keyed on ``starts_on``, with no term."""
+    """A term starting tomorrow is a 400 keyed on ``starts_on``, and isn't made."""
     member = population["never"]
     response = account_admin_client.post(
         grant_url(member),

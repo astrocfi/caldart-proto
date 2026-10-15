@@ -124,7 +124,7 @@ def test_a_created_type_goes_after_every_other(system_admin_client: APIClient) -
 
 
 def test_the_first_type_takes_position_one(system_admin_client: APIClient) -> None:
-    """With no other type, a new one is first."""
+    """Without another type, a new one is first."""
     response = system_admin_client.post(LIST_URL, payload(), format="json")
 
     assert response.json()["position"] == 1
@@ -176,7 +176,7 @@ def test_a_name_another_type_holds_is_refused(system_admin_client: APIClient, na
     assert response.json() == {"name": ["Another email type already has this name."]}
 
 
-def test_a_name_with_no_letters_is_refused(system_admin_client: APIClient) -> None:
+def test_a_name_without_letters_is_refused(system_admin_client: APIClient) -> None:
     """A name must carry a letter or a digit to make a slug from."""
     response = system_admin_client.post(LIST_URL, payload(name="!!!"), format="json")
 
@@ -417,7 +417,7 @@ def test_a_sender_is_offered_the_types_their_roles_send(
 def test_a_type_nobody_is_named_for_is_the_system_administrators_alone(
     api_client: APIClient, management: User, system_admin: User
 ) -> None:
-    """A type with no sender roles is offered to a system administrator only."""
+    """A type without sender roles is offered to a system administrator only."""
     EmailTypeFactory(name="Board", sender_roles=[])
 
     api_client.force_login(management)
@@ -491,7 +491,7 @@ def test_deleting_a_type_is_the_system_administrators(
 def test_every_signed_in_caller_reads_their_sendable_types(
     api_client: APIClient, all_role_users: dict[str, User], slug: str, allowed: bool
 ) -> None:
-    """Any role may ask which types it sends; most are told none."""
+    """Any role may ask which types it sends; most are told an empty list."""
     api_client.force_login(all_role_users[slug])
     assert api_client.get(SENDABLE_URL).status_code == (200 if allowed else 403)
 

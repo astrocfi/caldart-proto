@@ -42,7 +42,7 @@ def import_base_settings() -> ModuleType:
     """Execute ``settings/base.py`` as a fresh module and return it.
 
     It is loaded outside ``sys.modules`` under its own name, so importing it
-    repeatedly costs nothing beyond the execution and cannot disturb the
+    repeatedly costs only the execution and cannot disturb the
     settings the rest of the suite runs under.
     """
     spec = importlib.util.spec_from_file_location("caldart_base_settings_probe", BASE_SETTINGS)
@@ -57,7 +57,7 @@ def import_base_settings() -> ModuleType:
 def test_an_unset_variable_uses_the_shipped_default(
     monkeypatch: pytest.MonkeyPatch, variable: str, scope: str, default: str
 ) -> None:
-    """With no environment variable set, the shipped default rate is used."""
+    """Without the environment variable set, the shipped default rate is used."""
     monkeypatch.delenv(variable, raising=False)
 
     assert import_base_settings().AUTH_THROTTLE_RATES[scope] == default

@@ -111,7 +111,7 @@ def test_send_templated_returns_the_message_it_sent(
 def test_send_templated_renders_both_bodies_without_a_context(
     email_template: str, mailoutbox: list[EmailMessage]
 ) -> None:
-    """Omitting ``context`` renders the templates against nothing, not an error."""
+    """Omitting ``context`` renders the templates against an empty one, not an error."""
     send_templated(
         to="marta@example.org",
         subject="CalDART: your receipt",
@@ -134,12 +134,12 @@ def test_send_templated_raises_when_the_mail_server_refuses_the_message(
         )
 
 
-def test_org_name_falls_back_when_there_is_no_site_settings_row() -> None:
+def test_org_name_falls_back_when_the_site_settings_row_is_missing() -> None:
     """Before a website administrator fills the settings in, the name is CalDART."""
     assert org_name() == "CalDART"
 
 
-def test_contact_email_is_empty_when_there_is_no_site_settings_row() -> None:
+def test_contact_email_is_empty_when_the_site_settings_row_is_missing() -> None:
     """An absent settings row leaves the contact address blank, not missing."""
     assert contact_email() == ""
 
@@ -180,7 +180,7 @@ def test_org_details_carries_the_ein() -> None:
 
 
 def test_org_details_leaves_the_letterhead_blank_without_a_settings_row() -> None:
-    """With no settings row the address and the EIN are empty, and nothing raises."""
+    """Without a settings row the address and the EIN are empty, and nothing raises."""
     details = org_details()
 
     assert details.mailing_address == ""

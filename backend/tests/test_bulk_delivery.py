@@ -1,9 +1,9 @@
 """The delivery report of a sent bulk email: bounces, Retry failed, and each copy.
 
 A bounce the bounce check reads hours later is tied back to the bulk copy that went out
-with the same ``Message-ID``.  **Retry failed** sends a fresh copy to the people whose
-copy the mail server refused, and to nobody else.  Any copy that was tried can be read
-again exactly as it went, from the values stored when it was sent.  See
+with the same ``Message-ID``.  **Retry failed** sends a fresh copy only to the people
+whose copy the mail server refused.  Any copy that was tried can be read again exactly
+as it went, from the values stored when it was sent.  See
 ``docs/developer/bulk-email.rst`` and ``docs/developer/api-bulk-email.rst``.
 """
 
@@ -75,7 +75,7 @@ def _no_pause(monkeypatch: pytest.MonkeyPatch) -> None:
 def refuse(monkeypatch: pytest.MonkeyPatch) -> Refuse:
     """Make the mail server refuse every message to the addresses given, for good.
 
-    Call it with the addresses; call it again with none to let every message through.
+    Call it with the addresses; call it again without any to let every message through.
     """
     refused: set[str] = set()
     original = EmailBackend.send_messages
@@ -180,15 +180,15 @@ def test_a_bounce_moves_the_copy_from_sent_to_bounced(mixed: BulkEmail) -> None:
 
 
 def test_a_bounce_read_twice_counts_once(mixed: BulkEmail) -> None:
-    """Saving the bounced log row again changes nothing more."""
+    """Saving the bounced log row again doesn't change anything more."""
     entry = bounce(row_of(mixed, "ann@example.test"))
     entry.save()
     mixed.refresh_from_db()
     assert (mixed.sent_count, mixed.bounced_count) == (0, 1)
 
 
-def test_a_bounce_with_no_detail_gives_a_reason_in_words(mixed: BulkEmail) -> None:
-    """A report that said nothing still leaves a reason a sender can read."""
+def test_a_bounce_without_a_detail_gives_a_reason_in_words(mixed: BulkEmail) -> None:
+    """A report that didn't say anything still leaves a reason a sender can read."""
     bounce(row_of(mixed, "ann@example.test"), detail="")
     assert row_of(mixed, "ann@example.test").reason == delivery.BOUNCED_REASON
 
@@ -306,7 +306,9 @@ def test_a_skip_at_retry_moves_the_counts(mixed: BulkEmail, management: User) ->
     )
 
 
-def test_a_retry_with_nobody_left_records_no_retry(mixed: BulkEmail, management: User) -> None:
+def test_a_retry_with_everybody_skipped_does_not_record_a_retry(
+    mixed: BulkEmail, management: User
+) -> None:
     """When everybody is skipped, nothing is queued and no retry is listed."""
     User.objects.filter(email="bea@example.test").update(is_active=False)
     with pytest.raises(DomainError, match=re.escape(delivery.NOBODY_TO_RETRY_MESSAGE)):
@@ -403,8 +405,8 @@ def test_retry_failed_is_audited(
     )
 
 
-def test_retry_failed_with_nothing_failed_is_refused(mixed: BulkEmail, management: User) -> None:
-    """With every failed copy sent, there is nothing to retry, and nothing changes."""
+def test_retry_failed_is_refused_when_nothing_failed(mixed: BulkEmail, management: User) -> None:
+    """With every failed copy sent, there isn't anything to retry, and nothing changes."""
     mixed.recipients.filter(status=RecipientStatus.FAILED).update(status=RecipientStatus.SENT)
     with pytest.raises(DomainError, match=re.escape(delivery.NOTHING_FAILED_MESSAGE)):
         delivery.retry_failed(mixed, actor=management)
@@ -429,7 +431,7 @@ def test_retry_failed_waits_for_the_send_to_finish(
 
 
 def test_retry_failed_of_an_email_never_sent_is_refused(management: User) -> None:
-    """A draft has no copies to retry."""
+    """A draft doesn't have any copies to retry."""
     draft = BulkEmailFactory(sender=management)
     with pytest.raises(DomainError, match=re.escape(delivery.NOT_STARTED_MESSAGE)):
         delivery.retry_failed(draft, actor=management)
@@ -542,7 +544,7 @@ def unsubscribe_tokens(body: str) -> set[str]:
     return set(re.findall(r"/mail/unsubscribe/([^\s\"<>]+)", body))
 
 
-def test_a_copy_shown_to_the_sender_holds_no_unsubscribe_token(
+def test_a_copy_shown_to_the_sender_does_not_hold_an_unsubscribe_token(
     management_client: APIClient, mixed: BulkEmail
 ) -> None:
     """The sender's view of Ann's copy links to the stand-in, never to a signed token."""
@@ -558,10 +560,10 @@ def test_a_copy_shown_to_the_sender_keeps_the_footer_s_words(
     assert f"unsubscribe here: {inert_unsubscribe_url()}" in body["text"]
 
 
-def test_the_sent_page_message_holds_no_unsubscribe_token(
+def test_the_sent_page_message_does_not_hold_an_unsubscribe_token(
     management_client: APIClient, mixed: BulkEmail
 ) -> None:
-    """The message as the Sent page shows it carries nobody's unsubscribe link."""
+    """The message as the Sent page shows it doesn't carry anybody's unsubscribe link."""
     body = management_client.get(f"/api/v1/bulk-email/{mixed.pk}").json()
     assert "/mail/unsubscribe/" not in body["message_html"]
 
@@ -588,7 +590,7 @@ def test_a_copy_carries_who_it_went_to_and_its_result(
 
 
 def test_a_copy_never_tried_is_refused(management_client: APIClient, mixed: BulkEmail) -> None:
-    """Gil was skipped: there is no copy to show."""
+    """Gil was skipped: there isn't a copy to show."""
     response = management_client.get(copy_url(mixed, row_of(mixed, "gil@example.test")))
     assert (response.status_code, response.json()) == (409, {"detail": delivery.NOT_TRIED_MESSAGE})
 
@@ -616,8 +618,8 @@ def test_the_email_log_links_a_bulk_copy_to_its_bulk_email(
     }
 
 
-def test_the_email_log_links_no_other_message(system_admin_client: APIClient) -> None:
-    """A message that belongs to no record has no link."""
+def test_the_email_log_does_not_link_another_message(system_admin_client: APIClient) -> None:
+    """A message that doesn't belong to a record doesn't have a link."""
     EmailLogFactory()
     rows = system_admin_client.get("/api/v1/system/emails").json()["results"]
     assert [row["link"] for row in rows] == [""]
@@ -665,7 +667,7 @@ def test_only_management_reads_a_copy(
 
 
 @pytest.mark.parametrize("path", ["/{id}/retry", "/{id}/recipients/{rid}/copy"])
-def test_an_anonymous_caller_reaches_no_delivery_endpoint(
+def test_an_anonymous_caller_does_not_reach_a_delivery_endpoint(
     api_client: APIClient, mixed: BulkEmail, path: str
 ) -> None:
     """No session is a 401."""

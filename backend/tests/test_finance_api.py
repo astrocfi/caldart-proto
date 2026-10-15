@@ -109,10 +109,10 @@ def test_the_detail_names_the_term_the_payment_bought(
     assert body["membership"]["id"] == term.pk
 
 
-def test_the_detail_carries_no_term_for_a_pure_contribution(
+def test_the_detail_does_not_carry_a_term_for_a_pure_contribution(
     treasurer_client: APIClient, member: User
 ) -> None:
-    """A donation buys no coverage, so there is nothing to link."""
+    """A donation doesn't buy coverage, so there isn't a term to link."""
     payment = PaymentFactory(
         user=member, plan=None, plan_amount_cents=0, contribution_cents=5_000, amount_cents=5_000
     )
@@ -130,7 +130,7 @@ def test_the_detail_names_the_automatic_charge_behind_it(
     assert body["renewal_attempt"]["id"] == attempt.pk
 
 
-def test_the_detail_carries_no_attempt_for_a_payment_a_person_made(
+def test_the_detail_does_not_carry_an_attempt_for_a_payment_a_person_made(
     treasurer_client: APIClient, paid: Payment
 ) -> None:
     """A checkout is not an automatic charge."""
@@ -237,7 +237,7 @@ def test_writing_a_note_writes_its_own_audit_record(
     assert "action=payment.note" in caplog.text
 
 
-def test_a_patch_that_changes_nothing_records_nothing(
+def test_a_patch_that_does_not_change_anything_is_not_recorded(
     treasurer_client: APIClient, paid: Payment, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Resending the same note is not a second act."""
@@ -251,7 +251,7 @@ def test_a_patch_that_changes_nothing_records_nothing(
 def test_a_patch_naming_neither_field_is_refused(
     treasurer_client: APIClient, paid: Payment
 ) -> None:
-    """An empty body would change nothing, so it is a 400 rather than a no-op."""
+    """An empty body wouldn't change anything, so it is a 400 rather than a no-op."""
     response = treasurer_client.patch(detail_url(paid), {}, format="json")
     assert response.json() == {"non_field_errors": ["Send reconciled_on, note, or both."]}
 
@@ -294,10 +294,10 @@ def test_the_ledger_lists_every_payment_newest_first(
     assert len(body["payments"]) == 2
 
 
-def test_the_ledger_carries_another_members_payments_for_nobody(
+def test_the_ledger_does_not_carry_another_members_payments(
     treasurer_client: APIClient, paid: Payment, user_factory: type[UserFactory]
 ) -> None:
-    """A ledger is one member's money and nobody else's."""
+    """A ledger is one member's money alone."""
     other = user_factory(email="wilma@example.test")
     assert treasurer_client.get(ledger_url(other)).json()["payments"] == []
 
@@ -309,10 +309,10 @@ def test_the_ledger_names_the_years_a_statement_can_be_downloaded_for(
     assert treasurer_client.get(ledger_url(member)).json()["statement_years"] == [2026]
 
 
-def test_a_year_with_dues_but_no_giving_earns_no_statement(
+def test_a_year_with_dues_but_without_giving_does_not_earn_a_statement(
     treasurer_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """A membership payment is not a deductible gift, so it buys no statement."""
+    """A membership payment is not a deductible gift, so it doesn't buy a statement."""
     PaymentFactory(
         user=member,
         plan=annual_plan,
@@ -333,14 +333,14 @@ def test_the_ledger_carries_the_members_renewal_mandate(
     assert body["mandate"]["status"] == "active"
 
 
-def test_the_ledger_carries_no_mandate_for_a_member_without_one(
+def test_the_ledger_does_not_carry_a_mandate_for_a_member_without_one(
     treasurer_client: APIClient, paid: Payment, member: User
 ) -> None:
     """Most members renew by hand, and their ledger says so with a null."""
     assert treasurer_client.get(ledger_url(member)).json()["mandate"] is None
 
 
-def test_an_unknown_member_has_no_ledger(treasurer_client: APIClient) -> None:
+def test_an_unknown_member_does_not_have_a_ledger(treasurer_client: APIClient) -> None:
     """A member id nobody holds is a 404."""
     assert treasurer_client.get("/api/v1/admin/payments/ledger/9999").status_code == 404
 
@@ -444,7 +444,7 @@ def test_a_refund_comes_off_the_net_contribution(
 
 
 def test_a_year_nobody_gave_in_is_an_empty_list(treasurer_client: APIClient, giving: User) -> None:
-    """Nothing to acknowledge reads as nothing, not as an error."""
+    """Nothing to acknowledge reads as an empty list, not as an error."""
     assert treasurer_client.get(CONTRIBUTIONS, {"year": 2024}).json() == []
 
 

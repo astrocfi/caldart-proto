@@ -93,7 +93,7 @@ ANONYMOUS_POSTS = [
 def test_an_anonymous_post_without_a_token_is_refused(
     csrf_client: APIClient, member: User, url: str, payload: dict[str, str]
 ) -> None:
-    """Every unsafe anonymous endpoint refuses a request carrying no CSRF token."""
+    """Every unsafe anonymous endpoint refuses a request without a CSRF token."""
     assert csrf_client.post(url, payload).status_code == 403
 
 
@@ -116,26 +116,28 @@ def test_a_multipart_post_without_a_token_is_refused(
 
 
 # --------------------------------------------------------------------------
-# A refused request changes nothing
+# A refused request doesn't change anything
 # --------------------------------------------------------------------------
-def test_a_refused_login_sets_no_session_cookie(
+def test_a_refused_login_does_not_set_a_session_cookie(
     csrf_client: APIClient, member: User, password: str
 ) -> None:
-    """A login refused for a missing token leaves no session cookie behind."""
+    """A login refused for a missing token doesn't leave a session cookie behind."""
     csrf_client.post(LOGIN_URL, {"email": member.email, "password": password}, format="multipart")
 
     assert "sessionid" not in csrf_client.cookies
 
 
-def test_a_refused_registration_creates_no_user(csrf_client: APIClient) -> None:
-    """A registration refused for a missing token creates no account."""
+def test_a_refused_registration_does_not_create_a_user(csrf_client: APIClient) -> None:
+    """A registration refused for a missing token doesn't create an account."""
     csrf_client.post(REGISTER_URL, register_payload(email=ATTACKER_EMAIL), format="multipart")
 
     assert User.objects.filter(email=ATTACKER_EMAIL).exists() is False
 
 
-def test_a_refused_password_reset_sends_no_email(csrf_client: APIClient, member: User) -> None:
-    """A reset request refused for a missing token sends no email."""
+def test_a_refused_password_reset_does_not_send_an_email(
+    csrf_client: APIClient, member: User
+) -> None:
+    """A reset request refused for a missing token doesn't send an email."""
     csrf_client.post(RESET_URL, {"email": member.email})
 
     assert len(mail.outbox) == 0
@@ -241,14 +243,16 @@ def test_a_signed_in_checkout_without_a_token_is_refused(
     assert csrf_client.post(CHECKOUT, {"provider": "mock"}).status_code == 403
 
 
-def test_a_safe_method_needs_no_token(csrf_client: APIClient, member: User) -> None:
-    """A ``GET`` needs no CSRF token even under enforcement."""
+def test_a_safe_method_does_not_need_a_token(csrf_client: APIClient, member: User) -> None:
+    """A ``GET`` doesn't need a CSRF token even under enforcement."""
     csrf_client.force_login(member)
 
     assert csrf_client.get(ME_URL).status_code == 200
 
 
-def test_the_stripe_webhook_needs_no_token(csrf_client: APIClient, settings: Settings) -> None:
+def test_the_stripe_webhook_does_not_need_a_token(
+    csrf_client: APIClient, settings: Settings
+) -> None:
     """A bad signature, not a CSRF refusal: the signature is the authentication."""
     settings.STRIPE_WEBHOOK_SECRET = "whsec_test"  # noqa: S105 - test fixture
     body = json.dumps({"id": "evt_unsigned", "object": "event", "type": "ping"})
@@ -259,8 +263,10 @@ def test_the_stripe_webhook_needs_no_token(csrf_client: APIClient, settings: Set
 
 
 @respx.mock
-def test_the_paypal_webhook_needs_no_token(csrf_client: APIClient, settings: Settings) -> None:
-    """The PayPal webhook accepts a verified notification carrying no CSRF token."""
+def test_the_paypal_webhook_does_not_need_a_token(
+    csrf_client: APIClient, settings: Settings
+) -> None:
+    """The PayPal webhook accepts a verified notification without a CSRF token."""
     settings.PAYPAL_CLIENT_ID = "client-id"
     settings.PAYPAL_CLIENT_SECRET = "client-secret"  # noqa: S105 - test fixture
     settings.PAYPAL_ENV = "sandbox"
@@ -288,7 +294,7 @@ def test_the_paypal_webhook_needs_no_token(csrf_client: APIClient, settings: Set
 def test_a_signed_stripe_webhook_is_handled_without_a_token(
     csrf_client: APIClient, settings: Settings, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """A correctly signed Stripe event is processed with no CSRF token present."""
+    """A correctly signed Stripe event is processed without a CSRF token present."""
     secret = "whsec_test"  # noqa: S105 - test fixture
     settings.STRIPE_WEBHOOK_SECRET = secret
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)

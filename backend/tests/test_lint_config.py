@@ -1,6 +1,6 @@
 """Conventions about the backend's own source that no linter we run can express.
 
-The annotation, docstring and mypy gates cover the whole backend with no ratchet left:
+The annotation, docstring and mypy gates cover the whole backend without a ratchet left:
 the adoption ratchet in ``pyproject.toml`` (``ANN``/``D`` per-file ignores and
 ``ignore_errors`` mypy overrides, one per unit) was deleted unit by unit as the code
 was typed and documented.  A merge conflict resolved by hand can bring an entry back
@@ -42,7 +42,7 @@ SHARED_TEST_MODULES = frozenset({"tests.conftest", "tests.factories"})
 
 #: The sibling imports that remain, each a stand-in the subject's own module owns:
 #: the Stripe SDK client fake, the reminder cohort helpers, and the machinery that
-#: imports ``prod.py`` under a controlled environment.  Add nothing here -- put a
+#: imports ``prod.py`` under a controlled environment.  Don't add anything here -- put a
 #: shared fixture in ``conftest.py`` and a shared model builder in ``factories.py``.
 ALLOWED_SIBLING_IMPORTS = {
     "test_payments_provider_errors.py": ["tests.test_payments_stripe"],
@@ -62,7 +62,7 @@ def _config() -> dict[str, object]:
 
 
 def test_no_file_is_exempt_from_the_annotation_or_docstring_rules() -> None:
-    """``[tool.ruff.lint.per-file-ignores]`` carries no ``ANN`` or ``D`` entry."""
+    """``[tool.ruff.lint.per-file-ignores]`` doesn't carry an ``ANN`` or ``D`` entry."""
     ruff_lint = _config()["tool"]["ruff"]["lint"]  # type: ignore[index]
     per_file = ruff_lint.get("per-file-ignores", {})
     exempt = {
@@ -115,7 +115,7 @@ def _import_from_names(node: ast.ImportFrom) -> list[str]:
     resolved against the ``tests`` package the modules live in, so
     ``from .test_x import y`` and ``from . import test_x`` both report
     ``tests.test_x`` and cannot slip past the sibling check on spelling alone.  A
-    deeper relative statement climbs out of the package and so names nothing under
+    deeper relative statement climbs out of the package and so doesn't name anything under
     ``tests.``.
     """
     if node.level == 0:
@@ -176,7 +176,7 @@ def test_module_imports_reports_a_sibling_however_it_is_spelled(
 
 
 def test_no_new_test_module_imports_a_sibling_test_module() -> None:
-    """The sibling imports are exactly the recorded ones, and no others."""
+    """The sibling imports are exactly the recorded ones."""
     found = {
         path.name: imported
         for path in sorted(TESTS.glob("test_*.py"))

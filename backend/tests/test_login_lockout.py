@@ -38,7 +38,7 @@ REACTIVATE_URL = "/api/v1/auth/reactivate"
 
 @pytest.fixture(autouse=True)
 def lockout_on(settings: Settings) -> Iterator[None]:
-    """Turn the lockout on at its defaults, with nothing counted before or after."""
+    """Turn the lockout on at its defaults, without anything counted before or after."""
     settings.LOGIN_LOCKOUT_ATTEMPTS = ATTEMPTS
     settings.LOGIN_LOCKOUT_SECONDS = 15 * 60
     settings.LOGIN_LOCKOUT_CODE_ATTEMPTS = CODE_ATTEMPTS
@@ -90,7 +90,7 @@ def test_the_lockout_ignores_the_client_address(member: User) -> None:
 
 
 def test_an_unknown_address_locks_out_the_same_way() -> None:
-    """The answers for nobody match the answers for somebody."""
+    """The answers for an unknown address match the answers for a known one."""
     assert fail("nobody@example.test", ATTEMPTS + 1) == [400] * ATTEMPTS + [429]
 
 
@@ -133,7 +133,7 @@ def test_the_lockout_is_audited(member: User, audit_log: pytest.LogCaptureFixtur
 def test_an_unknown_address_is_audited_without_a_target(
     audit_log: pytest.LogCaptureFixture,
 ) -> None:
-    """No account holds the address, so the line names none."""
+    """No account holds the address, so the line doesn't name one."""
     fail("nobody@example.test", ATTEMPTS)
     assert audit_messages(audit_log) == [
         f"action=account.lockout actor=anonymous target=- "
@@ -180,7 +180,7 @@ def test_wrong_reactivation_passwords_count(member: User) -> None:
 
 
 def test_the_lockout_can_be_switched_off(member: User, settings: Settings) -> None:
-    """``LOGIN_LOCKOUT_ATTEMPTS = 0`` counts nothing."""
+    """``LOGIN_LOCKOUT_ATTEMPTS = 0`` doesn't count anything."""
     settings.LOGIN_LOCKOUT_ATTEMPTS = 0
     fail(member.email, ATTEMPTS)
     assert attempt(member.email, DEFAULT_PASSWORD).status_code == 200
@@ -229,7 +229,7 @@ def test_the_lockout_notice_is_mailed_once_a_day(
     mailoutbox: list[EmailMessage],
     django_capture_on_commit_callbacks: object,
 ) -> None:
-    """A second lockout the same day mails nothing more."""
+    """A second lockout the same day doesn't mail anything more."""
     with django_capture_on_commit_callbacks(execute=True):  # type: ignore[operator]
         fail(member.email, ATTEMPTS)
         with freeze_time(timedelta(seconds=15 * 60 + 1)):
@@ -238,7 +238,7 @@ def test_the_lockout_notice_is_mailed_once_a_day(
 
 
 def test_counts_survive_a_full_cache(member: User) -> None:
-    """The counts live in the database, so a cache that forgets lets no guess through."""
+    """Counts live in the database, so a forgetful cache doesn't let a guess through."""
     fail(member.email, ATTEMPTS)
     cache.set_many({f"filler-{n}": n for n in range(2000)})
     cache.clear()

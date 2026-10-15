@@ -1,7 +1,7 @@
 """Backups leave the FAA registry's registrations out, and the registry date follows.
 
 ``docs/developer/backup-restore.rst`` is the contract: every dump carries the
-``aircraft_registration`` table's schema but none of its rows, while the aircraft types,
+``aircraft_registration`` table's schema but not its rows, while the aircraft types,
 their aliases, and the import log stay in.  ``docs/developer/aircraft-registry.rst``
 says the registry reads as not imported while the registrations table is empty.
 """
@@ -173,7 +173,7 @@ def emptied_registry() -> RegistryImport:
 def test_as_of_is_none_while_the_registrations_table_is_empty(
     emptied_registry: RegistryImport,
 ) -> None:
-    """A successful import in the log is no date when its rows are gone."""
+    """A successful import in the log isn't a date when its rows are gone."""
     assert registry.as_of() is None
 
 

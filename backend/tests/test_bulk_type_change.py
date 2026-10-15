@@ -97,7 +97,7 @@ def test_a_type_change_records_why_the_email_went_back(
 def test_the_same_type_leaves_a_queued_email_scheduled(
     management_client: APIClient, queued: BulkEmail, how: str
 ) -> None:
-    """Choosing the type the email has already changes nothing about its schedule."""
+    """Choosing the type the email has already doesn't change its schedule."""
     assert queued.email_type is not None
     change_type(management_client, queued, how, queued.email_type)
     assert schedule(queued) == (BulkEmailStatus.QUEUED, START, True, 60)

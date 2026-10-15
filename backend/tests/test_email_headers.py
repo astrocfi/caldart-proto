@@ -1,4 +1,4 @@
-"""The unsubscribe headers and footer of a bulk email copy; transactional mail has none.
+"""A bulk email copy's unsubscribe headers and footer; transactional mail lacks them.
 
 The behavior is documented in ``docs/developer/email.rst``.
 """
@@ -68,7 +68,7 @@ def test_the_header_link_names_the_recipient_and_the_type(member: User, mission:
 def test_without_a_contact_address_only_the_link_is_given(
     member: User, mission: EmailType, settings: Settings
 ) -> None:
-    """No contact address means no ``mailto:``."""
+    """A missing contact address leaves out the ``mailto:``."""
     settings.SITE_URL = "https://caldart.example.org"
     make_site_settings(contact_email="")
 
@@ -106,7 +106,7 @@ def test_a_host_is_encoded_by_uts_46_keeping_a_sharp_s(
 
 
 @pytest.mark.usefixtures("site")
-def test_a_type_that_cannot_be_turned_off_carries_no_headers(
+def test_a_type_that_cannot_be_turned_off_does_not_carry_the_headers(
     member: User, operational: EmailType
 ) -> None:
     """Neither header is given for a type that does not allow opting out."""
@@ -139,7 +139,7 @@ def test_the_footer_says_why_a_type_cannot_be_turned_off(
 
 
 @pytest.mark.usefixtures("site")
-def test_transactional_mail_carries_no_unsubscribe_headers(
+def test_transactional_mail_does_not_carry_unsubscribe_headers(
     member: User, email_template: str
 ) -> None:
     """A receipt, a reminder, or a password link is never unsubscribed from."""

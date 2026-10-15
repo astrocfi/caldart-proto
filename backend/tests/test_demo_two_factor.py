@@ -117,7 +117,7 @@ def test_the_middleware_keeps_a_demo_administrator_session_without_the_mark(
 def test_a_demo_administrator_is_not_required_to_use_two_factor(
     api_client: APIClient, demo_admin: User
 ) -> None:
-    """The two-factor status says no role requires it, so it may be turned off."""
+    """The two-factor status says that no role requires it, so it may be turned off."""
     api_client.force_login(demo_admin)
     assert api_client.get(MFA_STATUS_URL).json()["required_by_role"] is False
 
@@ -126,7 +126,7 @@ def test_a_demo_administrator_is_not_required_to_use_two_factor(
 def test_with_the_setting_off_a_demo_administrator_is_asked_to_enroll(
     api_client: APIClient, demo_admin: User
 ) -> None:
-    """The demo mark alone exempts nobody."""
+    """The demo mark alone doesn't exempt anybody."""
     assert password_step(api_client, demo_admin).json() == {"mfa": "enroll"}
 
 

@@ -47,7 +47,7 @@ def check_body(member: User | None, **overrides: object) -> dict[str, object]:
 def test_a_recorded_payment_is_succeeded_the_moment_it_is_written(
     member: User, treasurer: User, annual_plan: MembershipPlan
 ) -> None:
-    """The money is already in hand, so there is nothing to confirm."""
+    """The money is already in hand, so there isn't anything to confirm."""
     payment = record_manual_payment(
         user=member,
         plan_slug="annual",
@@ -61,7 +61,7 @@ def test_a_recorded_payment_is_succeeded_the_moment_it_is_written(
     assert payment.status == PaymentStatus.SUCCEEDED
 
 
-def test_a_recorded_payment_carries_no_fee_and_a_net_equal_to_the_amount(
+def test_a_recorded_payment_does_not_carry_a_fee_and_has_a_net_equal_to_the_amount(
     member: User, treasurer: User, annual_plan: MembershipPlan
 ) -> None:
     """Nobody took a cut of a check, so the whole amount reached the bank."""
@@ -148,7 +148,7 @@ def test_a_lifetime_plan_can_be_paid_by_check(
 
 
 def test_a_pure_contribution_can_be_recorded(member: User, treasurer: User) -> None:
-    """Cash in the bucket at a meeting buys no term and is still a payment."""
+    """Cash in the bucket at a meeting doesn't buy a term and is still a payment."""
     payment = record_manual_payment(
         user=member,
         plan_slug=None,
@@ -278,7 +278,7 @@ def test_a_reference_taken_after_the_check_is_still_refused(
 def test_two_recorded_payments_may_both_leave_the_reference_blank(
     member: User, treasurer: User, annual_plan: MembershipPlan
 ) -> None:
-    """Cash has no number, so a blank reference is not a duplicate."""
+    """Cash doesn't have a number, so a blank reference is not a duplicate."""
     for day in (2, 3):
         record_manual_payment(
             user=member,
@@ -371,10 +371,10 @@ def test_the_endpoint_refuses_a_date_in_the_future(
     assert response.json() == {"received_on": ["The money cannot have arrived in the future."]}
 
 
-def test_the_endpoint_refuses_a_body_that_buys_nothing(
+def test_the_endpoint_refuses_a_body_that_does_not_buy_anything(
     treasurer_client: APIClient, member: User
 ) -> None:
-    """No plan and no contribution is nothing to record."""
+    """Without a plan or a contribution there isn't anything to record."""
     response = treasurer_client.post(
         RECORD, check_body(member, plan="", contribution_cents=0), format="json"
     )

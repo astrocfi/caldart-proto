@@ -85,7 +85,7 @@ def test_a_blank_setting_makes_the_default_the_sender_s_own_address(management: 
 
 
 @pytest.mark.usefixtures("own_address")
-def test_a_deleted_sender_with_a_blank_setting_has_no_default() -> None:
+def test_a_deleted_sender_with_a_blank_setting_does_not_have_a_default() -> None:
     """Nobody to reply to is ``""``, which the checks then refuse."""
     assert default_reply_to(None) == ""
 
@@ -117,7 +117,7 @@ def test_a_chosen_address_wins_over_the_default(management: User) -> None:
 
 @pytest.mark.usefixtures("shared_mailbox")
 def test_a_blank_address_means_the_default(management: User) -> None:
-    """``reply_to_for`` falls back to the default when the email names none."""
+    """``reply_to_for`` falls back to the default when the email doesn't name one."""
     bulk = BulkEmailFactory(sender=management, reply_to="")
     assert reply_to_for(bulk) == OPERATIONS
 
@@ -168,14 +168,14 @@ def test_patch_refuses_an_address_that_is_not_valid(
 # -- sending ----------------------------------------------------------------------
 @pytest.mark.usefixtures("shared_mailbox")
 def test_a_copy_carries_the_default(management: User) -> None:
-    """An email with no address of its own goes out with the installation's default."""
+    """An email without an address of its own goes out with the installation's default."""
     send_to_ann(BulkEmailFactory(sender=management, reply_to=""))
     assert mail.outbox[0].reply_to == [OPERATIONS]
 
 
 @pytest.mark.usefixtures("own_address")
 def test_a_copy_carries_the_sender_s_own_address(management: User) -> None:
-    """With no default set, replies go to the sender."""
+    """Without a default set, replies go to the sender."""
     send_to_ann(BulkEmailFactory(sender=management, reply_to=""))
     assert mail.outbox[0].reply_to == [management.email]
 
@@ -198,7 +198,7 @@ def test_from_stays_the_site_s_address(settings: Settings, management: User) -> 
 def test_send_records_the_address_the_copies_carry(
     management_client: APIClient, management: User
 ) -> None:
-    """**Send** stores the default on an email that named none, for the history."""
+    """**Send** stores the default on an email that didn't name one, for the history."""
     bulk = BulkEmailFactory(sender=management, reply_to="")
     add_to_batch(bulk, make_person("ann@example.test"))
     body = management_client.post(detail_url(bulk, "send"), {}, format="json").json()
@@ -241,7 +241,7 @@ def test_send_refuses_a_default_that_is_not_valid(
 
 
 def test_a_refused_address_leaves_the_email_a_draft(management: User, settings: Settings) -> None:
-    """``drafts.queue`` raises the checks' errors and changes nothing."""
+    """``drafts.queue`` raises the checks' errors and doesn't change anything."""
     settings.BULK_EMAIL_REPLY_TO = "operations"
     bulk = BulkEmailFactory(sender=management, reply_to="")
     add_to_batch(bulk, make_person("ann@example.test"))
@@ -268,7 +268,7 @@ def test_a_reply_to_blanked_after_send_is_resolved_as_the_send_starts(
 
 
 @pytest.mark.usefixtures("own_address")
-def test_a_deleted_sender_with_no_default_falls_back_to_the_site_s_address(
+def test_a_deleted_sender_without_a_default_falls_back_to_the_site_s_address(
     settings: Settings,
 ) -> None:
     """``claimed_reply_to`` answers ``DEFAULT_FROM_EMAIL``'s address when nothing else."""
@@ -278,10 +278,10 @@ def test_a_deleted_sender_with_no_default_falls_back_to_the_site_s_address(
 
 
 @pytest.mark.usefixtures("own_address")
-def test_with_no_address_to_resolve_copies_reply_to_the_site_s_address(
+def test_without_an_address_to_resolve_copies_reply_to_the_site_s_address(
     management: User, settings: Settings
 ) -> None:
-    """A sender with no address of their own and no default: the site's, recorded."""
+    """A sender without an address of their own or a default: the site's, recorded."""
     settings.DEFAULT_FROM_EMAIL = "CalDART <noreply@caldart.example.org>"
     type(management).objects.filter(pk=management.pk).update(email="")
     management.refresh_from_db()

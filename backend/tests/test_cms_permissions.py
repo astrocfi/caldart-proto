@@ -78,8 +78,8 @@ def test_migration_granted_the_website_admin_group_its_permissions() -> None:
     }
 
 
-def test_granting_twice_adds_nothing(db: None) -> None:
-    """Calling ``grant_website_admin_permissions`` again adds no duplicate grants."""
+def test_granting_twice_does_not_add_anything(db: None) -> None:
+    """Calling ``grant_website_admin_permissions`` again doesn't add duplicate grants."""
     before = (
         GroupPagePermission.objects.count(),
         GroupCollectionPermission.objects.count(),
@@ -109,7 +109,7 @@ def test_plain_member_is_bounced_from_the_wagtail_admin(client: Client, member: 
 
 
 def test_dart_leader_is_bounced_from_the_wagtail_admin(client: Client, dart_leader: User) -> None:
-    """A DART leader with no admin rights is redirected away from the admin."""
+    """A DART leader without admin rights is redirected away from the admin."""
     client.force_login(dart_leader)
     assert client.get("/admin/").status_code == 302
 
@@ -226,7 +226,7 @@ def test_the_page_form_hides_raw_html_from_users_who_may_not_use_it(
 
     # Stripping is per form instance: the shared block definition is untouched.
     # django-stubs types `get_field` as the base Field/ForeignObjectRel union, which
-    # carries no `stream_block` -- that attribute belongs to wagtail's unstubbed
+    # doesn't carry `stream_block` -- that attribute belongs to wagtail's unstubbed
     # StreamField.
     body_field = StandardPage._meta.get_field("body").stream_block  # type: ignore[union-attr]
     assert "raw_html" in body_field.child_blocks
@@ -242,5 +242,5 @@ def test_website_admin_may_manage_redirects(website_admin: User) -> None:
 
 
 def test_a_plain_member_may_not_manage_redirects(member: User) -> None:
-    """A plain member holds none of the Wagtail redirect permissions."""
+    """A plain member doesn't hold any of the Wagtail redirect permissions."""
     assert not member.has_perm("wagtailredirects.add_redirect")

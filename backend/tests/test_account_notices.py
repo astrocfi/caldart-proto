@@ -88,8 +88,8 @@ def test_the_notice_points_to_the_reset_form(api_client: APIClient, member: User
     assert "/portal/forgot-password" in str(mail.outbox[0].body)
 
 
-def test_a_refused_change_mails_nothing(api_client: APIClient, member: User) -> None:
-    """A wrong current password changes nothing and reports nothing."""
+def test_a_refused_change_does_not_mail_anything(api_client: APIClient, member: User) -> None:
+    """A wrong current password doesn't change or report anything."""
     api_client.force_login(member)
 
     api_client.post(CHANGE_URL, {"current_password": "wrong", "new_password": GOOD_PASSWORD})
@@ -138,7 +138,9 @@ def test_a_reset_records_the_audit_line(
     )
 
 
-def test_a_first_password_mails_no_notice(api_client: APIClient, run_on_commit: None) -> None:
+def test_a_first_password_does_not_mail_a_notice(
+    api_client: APIClient, run_on_commit: None
+) -> None:
     """Setting the first password of an invited account is not a change to report."""
     user = UserFactory(email="invited@example.test")
     user.set_unusable_password()

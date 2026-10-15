@@ -163,7 +163,7 @@ def test_a_registration_defaults_to_a_valid_one_of_unknown_registrant() -> None:
 
 
 def test_a_registry_import_starts_unfinished_and_not_ok() -> None:
-    """A fresh import row has no finish time, no counts, and is not ok."""
+    """A fresh import row doesn't have a finish time or counts, and is not ok."""
     run = RegistryImport.objects.create(source="https://example.test/registry.zip")
     assert (
         run.finished_at,
@@ -302,8 +302,8 @@ def test_an_alias_resolves_to_the_type_it_names(
     assert str(AircraftTypeAlias.objects.get(alias=alias).type) == expected
 
 
-def test_an_alias_naming_no_type_is_skipped(vocabulary: dict[str, AircraftType]) -> None:
-    """An alias whose type is not in the vocabulary writes no row."""
+def test_an_alias_naming_an_unknown_type_is_skipped(vocabulary: dict[str, AircraftType]) -> None:
+    """An alias whose type is not in the vocabulary doesn't write a row."""
     assert not AircraftTypeAlias.objects.filter(alias="r44").exists()
 
 
@@ -348,12 +348,14 @@ def test_a_misspelled_foreign_type_is_found(vocabulary: dict[str, AircraftType])
 def test_a_query_with_digits_finds_the_model_holding_them(
     vocabulary: dict[str, AircraftType],
 ) -> None:
-    """``x182`` resembles no name, but its digits find the Cessna 182T."""
+    """``x182`` doesn't resemble a name, but its digits find the Cessna 182T."""
     assert [str(entry) for entry in search_types("x182")] == ["Cessna 182T"]
 
 
 @pytest.mark.parametrize("query", ["", "   "])
-def test_a_blank_query_finds_nothing(vocabulary: dict[str, AircraftType], query: str) -> None:
+def test_a_blank_query_does_not_find_anything(
+    vocabulary: dict[str, AircraftType], query: str
+) -> None:
     """Nothing is searched for until something is typed."""
     assert search_types(query) == []
 
@@ -378,7 +380,7 @@ def test_equally_similar_types_lead_with_the_most_registered() -> None:
 
 
 def test_equally_similar_and_registered_types_lead_by_name() -> None:
-    """With nothing else to tell them apart, types list by make and model."""
+    """Without anything else to tell them apart, types list by make and model."""
     AircraftTypeFactory(make="Cessna", model="172")
     AircraftTypeFactory(make="Cessna", model="150")
     assert _leading("cesna") == "Cessna 150"
@@ -421,6 +423,6 @@ def test_a_single_digit_does_not_trigger_the_digit_fallback(
     assert search_types("zq1") == []
 
 
-def test_a_nonsense_query_finds_nothing(vocabulary: dict[str, AircraftType]) -> None:
-    """A query resembling no type answers an empty list."""
+def test_a_nonsense_query_does_not_find_anything(vocabulary: dict[str, AircraftType]) -> None:
+    """A query that doesn't resemble a type answers an empty list."""
     assert search_types("zzqx") == []

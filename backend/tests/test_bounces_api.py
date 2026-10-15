@@ -102,7 +102,7 @@ def test_the_run_answers_its_counts_and_actions(
     }
 
 
-def test_a_run_with_no_body_is_live(
+def test_a_run_without_a_body_is_live(
     system_admin_client: APIClient,
     sent: EmailLog,
     fake_mailbox: FakeMailbox,
@@ -139,7 +139,7 @@ def test_the_run_records_the_caller_as_its_actor(
 def test_with_checking_off_the_run_says_so(
     system_admin_client: APIClient, settings: Settings
 ) -> None:
-    """An empty ``BOUNCE_IMAP_URL`` answers ``enabled`` false and nothing counted."""
+    """An empty ``BOUNCE_IMAP_URL`` answers ``enabled`` false and every count zero."""
     settings.BOUNCE_IMAP_URL = ""
 
     body = system_admin_client.post(RUN_URL, {}, format="json").json()
@@ -186,7 +186,7 @@ def test_the_command_prints_the_run(
 
 
 def test_the_command_with_checking_off_says_so_and_succeeds() -> None:
-    """With no mailbox configured the command prints one line and exits cleanly."""
+    """Without a mailbox configured the command prints one line and exits cleanly."""
     out = StringIO()
 
     call_command("check_bounces", stdout=out)

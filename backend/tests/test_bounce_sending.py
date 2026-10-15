@@ -26,7 +26,7 @@ BOUNCES = "bounces@caldart.example.org"
 
 @pytest.fixture
 def sender(settings: Settings) -> Settings:
-    """``DEFAULT_FROM_EMAIL`` fixed to :data:`FROM`, with no bounce address."""
+    """``DEFAULT_FROM_EMAIL`` fixed to :data:`FROM`, without a bounce address."""
     settings.DEFAULT_FROM_EMAIL = FROM
     settings.BOUNCE_ADDRESS = ""
     return settings

@@ -72,7 +72,7 @@ def test_the_fee_answer_is_the_whole_finance_row(
 def test_a_payment_recorded_by_hand_is_refused(
     treasurer_client: APIClient, member: User, treasurer: User
 ) -> None:
-    """A check has no provider to ask, so the button is a 400 rather than a zero fee."""
+    """A check doesn't have a provider to ask, so the button is a 400, not a zero fee."""
     manual = record_manual_payment(
         user=member,
         plan_slug=None,
@@ -95,7 +95,7 @@ def test_a_payment_recorded_by_hand_is_refused(
 def test_a_payment_that_never_succeeded_is_refused(
     treasurer_client: APIClient, member: User
 ) -> None:
-    """A pending payment has nothing to price, so the button is a 400."""
+    """A pending payment doesn't have anything to price, so the button is a 400."""
     pending = PaymentFactory(
         user=member,
         amount_cents=4_500,
@@ -131,7 +131,7 @@ def test_a_provider_that_cannot_be_asked_says_so(
     assert response.json()["detail"] == "Stripe is not configured."
 
 
-def test_an_unknown_payment_has_no_fee_to_fetch(treasurer_client: APIClient) -> None:
+def test_an_unknown_payment_does_not_have_a_fee_to_fetch(treasurer_client: APIClient) -> None:
     """A payment id nobody recognizes is a 404, not an empty 200."""
     response = treasurer_client.post("/api/v1/admin/payments/99999/fees")
 
@@ -232,10 +232,10 @@ def test_a_row_says_where_the_member_s_membership_stands(
     assert rows[0]["membership"]["status"] == "current"
 
 
-def test_an_empty_search_asks_for_nobody(
+def test_an_empty_search_does_not_ask_for_anybody(
     treasurer_client: APIClient, searchable_members: list[User]
 ) -> None:
-    """A search box nobody has typed in lists no members at all."""
+    """A search box nobody has typed in doesn't list any members."""
     response = treasurer_client.get(MEMBER_SEARCH)
 
     assert response.json() == []

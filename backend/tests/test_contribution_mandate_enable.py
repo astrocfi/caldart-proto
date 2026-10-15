@@ -1,9 +1,9 @@
 """Turning a life member's recurring donation on from the My payments screen.
 
-A recurring donation names no plan, so confirming the saved method has no plan slug
-to record.  The audit record renders that absence rather than refusing it, which is
-what lets a donation be turned on at all, and the record's own ``plan`` field is
-checked here for both kinds of authority.
+A recurring donation doesn't name a plan, so confirming the saved method doesn't have a
+plan slug to record.  The audit record renders that absence rather than refusing it,
+which is what lets a donation be turned on at all, and the record's own ``plan`` field
+is checked here for both kinds of authority.
 """
 
 from __future__ import annotations
@@ -90,15 +90,15 @@ def enable_contribution(api_client: APIClient, user: User) -> dict[str, object]:
 def test_a_life_member_turns_their_recurring_donation_on(
     api_client: APIClient, life_member: User
 ) -> None:
-    """The confirmed authority comes back as a donation, charging no plan."""
+    """The confirmed authority comes back as a donation, without a plan."""
     mandate = enable_contribution(api_client, life_member)["mandate"]
 
     assert isinstance(mandate, dict)
     assert mandate["kind"] == "contribution"
 
 
-def test_an_enabled_donation_names_no_plan(api_client: APIClient, life_member: User) -> None:
-    """The saved method leaves the authority active with no plan to renew."""
+def test_an_enabled_donation_does_not_name_a_plan(api_client: APIClient, life_member: User) -> None:
+    """The saved method leaves the authority active without a plan to renew."""
     enable_contribution(api_client, life_member)
 
     stored = RenewalMandate.objects.get(user=life_member)
@@ -116,7 +116,7 @@ def test_an_enabled_donation_has_a_next_charge_date(
     assert mandate["next_charge_on"] is not None
 
 
-def test_the_audit_record_of_a_donation_names_no_plan(
+def test_the_audit_record_of_a_donation_does_not_name_a_plan(
     api_client: APIClient, life_member: User, caplog: pytest.LogCaptureFixture
 ) -> None:
     """``renewal.enable`` carries an empty plan, which the record renders as ``-``."""

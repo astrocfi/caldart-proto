@@ -156,7 +156,7 @@ def test_a_page_past_the_end_is_refused(
 def test_an_absurd_aircraft_window_is_clamped_to_ten_years(
     api_client: APIClient, member: User
 ) -> None:
-    """A window wider than a date can hold lists cover inside 3650 days and no more."""
+    """A window wider than a date can hold lists cover up to 3650 days."""
     AircraftFactory(
         n_number="N1INSIDE",
         insurance_expiration=timezone.localdate() + timedelta(days=MAX_AIRCRAFT_WINDOW_DAYS),

@@ -81,7 +81,7 @@ def test_only_types_that_may_be_turned_off_are_listed(
 
 
 def test_a_new_account_starts_opted_in_to_every_type(member_client: APIClient) -> None:
-    """With no opt-out recorded, every type is on."""
+    """Without an opt-out recorded, every type is on."""
     EmailTypeFactory.create_batch(3)
 
     response = member_client.get(ME_URL)
@@ -149,10 +149,10 @@ def test_turning_a_type_back_on_is_audited(
     ]
 
 
-def test_asking_for_the_state_already_held_writes_nothing(
+def test_asking_for_the_state_already_held_does_not_write_anything(
     member_client: APIClient, mission: EmailType, audit_log: pytest.LogCaptureFixture
 ) -> None:
-    """Opting in while opted in changes nothing and is not audited."""
+    """Opting in while opted in doesn't change anything and is not audited."""
     member_client.put(ME_URL, change(mission, opted_out=False), format="json")
 
     assert audit_messages(audit_log) == []
@@ -365,12 +365,12 @@ def test_changing_a_members_preferences_is_the_account_administrators(
     assert response.status_code == (200 if allowed else 403)
 
 
-def test_an_anonymous_caller_has_no_preferences(api_client: APIClient) -> None:
+def test_an_anonymous_caller_does_not_have_preferences(api_client: APIClient) -> None:
     """No session is a 401."""
     assert api_client.get(ME_URL).status_code == 401
 
 
-def test_an_anonymous_caller_reads_no_members_preferences(
+def test_an_anonymous_caller_cannot_read_a_members_preferences(
     api_client: APIClient, member: User
 ) -> None:
     """No session is a 401 on the member record's preferences."""

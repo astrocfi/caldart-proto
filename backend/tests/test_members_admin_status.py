@@ -241,7 +241,7 @@ def test_three_back_to_back_terms_chain_to_the_last(
 def test_lifetime_reports_the_life_plan(
     histories: dict[str, User], life_plan: MembershipPlan
 ) -> None:
-    """A member who upgraded to a lifetime plan reports it, with no expiry."""
+    """A member who upgraded to a lifetime plan reports it, without an expiry."""
     user = member_admin_queryset().get(pk=histories["annual-then-life"].pk)
     payload = membership_payload(user)
     assert payload["expires_on"] is None
@@ -249,7 +249,7 @@ def test_lifetime_reports_the_life_plan(
 
 
 def test_joined_on_is_the_earliest_term_start(histories: dict[str, User], today: date) -> None:
-    """``joined_on`` is the earliest term's start date, or ``None`` with no terms."""
+    """``joined_on`` is the earliest term's start date, or ``None`` without terms."""
     user = member_admin_queryset().get(pk=histories["three-back-to-back"].pk)
     assert user.joined_on == today - timedelta(days=700)
     assert member_admin_queryset().get(pk=histories["never"].pk).joined_on is None
@@ -308,7 +308,7 @@ def test_membership_of_falls_back_to_the_service(histories: dict[str, User], lab
 def test_the_status_filter_puts_every_friend_under_friend(
     histories: dict[str, User], status: str, labels: set[str]
 ) -> None:
-    """Each status lists its own: a friend under friend, an unpaid member under none."""
+    """Each status lists its own: friends under friend, unpaid members under ``none``."""
     by_pk = {user.pk: label for label, user in histories.items()}
     queryset = MemberAdminFilterSet({"status": status}, queryset=member_admin_queryset()).qs
     assert {by_pk[user.pk] for user in queryset if user.pk in by_pk} == labels

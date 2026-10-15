@@ -57,7 +57,7 @@ def newsletter() -> EmailTemplate:
 
 @pytest.fixture
 def draft(management: User) -> BulkEmail:
-    """An empty draft from CalDART management, with no type."""
+    """An empty draft from CalDART management, without a type."""
     return BulkEmailFactory(sender=management, subject="", body="", email_type=None)
 
 
@@ -234,7 +234,7 @@ def test_editing_a_template_changes_its_message(
 def test_a_template_type_can_be_cleared(
     management_client: APIClient, newsletter: EmailTemplate
 ) -> None:
-    """A null type leaves the template with none."""
+    """A null type leaves the template without one."""
     management_client.patch(template_url(newsletter), {"email_type": None}, format="json")
     newsletter.refresh_from_db()
     assert newsletter.email_type is None
@@ -364,7 +364,7 @@ def test_starting_from_a_template_leaves_the_batch(
 def test_a_template_without_a_type_keeps_the_drafts_type(
     management_client: APIClient, management: User
 ) -> None:
-    """The draft keeps its own type when the template names none."""
+    """The draft keeps its own type when the template doesn't name one."""
     bulk = BulkEmailFactory(sender=management)
     template = EmailTemplateFactory(email_type=None)
     management_client.post(apply_url(bulk), {"template": template.pk}, format="json")
@@ -385,7 +385,7 @@ def test_a_template_type_the_caller_may_not_send_is_not_applied(
 def test_editing_the_draft_leaves_the_template_unchanged(
     management_client: APIClient, newsletter: EmailTemplate, draft: BulkEmail
 ) -> None:
-    """The draft is a copy: saving new words in it changes no template."""
+    """The draft is a copy: saving new words in it doesn't change a template."""
     management_client.post(apply_url(draft), {"template": newsletter.pk}, format="json")
     management_client.patch(
         f"/api/v1/bulk-email/{draft.pk}",

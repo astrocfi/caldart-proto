@@ -133,7 +133,7 @@ def test_creates_a_new_account_with_the_given_names(capsys: pytest.CaptureFixtur
 def test_creates_a_new_account_with_blank_names_by_default(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    """Without ``--first-name``/``--last-name`` a freshly created account has none."""
+    """Without ``--first-name``/``--last-name`` a new account has blank names."""
     call_command("create_admin", email="new.admin@example.test")
     user = User.objects.get(email="new.admin@example.test")
 
@@ -352,12 +352,12 @@ def test_the_address_is_verified_under_the_command_actor(
     ]
 
 
-def test_creating_a_new_account_mails_nothing(
+def test_creating_a_new_account_does_not_mail_anything(
     capsys: pytest.CaptureFixture[str],
     mailoutbox: list[EmailMessage],
     django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
 ) -> None:
-    """A freshly created account has no password to take back, so nothing is mailed."""
+    """A new account doesn't have a password to take back, so nothing is mailed."""
     with django_capture_on_commit_callbacks(execute=True):
         call_command("create_admin", email="new.admin@example.test")
 
@@ -458,7 +458,7 @@ def test_the_link_reopens_a_promoted_account_that_was_blocked_and_deactivated(
 def test_an_existing_donor_address_is_a_command_error(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    """A donor holds no role and cannot sign in, so promoting one is refused."""
+    """A donor doesn't hold a role and cannot sign in, so promoting one is refused."""
     donor = UserFactory(email="donor@example.test", kind=AccountKind.DONOR)
 
     with pytest.raises(CommandError, match=re.escape("donor@example.test")):
@@ -471,7 +471,7 @@ def test_an_existing_donor_address_is_a_command_error(
 
 
 def test_a_refused_donor_keeps_its_password(capsys: pytest.CaptureFixture[str]) -> None:
-    """Refusing a donor changes nothing, its password hash included."""
+    """Refusing a donor doesn't change anything, its password hash included."""
     donor = UserFactory(email="donor@example.test", kind=AccountKind.DONOR)
     password_hash = donor.password
 
@@ -483,7 +483,7 @@ def test_a_refused_donor_keeps_its_password(capsys: pytest.CaptureFixture[str]) 
 
 
 def test_a_refused_donor_keeps_its_sessions(capsys: pytest.CaptureFixture[str]) -> None:
-    """Refusing a donor ends no session stored for the account."""
+    """Refusing a donor doesn't end a session stored for the account."""
     donor = UserFactory(email="donor@example.test", kind=AccountKind.DONOR)
     session_key = _stored_session(donor)
 
@@ -500,7 +500,7 @@ def test_running_it_twice_writes_the_account_roles_audit_line_only_once(
     capsys: pytest.CaptureFixture[str],
     audit_log: pytest.LogCaptureFixture,
 ) -> None:
-    """A second run for the same address grants nothing further, so nothing is audited."""
+    """A second run for the same address doesn't grant more, so nothing is audited."""
     call_command("create_admin", email="repeat.admin@example.test")
     call_command("create_admin", email="repeat.admin@example.test")
 
@@ -619,7 +619,7 @@ def test_running_it_again_still_prints_a_valid_link(capsys: pytest.CaptureFixtur
 # Validation
 # --------------------------------------------------------------------------
 def test_an_invalid_email_address_is_a_command_error(capsys: pytest.CaptureFixture[str]) -> None:
-    """A malformed address raises ``CommandError`` naming it, and creates no account."""
+    """A bad address raises ``CommandError`` naming it, without creating an account."""
     with pytest.raises(CommandError, match="not-an-email"):
         call_command("create_admin", email="not-an-email")
 
@@ -667,7 +667,7 @@ def test_a_password_change_overtaken_by_the_take_back_is_refused(
     assert response.json() == {"detail": CHANGED_ELSEWHERE}
 
 
-def test_a_password_change_overtaken_by_the_take_back_writes_no_password(
+def test_a_password_change_overtaken_by_the_take_back_does_not_write_a_password(
     capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch, api_client: APIClient
 ) -> None:
     """The password the take-back cleared stays unusable."""
@@ -679,7 +679,7 @@ def test_a_password_change_overtaken_by_the_take_back_writes_no_password(
     assert existing.has_usable_password() is False
 
 
-def test_a_password_change_overtaken_by_the_take_back_leaves_no_session(
+def test_a_password_change_overtaken_by_the_take_back_does_not_leave_a_session(
     capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch, api_client: APIClient
 ) -> None:
     """No session signed in to the account survives."""
@@ -704,7 +704,7 @@ def test_a_password_change_overtaken_by_the_take_back_leaves_the_client_signed_o
 def test_a_stale_edit_after_the_take_back_keeps_the_password_cleared(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    """An account edit made from a copy read before the take-back writes no password."""
+    """An edit from a copy read before the take-back doesn't write a password."""
     UserFactory(email="already.here@example.test", roles=[MEMBER])
     stale = User.objects.get(email="already.here@example.test")
 
