@@ -372,7 +372,7 @@ frontend/e2e/bulk-email-checks.spec.ts 1
 frontend/e2e/bulk-email.spec.ts 1
 frontend/e2e/darts-admin.spec.ts 1
 frontend/e2e/deactivation.spec.ts 2
-frontend/e2e/finance-reports.spec.ts 3
+frontend/e2e/finance-reports.spec.ts 2
 frontend/e2e/finance.spec.ts 2
 frontend/e2e/form-alignment.spec.ts 1
 frontend/e2e/helpers.ts 6
@@ -385,8 +385,8 @@ frontend/e2e/notifications.spec.ts 1
 frontend/e2e/public-donation.spec.ts 1
 frontend/e2e/public-site.spec.ts 1
 frontend/e2e/recurring-donation.spec.ts 4
-frontend/e2e/reminders.spec.ts 3
-frontend/e2e/reports.spec.ts 2
+frontend/e2e/reminders.spec.ts 2
+frontend/e2e/reports.spec.ts 1
 frontend/e2e/twoFactor.ts 1
 frontend/e2e/user-guide.spec.ts 4
 frontend/e2e/verification.spec.ts 6

@@ -86,7 +86,7 @@ test('a system administrator keeps the run controls on the Scheduled tasks page'
   await expect(panel).toBeVisible();
   await expect(
     panel.getByLabel(
-      'Practice run: show what would happen, send nothing (renewal reminder emails)',
+      'Practice run: show what would happen without sending anything (renewal reminder emails)',
     ),
   ).toBeChecked();
 

@@ -112,7 +112,7 @@ test('a system administrator rehearses the renewal scan', async ({ page }) => {
     .filter({ has: page.getByRole('heading', { name: 'Automatic renewal charges' }) });
   await expect(
     panel.getByLabel(
-      'Practice run: show what would happen, charge nothing (automatic renewal charges)',
+      'Practice run: show what would happen without charging anything (automatic renewal charges)',
     ),
   ).toBeChecked();
   await panel.getByRole('button', { name: 'Run now: automatic renewal charges' }).click();
