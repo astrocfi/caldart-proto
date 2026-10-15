@@ -30,9 +30,14 @@ status** beside it. Six cards follow.
    **Unverified**, and **Bounced**, beside a red dot, when the address bounces. The address
    itself is at the top of the page, changed on the :doc:`member-record` or by the person
    (*Waiting for … to confirm.* marks a change waiting), never here, as is the name. Then a
-   box for each role with a line saying what it grants. Unless you
-   are a system administrator, the **System administrator** box is grayed out, and its line
-   adds *Only a system administrator can give or take away this role.*
+   box for each role with a line saying what it grants. A box you may not change is grayed
+   out, and its line says why. Unless you are a system administrator, the **System
+   administrator** box is one, with *Only a system administrator can give or take away this
+   role.* So is the box of each two-factor role you do not hold yourself (:doc:`../roles`),
+   with *Only somebody who holds this role, or a system administrator, can give or take it
+   away.* On your own record the card lists the roles you hold under **Your roles**, with no
+   boxes and no **Save changes**, and says *You cannot change your own roles. Ask another
+   administrator.*
 
 **Account status**
    Whether the account can sign in, and the actions that change it: **Deactivate account**
@@ -119,7 +124,12 @@ Things worth knowing:
 - **System administrator** can do everything, including the server's own administration
   site. Grant it sparingly. Only a system administrator can grant or remove it, so the box
   is grayed out for anybody else.
+- The other two-factor roles (User administrator, Treasurer, Account administrator, CalDART
+  management, and Website administrator) you grant or remove only while you hold the role
+  yourself. Ask a system administrator, or somebody who holds the role, for the rest.
 - A role change takes effect on the person's next visit to a page.
+- An account administrator can have every role change emailed, to you or anybody else
+  who may receive it, as the **Roles changed** notification (:doc:`notifications`).
 
 
 Rules the site enforces
@@ -128,14 +138,19 @@ Rules the site enforces
 - **You cannot deactivate or block your own account, or reset its password.** Your own
   record's **Account status** card says so and offers no action, and its **Password** card
   points you to **Change password**.
-- **Only a system administrator may grant or remove System administrator.** You can change
-  every other role on a system administrator's account.
+- **Nobody changes their own roles**, a system administrator included. Your own record
+  lists your roles without boxes; ask another administrator to change them. Trying anyway is
+  refused, and the attempt is recorded.
+- **Only a system administrator may grant or remove System administrator.**
+- **A two-factor role is granted or removed only by somebody who holds it**, or by a system
+  administrator. Any user administrator grants and removes Member, Verifier, and DART
+  leader, on any account, a system administrator's included. A save that would move a role
+  you may not move is refused whole, naming the role: *You cannot give or take away a role
+  you do not hold yourself: Treasurer.*
 - **The account's status is guarded.** You can deactivate, reactivate, or block an account,
   send it a password reset, or require a new password of it, only when you hold every role
   it holds. As a user administrator you can act on an ordinary member, or another user
-  administrator, and nobody else with a role you lack. Because granting roles is your job,
-  you can lift this for any role except System administrator: check the missing role on your
-  own record, save, and make the change.
+  administrator, and nobody else with a role you lack.
 
 Some accounts, typically the one the site was installed with, hold full system access
 without the System administrator role checked. They count as a system administrator here, so
@@ -201,11 +216,15 @@ If something looks wrong
 
 *Only a system administrator can grant or take away the System administrator role.* means
 you changed a box on an account with full system access; put the boxes back and save, or ask
-a system administrator. *You cannot activate or deactivate an account that holds roles you
-do not hold.*, *You cannot block or unblock an account that holds roles you do not hold.*,
-*You cannot send a password reset to an account that holds roles you do not hold.*, and *You
-cannot require a new password for an account that holds roles you do not hold.* mean the
-account holds a role you lack; check it on your own record, save, and try again. *That
+a system administrator. *You cannot give or take away a role you do not hold yourself:* and
+the roles it names means the save moved a two-factor role you do not hold; put that box back
+and save, or ask a system administrator or somebody who holds the role. *You cannot change
+your own roles. Ask another administrator.* means just that. *You cannot activate or
+deactivate an account that holds roles you do not hold.*, *You cannot block or unblock an
+account that holds roles you do not hold.*, *You cannot send a password reset to an account
+that holds roles you do not hold.*, and *You cannot require a new password for an account
+that holds roles you do not hold.* mean the account holds a role you lack; ask a system
+administrator, or a colleague who holds every role that account holds. *That
 account is deactivated, so no reset email was sent.* means the account was deactivated while
 the page was open; reload and reactivate it first. *That account is already deactivated.*
 and *That account is already active.* mean somebody changed it while the page was open;

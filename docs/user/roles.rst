@@ -16,6 +16,14 @@ website administrator, and a system administrator must use two-factor sign-in: a
 code from an authenticator app on their phone each time they sign in (see
 :doc:`member/two-factor`).
 
+Those six are the **two-factor roles**, and they are granted with care. A user
+administrator grants or takes away a two-factor role only while holding it themselves: one
+who is also an account administrator can make somebody else an account administrator, but
+one who is not the treasurer can neither grant nor take away Treasurer. Any user
+administrator grants and takes away Member, Verifier, and DART leader. A system
+administrator grants and takes away every role. Nobody changes their own roles, a system
+administrator included: ask another administrator.
+
 This guide works the same way. It shows each reader the screens their roles reach:
 its menu and its contents list only the pages you can use, and the address of any
 other page brings you back to the guide's front page. A system administrator sees
@@ -69,8 +77,8 @@ adds the **Operations** group:
 
 A verifier does not browse the membership list. A DART leader or a user
 administrator grants the role from the member check, and a user administrator can
-also grant it on the **User record** (:doc:`admin/user-record`). You may verify your
-own documents.
+also grant it on the **User record** (:doc:`admin/user-record`). Nobody makes themselves
+a verifier. You may verify your own documents.
 
 
 DART leader
@@ -121,7 +129,8 @@ A user administrator looks after accounts. The role adds:
   in a section per role, Verifier among them. An account administrator can have it emailed to a user
   administrator on a schedule (:doc:`admin/subscriptions`).
 
-A user administrator cannot grant or take away the system administrator role.
+A user administrator cannot grant or take away the system administrator role, nor a
+two-factor role they do not hold themselves, and cannot change their own roles.
 
 
 Treasurer
@@ -193,8 +202,8 @@ group of the menu:
   fly and who has not answered, to remind the rest or close the answers.
 
 CalDART management writes to anybody, and sees every bulk email, its sender, and, for a DART
-leader's email, its DART. The role opens no member record and no payment. A user
-administrator grants it.
+leader's email, its DART. The role opens no member record and no payment. A system
+administrator, or a user administrator who is also CalDART management, grants it.
 
 
 Website administrator
@@ -230,4 +239,5 @@ role adds:
   way to run each now, and the reminder schedule, which only a system administrator
   changes.
 
-A system administrator cannot deactivate their own account.
+A system administrator grants and takes away every role on every account but their own,
+and cannot deactivate their own account or change their own roles.

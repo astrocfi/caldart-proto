@@ -180,10 +180,10 @@ def test_revoking_system_admin_clears_the_superuser_flag(system_admin: User) -> 
     assert target.is_superuser is False
 
 
-def test_granting_website_admin_keeps_the_wagtail_admin_reachable(user_admin: User) -> None:
+def test_granting_website_admin_keeps_the_wagtail_admin_reachable(system_admin: User) -> None:
     """Granting ``website_admin`` sets ``is_staff`` so the target can reach Wagtail."""
     target = UserFactory(email="target@example.test", roles=[MEMBER])
-    update_account(user_admin, target, {"roles": [MEMBER, WEBSITE_ADMIN]})
+    update_account(system_admin, target, {"roles": [MEMBER, WEBSITE_ADMIN]})
     target.refresh_from_db()
     assert target.is_staff is True
 

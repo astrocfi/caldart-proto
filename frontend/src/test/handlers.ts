@@ -131,14 +131,21 @@ export function makeAdminUser(overrides: Partial<AdminUser> = {}): AdminUser {
 
 /**
  * Build an `/admin/users/{id}` record: `makeAdminUser`, plus the term facts the record
- * words the membership by, with a term on file and nothing pending or set aside.
+ * words the membership by, with a term on file and nothing pending or set aside, and the
+ * roles a plain user administrator may change on somebody else's record.
  */
 export function makeAdminUserDetail(overrides: Partial<AdminUserDetail> = {}): AdminUserDetail {
-  const { has_terms = true, has_suspended_term = false, ...userOverrides } = overrides;
+  const {
+    has_terms = true,
+    has_suspended_term = false,
+    assignable_roles = ['member', 'verifier', 'dart_leader', 'user_admin'],
+    ...userOverrides
+  } = overrides;
   return {
     ...makeAdminUser(userOverrides),
     has_terms,
     has_suspended_term,
+    assignable_roles,
   };
 }
 

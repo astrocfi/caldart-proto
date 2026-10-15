@@ -34,9 +34,17 @@ from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
 from apps.accounts.history import record_account_change
 from apps.accounts.models import PERSON_KINDS, AccountChangeKind, AccountKind, User
-from apps.accounts.roles import MEMBER, ROLE_SLUGS, SYSTEM_ADMIN, VERIFIER, WEBSITE_ADMIN
+from apps.accounts.roles import (
+    GUARDED_ROLES,
+    MEMBER,
+    ROLE_LABELS,
+    ROLE_SLUGS,
+    SYSTEM_ADMIN,
+    VERIFIER,
+    WEBSITE_ADMIN,
+)
 from caldart import audit, events
-from caldart.exceptions import DomainValidationError
+from caldart.exceptions import DomainPermissionError, DomainValidationError
 from caldart.mail import contact_email, org_name, send_templated
 
 #: Where the SPA serves the reset form (``routes/auth.tsx``).
@@ -79,6 +87,10 @@ EMAIL_CHANGE_REFUSED = (
 ROLE_CHANGE_REFUSED = (
     "Only a system administrator can grant or take away the System administrator role."
 )
+#: The refusal of a role write that moves guarded roles the actor does not hold;
+#: ``{roles}`` is their labels, comma separated, in privilege order.
+ROLE_NOT_HELD_REFUSED = "You cannot give or take away a role you do not hold yourself: {roles}."
+OWN_ROLES_REFUSED = "You cannot change your own roles. Ask another administrator."
 DONOR_KIND_REFUSED = "A donor becomes a member or a friend only by registering."
 
 #: What one account column carries in an edit: an address or a name.
@@ -234,16 +246,16 @@ def update_account(actor: User | str, target: User, changes: AccountChanges) -> 
     whichever endpoint, command, or admin screen asked.  ``actor`` is ordinarily the
     signed-in account making the edit; a management command passes
     ``audit.COMMAND_ACTOR`` instead, which counts as holding every role (see
-    :func:`effective_roles`) and so may grant or revoke any role: the self-deactivation
-    rule never applies to the command actor, which names no account.  A caller passing
-    ``audit.COMMAND_ACTOR`` should wrap the call in
-    :func:`apps.notifications.dispatch.suspended`, because a role change raises
-    ``roles_changed`` with ``actor`` in its payload and that event's message requires a
-    ``User`` actor, not the command actor's string; ``create_admin`` does.  The rules
-    run in this order, and the first refusal raises ``DomainValidationError`` naming
-    the field it belongs on, leaving the account untouched:
+    :func:`effective_roles`) and so may grant or revoke any role: the own-account rule
+    never applies to the command actor, which names no account.  The rules run in this
+    order, and the first refusal raises, leaving the account untouched:
 
-    #. only a system administrator may grant or revoke ``system_admin``;
+    #. nobody changes their own roles, a system administrator included
+       (``DomainPermissionError``);
+    #. only a system administrator may grant or revoke ``system_admin``, and only a
+       system administrator or a holder of the role may grant or revoke a role in
+       ``GUARDED_ROLES`` (``DomainValidationError`` against ``roles``; see
+       :func:`_checked_roles` and :func:`assignable_roles`);
     #. a donor's kind is never changed by hand ("A donor becomes a member or a
        friend only by registering.", against ``kind``).
 
@@ -275,7 +287,8 @@ def update_account(actor: User | str, target: User, changes: AccountChanges) -> 
     :func:`caldart.events.emit`, after the save and inside the transaction:
     ``became_friend`` or ``became_member`` with ``how="administrator"`` for a new
     kind, and ``roles_changed`` with the slugs ``added`` and ``removed`` (in
-    privilege order) and ``actor``.  An edit that alters nothing raises nothing.
+    privilege order) and ``actor``, the command actor's string included.  An edit that
+    alters nothing raises nothing.
     """
     fields = _account_fields(changes)
     roles = changes.get("roles")
@@ -321,7 +334,9 @@ def set_verifier(actor: User, target: User, *, wanted: bool) -> User:
     through :func:`update_account` under ``actor``, so the change is audited as
     ``account.roles`` and raised as ``roles_changed``, and every other role the target
     holds is kept.  A list that changes nothing writes, records and raises nothing.
-    Who may call this is the endpoint's rule, not this function's.
+    :func:`update_account`'s rules apply, so a change to the actor's own roles is
+    refused with ``DomainPermissionError`` (:data:`OWN_ROLES_REFUSED`).  Who may call
+    this is the endpoint's rule, not this function's.
     """
     held = [slug for slug in target.roles if slug != VERIFIER]
     roles = [*held, VERIFIER] if wanted else held
@@ -383,32 +398,68 @@ def _change_records(
     return records
 
 
+def assignable_roles(actor: User | str, target: User) -> list[str]:
+    """The role slugs ``actor`` may grant or take away on ``target``, in privilege order.
+
+    None on the actor's own account: nobody changes their own roles.  Every role for a
+    system administrator, a Django superuser and the command actor included
+    (:func:`effective_roles`).  For anybody else, every role outside ``GUARDED_ROLES``
+    and each guarded role the actor holds, which never includes ``system_admin``.  Who
+    may write roles at all is the endpoint's rule, not this function's.
+    """
+    if isinstance(actor, User) and actor.pk == target.pk:
+        return []
+    held = effective_roles(actor)
+    if SYSTEM_ADMIN in held:
+        return list(ROLE_SLUGS)
+    return [slug for slug in ROLE_SLUGS if slug not in GUARDED_ROLES or slug in held]
+
+
 def _checked_roles(actor: User | str, target: User, wanted: list[str]) -> list[str]:
-    """``wanted`` in privilege order, refused if ``actor`` may not move ``system_admin``.
+    """``wanted`` in privilege order, refused when ``actor`` may not make the change.
+
+    A list matching the groups the account already holds writes nothing and is never
+    refused.  Any other list is refused, and the refusal audited under
+    ``account.roles``, in this order:
+
+    #. on the actor's own account, whoever the actor is: ``DomainPermissionError``
+       with :data:`OWN_ROLES_REFUSED`, reason ``own_account``;
+    #. when it moves ``system_admin`` and the actor is not a system administrator:
+       ``DomainValidationError`` on ``roles`` with :data:`ROLE_CHANGE_REFUSED`, reason
+       ``system_admin_role``;
+    #. when it grants or takes away a role :func:`assignable_roles` leaves out:
+       ``DomainValidationError`` on ``roles`` with :data:`ROLE_NOT_HELD_REFUSED` naming
+       those roles, reason ``roles_not_held``.
 
     Writing a role list rebuilds the Django flags from that list alone, so the two
-    directions are measured against different sets.  A write grants the role when it
-    names ``system_admin`` on an account whose groups lack it, and revokes it when it
-    leaves the role out of the list for an account that counts as a system
-    administrator -- which a ``createsuperuser`` account does, on the superuser flag
-    alone.  A list matching the groups the account already holds writes nothing and
-    is never refused.
+    directions of ``system_admin`` are measured against different sets.  A write grants
+    the role when it names ``system_admin`` on an account whose groups lack it, and
+    revokes it when it leaves the role out of the list for an account that counts as a
+    system administrator -- which a ``createsuperuser`` account does, on the superuser
+    flag alone.
     """
     held = set(wanted)
-    is_refused = (
-        _writes_roles(target, held)
-        and _moves_system_admin(target, held)
-        and SYSTEM_ADMIN not in effective_roles(actor)
-    )
-    if is_refused:
-        audit.refuse(
-            audit.ACCOUNT_ROLES,
-            actor=actor,
-            target=target,
-            reason=audit.REASON_SYSTEM_ADMIN_ROLE,
-        )
+    if not _writes_roles(target, held):
+        return [slug for slug in ROLE_SLUGS if slug in held]
+    if isinstance(actor, User) and actor.pk == target.pk:
+        _refuse_roles(actor, target, audit.REASON_OWN_ACCOUNT)
+        raise DomainPermissionError(OWN_ROLES_REFUSED)
+    if _moves_system_admin(target, held) and SYSTEM_ADMIN not in effective_roles(actor):
+        _refuse_roles(actor, target, audit.REASON_SYSTEM_ADMIN_ROLE)
         raise DomainValidationError("roles", ROLE_CHANGE_REFUSED)
+    allowed = set(assignable_roles(actor, target))
+    moved = held.symmetric_difference(target.roles)
+    not_held = [slug for slug in ROLE_SLUGS if slug in moved and slug not in allowed]
+    if len(not_held) > 0:
+        _refuse_roles(actor, target, audit.REASON_ROLES_NOT_HELD)
+        labels = ", ".join(ROLE_LABELS[slug] for slug in not_held)
+        raise DomainValidationError("roles", ROLE_NOT_HELD_REFUSED.format(roles=labels))
     return [slug for slug in ROLE_SLUGS if slug in held]
+
+
+def _refuse_roles(actor: User | str, target: User, reason: str) -> None:
+    """Audit a refused role write on ``target`` by ``actor`` under ``reason``."""
+    audit.refuse(audit.ACCOUNT_ROLES, actor=actor, target=target, reason=reason)
 
 
 def _writes_roles(target: User, wanted: set[str]) -> bool:

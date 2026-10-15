@@ -427,10 +427,10 @@ def test_patch_sets_roles(api_client: APIClient, user_admin: User, member: User)
 
 
 def test_patch_returns_roles_in_privilege_order(
-    api_client: APIClient, user_admin: User, member: User
+    api_client: APIClient, system_admin: User, member: User
 ) -> None:
     """The response's ``roles`` list is reordered to the fixed privilege order."""
-    api_client.force_login(user_admin)
+    api_client.force_login(system_admin)
     response = api_client.patch(detail(member), {"roles": [ACCOUNT_ADMIN, MEMBER, DART_LEADER]})
     assert response.json()["roles"] == [MEMBER, DART_LEADER, ACCOUNT_ADMIN]
 
@@ -540,10 +540,10 @@ def test_revoking_system_admin_drops_the_superuser_flag(
 
 
 def test_website_admin_keeps_the_staff_flag(
-    api_client: APIClient, user_admin: User, member: User
+    api_client: APIClient, system_admin: User, member: User
 ) -> None:
     """Wagtail access must survive an unrelated role edit."""
-    api_client.force_login(user_admin)
+    api_client.force_login(system_admin)
     api_client.patch(detail(member), {"roles": [MEMBER, WEBSITE_ADMIN]})
 
     member.refresh_from_db()

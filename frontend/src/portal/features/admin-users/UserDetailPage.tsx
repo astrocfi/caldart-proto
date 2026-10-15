@@ -4,10 +4,13 @@
  * the page and their address is the line under it; neither is changed here, but on the
  * member record or by the person. The Roles card opens with whether the address is
  * verified. An address the bounce check found bouncing carries a **Bounced** chip there and
- * a **Clear bounce** action that asks first.  Only a system administrator may give or take
- * away the System administrator role, so its box is grayed out for anybody else, with
- * the reason under it.  The **Two-factor sign-in** card says whether the person has an
- * authenticator app set up and offers **Reset two-factor** for a lost phone.  The
+ * a **Clear bounce** action that asks first.  The record says which roles you may give or
+ * take away (`assignable_roles`): only a system administrator moves System administrator,
+ * and only a holder of a two-factor role or a system administrator moves that role, so any
+ * other box is grayed out with the reason under it.  On your own record the roles are
+ * listed with no boxes, since nobody changes their own.  The **Two-factor sign-in** card
+ * says whether the person has an authenticator app set up and offers **Reset two-factor**
+ * for a lost phone.  The
  * **Password** card sends a reset link or requires a new password.  The **History**
  * card lists who changed the account's roles or status, and when.
  */
@@ -55,6 +58,18 @@ function formFor(user: AdminUser): FormState {
 
 /** Why the System administrator box is grayed out for anybody who is not one. */
 const SYSTEM_ADMIN_ONLY = 'Only a system administrator can give or take away this role.';
+
+/** Why the box of a role you do not hold is grayed out. */
+const HOLDER_ONLY =
+  'Only somebody who holds this role, or a system administrator, can give or take it away.';
+
+/** Why your own record lists your roles with no boxes. */
+const OWN_ROLES = 'You cannot change your own roles. Ask another administrator.';
+
+/** Why `slug`'s box is grayed out, for a role the record says you may not change. */
+function lockedReason(slug: RoleSlug): string {
+  return slug === 'system_admin' ? SYSTEM_ADMIN_ONLY : HOLDER_ONLY;
+}
 
 /** What the Membership card words the membership by, from the record's term facts. */
 function membershipFacts(user: AdminUserDetail): MembershipFacts {
@@ -122,8 +137,8 @@ export function UserDetailPage(): JSX.Element {
   }
 
   const isSelf = me?.id === user.id;
-  // The server refuses anybody else a change to this role, so the box says so first.
-  const maySetSystemAdmin = me?.roles.includes('system_admin') ?? false;
+  // The server refuses a change to any other role, so the box says so first.
+  const assignable = new Set(user.assignable_roles);
   // A donor cannot sign in, so neither a password nor a verification link would
   // lead anywhere.
   const isDonor = user.kind === 'donor';
@@ -208,71 +223,75 @@ export function UserDetailPage(): JSX.Element {
           </div>
         )}
 
-        <form
-          ref={formRef}
-          noValidate
-          onSubmit={(event) => {
-            event.preventDefault();
-            update.mutate(form, {
-              onSuccess: () => toast.show('Account saved.', 'success'),
-            });
-          }}
-        >
-          <fieldset>
-            <legend>Roles</legend>
-            {roles.isPending ? <p className="muted">Loading roles…</p> : null}
-            <ul role="list" className="stack">
-              {(roles.data ?? []).map((role) => {
-                const isLocked = role.slug === 'system_admin' && !maySetSystemAdmin;
-                return (
-                  <li key={role.slug}>
-                    <label className="cluster">
-                      <input
-                        type="checkbox"
-                        name="roles"
-                        value={role.slug}
-                        checked={form.roles.includes(role.slug)}
-                        disabled={isLocked}
-                        aria-describedby={`role-${role.slug}-hint`}
-                        onChange={(event) => toggleRole(role.slug, event.target.checked)}
-                      />
-                      <span>{roleLabel(role.slug)}</span>
-                    </label>
-                    <p className="field__hint" id={`role-${role.slug}-hint`}>
-                      {role.description}
-                      {isLocked ? ` ${SYSTEM_ADMIN_ONLY}` : null}
-                    </p>
-                  </li>
-                );
-              })}
-            </ul>
-            {serverErrors.roles ? (
-              <p className="field__error" role="alert">
-                {serverErrors.roles}
-              </p>
-            ) : null}
-          </fieldset>
+        {isSelf ? (
+          <OwnRoles roles={user.roles} />
+        ) : (
+          <form
+            ref={formRef}
+            noValidate
+            onSubmit={(event) => {
+              event.preventDefault();
+              update.mutate(form, {
+                onSuccess: () => toast.show('Account saved.', 'success'),
+              });
+            }}
+          >
+            <fieldset>
+              <legend>Roles</legend>
+              {roles.isPending ? <p className="muted">Loading roles…</p> : null}
+              <ul role="list" className="stack">
+                {(roles.data ?? []).map((role) => {
+                  const isLocked = !assignable.has(role.slug);
+                  return (
+                    <li key={role.slug}>
+                      <label className="cluster">
+                        <input
+                          type="checkbox"
+                          name="roles"
+                          value={role.slug}
+                          checked={form.roles.includes(role.slug)}
+                          disabled={isLocked}
+                          aria-describedby={`role-${role.slug}-hint`}
+                          onChange={(event) => toggleRole(role.slug, event.target.checked)}
+                        />
+                        <span>{roleLabel(role.slug)}</span>
+                      </label>
+                      <p className="field__hint" id={`role-${role.slug}-hint`}>
+                        {role.description}
+                        {isLocked ? ` ${lockedReason(role.slug)}` : null}
+                      </p>
+                    </li>
+                  );
+                })}
+              </ul>
+              {serverErrors.roles ? (
+                <p className="field__error" role="alert">
+                  {serverErrors.roles}
+                </p>
+              ) : null}
+            </fieldset>
 
-          <FormAlert error={update.error} handled={['roles']} />
+            <FormAlert error={update.error} handled={['roles']} />
 
-          <div className="cluster">
-            <Button type="submit" disabled={update.isPending}>
-              {update.isPending ? 'Saving…' : 'Save changes'}
-            </Button>
-            <Button
-              variant="quiet"
-              onClick={() => {
-                // Starting again from the stored account drops what the server said
-                // about the edits being thrown away.
-                setForm(formFor(user));
-                update.reset();
-              }}
-            >
-              Cancel
-            </Button>
-            <RefusedSubmitNote count={refusal.count} />
-          </div>
-        </form>
+            <div className="cluster">
+              <Button type="submit" disabled={update.isPending}>
+                {update.isPending ? 'Saving…' : 'Save changes'}
+              </Button>
+              <Button
+                variant="quiet"
+                onClick={() => {
+                  // Starting again from the stored account drops what the server said
+                  // about the edits being thrown away.
+                  setForm(formFor(user));
+                  update.reset();
+                }}
+              >
+                Cancel
+              </Button>
+              <RefusedSubmitNote count={refusal.count} />
+            </div>
+          </form>
+        )}
       </Card>
 
       {isDonor ? null : <AccountStatusCard user={user} isSelf={isSelf} />}
@@ -283,5 +302,20 @@ export function UserDetailPage(): JSX.Element {
 
       <AccountHistoryCard userId={user.id} />
     </Page>
+  );
+}
+
+/** Your own roles, listed without boxes: nobody changes their own. */
+function OwnRoles({ roles }: { roles: RoleSlug[] }): JSX.Element {
+  return (
+    <div className="stack">
+      <h3 id="own-roles">Your roles</h3>
+      <ul aria-labelledby="own-roles">
+        {roles.map((slug) => (
+          <li key={slug}>{roleLabel(slug)}</li>
+        ))}
+      </ul>
+      <p className="muted">{OWN_ROLES}</p>
+    </div>
   );
 }

@@ -2027,8 +2027,9 @@ descriptions live in ``apps/accounts/roles.py``:
        aircraft insurance currency; read the full member list, filterable by
        DART or county, and download its report
    * - ``user_admin``
-     - \+ list users, assign roles, activate or deactivate accounts, block an
-       account from reactivating, trigger password resets
+     - \+ list users, assign roles (a two-factor role only while holding it, and never
+       their own), activate or deactivate accounts, block an account from reactivating,
+       trigger password resets
    * - ``treasurer``
      - \+ see every payment, fee, refund, and renewal; issue refunds, record
        payments taken by hand, reconcile periods, and run the financial

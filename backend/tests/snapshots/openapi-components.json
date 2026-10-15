@@ -281,6 +281,7 @@
   "AdminUserDetail": {
     "properties": {
       "admin_created": "boolean",
+      "assignable_roles": "array<ref:RolesEnum>",
       "can_reset_two_factor": "boolean",
       "can_use_aircraft": "boolean",
       "city": "string",
@@ -310,6 +311,7 @@
     },
     "required": [
       "admin_created",
+      "assignable_roles",
       "can_reset_two_factor",
       "can_use_aircraft",
       "city",

@@ -506,6 +506,14 @@ describe('MemberStatusCard verification', () => {
     expect(calls.verifier).toEqual([]);
   });
 
+  it('offers no verifier button on your own card', async () => {
+    server.use(signedInAs(makeUser({ id: 7, roles: ['member', 'dart_leader'] })));
+    renderWithProviders(<MemberStatusCard userId={7} status={makeStatus()} today={TODAY} />);
+    await screen.findByRole('button', { name: 'Verify' });
+
+    expect(screen.queryByRole('button', { name: 'Make a verifier' })).toBeNull();
+  });
+
   it.each([['verifier'], ['account_admin']] as const)(
     'offers %s no verifier button',
     async (role) => {

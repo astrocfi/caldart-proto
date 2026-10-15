@@ -1321,8 +1321,14 @@ end.
 One user payload as the list returns it, plus two facts about the account's terms that
 the user record words the membership by, since a user administrator cannot read the
 terms themselves: ``has_terms`` (any term at all) and ``has_suspended_term`` (a
-deactivation set one aside).  ``PATCH`` and the account status actions below answer in
-this shape too; the list leaves the two out, since each costs a query per row.
+deactivation set one aside).  ``assignable_roles`` lists the role slugs the caller may
+grant or take away on this account, in privilege order, under the rules of
+``PATCH`` below (``accounts.services.assignable_roles``): every slug for a system
+administrator, the unguarded roles plus the guarded ones the caller holds for anybody
+else, and none at all on the caller's own account.  The user record grays out every
+other box.  ``PATCH`` and the account status actions below answer in this shape too;
+the list leaves the three out, since each costs a query per row or depends on the
+caller and the row together.
 
 Statuses: **200**; **401** when anonymous; **403** without ``user_admin``;
 **404** for an unknown id.
@@ -1375,7 +1381,8 @@ record keeps a deleted member's payments in the books and cannot be changed."}``
 before the serializer runs, as the member record does
 (:ref:`api-members-tombstone`).
 
-Two rules are enforced on ``roles`` in ``AdminUserSerializer``:
+Four rules are enforced on ``roles``, the first in ``AdminUserSerializer`` and the
+rest in ``accounts.services.update_account``, which every role write passes through:
 
 **Role slugs are validated.**  Anything outside ``ROLE_SLUGS`` is a 400 on
 ``roles``.  The list you send replaces the account's role groups exactly, and it
@@ -1405,11 +1412,45 @@ system administrator is a Django superuser::
 ``website_admin`` is in that second line so an unrelated role edit cannot take
 the Wagtail admin away from a website administrator.
 
+**A guarded role moves only for its holder.**  ``GUARDED_ROLES`` in
+``accounts.roles`` are the two-factor roles: ``user_admin``, ``treasurer``,
+``account_admin``, ``management``, ``website_admin``, and ``system_admin``.  A write
+that grants or takes away one the caller does not hold (by effective roles) is a 400
+on ``roles`` naming every such role, in privilege order, and nothing in the list is
+saved:
+
+.. code-block:: json
+
+   {"roles": ["You cannot give or take away a role you do not hold yourself: Treasurer, CalDART management."]}
+
+A system administrator, a Django superuser among them, holds every role, so may move
+any of them.  ``member``, ``verifier``, and ``dart_leader`` are open to every caller of
+the endpoint, on any account; a guarded role the target keeps is no obstacle.
+
+**Nobody changes their own roles**, a system administrator included.  A write that
+would change the caller's own role list is a **403**, audited with
+``reason=own_account``, and nothing is saved; resending the list the caller already
+holds is no change and answers 200:
+
+.. code-block:: json
+
+   {"detail": "You cannot change your own roles. Ask another administrator."}
+
+The rules run with the slugs first, then your own account, then ``system_admin``,
+then the guarded roles, so a write that breaks several is refused by the first.
+Every refusal after the slugs writes a WARNING audit line ``action=account.roles``
+with ``reason=own_account``, ``system_admin_role``, or ``roles_not_held``.  A write
+that goes through is audited as ``account.roles`` with the slugs ``added`` and
+``removed`` and raises ``roles_changed`` (:doc:`notification-events`).  The Django
+admin shows ``groups``, ``is_superuser``, and ``is_staff`` read-only, so roles change
+only through ``accounts.services.update_account``: this endpoint, the member check's
+verifier toggle, and ``create_admin``.
+
 Statuses: **200** with the updated payload; **400** for an unknown role slug,
-a move of ``system_admin`` by a caller who is not one, or a name or address in
-the body; **401** when anonymous;
-**403** without ``user_admin``; **404** for an unknown id; **405** for ``PUT``
-and ``DELETE``.
+a move of ``system_admin`` by a caller who is not one, a move of a guarded role
+the caller does not hold, or a name or address in the body; **401** when anonymous;
+**403** without ``user_admin``, or for a change to your own roles; **404** for an
+unknown id; **405** for ``PUT`` and ``DELETE``.
 
 ``POST /admin/users/{id}/send-password-reset``
 ----------------------------------------------
@@ -1758,16 +1799,14 @@ administrator may do either to anybody.  Every role counts, administrative or
 not.  Names are outside the guard entirely.
 
 What the guard measures is the write in front of it, against the roles the two
-accounts hold when it arrives — it does not bound what the caller can reach over
-two requests.  A user administrator may grant themselves the role they lack, or
-take it off the target, and send the refused status action again; both are ordinary
-``roles`` writes on ``PATCH /admin/users/{id}``, which is the role's whole
-purpose.  ``system_admin`` is where the two rules meet and the reach stops: that
-role is refused in both directions to a caller who is not a system
-administrator, so a system administrator's account — a ``createsuperuser`` one
-included — is closed to a lower administrator by either route.  Against an
-account administrator the guard is absolute in one request as well as two,
-because ``PATCH /admin/members/{user_id}`` has no ``roles`` field at all.
+accounts hold when it arrives.  A user administrator cannot widen it by granting
+themselves the role they lack, since nobody changes their own roles.  They can take
+an unguarded role (``member``, ``verifier``, or ``dart_leader``) off the target and
+send the refused status action again, since moving those is the role's purpose; a
+guarded role they do not hold they can neither grant nor take away, so an account
+holding one stays out of their reach by either route.  Against an account
+administrator the guard is absolute in one request as well as two, because
+``PATCH /admin/members/{user_id}`` has no ``roles`` field at all.
 
 An address that is not a real change, such as the stored one resent in another case,
 asks for nothing, whoever sends it: the stored address stays exactly as it was.  A
@@ -1817,7 +1856,8 @@ Every refusal but the last also writes one WARNING record to the audit log
 
 Account ids, field names and a reason slug only: no address, and nothing else
 that identifies a person.  A refused role change reads
-``action=account.roles ... reason=system_admin_role``; a refused status action
+``action=account.roles ... reason=own_account``, ``system_admin_role``, or
+``roles_not_held``; a refused status action
 reads ``action=account.deactivate``, ``account.activate``, ``account.block`` or
 ``account.unblock`` with ``reason=self_deactivation``, ``roles_not_held``,
 ``donor_account`` or ``reactivation_blocked``, and a refused

@@ -5,8 +5,9 @@ account through either record's own action -- is refused unless the actor holds 
 role the target holds.  The user record never changes the address at all.  A Django
 superuser counts as a system administrator whether or not the role group was ever added.
 These cases replay the takeover the guard closes, check the edits that stay allowed,
-and mark how far a caller who may also write roles reaches over a second request.  What
-a refusal writes to the audit log is ``tests/test_audit_logging.py``.
+and mark that a caller who may also write roles reaches no further over a second
+request, since nobody changes their own roles.  What a refusal writes to the audit log
+is ``tests/test_audit_logging.py``.
 """
 
 from __future__ import annotations
@@ -315,37 +316,36 @@ def test_the_roles_guard_keeps_a_role_less_superuser_active(
 # --------------------------------------------------------------------------
 # Roles: how far a second request reaches
 # --------------------------------------------------------------------------
-def test_a_user_admin_lifts_the_refusal_by_granting_themselves_the_missing_role(
+def test_a_user_admin_cannot_lift_the_refusal_by_granting_themselves_the_missing_role(
     api_client: APIClient, user_admin: User, dart_leader: User
 ) -> None:
-    """The guard judges one action, and granting roles is the user administrator's job.
+    """Nobody changes their own roles, so the guard holds over a second request.
 
-    Taking ``dart_leader`` for themselves is an ordinary role write, and the account it
-    was protecting is then theirs to deactivate.  The user guide says so; this pins the
-    boundary, which ``system_admin`` is the one role outside.
+    Taking ``dart_leader`` for themselves is refused 403, and the account it was
+    protecting stays out of reach.
     """
     api_client.force_login(user_admin)
     granted = api_client.patch(
         user_detail(user_admin), {"roles": [MEMBER, USER_ADMIN, DART_LEADER]}, format="json"
     )
-    assert granted.status_code == 200
+    assert granted.status_code == 403
 
     response = api_client.post(f"{user_detail(dart_leader)}/deactivate")
 
-    assert response.status_code == 200
+    assert response.status_code == 400
     dart_leader.refresh_from_db()
-    assert dart_leader.is_active is False
+    assert dart_leader.is_active is True
 
 
 def test_a_user_admin_cannot_grant_themselves_the_system_admin_role(
     api_client: APIClient, user_admin: User, system_admin: User
 ) -> None:
-    """The one role that cannot be self-granted, so the account stays out of reach."""
+    """Refused as a change of their own roles, so the account stays out of reach."""
     api_client.force_login(user_admin)
     granted = api_client.patch(
         user_detail(user_admin), {"roles": [MEMBER, USER_ADMIN, SYSTEM_ADMIN]}, format="json"
     )
-    assert granted.status_code == 400
+    assert granted.status_code == 403
 
     response = api_client.post(f"{user_detail(system_admin)}/deactivate")
 

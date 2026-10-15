@@ -709,7 +709,8 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ·
      - ·
-     - ``PUT`` → 405; a tombstone refuses ``PATCH`` with 400
+     - ``PUT`` → 405; a tombstone refuses ``PATCH`` with 400; a two-factor role moves only
+       for a caller who holds it, and your own roles not at all (403)
    * - ``GET /admin/users/{id}/history``
      - ·
      - ·

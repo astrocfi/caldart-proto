@@ -310,6 +310,8 @@ export interface AccountActor {
 export interface AdminUserDetail extends AdminUser {
   has_terms: boolean;
   has_suspended_term: boolean;
+  /** The roles the caller may grant or take away here, in privilege order; none on your own. */
+  assignable_roles: RoleSlug[];
 }
 
 /**
