@@ -137,7 +137,7 @@ A refund recorded this way carries ``requested_by_id: null``, the reason
 ``other`` and the note ``Issued in the provider's dashboard``, and moves the
 payment's status exactly as an issued refund does.
 
-Three rules keep the ledger honest:
+Four rules keep the ledger honest:
 
 * **The provider's refund id is the key.**  A refund whose reference is
   already on file against that payment writes nothing, so a redelivered
@@ -149,6 +149,10 @@ Three rules keep the ledger honest:
 * **No term is canceled by a webhook.**  A refund taken outside CalDART says
   nothing about whether the membership should end; a treasurer decides that
   on the payment's own screen.
+* **Only a settled payment takes a refund.**  A refund reported against a
+  payment that is still ``pending`` or ``failed`` is not filed, and is logged at
+  ``ERROR``: the provider says money went back that CalDART never recorded
+  arriving, which a treasurer reconciles by hand.
 
 PayPal acts on a notification only once its signature has been verified, which
 needs ``PAYPAL_WEBHOOK_ID``; an unverified notification is refused and recorded

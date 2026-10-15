@@ -15,6 +15,7 @@ from django.core import mail
 
 from apps.members.models import Membership
 from apps.payments.models import Payment, PaymentStatus
+from apps.payments.refunds import record_dashboard_refund
 from apps.payments.services import mark_failed, mark_succeeded
 from tests.factories import PaymentFactory
 
@@ -97,6 +98,31 @@ def test_a_failure_for_a_settled_payment_keeps_its_stored_response(status: str) 
 
     payment.refresh_from_db()
     assert payment.raw == {"id": "settled"}
+
+
+@pytest.mark.parametrize("status", [PaymentStatus.PENDING, PaymentStatus.FAILED])
+def test_a_dashboard_refund_of_an_unsettled_payment_is_not_filed(status: str) -> None:
+    """A refund reported for a payment CalDART never saw settle writes no refund row."""
+    payment = PaymentFactory(status=status)
+
+    record_dashboard_refund(
+        payment, amount_cents=1_000, provider_ref="REFUND-EARLY", raw={"id": "REFUND-EARLY"}
+    )
+
+    assert payment.refunds.count() == 0
+
+
+@pytest.mark.parametrize("status", [PaymentStatus.PENDING, PaymentStatus.FAILED])
+def test_a_dashboard_refund_of_an_unsettled_payment_leaves_its_status(status: str) -> None:
+    """A refused dashboard refund leaves the payment where it was, to settle normally."""
+    payment = PaymentFactory(status=status)
+
+    record_dashboard_refund(
+        payment, amount_cents=1_000, provider_ref="REFUND-EARLY", raw={"id": "REFUND-EARLY"}
+    )
+
+    payment.refresh_from_db()
+    assert payment.status == status
 
 
 def test_a_pending_payment_is_marked_failed() -> None:

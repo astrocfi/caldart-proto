@@ -205,6 +205,12 @@ def record_dashboard_refund(
     there would be nothing to recognize it by next time, and for an amount of
     zero or less, which is what a notification CalDART cannot read an amount
     from comes to: a refund of nothing is not a fact worth filing or emailing.
+
+    Returns ``None`` and writes nothing, too, for a payment that has not settled
+    -- still ``pending``, or ``failed`` -- logging it at ERROR: the provider says
+    money went back that CalDART never recorded arriving, which a treasurer has to
+    reconcile by hand, and a refund filed against such a payment would be lost the
+    moment the payment settled.
     """
     if not provider_ref:
         log.warning("Ignored a dashboard refund for payment %s with no reference", payment.pk)
@@ -219,6 +225,14 @@ def record_dashboard_refund(
 
     with transaction.atomic():
         locked = Payment.objects.select_for_update().get(pk=payment.pk)
+        if locked.status not in SETTLED_STATUSES:
+            log.error(
+                "Ignored dashboard refund %s for payment %s, which has not settled (%s)",
+                provider_ref,
+                payment.pk,
+                locked.status,
+            )
+            return None
         if locked.refunds.filter(provider_ref=provider_ref).exists():
             return None
         refund = Refund.objects.create(
