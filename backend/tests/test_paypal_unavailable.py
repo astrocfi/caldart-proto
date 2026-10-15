@@ -1,4 +1,4 @@
-"""A PayPal answer that says nothing about the request reads as PayPal not answering.
+"""A PayPal answer that is silent on the request reads as PayPal not answering.
 
 ``docs/developer/api-payments.rst`` and ``docs/developer/payments-setup.rst`` are the
 contract.  A 5xx, a 429 and a 408 may follow work PayPal has already done, so every
@@ -32,8 +32,8 @@ CHECKOUT = "/api/v1/payments/checkout"
 CAPTURE = "/api/v1/payments/paypal/capture"
 ORDERS = f"{PAYPAL_SANDBOX}/v2/checkout/orders"
 
-#: The statuses that say nothing about the request: PayPal's faults, a rate limit, a
-#: request that timed out at PayPal.
+#: The statuses that don't say anything about the request: PayPal's faults, a rate limit,
+#: a request that timed out at PayPal.
 TRANSIENT = [500, 502, 503, 504, 429, 408]
 
 
@@ -140,7 +140,9 @@ def test_a_refund_paypal_cannot_answer_tells_the_treasurer_to_check_first(
     assert payment.refunds.get().status == RefundStatus.FAILED
 
 
-def test_a_webhook_check_paypal_cannot_answer_vouches_for_nothing(settings: Settings) -> None:
+def test_a_webhook_check_paypal_cannot_answer_does_not_vouch_for_anything(
+    settings: Settings,
+) -> None:
     """A 503 from the signature check means the notification is not verified."""
     settings.PAYPAL_WEBHOOK_ID = "WH-1"
     request = RequestFactory().post(

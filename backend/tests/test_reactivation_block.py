@@ -83,7 +83,7 @@ def user_admin_client(api_client: APIClient, user_admin: User) -> APIClient:
 
 @pytest.fixture
 def target(db: None) -> User:
-    """A plain member, signed in to nothing."""
+    """A plain member, not signed in anywhere."""
     return UserFactory(email="target@example.test", first_name="Tess", last_name="Arden")
 
 
@@ -165,10 +165,10 @@ def test_blocking_is_recorded(
     ]
 
 
-def test_blocking_a_blocked_account_records_nothing(
+def test_blocking_a_blocked_account_does_not_record_anything(
     user_admin_client: APIClient, blocked: User, audit_log: pytest.LogCaptureFixture
 ) -> None:
-    """Asking twice changes nothing."""
+    """Asking twice doesn't change anything."""
     post(user_admin_client, block_url(blocked))
     assert audit_messages(audit_log) == []
 
@@ -237,7 +237,7 @@ def test_a_refused_block_leaves_the_account_active(
 
 
 def test_a_donor_cannot_be_blocked(user_admin_client: APIClient) -> None:
-    """A donor has no portal account."""
+    """A donor doesn't have a portal account."""
     giver = UserFactory(email="giver@example.test", kind=AccountKind.DONOR, roles=[])
     assert post(user_admin_client, block_url(giver)) == (400, DONOR_BLOCK)
 
@@ -246,14 +246,14 @@ def test_a_donor_cannot_be_blocked(user_admin_client: APIClient) -> None:
 # What the owner of a blocked account meets
 # --------------------------------------------------------------------------
 def test_signing_in_is_told_the_account_is_closed(api_client: APIClient, blocked: User) -> None:
-    """The right password gets the closed sentence, with no offer to reactivate."""
+    """The right password gets the closed sentence, without an offer to reactivate."""
     assert post(api_client, LOGIN_URL, email=blocked.email, password=DEFAULT_PASSWORD) == (
         403,
         {"detail": CLOSED},
     )
 
 
-def test_a_wrong_password_learns_nothing(api_client: APIClient, blocked: User) -> None:
+def test_a_wrong_password_does_not_learn_anything(api_client: APIClient, blocked: User) -> None:
     """Without the password the answer is the ordinary refusal."""
     guess = {"email": blocked.email, "password": "not-it"}
     assert post(api_client, LOGIN_URL, **guess) == (400, WRONG_CREDENTIALS)
@@ -285,7 +285,7 @@ def test_a_refused_reactivation_leaves_the_account_deactivated(
     assert fresh(blocked).is_active is False
 
 
-def test_a_reset_request_sends_no_mail(api_client: APIClient, blocked: User) -> None:
+def test_a_reset_request_does_not_send_mail(api_client: APIClient, blocked: User) -> None:
     """The answer is the usual 204, and nothing is mailed."""
     response = api_client.post(RESET_URL, {"email": blocked.email}, format="json")
     assert (response.status_code, len(mail.outbox)) == (204, 0)
@@ -300,7 +300,7 @@ def test_completing_an_earlier_reset_link_is_refused(api_client: APIClient, bloc
     assert (status, body) == (400, {"token": [CLOSED]})
 
 
-def test_a_refused_reset_sets_no_password(api_client: APIClient, blocked: User) -> None:
+def test_a_refused_reset_does_not_set_a_password(api_client: APIClient, blocked: User) -> None:
     """The old password still holds, and the account stays deactivated."""
     uid, token = make_reset_token(blocked)
     post(api_client, RESET_CONFIRM_URL, uid=uid, token=token, new_password=GOOD_PASSWORD)
@@ -311,7 +311,7 @@ def test_a_refused_reset_sets_no_password(api_client: APIClient, blocked: User) 
 def test_registering_again_is_answered_like_any_address(
     api_client: APIClient, blocked: User
 ) -> None:
-    """The answer is the one every registration gets: it says nothing about the block."""
+    """The answer is the one every registration gets: it doesn't mention the block."""
     status, body = post(
         api_client, REGISTER_URL, **register_payload(email=blocked.email, password=GOOD_PASSWORD)
     )
@@ -321,7 +321,9 @@ def test_registering_again_is_answered_like_any_address(
     )
 
 
-def test_registering_again_brings_nothing_back(api_client: APIClient, blocked: User) -> None:
+def test_registering_again_does_not_bring_anything_back(
+    api_client: APIClient, blocked: User
+) -> None:
     """The account stays deactivated; its owner is mailed that it was closed."""
     post(api_client, REGISTER_URL, **register_payload(email=blocked.email, password=GOOD_PASSWORD))
 
@@ -403,7 +405,7 @@ def test_reactivating_answers_closed_when_blocked_after_the_lookup(
     assert (status, body, fresh(target).is_active) == (403, {"detail": CLOSED}, False)
 
 
-def test_a_reset_blocked_after_the_link_check_changes_nothing(
+def test_a_reset_blocked_after_the_link_check_does_not_change_anything(
     api_client: APIClient, target: User, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The reset is refused under ``token`` and rolled back, password included."""

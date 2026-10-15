@@ -69,7 +69,7 @@ from tests.conftest import audit_messages
 
 User = get_user_model()
 
-#: The demo friend's one contribution, which buys no term.
+#: The demo friend's one contribution, which doesn't buy a term.
 SEEDED_FRIEND_GIFTS = 1
 
 #: The accounts ``seed_demo`` stores as friends: the demo friend, the treasurer, the
@@ -205,7 +205,7 @@ def test_seed_demo_creates_the_documented_accounts() -> None:
         assert user.is_superuser is is_superuser
 
 
-def test_seed_demo_leaves_no_account_but_a_donor_unverified() -> None:
+def test_seed_demo_verifies_every_account_but_a_donor() -> None:
     """Every seeded account but a donor has its address verified as of its creation."""
     _seed()
     unverified = User.objects.filter(email_verified_at__isnull=True)
@@ -360,7 +360,7 @@ def test_seed_demo_memberships_come_from_payments() -> None:
 
 
 def test_aircraft_insurance_currency_is_varied() -> None:
-    """Some seeded aircraft carry current insurance, some do not, and some have none."""
+    """Some seeded aircraft are insured, some lapsed, and some lack a policy on file."""
     _seed()
     current = [a for a in Aircraft.objects.all() if a.insurance_is_current]
     assert len(current) == 18
@@ -489,8 +489,8 @@ def test_seed_demo_leaves_two_renewals_due_for_an_ordinary_charge() -> None:
     ] == [today, today]
 
 
-def test_seed_demo_leaves_a_catch_up_mandate_with_no_attempt() -> None:
-    """The catch-up member's mandate has no attempt and a term lapsed ten days back."""
+def test_seed_demo_leaves_a_catch_up_mandate_without_an_attempt() -> None:
+    """The catch-up mandate doesn't have an attempt; its term lapsed ten days back."""
     _seed()
     today = timezone.localdate()
     catch_up = RenewalMandate.objects.get(
@@ -523,14 +523,14 @@ def _mock_mandate_count() -> int:
 
 
 @pytest.mark.usefixtures("mock_payments_off")
-def test_seed_demo_seeds_no_mock_mandate_while_the_mock_provider_is_off() -> None:
+def test_seed_demo_does_not_seed_a_mock_mandate_while_the_mock_provider_is_off() -> None:
     """With the mock provider off, no seeded mandate charges it."""
     _seed()
     assert _mock_mandate_count() == 0
 
 
 @pytest.mark.usefixtures("mock_payments_off")
-def test_seed_demo_seeds_no_recurring_donation_while_the_mock_provider_is_off() -> None:
+def test_seed_demo_does_not_seed_a_recurring_donation_while_the_mock_provider_is_off() -> None:
     """The recurring donations ride on the mock provider, so none is seeded."""
     _seed()
     assert RenewalMandate.objects.filter(plan__isnull=True).count() == 0
@@ -547,7 +547,7 @@ def test_seed_demo_puts_the_paused_renewal_on_a_stripe_card_with_the_mock_off() 
     )
 
 
-def test_seed_demo_dates_no_refused_charge_after_today() -> None:
+def test_seed_demo_dates_every_refused_charge_before_today() -> None:
     """The paused renewal's refused charges all lie in the past, none on a day to come."""
     _seed()
     failed = RenewalAttempt.objects.filter(outcome=RenewalOutcome.FAILED)
@@ -574,10 +574,10 @@ def test_seed_demo_says_why_while_the_mock_provider_is_off() -> None:
 
 
 @pytest.mark.usefixtures("mock_payments_off")
-def test_the_renewals_job_refuses_no_charge_on_a_demo_seeded_with_the_mock_provider_off(
+def test_the_renewals_job_does_not_refuse_a_charge_on_a_demo_seeded_with_the_mock_provider_off(
     audit_log: pytest.LogCaptureFixture,
 ) -> None:
-    """``run_auto_renewals`` completes on the seeded data and records no failure."""
+    """``run_auto_renewals`` completes on the seeded data and doesn't record a failure."""
     _seed()
     audit_log.clear()
 
@@ -603,7 +603,7 @@ def test_seed_demo_seeds_the_mock_mandates_while_the_mock_provider_is_on() -> No
 
 
 def test_seed_demo_leaves_out_the_note_while_the_mock_provider_is_on() -> None:
-    """With the mock provider on, the output says nothing about it."""
+    """With the mock provider on, the output doesn't mention it."""
     assert MOCK_PROVIDER_OFF_NOTE not in _seed_output()
 
 
@@ -627,7 +627,7 @@ def test_seed_demo_never_gives_a_member_overlapping_terms() -> None:
 
 # -- friends ----------------------------------------------------------------
 def test_seed_demo_makes_the_demo_friend_a_friend_with_one_gift() -> None:
-    """``friend@example.org`` is a friend, holds no terms, and gave one contribution."""
+    """``friend@example.org`` is a friend without a term who gave one contribution."""
     _seed()
     friend = User.objects.get(email="friend@example.org")
     assert membership_status(friend)["status"] == MembershipState.FRIEND
@@ -636,8 +636,8 @@ def test_seed_demo_makes_the_demo_friend_a_friend_with_one_gift() -> None:
     assert gifts == [(None, 5_000)]
 
 
-def test_seed_demo_gives_every_friend_a_profile_and_no_terms() -> None:
-    """Every seeded friend, the treasurer among them, has a profile and no term."""
+def test_seed_demo_gives_every_friend_a_profile_but_not_a_term() -> None:
+    """Every seeded friend, the treasurer among them, has a profile but not a term."""
     _seed()
     friends = User.objects.filter(kind=AccountKind.FRIEND)
     assert friends.count() == SEEDED_STORED_FRIENDS
@@ -655,8 +655,8 @@ def test_seed_demo_leaves_one_member_waiting_to_become_a_friend() -> None:
     assert pending.friend_on == status["expires_on"] + timedelta(days=1)
 
 
-def test_seed_demo_leaves_the_empty_dart_with_nobody_on_it() -> None:
-    """Nobody's profile names ``EMPTY_DART``, so deleting it unaffiliates nobody."""
+def test_seed_demo_leaves_the_empty_dart_without_anybody_on_it() -> None:
+    """No profile names ``EMPTY_DART``, so deleting it doesn't unaffiliate anyone."""
     _seed()
     assert MemberProfile.objects.filter(dart__name=EMPTY_DART).count() == 0
 
@@ -669,8 +669,8 @@ def test_seed_demo_makes_six_donors_at_the_numbered_addresses() -> None:
     assert emails == [f"donor{number}@example.org" for number in range(1, 7)]
 
 
-def test_seed_demo_gives_no_donor_a_role_or_a_password() -> None:
-    """A seeded donor cannot sign in: no role, and no usable password."""
+def test_seed_demo_does_not_give_a_donor_a_role_or_a_password() -> None:
+    """A seeded donor cannot sign in: it doesn't hold a role or a usable password."""
     _seed()
     donors = User.objects.filter(kind=AccountKind.DONOR)
     assert {(tuple(donor.roles), donor.has_usable_password()) for donor in donors} == {((), False)}
@@ -684,7 +684,7 @@ def test_seed_demo_leaves_every_donor_unverified() -> None:
 
 
 def test_seed_demo_gives_each_donor_its_settled_gifts() -> None:
-    """Each donor gave one to three settled contributions, and bought no term."""
+    """Each donor gave one to three settled contributions, and didn't buy a term."""
     _seed()
     gifts = [
         User.objects.get(email=f"donor{number}@example.org")
@@ -763,11 +763,11 @@ def test_seed_demo_keeps_two_notification_subscriptions_on_a_second_run() -> Non
     assert NotificationSubscription.objects.count() == 2
 
 
-def test_seed_demo_mails_nobody(
+def test_seed_demo_does_not_mail_anybody(
     mailoutbox: list[EmailMessage],
     django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
 ) -> None:
-    """Seeding raises events but mails nobody, whatever subscriptions it creates.
+    """Seeding raises events but doesn't mail anybody, whatever subscriptions it creates.
 
     Seeding raises events a real change would -- an already-lapsed term, a friend
     switch -- and would otherwise mail whatever subscriptions exist by the time
@@ -780,7 +780,7 @@ def test_seed_demo_mails_nobody(
     assert mailoutbox == []
 
 
-def test_seed_demo_mails_nobody_on_a_second_run(
+def test_seed_demo_does_not_mail_anybody_on_a_second_run(
     mailoutbox: list[EmailMessage],
     django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
 ) -> None:
@@ -867,7 +867,7 @@ def test_seed_demo_verifies_about_seven_in_ten_aircraft() -> None:
 
 
 def test_seed_demo_records_a_photo_id_for_members_and_friends() -> None:
-    """Friends mostly show nothing; members show a spread of document kinds."""
+    """Most friends haven't given a photo ID; members show a spread of document kinds."""
     _seed()
     friends = Counter(
         MemberProfile.objects.filter(user__kind=AccountKind.FRIEND).values_list(
@@ -994,7 +994,7 @@ def test_seed_demo_completes_every_seeded_profile() -> None:
     assert incomplete == []
 
 
-def test_seed_demo_leaves_no_demo_account_owing_its_first_dues() -> None:
+def test_seed_demo_does_not_leave_a_demo_account_owing_its_first_dues() -> None:
     """No demo account is a member who has never held a term.
 
     The portal would hold such an account at the join wizard's pay step; each demo

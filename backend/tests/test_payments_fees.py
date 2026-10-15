@@ -48,7 +48,7 @@ def _mock_enabled(settings: Settings) -> None:
 def test_the_mock_fee_is_two_point_nine_percent_plus_thirty_cents(
     amount_cents: int, expected: int
 ) -> None:
-    """The mock provider charges a card-shaped fee, and nothing on nothing."""
+    """The mock provider charges a card-shaped fee, and a zero fee on a zero amount."""
     assert fee_cents(amount_cents) == expected
 
 
@@ -103,10 +103,10 @@ def test_a_provider_that_reports_only_a_fee_has_its_net_computed(
     assert payment.net_cents == 4_339
 
 
-def test_a_payment_recorded_by_hand_costs_nothing_and_nets_the_whole_amount(
+def test_a_payment_recorded_by_hand_has_a_zero_fee_and_nets_the_whole_amount(
     member: User, annual_plan: MembershipPlan
 ) -> None:
-    """A check carries no provider fee, so its net is the amount on it."""
+    """A check doesn't carry a provider fee, so its net is the amount on it."""
     payment = PaymentFactory(
         user=member,
         plan=annual_plan,
@@ -125,7 +125,7 @@ def test_a_payment_recorded_by_hand_costs_nothing_and_nets_the_whole_amount(
 def test_a_provider_that_has_not_settled_leaves_the_fee_unknown(
     member: User, annual_plan: MembershipPlan
 ) -> None:
-    """A succeeded payment with no figures from the provider reads as unknown."""
+    """A succeeded payment without figures from the provider reads as unknown."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
 
     mark_succeeded(payment)
@@ -156,7 +156,7 @@ def test_record_fees_fills_in_a_fee_that_arrived_late(
     assert payment.fee_cents == 161
 
 
-def test_record_fees_changes_nothing_else_about_the_payment(
+def test_record_fees_leaves_the_rest_of_the_payment_alone(
     member: User, annual_plan: MembershipPlan
 ) -> None:
     """Filing a fee leaves the payment succeeded and its reference alone."""
@@ -189,7 +189,7 @@ def test_backfill_asks_the_provider_and_stores_what_it_says(
 def test_backfill_leaves_a_payment_recorded_by_hand_alone(
     member: User, annual_plan: MembershipPlan
 ) -> None:
-    """There is no provider to ask about a check, so nothing is asked."""
+    """A check doesn't have a provider to ask, so nothing is asked."""
     payment = PaymentFactory(
         user=member,
         plan=annual_plan,
@@ -203,7 +203,7 @@ def test_backfill_leaves_a_payment_recorded_by_hand_alone(
 
 
 def test_backfill_leaves_a_pending_payment_alone(member: User, annual_plan: MembershipPlan) -> None:
-    """A payment that has not succeeded has no fee to ask about."""
+    """A payment that has not succeeded doesn't have a fee to ask about."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.MOCK)
 
     backfill_fees(payment)
@@ -213,7 +213,7 @@ def test_backfill_leaves_a_pending_payment_alone(member: User, annual_plan: Memb
 
 
 def test_a_zero_amount_payment_reads_as_known(member: User) -> None:
-    """A payment of nothing has nothing to report, so it is not left waiting."""
+    """A zero-amount payment doesn't have a fee to report, so it is not left waiting."""
     payment = PaymentFactory(
         user=member, plan=None, amount_cents=0, plan_amount_cents=0, contribution_cents=0
     )
@@ -224,7 +224,7 @@ def test_a_zero_amount_payment_reads_as_known(member: User) -> None:
 def test_the_fee_columns_survive_a_second_confirmation(
     api_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """A confirmation that races the first does not reset the fee to nothing."""
+    """A confirmation that races the first leaves the recorded fee as it was."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.MOCK)
     api_client.force_login(member)
     api_client.post("/api/v1/payments/mock/complete", {"payment_id": payment.pk})
@@ -252,7 +252,7 @@ def test_the_fee_columns_survive_a_second_confirmation(
 def test_the_seeded_fee_is_the_rate_each_provider_publishes(
     provider: str, amount_cents: int, expected: int
 ) -> None:
-    """Seeded figures match each published rate, and a payment by hand costs nothing."""
+    """Seeded figures match each published rate, and a payment by hand has a zero fee."""
     assert provider_fee_cents(provider, amount_cents) == expected
 
 

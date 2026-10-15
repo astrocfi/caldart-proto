@@ -127,7 +127,7 @@ def test_another_accounts_set_of_the_same_name_is_left_alone(
         ({"name": "", "columns": ["name"]}, {"name": ["Give the set of columns a name."]}),
         (
             {"name": "x" * 61, "columns": ["name"]},
-            {"name": ["Ensure this field has no more than 60 characters."]},
+            {"name": ["Ensure this field has no more than 60 characters."]},  # wording:ignore
         ),
     ],
     ids=["unknown", "repeated", "empty", "blank-name", "long-name"],
@@ -142,8 +142,8 @@ def test_a_bad_set_is_refused_with_the_reason(
     assert response.json() == errors
 
 
-def test_a_report_with_fixed_columns_keeps_no_sets(treasurer_client: APIClient) -> None:
-    """A fixed report has nothing to choose, so saving a set of its columns is refused."""
+def test_a_report_with_fixed_columns_does_not_keep_sets(treasurer_client: APIClient) -> None:
+    """A fixed report's columns can't be chosen, so saving a set of them is refused."""
     response = treasurer_client.post(
         sets_url("contributions"), {"name": "Mine", "columns": ["name"]}, format="json"
     )

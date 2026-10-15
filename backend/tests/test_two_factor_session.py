@@ -56,8 +56,10 @@ def test_a_marked_staff_session_is_kept(api_client: APIClient, admin: User) -> N
     assert api_client.get(ME_URL).status_code == 200
 
 
-def test_a_member_without_two_factor_needs_no_mark(api_client: APIClient, member: User) -> None:
-    """Nothing changes for an account that needs no second factor."""
+def test_a_member_without_two_factor_does_not_need_a_mark(
+    api_client: APIClient, member: User
+) -> None:
+    """Nothing changes for an account that doesn't need a second factor."""
     api_client.force_login(member)
     without_second_factor(api_client)
     assert api_client.get(ME_URL).status_code == 200
@@ -155,10 +157,10 @@ def test_an_admin_login_route_without_next_opens_the_portal_sign_in(client: Clie
 
 
 @pytest.mark.parametrize("url", ["/admin/login/", "/django-admin/login/"])
-def test_posting_credentials_to_an_admin_login_signs_nobody_in(
+def test_posting_credentials_to_an_admin_login_does_not_sign_anyone_in(
     client: Client, admin: User, url: str
 ) -> None:
-    """The routes serve no form: a password posted there starts no session."""
+    """The routes don't serve a form: a password posted there doesn't start a session."""
     client.post(url, {"username": admin.email, "password": DEFAULT_PASSWORD})
     assert client.session.get("_auth_user_id") is None
 
@@ -180,8 +182,8 @@ def test_the_public_sites_login_sends_the_reader_to_the_portal(client: Client) -
     assert response["Location"] == f"{PORTAL_LOGIN}?next=/members/"
 
 
-def test_the_public_sites_login_takes_no_password(client: Client, member: User) -> None:
-    """A password posted there signs nobody in."""
+def test_the_public_sites_login_does_not_take_a_password(client: Client, member: User) -> None:
+    """A password posted there doesn't sign anyone in."""
     client.post("/_util/login/", {"username": member.email, "password": DEFAULT_PASSWORD})
     assert client.session.get("_auth_user_id") is None
 

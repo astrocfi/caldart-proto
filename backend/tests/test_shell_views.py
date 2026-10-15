@@ -1,7 +1,7 @@
 """The server-rendered shells: home page and the portal SPA mount.
 
 These run whether or not the frontend has been built -- ``conftest.py`` stubs
-the Vite manifest when there is no real build, and the two tests that assert on
+the Vite manifest when there isn't a real build, and the two tests that assert on
 the actual bundle carry ``needs_frontend_build`` and skip unless one is present.
 """
 
@@ -110,10 +110,10 @@ def test_portal_shell_installs_the_react_refresh_preamble(
     assert body.index("@vite/client") < body.index("src/portal/main.tsx")
 
 
-def test_portal_shell_has_no_react_refresh_preamble_in_production(
+def test_portal_shell_leaves_out_the_react_refresh_preamble_in_production(
     client: Client, site_settings: SiteSettings
 ) -> None:
-    """The built bundle needs no refresh runtime, so the tag renders nothing."""
+    """The built bundle doesn't need a refresh runtime, so the tag renders empty."""
     assert "RefreshRuntime" not in client.get("/portal/").content.decode()
 
 

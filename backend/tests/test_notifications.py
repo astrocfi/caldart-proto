@@ -135,7 +135,7 @@ def test_a_superuser_may_receive_every_event() -> None:
     assert recipient_may_receive(subscription, "payment_refunded") is True
 
 
-def test_a_deactivated_account_may_receive_nothing(account_admin: User) -> None:
+def test_a_deactivated_account_may_not_receive_anything(account_admin: User) -> None:
     """An inactive account is skipped even for an event its roles allow."""
     account_admin.is_active = False
     account_admin.save(update_fields=["is_active"])
@@ -155,7 +155,7 @@ def test_refreshing_binds_a_bare_address_to_the_account_that_took_it() -> None:
 
 
 def test_refreshing_leaves_an_unclaimed_bare_address_alone() -> None:
-    """With no account at the address nothing changes."""
+    """Without an account at the address, nothing changes."""
     subscription = subscribe("outside@example.test", ["signed_up"])
 
     assert refresh_recipient(subscription) is False
@@ -226,8 +226,8 @@ def test_signed_up(pat: User, north: Dart) -> None:
     )
 
 
-def test_a_sign_up_with_no_dart_says_none() -> None:
-    """A friend who chose no DART reads ``None`` on the DART line."""
+def test_a_sign_up_without_a_dart_says_none() -> None:
+    """A friend who didn't choose a DART reads ``None`` on the DART line."""
     friend = UserFactory(
         email="fran@example.test", first_name="Fran", last_name="Hale", kind=AccountKind.FRIEND
     )
@@ -326,7 +326,7 @@ def test_membership_paid(pat: User, annual_plan: MembershipPlan) -> None:
 def test_an_automatic_renewal_says_so_and_leaves_out_a_missing_contribution(
     pat: User, annual_plan: MembershipPlan
 ) -> None:
-    """An automatic payment reads as a renewal, and no contribution means no line."""
+    """An automatic payment reads as a renewal, and only a contribution adds a line."""
     term = paid_term(pat, annual_plan)
     assert term.ends_on is not None
     through = screen_date(term.ends_on)
@@ -342,7 +342,7 @@ def test_an_automatic_renewal_says_so_and_leaves_out_a_missing_contribution(
 
 
 def test_a_lifetime_term_is_paid_for_life(pat: User, life_plan: MembershipPlan) -> None:
-    """A term with no end reads as a lifetime membership."""
+    """A term without an end reads as a lifetime membership."""
     term = paid_term(pat, life_plan, amount_cents=65_000, plan_amount_cents=65_000)
 
     message = build_message(
@@ -448,7 +448,7 @@ def test_auto_renewal_off(pat: User, annual_plan: MembershipPlan, how: str, word
 
 
 def test_auto_renewal_off_by_a_delete_links_nowhere(pat: User, annual_plan: MembershipPlan) -> None:
-    """A renewal stopped because its account was deleted names no member record."""
+    """A renewal stopped because its account was deleted doesn't name a member record."""
     mandate = RenewalMandateFactory(user=pat, plan=annual_plan, status=MandateStatus.CANCELED)
 
     message = build_message("auto_renewal_off", {"mandate": mandate, "how": "deleted"})
@@ -472,7 +472,7 @@ def test_auto_renewal_declined_with_a_retry_to_come(pat: User) -> None:
 
 
 def test_auto_renewal_declined_for_the_last_time(pat: User, annual_plan: MembershipPlan) -> None:
-    """A decline with no ``next_on`` says no try is left, regardless of the mandate."""
+    """A decline without a ``next_on`` says that no try is left, whatever the mandate."""
     mandate = RenewalMandateFactory(user=pat, plan=annual_plan, status=MandateStatus.PAUSED)
 
     message = build_message(
@@ -563,7 +563,7 @@ def test_payment_refunded_by_an_administrator(
 def test_a_full_refund_from_the_dashboard_names_the_canceled_membership(
     pat: User, annual_plan: MembershipPlan
 ) -> None:
-    """A refund with no actor came from the provider's dashboard and may cancel a term."""
+    """A refund without an actor came from the provider's dashboard and can end a term."""
     payment = PaymentFactory(user=pat, plan=annual_plan, status=PaymentStatus.REFUNDED)
 
     message = build_message(
@@ -621,7 +621,7 @@ def test_roles_changed(pat: User, boss: User) -> None:
     )
 
 
-def test_roles_changed_with_nothing_removed_says_none(pat: User, boss: User) -> None:
+def test_roles_changed_without_a_removal_says_none(pat: User, boss: User) -> None:
     """An empty side of the change reads ``None``."""
     message = build_message(
         "roles_changed", {"user": pat, "added": [MEMBER], "removed": [], "actor": boss}
@@ -686,7 +686,7 @@ def test_aircraft_changed_names_the_fields_in_words(boss: User) -> None:
     )
 
 
-def test_aircraft_removed_has_no_link(boss: User) -> None:
+def test_aircraft_removed_does_not_have_a_link(boss: User) -> None:
     """A removed aircraft is gone, so its email links nowhere."""
     message = build_message(
         "aircraft_removed",
@@ -700,8 +700,8 @@ def test_aircraft_removed_has_no_link(boss: User) -> None:
     )
 
 
-def test_an_aircraft_with_no_owner_on_file_is_named_alone(boss: User) -> None:
-    """With no owner name the headline names the aircraft alone."""
+def test_an_aircraft_without_an_owner_on_file_is_named_alone(boss: User) -> None:
+    """Without an owner name, the headline names the aircraft alone."""
     aircraft = AircraftFactory(n_number="N9Z", owner_name="")
 
     message = build_message("aircraft_added", {"aircraft": aircraft, "fields": [], "actor": boss})

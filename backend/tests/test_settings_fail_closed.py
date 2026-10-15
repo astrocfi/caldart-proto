@@ -257,7 +257,7 @@ def test_the_application_servers_require_the_settings_module(
 
 
 def test_manage_py_still_defaults_to_the_development_settings() -> None:
-    """A local ``manage.py`` call needs no ceremony; a server is told explicitly."""
+    """A local ``manage.py`` call doesn't need ceremony; a server is told explicitly."""
     source = (REPO_ROOT / "backend" / "manage.py").read_text()
 
     assert 'setdefault("DJANGO_SETTINGS_MODULE", "caldart.settings.dev")' in source
@@ -269,7 +269,7 @@ def test_the_production_template_is_shipped() -> None:
     assert PRODUCTION_TEMPLATE.is_file()
 
 
-def test_the_production_template_sets_no_secret_key() -> None:
+def test_the_production_template_does_not_set_a_secret_key() -> None:
     """The production environment template leaves ``SECRET_KEY`` commented out."""
     assert "SECRET_KEY" not in uncommented_variables(PRODUCTION_TEMPLATE)
 
@@ -279,7 +279,7 @@ def test_the_production_template_turns_debug_off() -> None:
     assert uncommented_variables(PRODUCTION_TEMPLATE)["DEBUG"] == "false"
 
 
-def test_the_production_template_enables_no_mock_payments() -> None:
+def test_the_production_template_does_not_enable_mock_payments() -> None:
     """The production environment template leaves every ``MOCK`` variable unset."""
     enabled = [key for key in uncommented_variables(PRODUCTION_TEMPLATE) if "MOCK" in key]
 

@@ -105,10 +105,10 @@ def test_a_failure_is_counted_against_its_kind(
     assert run.sent == 0
 
 
-def test_a_failed_send_leaves_no_log_row(
+def test_a_failed_send_does_not_leave_a_log_row(
     annual_plan: MembershipPlan, failing_smtp: list[EmailMessage]
 ) -> None:
-    """A failed send writes no ``ReminderLog`` row, so a later run can retry it."""
+    """A failed send doesn't write a ``ReminderLog`` row, so a later run can retry it."""
     make_member(annual_plan, ends_on_for(ReminderKind.SECOND), email=FAILING_ADDRESS)
 
     send_renewal_reminders(today=TODAY)
@@ -164,7 +164,7 @@ def test_a_failed_delete_does_not_replace_the_mail_failure_or_stop_the_scan(
     assert run.sent == 1
 
 
-def test_the_failure_log_names_the_ids_but_no_address(
+def test_the_failure_log_names_the_ids_but_not_an_address(
     annual_plan: MembershipPlan, failing_smtp: list[EmailMessage], caplog: pytest.LogCaptureFixture
 ) -> None:
     """A failed send logs one error naming the user and membership ids, no address."""
@@ -307,7 +307,7 @@ def test_a_run_late_enough_to_miss_a_stage_sends_the_next_one(
     assert run.sent_by_kind == {sent_kind: 1}
 
 
-def test_a_run_a_month_after_the_last_stage_sends_nothing(
+def test_a_run_a_month_after_the_last_stage_does_not_send_anything(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """A term that lapsed more than sixty days ago is past every stage."""

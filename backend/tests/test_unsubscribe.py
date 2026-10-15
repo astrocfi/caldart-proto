@@ -41,8 +41,8 @@ def link(member: User, mission: EmailType) -> str:
 
 
 # -- the page a link opens ----------------------------------------------------
-def test_opening_the_link_records_nothing(client: Client, link: str, member: User) -> None:
-    """A mail scanner that follows the link unsubscribes nobody."""
+def test_opening_the_link_does_not_record_anything(client: Client, link: str, member: User) -> None:
+    """A mail scanner that follows the link doesn't unsubscribe anyone."""
     response = client.get(link)
 
     assert response.status_code == 200
@@ -92,8 +92,8 @@ def test_pressing_the_button_records_the_opt_out(
     assert "You will no longer receive Mission email" in response.content.decode()
 
 
-def test_a_one_click_post_needs_no_csrf_token(link: str, member: User) -> None:
-    """A mail program's own unsubscribe button posts with no session and no token."""
+def test_a_one_click_post_does_not_need_a_csrf_token(link: str, member: User) -> None:
+    """A mail program's own unsubscribe button posts without a session or a token."""
     client = Client(enforce_csrf_checks=True)
 
     response = client.post(link, ONE_CLICK_BODY, content_type="application/x-www-form-urlencoded")
@@ -141,10 +141,10 @@ def test_other_methods_are_refused(client: Client, link: str) -> None:
 
 # -- a type that cannot be turned off ----------------------------------------
 @pytest.mark.parametrize("method", ["get", "post"])
-def test_a_type_that_cannot_be_turned_off_records_nothing(
+def test_a_type_that_cannot_be_turned_off_does_not_record_anything(
     client: Client, member: User, method: str
 ) -> None:
-    """A link to a type that stopped allowing opt-out changes nothing and says so."""
+    """A link to a type that stopped allowing opt-out keeps its setting and says so."""
     operational = EmailTypeFactory(name="Operational", allow_opt_out=False)
     link = page_url(make_token(member, operational))
 
@@ -157,7 +157,7 @@ def test_a_type_that_cannot_be_turned_off_records_nothing(
 
 # -- a link that no longer works ---------------------------------------------
 def test_a_tampered_token_is_refused(client: Client, member: User, mission: EmailType) -> None:
-    """A token whose signature does not match records nothing and answers 400."""
+    """A token whose signature does not match doesn't record anything and answers 400."""
     token = make_token(member, mission)
     tampered = f"{token[:-1]}{'A' if token[-1] != 'A' else 'B'}"
 
@@ -178,7 +178,7 @@ def test_a_token_for_another_purpose_is_refused(
 
 
 def test_a_token_carrying_the_wrong_shape_is_refused(client: Client) -> None:
-    """A signed payload that names no account and type is refused."""
+    """A signed payload that doesn't name an account and a type is refused."""
     token = signing.dumps(["not", "a", "payload"], salt=UNSUBSCRIBE_SALT)
 
     assert client.get(page_url(token)).status_code == 400
@@ -187,7 +187,7 @@ def test_a_token_carrying_the_wrong_shape_is_refused(client: Client) -> None:
 def test_an_expired_token_is_refused(
     client: Client, member: User, mission: EmailType, settings: Settings
 ) -> None:
-    """A link older than ``UNSUBSCRIBE_TOKEN_MAX_AGE`` records nothing."""
+    """A link older than ``UNSUBSCRIBE_TOKEN_MAX_AGE`` doesn't record anything."""
     settings.UNSUBSCRIBE_TOKEN_MAX_AGE = 60
     with freeze_time("2026-10-01 12:00:00"):
         token = make_token(member, mission)
@@ -224,7 +224,7 @@ def test_a_token_for_a_deleted_type_is_refused(
 def test_a_token_for_a_deleted_account_is_refused(
     client: Client, mission: EmailType, audit_log: pytest.LogCaptureFixture
 ) -> None:
-    """A link for an account since deleted records nothing and answers 400."""
+    """A link for an account since deleted doesn't record anything and answers 400."""
     person = UserFactory(email="gone@example.test")
     token = make_token(person, mission)
     person.delete()

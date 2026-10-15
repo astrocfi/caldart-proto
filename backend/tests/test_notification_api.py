@@ -40,7 +40,7 @@ def subscribe(email: str, events: list[str], **fields: object) -> NotificationSu
 
 @pytest.fixture
 def cashier() -> User:
-    """A treasurer named Cass Till, who may hear about money and nothing else."""
+    """A treasurer named Cass Till, who may hear only about money."""
     return UserFactory(
         email="cashier@example.test",
         first_name="Cass",
@@ -164,8 +164,8 @@ def test_a_subscription_reads_as_its_documented_body(
     }
 
 
-def test_a_bare_address_reads_with_no_name(account_admin_client: APIClient) -> None:
-    """An address outside CalDART has a blank ``recipient_name`` and no account."""
+def test_a_bare_address_reads_without_a_name(account_admin_client: APIClient) -> None:
+    """An outside address reads without an account and with a blank ``recipient_name``."""
     subscription = subscribe("outside@example.test", ["signed_up"])
 
     body = account_admin_client.get(subscription_url(subscription)).json()
@@ -227,7 +227,7 @@ def test_the_events_are_kept_in_catalog_order_once_each(account_admin_client: AP
 def test_an_address_an_account_holds_is_bound_to_it(
     account_admin_client: APIClient, cashier: User
 ) -> None:
-    """An account's address, in any case, binds the subscription with no confirmation."""
+    """An account's address, in any case, binds the subscription without confirming."""
     response = account_admin_client.post(
         SUBSCRIPTIONS_URL,
         {"recipient_email": "CASHIER@example.test", "events": ["donation_received"]},
@@ -483,7 +483,7 @@ def test_a_patch_keeps_the_stored_address_when_another_subscription_holds_the_ne
     )
 
 
-def test_a_patch_to_no_events_is_refused(account_admin_client: APIClient) -> None:
+def test_a_patch_to_an_empty_event_list_is_refused(account_admin_client: APIClient) -> None:
     """A subscription keeps at least one event."""
     subscription = subscribe("outside@example.test", ["signed_up"])
 

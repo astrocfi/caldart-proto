@@ -1,4 +1,4 @@
-"""An item a person does not hold has nothing to verify, and both checks read one rule.
+"""An item a person does not hold isn't verified, and both checks read one rule.
 
 A pilot certificate of ``none``, a medical of ``none``, and a photo ID of
 ``not_provided`` are items the person does not hold: ``verify_member`` never stamps
@@ -59,7 +59,7 @@ def stamper(db: None) -> User:
 
 @pytest.fixture
 def non_pilot(db: None) -> MemberProfile:
-    """A profile holding no pilot certificate, no medical, and no photo ID."""
+    """A profile that doesn't hold a pilot certificate, a medical, or a photo ID."""
     return MemberProfileFactory(
         user=UserFactory(email="ground@example.test", first_name="Gil", last_name="Ground"),
         pilot_certificate_type=PilotCertificateType.NONE,
@@ -92,7 +92,7 @@ def test_an_item_with_a_value_is_held(slug: str) -> None:
     assert is_held(profile, slug) is True
 
 
-def test_verifying_a_non_pilot_stamps_nothing_they_do_not_hold(
+def test_verifying_a_non_pilot_does_not_stamp_anything_they_do_not_hold(
     non_pilot: MemberProfile, dart_leader: User
 ) -> None:
     """Asking to verify three items the person does not hold leaves them unverified."""
@@ -104,7 +104,7 @@ def test_verifying_a_non_pilot_stamps_nothing_they_do_not_hold(
 def test_verifying_stamps_the_held_items_beside_one_not_held(
     dart_leader: User,
 ) -> None:
-    """A pilot with no photo ID on file has only the certificate and medical stamped."""
+    """A pilot without a photo ID on file has only the certificate and medical stamped."""
     profile = MemberProfileFactory(photo_id_type=PhotoIdType.NOT_PROVIDED)
     verify_member(dart_leader, profile.user, changes={}, verified=PERSON_ITEMS)
     profile.refresh_from_db()
@@ -177,8 +177,8 @@ def test_the_pilot_list_carries_the_member_checks_verdict(
     assert pilot["go_no_go"] == {"membership": True, "medical": True, "verified": False}
 
 
-def test_insurance_with_no_policy_on_file_is_never_stamped(dart_leader: User) -> None:
-    """Asking to verify an aircraft with no insurance expiration leaves it unverified."""
+def test_insurance_without_a_policy_on_file_is_never_stamped(dart_leader: User) -> None:
+    """Verifying an aircraft without an insurance expiration leaves it unverified."""
     aircraft = AircraftFactory(n_number="N44BE", insurance_expiration=None)
     verify_insurance(aircraft, actor=dart_leader, changes={}, verified=True)
     aircraft.refresh_from_db()

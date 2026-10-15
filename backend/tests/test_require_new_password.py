@@ -157,7 +157,7 @@ def test_the_answer_names_the_address_the_link_went_to(
 
 
 def test_the_password_becomes_unusable(user_admin_client: APIClient, target: User) -> None:
-    """The account holds no usable password afterwards."""
+    """The account doesn't hold a usable password afterwards."""
     user_admin_client.post(require_url(target))
     assert fresh(target).has_usable_password() is False
 
@@ -350,7 +350,7 @@ def test_the_owner_reactivates_by_following_the_link(
 def test_a_blocked_account_is_answered_without_a_mail(
     user_admin_client: APIClient, target: User
 ) -> None:
-    """A blocked account's password is replaced, and the answer says no email went."""
+    """A blocked account's password is replaced; the answer says the email didn't go."""
     response = user_admin_client.post(require_url(deactivated(target, blocked=True)))
     assert response.json() == {
         "detail": "The old password no longer works and every session is ended. "
@@ -358,7 +358,7 @@ def test_a_blocked_account_is_answered_without_a_mail(
     }
 
 
-def test_a_blocked_account_is_sent_nothing(user_admin_client: APIClient, target: User) -> None:
+def test_a_blocked_account_is_not_sent_anything(user_admin_client: APIClient, target: User) -> None:
     """No reset link goes to a blocked account, which could not use it."""
     user_admin_client.post(require_url(deactivated(target, blocked=True)))
     assert mail.outbox == []
@@ -398,7 +398,7 @@ def test_once_the_block_is_lifted_the_old_password_still_fails(
 # Refusals
 # --------------------------------------------------------------------------
 def test_a_donor_is_refused(user_admin_client: APIClient) -> None:
-    """A donor cannot sign in, so there is nothing to replace."""
+    """A donor cannot sign in, so there isn't a password to replace."""
     donor = UserFactory(email="giver@example.test", kind=AccountKind.DONOR, roles=[])
     response = user_admin_client.post(require_url(donor))
     assert (response.status_code, response.json()) == (400, DONOR_REFUSED)
@@ -440,8 +440,10 @@ def test_an_account_holding_roles_you_lack_is_refused(
     assert (response.status_code, response.json()) == (400, ROLES_REFUSED)
 
 
-def test_a_refusal_changes_nothing(user_admin_client: APIClient, account_admin: User) -> None:
-    """A refusal leaves the password, the sessions, and the history, and mails nobody."""
+def test_a_refusal_does_not_change_anything(
+    user_admin_client: APIClient, account_admin: User
+) -> None:
+    """A refusal leaves the password, sessions, and history, and doesn't mail anyone."""
     _, key = signed_in_client(account_admin)
     user_admin_client.post(require_url(account_admin))
     assert (
@@ -508,7 +510,7 @@ def test_a_refused_mail_still_shuts_the_old_password_out(
 def test_a_password_change_overtaken_by_the_action_is_refused(
     monkeypatch: pytest.MonkeyPatch, user_admin: User, target: User
 ) -> None:
-    """A change validated against the old password answers 401 and writes nothing."""
+    """A change checked against the old password answers 401 without writing anything."""
     theirs, _ = signed_in_client(target)
     validate = PasswordChangeSerializer.validate_new_password
 

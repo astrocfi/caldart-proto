@@ -215,7 +215,7 @@ def test_an_unknown_report_is_a_404(account_admin_client: APIClient, url: str) -
 
 
 def test_an_unknown_report_is_a_404_even_for_a_member(api_client: APIClient, member: User) -> None:
-    """A caller who may read nothing still learns only that the report does not exist."""
+    """A caller who may not read a report still learns only that it does not exist."""
     api_client.force_login(member)
     assert api_client.get(export_url("karma", "csv")).status_code == 404
 
@@ -334,7 +334,7 @@ def test_a_period_picks_the_contributions_year(
 def test_a_period_is_ignored_by_a_report_without_dates(
     account_admin_client: APIClient, fixed_name_admin: User
 ) -> None:
-    """The members report takes no period, so one changes nothing."""
+    """The members report doesn't take a period, so one doesn't change anything."""
     with_period = account_admin_client.get(export_url("members", "csv"), {"period": "last_year"})
     without = account_admin_client.get(export_url("members", "csv"))
     assert with_period.content == without.content

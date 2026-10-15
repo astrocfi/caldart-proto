@@ -55,10 +55,10 @@ def test_attach_is_idempotent(
     assert profile.aircraft.count() == 1
 
 
-def test_attach_creates_the_profile_when_there_is_none(
+def test_attach_creates_the_profile_when_the_member_does_not_have_one(
     api_client: APIClient, member: User, aircraft: Aircraft
 ) -> None:
-    """Attaching an aircraft for a member with no profile yet creates the profile."""
+    """Attaching an aircraft for a member without a profile yet creates the profile."""
     api_client.force_login(member)
     response = api_client.post(ATTACH_URL, {"aircraft_id": aircraft.id}, format="json")
     assert response.status_code == 200

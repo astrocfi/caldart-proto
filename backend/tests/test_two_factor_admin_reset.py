@@ -125,13 +125,13 @@ def test_nobody_resets_their_own(admin_client: APIClient, system_admin: User) ->
 
 
 def test_a_donor_is_refused(admin_client: APIClient) -> None:
-    """A donor has no portal account."""
+    """A donor doesn't have a portal account."""
     donor = UserFactory(kind=AccountKind.DONOR)
     assert admin_client.post(reset_url(donor)).json() == {"detail": mfa.DONOR_RESET_REFUSED}
 
 
 def test_a_tombstone_is_refused(admin_client: APIClient, member: User) -> None:
-    """A record that keeps a deleted member's payments takes no change."""
+    """A record that keeps a deleted member's payments doesn't take a change."""
     tombstone = tombstone_for(member)
     assert admin_client.post(reset_url(tombstone)).json() == {"detail": TOMBSTONE_CHANGE_REFUSED}
 
@@ -149,13 +149,13 @@ def test_a_user_administrator_cannot_reset_a_system_administrator(
 def test_a_user_administrator_resets_a_treasurer(
     api_client: APIClient, user_admin: User, subject: User
 ) -> None:
-    """A role the user administrator does not hold is no bar."""
+    """A role the user administrator does not hold doesn't bar the reset."""
     api_client.force_login(user_admin)
     assert api_client.post(reset_url(subject)).json()["two_factor_enabled"] is False
 
 
 def test_an_unknown_account_is_404(admin_client: APIClient) -> None:
-    """There is nobody to reset."""
+    """There isn't anyone to reset."""
     assert admin_client.post(f"{USERS_URL}/999999/reset-two-factor").status_code == 404
 
 
@@ -184,14 +184,14 @@ def test_the_command_resets_from_the_server(subject: User) -> None:
 
 
 def test_the_command_is_recorded_under_the_system(subject: User) -> None:
-    """The history reads it as a change no account made."""
+    """The history reads it as a change that no account made."""
     call_command("reset_two_factor", email=subject.email, stdout=StringIO())
     change = AccountChange.objects.get(user=subject)
     assert (change.kind, change.by_command) == (AccountChangeKind.MFA_RESET, True)
 
 
 def test_the_command_refuses_an_unknown_address() -> None:
-    """There is nobody to reset."""
+    """There isn't anyone to reset."""
     with pytest.raises(CommandError, match=r"No account has the address 'nobody@example\.test'"):
         call_command("reset_two_factor", email="nobody@example.test", stdout=StringIO())
 
@@ -205,7 +205,7 @@ def test_the_command_clears_the_addresss_lockout(subject: User, settings: Settin
 
 
 def test_clear_lockout_lifts_a_lockout(subject: User, settings: Settings) -> None:
-    """``manage.py clear_lockout`` forgets the counted failures and nothing else."""
+    """``manage.py clear_lockout`` forgets only the counted failures."""
     settings.LOGIN_LOCKOUT_ATTEMPTS = 1
     lockout.record_failure(subject.email)
     call_command("clear_lockout", email=subject.email.upper(), stdout=StringIO())

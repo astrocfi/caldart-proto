@@ -41,13 +41,13 @@ CODE_SHAPE = re.compile(r"[a-z2-9]{5}-[a-z2-9]{5}")
 
 @pytest.fixture
 def person() -> User:
-    """A plain member with no second factor."""
+    """A plain member without a second factor."""
     return UserFactory(email="pat.person@example.test", roles=[MEMBER])
 
 
 @pytest.fixture
 def enrolled(person: User) -> TotpDevice:
-    """``person`` with a confirmed device and no backup codes yet."""
+    """``person`` with a confirmed device but without backup codes yet."""
     return confirmed_device(person)
 
 
@@ -89,8 +89,8 @@ def test_a_confirmed_device_means_a_second_factor_is_needed(enrolled: TotpDevice
     assert mfa.needs_second_factor(enrolled.user) is True
 
 
-def test_starting_enrollment_writes_no_device(person: User, session: SessionStore) -> None:
-    """The secret waits in the session; sign-in asks for nothing until it is confirmed."""
+def test_starting_enrollment_does_not_write_a_device(person: User, session: SessionStore) -> None:
+    """The secret waits in the session; sign-in wants a code only after it's confirmed."""
     mfa.start_enrollment(session, person)
     assert TotpDevice.objects.filter(user=person).exists() is False
 
@@ -159,7 +159,9 @@ def test_confirming_returns_ten_backup_codes_shown_in_two_groups(
     assert [bool(CODE_SHAPE.fullmatch(code)) for code in codes] == [True] * 10
 
 
-def test_confirming_with_a_wrong_code_confirms_nothing(person: User, session: SessionStore) -> None:
+def test_confirming_with_a_wrong_code_does_not_confirm_anything(
+    person: User, session: SessionStore
+) -> None:
     """A wrong code is refused on the ``otp`` field and no device is stored."""
     mfa.start_enrollment(session, person)
     with pytest.raises(DomainValidationError, match="not right"):
@@ -168,7 +170,7 @@ def test_confirming_with_a_wrong_code_confirms_nothing(person: User, session: Se
 
 
 def test_confirming_before_starting_is_refused(person: User, session: SessionStore) -> None:
-    """There is no secret to check a code against."""
+    """There isn't a secret to check a code against."""
     with pytest.raises(DomainError, match="Start setting up"):
         mfa.confirm_enrollment(session, person, "123456")
 
@@ -307,7 +309,7 @@ def test_regenerating_returns_ten_fresh_codes(enrolled: TotpDevice) -> None:
 
 
 def test_regenerating_needs_a_right_code(enrolled: TotpDevice) -> None:
-    """A wrong code changes nothing."""
+    """A wrong code doesn't change anything."""
     old = fresh_codes(enrolled.user)
     with pytest.raises(DomainValidationError):
         mfa.regenerate_recovery_codes(enrolled.user, "000000")
@@ -371,7 +373,7 @@ def test_nobody_resets_their_own() -> None:
 
 
 def test_a_donor_is_not_reset() -> None:
-    """A donor has no portal account."""
+    """A donor doesn't have a portal account."""
     donor = UserFactory(kind=AccountKind.DONOR)
     with pytest.raises(DomainError, match="donor"):
         mfa.reset_two_factor(UserFactory(roles=[USER_ADMIN]), donor)
@@ -424,7 +426,7 @@ def test_a_pending_sign_in_names_its_account(enrolled: TotpDevice, session: Sess
 def test_a_pending_sign_in_without_a_device_needs_enrollment(
     person: User, session: SessionStore
 ) -> None:
-    """An account that must use a second factor but has none enrolls first."""
+    """An account that must use a second factor but doesn't have one enrolls first."""
     assert mfa.begin_pending(session, person) == mfa.SignInStep.ENROLL
 
 

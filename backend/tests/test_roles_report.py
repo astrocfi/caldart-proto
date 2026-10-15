@@ -56,7 +56,7 @@ SECTION_TITLES = [
     "System administrator",
 ]
 
-#: The columns the report carries when the caller chooses none.
+#: The columns the report carries when the caller doesn't choose any.
 DEFAULT_COLUMNS = ("role", "name", "email", "phone", "dart", "kind", "membership")
 
 #: The day the dated rows below are worked out for.
@@ -118,7 +118,7 @@ def test_the_report_is_titled_and_named_for_its_file() -> None:
     )
 
 
-def test_the_report_is_landscape_with_choosable_columns_and_no_period() -> None:
+def test_the_report_is_landscape_with_choosable_columns_and_without_a_period() -> None:
     """``(choosable, landscape, periods)``: a wide table whose columns can be chosen."""
     spec = ROLES_REPORT
     assert (spec.choosable, spec.landscape, spec.periods) == (True, True, False)
@@ -150,7 +150,7 @@ def test_every_column_is_registered_in_export_order() -> None:
 # Rows and sections
 # --------------------------------------------------------------------------
 def test_every_staff_role_is_a_section_even_when_nobody_holds_it() -> None:
-    """The eight staff roles are the sections, in privilege order, with no rows at all."""
+    """The eight staff roles are the sections, in privilege order, even when empty."""
     assert section_titles() == SECTION_TITLES
 
 
@@ -164,7 +164,7 @@ def test_an_account_is_listed_once_per_staff_role_it_holds() -> None:
 
 
 def test_a_plain_member_is_not_listed() -> None:
-    """The member role alone is no section, so a member with no other role is absent."""
+    """The member role alone isn't a section, so a plain member is absent."""
     UserFactory(email="plain@example.test", roles=[MEMBER])
     assert rows_for() == []
 
@@ -251,7 +251,7 @@ def test_a_friend_reads_friend_twice() -> None:
 
 
 def test_the_role_cell_is_the_section_s_label() -> None:
-    """The Role column carries the role, so the flat CSV loses no section."""
+    """The Role column carries the role, so the flat CSV keeps every section."""
     UserFactory(email="r@example.test", roles=[DART_LEADER])
     assert cells_for("r@example.test", "role") == ["DART leader"]
 
@@ -285,7 +285,7 @@ def test_role_narrows_the_report_to_that_one_section(staff: list[User]) -> None:
 
 
 def test_role_lists_only_that_role_s_holders(staff: list[User]) -> None:
-    """``?role=treasurer`` lists the two treasurers, and nobody else."""
+    """``?role=treasurer`` lists only the two treasurers."""
     assert pairs(rows_for({"role": TREASURER})) == [
         ("Treasurer", "ft@example.test"),
         ("Treasurer", "mt@example.test"),
@@ -379,7 +379,7 @@ def test_the_csv_download_is_named_for_the_day(account_admin_client: APIClient) 
 def test_the_csv_filtered_by_role_lists_that_role_alone(
     account_admin_client: APIClient, all_role_users: dict[str, User]
 ) -> None:
-    """``?role=treasurer`` exports the treasurer's row and nobody else's."""
+    """``?role=treasurer`` exports only the treasurer's row."""
     table = read_csv(
         account_admin_client.get(CSV_URL, {"role": TREASURER, "columns": "role,email"})
     )
@@ -387,7 +387,7 @@ def test_the_csv_filtered_by_role_lists_that_role_alone(
 
 
 def test_the_csv_refuses_the_member_role(account_admin_client: APIClient) -> None:
-    """A role the report has no section for is a 400 keyed by ``role``."""
+    """A role the report doesn't have a section for is a 400 keyed by ``role``."""
     response = account_admin_client.get(CSV_URL, {"role": MEMBER})
     assert response.status_code == 400
     assert response.json() == {

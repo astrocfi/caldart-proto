@@ -3,7 +3,7 @@
 ``POST /auth/deactivate`` ends the caller's own account: every mandate is canceled,
 the membership that still has time to run is suspended, and the session ends.
 ``POST /auth/reactivate`` brings a deactivated account back with its password, and
-so does a password reset.  A suspended term counts for nothing while it is
+so does a password reset.  A suspended term doesn't count while it is
 suspended.  The API contract is ``docs/developer/api-auth.rst``.
 """
 
@@ -137,7 +137,7 @@ def test_a_wrong_password_is_refused(member_client: APIClient, member: User) -> 
 
 
 def test_a_wrong_password_leaves_the_account_active(member_client: APIClient, member: User) -> None:
-    """A refused deactivation changes nothing."""
+    """A refused deactivation doesn't change anything."""
     deactivate(member_client, "not-the-password")
     member.refresh_from_db()
     assert member.is_active is True
@@ -367,7 +367,7 @@ def test_deactivating_is_recorded_as_a_self_service_cancellation(
 
 
 # --------------------------------------------------------------------------
-# Suspended terms count for nothing
+# Suspended terms don't count
 # --------------------------------------------------------------------------
 def test_a_suspended_term_does_not_make_a_member_current(
     member: User, annual_plan: MembershipPlan
@@ -474,7 +474,7 @@ def test_a_donor_is_refused_as_wrong_credentials(api_client: APIClient) -> None:
 def test_a_refused_reactivation_leaves_the_account_inactive(
     api_client: APIClient, member: User
 ) -> None:
-    """A wrong password changes nothing."""
+    """A wrong password doesn't change anything."""
     deactivated(member)
     reactivate(api_client, member.email, "not-the-password")
     member.refresh_from_db()
@@ -509,14 +509,14 @@ def test_reactivating_mails_an_unverified_address(
     assert [message.subject for message in mailoutbox] == ["CalDART: verify your email address"]
 
 
-def test_reactivating_mails_nothing_to_a_verified_address(
+def test_reactivating_does_not_mail_a_verified_address(
     api_client: APIClient,
     member: User,
     password: str,
     mailoutbox: list[EmailMessage],
     django_capture_on_commit_callbacks: OnCommit,
 ) -> None:
-    """A verified account is sent nothing."""
+    """A verified account isn't sent anything."""
     member.email_verified_at = timezone.now()
     member.save(update_fields=["email_verified_at"])
     deactivated(member)
@@ -643,7 +643,7 @@ def test_a_password_reset_records_a_self_service_reactivation(
     )
 
 
-def test_a_password_reset_of_an_active_account_records_no_reactivation(
+def test_a_password_reset_of_an_active_account_does_not_record_a_reactivation(
     api_client: APIClient, member: User, audit_log: pytest.LogCaptureFixture
 ) -> None:
     """An ordinary reset is not a reactivation."""
@@ -661,18 +661,18 @@ def test_the_administrator_still_cannot_mail_a_deactivated_account_a_reset(
     assert (response.status_code, mailoutbox) == (400, [])
 
 
-def test_reactivating_an_active_account_changes_nothing(
+def test_reactivating_an_active_account_does_not_change_anything(
     member: User, annual_plan: MembershipPlan, audit_log: pytest.LogCaptureFixture
 ) -> None:
-    """A second, concurrent reactivation finds the account active and does nothing."""
+    """A second, concurrent reactivation finds the account active, so it doesn't act."""
     suspended(member, annual_plan, ends_on=timezone.localdate() + timedelta(days=30))
     assert (reactivate_account(member), audit_messages(audit_log)) == (False, [])
 
 
-def test_deactivating_an_inactive_account_changes_nothing(
+def test_deactivating_an_inactive_account_does_not_change_anything(
     member: User, annual_plan: MembershipPlan, audit_log: pytest.LogCaptureFixture
 ) -> None:
-    """A second, concurrent deactivation finds the account inactive and does nothing."""
+    """A second, concurrent deactivation finds the account inactive, so it doesn't act."""
     covering = term(deactivated(member), annual_plan, starts=-30, ends=200)
     deactivate_account(member)
     covering.refresh_from_db()
@@ -728,7 +728,7 @@ def test_an_administrator_reactivating_is_recorded_under_the_administrator(
     )
 
 
-def test_an_administrator_reactivating_an_active_account_restores_nothing(
+def test_an_administrator_reactivating_an_active_account_does_not_restore_anything(
     api_client: APIClient, system_admin: User, member: User, annual_plan: MembershipPlan
 ) -> None:
     """Only the change from inactive to active brings a suspended term back."""

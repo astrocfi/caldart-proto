@@ -68,16 +68,16 @@ def test_a_role_change_names_the_administrator_who_made_it(user_admin: User, mem
     assert member.account_changes.get().changed_by == user_admin
 
 
-def test_an_edit_that_leaves_the_roles_alone_records_nothing(
+def test_an_edit_that_leaves_the_roles_alone_does_not_record_anything(
     user_admin: User, member: User
 ) -> None:
-    """A save that resends the roles the account holds writes no history."""
+    """A save that resends the roles the account holds doesn't write any history."""
     update_account(user_admin, member, {"roles": [MEMBER], "first_name": "Robin"})
     assert member.account_changes.count() == 0
 
 
-def test_a_command_role_change_is_recorded_under_no_account(member: User) -> None:
-    """A management command's change is stored with no ``changed_by``."""
+def test_a_command_role_change_is_recorded_without_an_account(member: User) -> None:
+    """A management command's change is stored without a ``changed_by``."""
     update_account(audit.COMMAND_ACTOR, member, {"roles": [MEMBER, VERIFIER]})
     assert member.account_changes.get().changed_by is None
 
@@ -115,8 +115,8 @@ def test_blocking_and_allowing_reactivation_are_recorded(user_admin: User, membe
     ]
 
 
-def test_a_block_already_set_records_nothing_more(user_admin: User, member: User) -> None:
-    """Blocking an account already blocked changes nothing and writes no second entry."""
+def test_a_block_already_set_does_not_record_anything_more(user_admin: User, member: User) -> None:
+    """Blocking an account already blocked doesn't change it or write a second entry."""
     deactivate_account(user_admin, member)
     set_reactivation_blocked(user_admin, member, blocked=True)
     set_reactivation_blocked(user_admin, member, blocked=True)
@@ -169,7 +169,7 @@ def test_history_carries_the_roles_a_change_granted(
     assert (row["added"], row["removed"]) == ([VERIFIER], [])
 
 
-def test_a_command_entry_has_no_actor(
+def test_a_command_entry_does_not_have_an_actor(
     api_client: APIClient, user_admin: User, member: User
 ) -> None:
     """An entry a management command wrote reads ``changed_by: null``."""
@@ -179,7 +179,7 @@ def test_a_command_entry_has_no_actor(
     assert (row["changed_by"], row["by_command"]) == (None, True)
 
 
-def test_an_account_with_no_changes_has_an_empty_history(
+def test_an_account_without_changes_has_an_empty_history(
     api_client: APIClient, user_admin: User, member: User
 ) -> None:
     """An account nothing has changed answers an empty list."""
@@ -194,7 +194,7 @@ def test_history_of_an_unknown_account_is_404(api_client: APIClient, user_admin:
 
 
 def test_an_actor_since_deleted_leaves_the_entry_behind(member: User) -> None:
-    """Deleting the administrator keeps the entry, with no actor."""
+    """Deleting the administrator keeps the entry, without an actor."""
     actor = UserFactory(email="gone@example.test", roles=[MEMBER, USER_ADMIN])
     update_account(actor, member, {"roles": [MEMBER, VERIFIER]})
     actor.delete()

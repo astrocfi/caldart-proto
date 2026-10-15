@@ -52,7 +52,7 @@ def grace_donation() -> RenewalMandate:
 def test_the_download_carries_the_tabs_columns_by_default(
     treasurer_client: APIClient, ada_renewal: RenewalMandate
 ) -> None:
-    """With no ``columns``, the file holds the Renewals tab's own eight columns."""
+    """Without ``columns``, the file holds the Renewals tab's own eight columns."""
     assert read_csv(treasurer_client.get(EXPORT))[0] == DEFAULT_HEADER
 
 
@@ -75,10 +75,10 @@ def test_a_row_reads_as_the_renewal_reads_on_the_tab(
     ]
 
 
-def test_a_recurring_donation_has_no_plan_and_names_its_cadence(
+def test_a_recurring_donation_does_not_have_a_plan_and_names_its_cadence(
     treasurer_client: APIClient, grace_donation: RenewalMandate
 ) -> None:
-    """A donation renews no plan; its cadence is a column to ask for."""
+    """A donation doesn't renew a plan; its cadence is a column to ask for."""
     rows = read_csv(treasurer_client.get(EXPORT, {"columns": "kind,plan,cadence,status"}))
     assert rows[1] == ["Recurring donation", "", "Monthly", "Turned off"]
 

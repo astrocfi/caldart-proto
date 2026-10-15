@@ -161,7 +161,7 @@ def register(api_client: APIClient, email: str = NEWCOMER) -> User:
     return user
 
 
-def test_registering_raises_nothing_until_the_join_is_complete(
+def test_registering_does_not_raise_anything_until_the_join_is_complete(
     api_client: APIClient, recorded: Recorded
 ) -> None:
     """The account alone is not a sign-up: the join wizard has not asked for the DART."""
@@ -184,10 +184,10 @@ def test_completing_the_join_profile_raises_signed_up_with_the_chosen_dart(
     assert recorded == [("signed_up", {"user": user, "dart": dart})]
 
 
-def test_completing_the_join_profile_with_no_dart_raises_signed_up_with_none(
+def test_completing_the_join_profile_without_a_dart_raises_signed_up_with_none(
     api_client: APIClient, recorded: Recorded
 ) -> None:
-    """A joiner who picks no DART still signs up, with ``dart=None``."""
+    """A joiner who doesn't pick a DART still signs up, with ``dart=None``."""
     user = register(api_client)
 
     api_client.patch("/api/v1/me/profile", COMPLETE_PROFILE, format="json")
@@ -207,7 +207,7 @@ def test_a_partial_join_profile_raises_neither_signed_up_nor_a_profile_change(
     assert recorded == []
 
 
-def test_editing_a_complete_profile_raises_no_signed_up(
+def test_editing_a_complete_profile_does_not_raise_signed_up(
     api_client: APIClient, member: User, profile: MemberProfile, recorded: Recorded
 ) -> None:
     """A member whose profile was complete already joined long ago."""
@@ -218,7 +218,7 @@ def test_editing_a_complete_profile_raises_no_signed_up(
     assert raised(recorded, "signed_up") == []
 
 
-def test_registering_with_a_donors_address_raises_nothing_yet(recorded: Recorded) -> None:
+def test_registering_with_a_donors_address_does_not_raise_anything_yet(recorded: Recorded) -> None:
     """A donor's address waits for the verification link, so nobody has joined yet."""
     UserFactory(email="giver@example.test", kind=AccountKind.DONOR, roles=[])
 
@@ -227,7 +227,7 @@ def test_registering_with_a_donors_address_raises_nothing_yet(recorded: Recorded
     assert raised(recorded, "signed_up") == []
 
 
-def test_a_donor_verifying_their_registration_raises_no_signed_up_yet(
+def test_a_donor_verifying_their_registration_does_not_raise_signed_up_yet(
     recorded: Recorded,
 ) -> None:
     """The upgraded donor signs up, like anybody, when the join profile is complete."""
@@ -262,16 +262,16 @@ def test_an_administrator_adding_a_member_raises_member_added(
 # --------------------------------------------------------------------------
 # became_friend and became_member
 # --------------------------------------------------------------------------
-def test_a_member_with_no_coverage_becoming_a_friend_raises_chose(
+def test_a_member_without_coverage_becoming_a_friend_raises_chose(
     member: User, recorded: Recorded
 ) -> None:
-    """A member with nothing current is a friend at once, having chosen to be one."""
+    """A member without current coverage is a friend at once, having chosen to be one."""
     become_friend(member)
 
     assert raised(recorded, "became_friend") == [{"user": member, "how": "chose"}]
 
 
-def test_a_member_whose_change_waits_for_expiry_raises_nothing_yet(
+def test_a_member_whose_change_waits_for_expiry_does_not_raise_anything_yet(
     member: User, annual_plan: MembershipPlan, today: date, recorded: Recorded
 ) -> None:
     """A current member stays a member until the coverage runs out."""
@@ -312,7 +312,7 @@ def test_an_administrator_making_a_friend_a_member_raises_became_member(
     assert raised(recorded, "became_member") == [{"user": friend, "how": "administrator"}]
 
 
-def test_resending_the_kind_an_account_holds_raises_nothing(
+def test_resending_the_kind_an_account_holds_does_not_raise_anything(
     user_admin: User, member: User, recorded: Recorded
 ) -> None:
     """An edit that leaves the kind where it was changes nobody's kind."""
@@ -339,7 +339,7 @@ def test_a_friend_granted_a_term_raises_became_member_as_granted(
     assert raised(recorded, "became_member") == [{"user": friend, "how": "granted"}]
 
 
-def test_a_member_renewing_raises_no_became_member(
+def test_a_member_renewing_does_not_raise_became_member(
     member: User, annual_plan: MembershipPlan, recorded: Recorded
 ) -> None:
     """A member already stored as one does not become one again."""
@@ -363,7 +363,7 @@ def test_a_membership_payment_raises_membership_paid(
     ]
 
 
-def test_a_membership_payment_with_a_contribution_raises_no_donation(
+def test_a_membership_payment_with_a_contribution_does_not_raise_a_donation(
     member: User, annual_plan: MembershipPlan, recorded: Recorded
 ) -> None:
     """The contribution rides on the membership payment's own event."""
@@ -393,7 +393,7 @@ def test_a_payment_confirmed_twice_raises_membership_paid_once(
 
 
 def test_a_contribution_raises_donation_received(member: User, recorded: Recorded) -> None:
-    """A payment that buys no term is a gift."""
+    """A payment that doesn't buy a term is a gift."""
     payment = mark_succeeded(
         PaymentFactory(user=member, plan=None, amount_cents=2_500, plan_amount_cents=0)
     )
@@ -478,7 +478,7 @@ def test_two_lapsed_terms_raise_one_event_naming_the_later(
     assert raised(recorded, "membership_expired") == [{"user": member, "term": later}]
 
 
-def test_a_term_followed_by_a_renewal_raises_no_expiry(
+def test_a_term_followed_by_a_renewal_does_not_raise_an_expiry(
     member: User, annual_plan: MembershipPlan, today: date, recorded: Recorded
 ) -> None:
     """A renewal bought early carries the member on, so nothing has expired."""
@@ -506,7 +506,7 @@ def test_saving_a_method_raises_auto_renewal_on(
     assert raised(recorded, "auto_renewal_on") == [{"mandate": mandate}]
 
 
-def test_replacing_the_card_on_an_active_mandate_raises_nothing(
+def test_replacing_the_card_on_an_active_mandate_does_not_raise_anything(
     member: User, annual_plan: MembershipPlan, recorded: Recorded
 ) -> None:
     """A mandate already on stays on, so it has not been turned on."""
@@ -539,7 +539,7 @@ def test_an_administrator_canceling_raises_auto_renewal_off_as_administrator(
     assert raised(recorded, "auto_renewal_off") == [{"mandate": mandate, "how": "administrator"}]
 
 
-def test_canceling_a_canceled_mandate_raises_nothing(
+def test_canceling_a_canceled_mandate_does_not_raise_anything(
     member: User, annual_plan: MembershipPlan, recorded: Recorded
 ) -> None:
     """A mandate already off is not turned off again."""
@@ -596,7 +596,7 @@ def test_a_declined_charge_raises_auto_renewal_declined(
     ]
 
 
-def test_a_final_declined_charge_raises_auto_renewal_declined_with_no_next_try(
+def test_a_final_declined_charge_raises_auto_renewal_declined_without_a_next_try(
     member: User, annual_plan: MembershipPlan, today: date, recorded: Recorded
 ) -> None:
     """The decline that exhausts the retries pauses the mandate, so no try follows."""
@@ -616,7 +616,7 @@ def test_a_final_declined_charge_raises_auto_renewal_declined_with_no_next_try(
     ]
 
 
-def test_canceling_a_paused_mandate_raises_nothing(
+def test_canceling_a_paused_mandate_does_not_raise_anything(
     member: User, annual_plan: MembershipPlan, recorded: Recorded
 ) -> None:
     """A mandate the scanner paused was off already, and said so when it paused."""
@@ -646,14 +646,14 @@ def rehearse_reminders(member: User, plan: MembershipPlan, today: date) -> None:
 @pytest.mark.parametrize(
     "rehearse", [rehearse_renewals, rehearse_reminders], ids=["renewals", "reminders"]
 )
-def test_a_dry_run_raises_nothing(
+def test_a_dry_run_does_not_raise_anything(
     rehearse: Callable[[User, MembershipPlan, date], None],
     member: User,
     annual_plan: MembershipPlan,
     today: date,
     recorded: Recorded,
 ) -> None:
-    """A rehearsal writes nothing, so nothing has happened to tell anybody about."""
+    """A rehearsal doesn't write anything, so nothing happened to tell anyone about."""
     rehearse(member, annual_plan, today)
 
     assert recorded == []
@@ -703,7 +703,7 @@ def test_issuing_a_refund_raises_payment_refunded(
     ]
 
 
-def test_a_refund_the_provider_refuses_raises_nothing(
+def test_a_refund_the_provider_refuses_does_not_raise_anything(
     paid: Payment, treasurer: User, recorded: Recorded, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Money that never went back is not a refund."""
@@ -721,10 +721,10 @@ def test_a_refund_the_provider_refuses_raises_nothing(
     assert raised(recorded, "payment_refunded") == []
 
 
-def test_a_dashboard_refund_raises_payment_refunded_with_no_actor(
+def test_a_dashboard_refund_raises_payment_refunded_without_an_actor(
     paid: Payment, recorded: Recorded
 ) -> None:
-    """A refund taken in the provider's dashboard was issued by nobody CalDART knows."""
+    """A refund taken in the provider's dashboard wasn't issued by anyone in CalDART."""
     refunds.record_dashboard_refund(paid, amount_cents=1_000, provider_ref="re_1", raw={})
 
     assert raised(recorded, "payment_refunded") == [
@@ -733,7 +733,7 @@ def test_a_dashboard_refund_raises_payment_refunded_with_no_actor(
 
 
 def test_a_dashboard_refund_delivered_twice_raises_once(paid: Payment, recorded: Recorded) -> None:
-    """The second delivery of one webhook records nothing, and raises nothing."""
+    """The second delivery of one webhook doesn't record or raise anything."""
     refunds.record_dashboard_refund(paid, amount_cents=1_000, provider_ref="re_1", raw={})
     refunds.record_dashboard_refund(paid, amount_cents=1_000, provider_ref="re_1", raw={})
 
@@ -743,10 +743,10 @@ def test_a_dashboard_refund_delivered_twice_raises_once(paid: Payment, recorded:
 # --------------------------------------------------------------------------
 # account_deactivated and account_reactivated
 # --------------------------------------------------------------------------
-def test_deactivating_your_own_account_raises_account_deactivated_with_no_actor(
+def test_deactivating_your_own_account_raises_account_deactivated_without_an_actor(
     api_client: APIClient, member: User, recorded: Recorded
 ) -> None:
-    """A person leaving of their own accord has no administrator behind it."""
+    """A person leaving of their own accord doesn't have an administrator behind it."""
     api_client.force_login(member)
 
     api_client.post("/api/v1/auth/deactivate", {"current_password": DEFAULT_PASSWORD})
@@ -763,7 +763,7 @@ def test_an_administrator_deactivating_raises_account_deactivated(
     assert raised(recorded, "account_deactivated") == [{"user": member, "actor": user_admin}]
 
 
-def test_reactivating_your_own_account_raises_account_reactivated_with_no_actor(
+def test_reactivating_your_own_account_raises_account_reactivated_without_an_actor(
     api_client: APIClient, member: User, recorded: Recorded
 ) -> None:
     """``POST /auth/reactivate`` brings the person back of their own accord."""
@@ -804,10 +804,10 @@ def test_changing_roles_raises_roles_changed(
     ]
 
 
-def test_resending_the_roles_an_account_holds_raises_nothing(
+def test_resending_the_roles_an_account_holds_does_not_raise_anything(
     user_admin: User, member: User, recorded: Recorded
 ) -> None:
-    """A role list that moves nothing changes nobody's roles."""
+    """A role list that doesn't move anything doesn't change anyone's roles."""
     update_account(user_admin, member, {"roles": [MEMBER]})
 
     assert recorded == []
@@ -821,7 +821,7 @@ def mailed_token(mailoutbox: list[EmailMessage], to: str = "moved@example.test")
     return found.group(1)
 
 
-def test_requesting_a_new_address_raises_nothing_until_it_is_confirmed(
+def test_requesting_a_new_address_does_not_raise_anything_until_it_is_confirmed(
     user_admin: User, member: User, recorded: Recorded
 ) -> None:
     """An address nobody has proved yet is not a change of address."""
@@ -866,7 +866,9 @@ def test_following_the_link_twice_raises_email_changed_once(
     assert len(raised(recorded, "email_changed")) == 1
 
 
-def test_verifying_a_new_account_raises_no_email_changed(recorded: Recorded, member: User) -> None:
+def test_verifying_a_new_account_does_not_raise_email_changed(
+    recorded: Recorded, member: User
+) -> None:
     """A first verification proves the address the account always held."""
     User.objects.filter(pk=member.pk).update(email_verified_at=None)
     member.refresh_from_db()
@@ -876,7 +878,7 @@ def test_verifying_a_new_account_raises_no_email_changed(recorded: Recorded, mem
     assert raised(recorded, "email_changed") == []
 
 
-def test_changing_only_the_case_of_an_address_raises_nothing(
+def test_changing_only_the_case_of_an_address_does_not_raise_anything(
     user_admin: User, member: User, recorded: Recorded
 ) -> None:
     """The same address in capitals is the same address."""
@@ -911,7 +913,7 @@ def test_confirming_your_own_new_address_raises_email_changed(
 # --------------------------------------------------------------------------
 # profile_changed
 # --------------------------------------------------------------------------
-def test_editing_your_own_profile_raises_profile_changed_with_no_actor(
+def test_editing_your_own_profile_raises_profile_changed_without_an_actor(
     api_client: APIClient, member: User, profile: MemberProfile, recorded: Recorded
 ) -> None:
     """``PATCH /me/profile`` names the labels of the fields whose value moved."""
@@ -948,10 +950,10 @@ def test_a_changed_field_is_named_by_its_label(name: str, label: str) -> None:
     assert profile_field_label(name) == label
 
 
-def test_resending_a_profile_unchanged_raises_nothing(
+def test_resending_a_profile_unchanged_does_not_raise_anything(
     api_client: APIClient, member: User, profile: MemberProfile, recorded: Recorded
 ) -> None:
-    """A save that moves no value is not a change."""
+    """A save that doesn't move a value is not a change."""
     api_client.force_login(member)
 
     response = api_client.patch("/api/v1/me/profile", {"city": profile.city}, format="json")
@@ -990,7 +992,7 @@ def test_an_administrator_editing_a_profile_raises_profile_changed(
     ]
 
 
-def test_an_administrator_changing_only_the_kind_raises_no_profile_change(
+def test_an_administrator_changing_only_the_kind_does_not_raise_a_profile_change(
     account_admin: User, member: User, profile: MemberProfile, recorded: Recorded
 ) -> None:
     """The kind has its own events; the profile is untouched."""
@@ -1047,10 +1049,10 @@ def test_editing_an_aircraft_raises_aircraft_changed(
     ]
 
 
-def test_resending_an_aircraft_unchanged_raises_nothing(
+def test_resending_an_aircraft_unchanged_does_not_raise_anything(
     api_client: APIClient, account_admin: User, recorded: Recorded
 ) -> None:
-    """An edit that moves no column is not a change."""
+    """An edit that doesn't move a column is not a change."""
     aircraft = AircraftFactory(make="Cessna")
     api_client.force_login(account_admin)
 

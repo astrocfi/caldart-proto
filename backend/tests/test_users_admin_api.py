@@ -189,7 +189,7 @@ def test_list_rows_carry_the_profile_columns_the_roles_report_offers(
 def test_list_rows_read_blank_profile_columns_without_a_profile(
     api_client: APIClient, user_admin: User
 ) -> None:
-    """An account with no profile has blank text and no DART."""
+    """An account without a profile has blank text and a null DART."""
     UserFactory(email="bare@example.test", roles=[MEMBER])
     api_client.force_login(user_admin)
 
@@ -305,7 +305,7 @@ def test_retrieve_returns_one_user(api_client: APIClient, user_admin: User, memb
 
 
 def test_retrieve_404s_for_an_unknown_id(api_client: APIClient, user_admin: User) -> None:
-    """``GET`` an id with no matching user is 404."""
+    """``GET`` an id without a matching user is 404."""
     api_client.force_login(user_admin)
     assert api_client.get(f"{LIST}/99999").status_code == 404
 
@@ -350,7 +350,7 @@ def test_patch_names_every_refused_field_it_carries(
     assert response.json() == {field: [USER_RECORD_ROLES_ONLY] for field in body}
 
 
-def test_a_refused_patch_saves_none_of_it(
+def test_a_refused_patch_does_not_save_any_of_it(
     api_client: APIClient, user_admin: User, member: User
 ) -> None:
     """A refused name leaves the roles sent beside it unsaved, and the name as it was."""
@@ -698,7 +698,7 @@ def test_roles_are_available_to_any_authenticated_user(api_client: APIClient, me
 # --------------------------------------------------------------------------
 # The record's term facts
 # --------------------------------------------------------------------------
-def test_the_record_says_an_account_holds_no_term(
+def test_the_record_says_an_account_does_not_hold_a_term(
     api_client: APIClient, user_admin: User, member: User
 ) -> None:
     """An account without a term reads ``has_terms: false``."""
@@ -715,7 +715,7 @@ def test_the_record_says_a_deactivation_set_a_term_aside(
     assert api_client.get(detail(member)).json()["has_suspended_term"] is True
 
 
-def test_the_list_rows_carry_no_term_facts(
+def test_the_list_rows_do_not_carry_the_term_facts(
     api_client: APIClient, user_admin: User, member: User
 ) -> None:
     """The term facts are the record's alone: a list row leaves them out."""

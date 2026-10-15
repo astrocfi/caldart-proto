@@ -1,9 +1,9 @@
 """The renewal reminder scanner.
 
 Every kind fires on its own offset, nothing fires outside the five stages, a
-second run sends nothing, a dry run writes nothing, and members who have
-already renewed -- including lifetime members and those whose membership renews
-itself -- are left alone.  The stage spans day by day are covered by
+second run doesn't send anything, a dry run doesn't write anything, and members
+who have already renewed -- including lifetime members and those whose
+membership renews itself -- are left alone.  The stage spans day by day are covered by
 ``test_reminder_stages.py`` and failed sends by
 ``test_reminders_resilience.py``.
 """
@@ -97,7 +97,7 @@ def test_each_kind_fires_on_its_own_offset(
 def test_nothing_fires_outside_the_stages(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage], days_out: int
 ) -> None:
-    """A term further out than ``first``, or older than ``lapsed``, hears nothing."""
+    """A term further out than ``first`` or older than ``lapsed`` doesn't hear a thing."""
     make_member(annual_plan, TODAY + timedelta(days=days_out))
 
     run = send_renewal_reminders(today=TODAY)
@@ -121,7 +121,7 @@ def test_every_cohort_in_one_pass(
 
 
 # --------------------------------------------------------------------- dedupe
-def test_a_second_run_the_same_day_sends_nothing(
+def test_a_second_run_the_same_day_does_not_send_anything(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """A reminder already logged for ``(user, membership, kind)`` is never sent again."""
@@ -175,10 +175,10 @@ def test_a_term_ending_today_is_not_yet_expired(annual_plan: MembershipPlan) -> 
 
 
 # -------------------------------------------------------------------- dry run
-def test_dry_run_writes_nothing(
+def test_dry_run_does_not_write_anything(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
-    """A dry run sends no mail, writes no log row, and flips no membership status."""
+    """A dry run doesn't send mail, write a log row, or flip a membership status."""
     make_member(annual_plan, ends_on_for(ReminderKind.FINAL), email="soon@example.test")
     _user, lapsed = make_member(annual_plan, TODAY - timedelta(days=1), email="gone@example.test")
 
@@ -197,7 +197,7 @@ def test_dry_run_writes_nothing(
 def test_a_dry_run_does_not_suppress_the_real_one(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
-    """A dry run leaves no log row behind to block the live run that follows it."""
+    """A dry run doesn't leave a log row behind to block the live run that follows it."""
     make_member(annual_plan, ends_on_for(ReminderKind.FIRST))
 
     send_renewal_reminders(today=TODAY, dry_run=True)
@@ -236,7 +236,7 @@ def test_a_member_whose_membership_renews_itself_is_skipped(
     status: str,
     skipped: bool,
 ) -> None:
-    """An active mandate covers the term; a paused or canceled one covers nothing."""
+    """An active mandate covers the term; a paused or canceled one doesn't cover it."""
     user, _membership = make_member(annual_plan, ends_on_for(ReminderKind.SECOND))
     RenewalMandateFactory(user=user, plan=annual_plan, status=status)
 
@@ -258,7 +258,7 @@ def test_a_pending_mandate_with_a_charge_waiting_also_silences_the_reminders(
     assert run.skipped_by_reason.get("auto_renew", 0) == 1
 
 
-def test_a_pending_mandate_with_no_charge_waiting_silences_nothing(
+def test_a_pending_mandate_without_a_charge_waiting_does_not_silence_anything(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """A member who began setting renewal up and stopped still gets their reminder."""
@@ -285,7 +285,7 @@ def test_deactivated_users_are_skipped(
 def test_a_suspended_term_is_left_out_altogether(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
-    """A term suspended when its holder deactivated is no candidate, so counts nowhere."""
+    """A term suspended when its holder deactivated isn't a candidate or counted."""
     _user, membership = make_member(annual_plan, ends_on_for(ReminderKind.FINAL), is_active=False)
     membership.status = MembershipStatusChoices.SUSPENDED
     membership.save(update_fields=["status"])
@@ -298,7 +298,7 @@ def test_a_suspended_term_is_left_out_altogether(
 def test_a_user_without_an_email_address_is_skipped(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
-    """A due term belonging to a user with no email address is skipped."""
+    """A due term belonging to a user without an email address is skipped."""
     make_member(annual_plan, ends_on_for(ReminderKind.FINAL), email="")
 
     run = send_renewal_reminders(today=TODAY)
@@ -345,7 +345,7 @@ def test_lapsed_is_skipped_once_the_member_has_rejoined(
 def test_canceled_terms_are_ignored_entirely(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
-    """A canceled term produces no send, no skip count, and no email."""
+    """A canceled term doesn't produce a send, a skip count, or an email."""
     _user, membership = make_member(annual_plan, ends_on_for(ReminderKind.SECOND))
     membership.status = MembershipStatusChoices.CANCELED
     membership.save(update_fields=["status"])
@@ -452,7 +452,7 @@ def test_renew_url_follows_site_url(settings: Settings) -> None:
 def test_the_scan_defaults_to_today(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
-    """Calling ``send_renewal_reminders`` with no ``today`` uses the local date."""
+    """Calling ``send_renewal_reminders`` without ``today`` uses the local date."""
     make_member(annual_plan, ends_on_for(ReminderKind.FINAL))
 
     run = send_renewal_reminders()
@@ -480,7 +480,7 @@ def test_command_sends_and_reports(
 def test_command_dry_run_says_so(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
-    """``--dry-run`` sends no mail and reports what it would have sent."""
+    """``--dry-run`` doesn't send mail; it reports what it would have sent."""
     make_member(annual_plan, ends_on_for(ReminderKind.SECOND, date(2026, 6, 15)))
     out = StringIO()
 

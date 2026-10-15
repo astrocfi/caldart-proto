@@ -47,7 +47,7 @@ def scan_url(scan_id: int) -> str:
 
 @pytest.fixture
 def launched(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> list[int]:
-    """The ids of the scan rows handed to the launcher, which starts nothing."""
+    """The ids of the scan rows handed to the launcher, which doesn't start anything."""
     settings.RENEWAL_STALE_MINUTES = STALE_MINUTES
     started: list[int] = []
     monkeypatch.setattr(background, "launch_scan", lambda scan: started.append(scan.pk))
@@ -72,7 +72,7 @@ def renewal_due_today(user: User, plan: MembershipPlan, today: date) -> None:
 def test_a_live_run_answers_202_with_the_unfinished_scan(
     system_admin_client: APIClient, launched: list[int]
 ) -> None:
-    """The row is written before the answer: started, not finished, with no result yet."""
+    """The row is written before the answer: started, unfinished, without a result yet."""
     response = system_admin_client.post(RUN, {"dry_run": False}, format="json")
     body = response.json()
     assert response.status_code == 202
@@ -80,7 +80,7 @@ def test_a_live_run_answers_202_with_the_unfinished_scan(
     assert body["result"] is None
 
 
-def test_a_run_with_no_body_is_a_live_run(
+def test_a_run_without_a_body_is_a_live_run(
     system_admin_client: APIClient, launched: list[int]
 ) -> None:
     """``dry_run`` defaults to false, so an empty body starts a live scan."""
@@ -104,7 +104,7 @@ def test_a_live_run_records_who_started_it(
     assert RenewalScan.objects.get().started_by == system_admin
 
 
-def test_a_live_run_charges_nothing_inside_the_request(
+def test_a_live_run_does_not_charge_anything_inside_the_request(
     system_admin_client: APIClient,
     launched: list[int],
     member: User,
@@ -253,7 +253,7 @@ def test_the_command_names_whoever_started_the_scan_in_the_audit_log(
 
 
 def test_the_command_refuses_a_scan_nobody_wrote() -> None:
-    """A ``--scan-id`` that names no row stops before scanning anything."""
+    """A ``--scan-id`` that doesn't name a row stops before scanning anything."""
     with pytest.raises(CommandError, match="No renewal scan 999999"):
         call_command("run_auto_renewals", scan_id=999_999, stdout=StringIO())
 
@@ -324,13 +324,13 @@ def test_a_scan_past_the_limit_does_not_block_a_new_one(
     assert old.error == background.DID_NOT_FINISH
 
 
-def test_a_live_scan_that_finds_another_running_does_nothing(
+def test_a_live_scan_that_finds_another_running_does_not_do_anything(
     monkeypatch: pytest.MonkeyPatch,
     member: User,
     annual_plan: MembershipPlan,
     today: date,
 ) -> None:
-    """A scan that cannot take the lock charges nobody and exits cleanly."""
+    """A scan that cannot take the lock doesn't charge anyone and exits cleanly."""
     renewal_due_today(member, annual_plan, today)
     monkeypatch.setattr(scan_module, "scan_lock", held_elsewhere)
 

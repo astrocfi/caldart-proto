@@ -156,14 +156,14 @@ def test_the_photo_id_choices_are_the_six_kinds() -> None:
     ]
 
 
-def test_a_fresh_profile_has_no_photo_id() -> None:
+def test_a_fresh_profile_does_not_have_a_photo_id() -> None:
     """A profile's photo ID type defaults to *Not provided*."""
     assert MemberProfile().photo_id_type == PhotoIdType.NOT_PROVIDED
 
 
 @pytest.mark.parametrize("slug", PERSON_ITEMS)
 @pytest.mark.parametrize("suffix", ["verified_at", "verified_by"])
-def test_a_fresh_profile_records_no_verification(slug: str, suffix: str) -> None:
+def test_a_fresh_profile_does_not_record_a_verification(slug: str, suffix: str) -> None:
     """Every verification column of a new profile is empty."""
     assert getattr(MemberProfileFactory(), f"{slug}_{suffix}") is None
 
@@ -175,7 +175,7 @@ def test_a_fresh_profile_reads_unverified(slug: str) -> None:
 
 
 @pytest.mark.parametrize("column", ["insurance_verified_at", "insurance_verified_by"])
-def test_a_fresh_aircraft_records_no_verification(column: str) -> None:
+def test_a_fresh_aircraft_does_not_record_a_verification(column: str) -> None:
     """Both insurance verification columns of a new aircraft are empty."""
     assert getattr(AircraftFactory(), column) is None
 

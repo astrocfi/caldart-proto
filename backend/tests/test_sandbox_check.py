@@ -156,7 +156,7 @@ def _run(**options: Any) -> str:
 
 
 def test_neither_provider_configured_reports_what_is_missing_and_exits_nonzero() -> None:
-    """With no keys at all, both providers report not configured and the command fails."""
+    """Without keys, both providers report not configured and the command fails."""
     out = StringIO()
     with pytest.raises(CommandError, match="no provider is usable"):
         call_command("payments_sandbox_check", stdout=out)
@@ -214,20 +214,20 @@ def test_a_configured_and_reachable_stripe_lists_only_the_enabled_payment_method
 
 
 @respx.mock
-def test_a_stripe_account_with_no_default_configuration_reports_none_enabled(
+def test_a_stripe_account_without_a_default_configuration_reports_none_enabled(
     monkeypatch: pytest.MonkeyPatch, settings: Settings
 ) -> None:
-    """No default payment method configuration reports as no methods enabled."""
+    """Without a default method configuration, the report reads ``none enabled``."""
     _configure_fake_stripe(monkeypatch, settings, configurations=[])
     output = _run()
     assert "enabled payment methods: none enabled" in output
 
 
 @respx.mock
-def test_a_stripe_balance_with_no_available_entries_reports_none_reported(
+def test_a_stripe_balance_without_available_entries_reports_none_reported(
     monkeypatch: pytest.MonkeyPatch, settings: Settings
 ) -> None:
-    """An empty ``available`` list reports as no balance, not skipped or crashed on."""
+    """An empty ``available`` list reads ``none reported``, not skipped or crashed on."""
     empty_balance: dict[str, Any] = {
         "object": "balance",
         "available": [],
@@ -318,8 +318,8 @@ def test_a_configured_and_reachable_paypal_reports_its_webhook_count(
 
 
 @respx.mock
-def test_paypal_reports_no_webhook_id_configured_when_it_is_blank(settings: Settings) -> None:
-    """With no ``PAYPAL_WEBHOOK_ID`` set, the report says so and matches nothing."""
+def test_paypal_reports_the_webhook_id_not_set_when_it_is_blank(settings: Settings) -> None:
+    """Without a ``PAYPAL_WEBHOOK_ID``, the report says so and doesn't match a webhook."""
     _configure_paypal(settings)
     _token_route()
     _webhooks_route("8ML268241M613560S")
@@ -339,10 +339,10 @@ def test_paypal_confirms_the_configured_webhook_id_is_found(settings: Settings) 
 
 
 @respx.mock
-def test_paypal_flags_a_configured_webhook_id_that_matches_none_of_the_accounts_webhooks(
+def test_paypal_flags_a_configured_webhook_id_that_does_not_match_the_accounts_webhooks(
     settings: Settings,
 ) -> None:
-    """A ``PAYPAL_WEBHOOK_ID`` naming no match is flagged, not silently accepted."""
+    """An unmatched ``PAYPAL_WEBHOOK_ID`` is flagged, not silently accepted."""
     settings.PAYPAL_WEBHOOK_ID = "does-not-exist"
     _configure_paypal(settings)
     _token_route()

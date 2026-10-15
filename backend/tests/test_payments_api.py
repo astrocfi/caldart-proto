@@ -57,7 +57,7 @@ def start_mock_checkout(
 def test_config_lists_the_configured_providers(
     api_client: APIClient, member: User, annual_plan: MembershipPlan, life_plan: MembershipPlan
 ) -> None:
-    """With nothing else configured, only the mock provider and the plans are listed."""
+    """Without other configuration, only the mock provider and the plans are listed."""
     api_client.force_login(member)
     body = api_client.get(CONFIG).json()
 
@@ -173,7 +173,7 @@ def test_checkout_creates_a_pending_payment(
 def test_checkout_refuses_a_plan_from_a_life_member(
     api_client: APIClient, member: User, annual_plan: MembershipPlan, life_plan: MembershipPlan
 ) -> None:
-    """A life member has nothing to renew, so a plan is a 400 pointing at contributing."""
+    """A life member can't renew, so a plan is a 400 pointing at contributing."""
     MembershipFactory(
         user=member,
         plan=life_plan,
@@ -194,7 +194,7 @@ def test_checkout_refuses_a_plan_from_a_life_member(
 def test_a_life_member_may_still_contribute(
     api_client: APIClient, member: User, life_plan: MembershipPlan
 ) -> None:
-    """A checkout with no plan and a contribution goes through for a life member."""
+    """A checkout with only a contribution goes through for a life member."""
     MembershipFactory(
         user=member,
         plan=life_plan,
@@ -224,7 +224,7 @@ def test_checkout_ignores_an_amount_sent_by_the_client(
 def test_checkout_accepts_a_donation_without_a_plan(
     api_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """A checkout with a contribution and no plan records no plan and the full amount."""
+    """A checkout with only a contribution records the full amount without a plan."""
     api_client.force_login(member)
     response = api_client.post(
         CHECKOUT, {"plan": None, "contribution_cents": 5_000, "provider": "mock"}
@@ -261,7 +261,7 @@ def test_checkout_rejects_a_negative_contribution(
 def test_checkout_rejects_an_unconfigured_provider(
     api_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """A provider with no keys configured is refused, naming the provider field."""
+    """A provider without keys configured is refused, naming the provider field."""
     api_client.force_login(member)
     response = api_client.post(
         CHECKOUT, {"plan": "annual", "contribution_cents": 0, "provider": "stripe"}
@@ -282,7 +282,7 @@ def test_checkout_rejects_an_unknown_provider(
 
 
 def test_checkout_requires_a_session(api_client: APIClient, annual_plan: MembershipPlan) -> None:
-    """Starting a checkout while signed out is a 401 and creates no payment."""
+    """Starting a checkout while signed out is a 401 and doesn't create a payment."""
     response = api_client.post(
         CHECKOUT, {"plan": "annual", "contribution_cents": 0, "provider": "mock"}
     )
@@ -329,10 +329,10 @@ def test_mock_complete_activates_the_membership(
     assert Membership.objects.filter(payment=payment).count() == 1
 
 
-def test_mock_complete_failure_grants_nothing(
+def test_mock_complete_failure_does_not_grant_anything(
     api_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """Completing with outcome=fail marks the payment failed and grants no membership."""
+    """Completing with outcome=fail fails the payment and doesn't grant a membership."""
     api_client.force_login(member)
     checkout = start_mock_checkout(api_client)
 
@@ -436,7 +436,7 @@ def test_renewing_starts_the_day_after_the_current_expiry(
 def test_a_lifetime_plan_never_expires(
     api_client: APIClient, member: User, life_plan: MembershipPlan
 ) -> None:
-    """A lifetime plan's membership reports is_lifetime true and no expiry date."""
+    """A lifetime plan's membership reports is_lifetime true, without an expiry date."""
     api_client.force_login(member)
     checkout = start_mock_checkout(api_client, plan="life")
     response = api_client.post(

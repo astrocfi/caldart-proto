@@ -64,7 +64,7 @@ def test_database_url_round_trips_settings(settings: Settings) -> None:
 
 
 def test_pending_migrations_is_empty_on_a_migrated_database() -> None:
-    """A fully migrated test database has no pending migrations."""
+    """A fully migrated test database doesn't have any pending migrations."""
     assert services.pending_migrations() == []
 
 
@@ -135,7 +135,7 @@ def test_create_backup_survives_a_dump_larger_than_a_pipe_buffer(
         assert handle.read() == b"x\n" * (PIPE_BUFFER_BYTES // 2)
 
 
-def test_create_backup_reports_the_tool_stderr_and_leaves_no_file(
+def test_create_backup_reports_the_tool_stderr_and_does_not_leave_a_file(
     backup_dir: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A failing ``pg_dump`` raises with its stderr, and no half-written dump remains."""
@@ -220,7 +220,7 @@ class FailingSource:
         raise OSError("the dump went away")
 
 
-def test_a_dump_that_cannot_be_read_leaves_no_unreaped_tool(
+def test_a_dump_that_cannot_be_read_reaps_the_tool(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A read error while feeding the tool kills it and waits for it before raising.

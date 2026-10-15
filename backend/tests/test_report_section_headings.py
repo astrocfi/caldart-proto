@@ -1,6 +1,6 @@
 """A sectioned PDF report keeps each section's title on the page with its rows.
 
-A title that would land at the foot of a page, with no room under it for the table's
+A title that would land at the foot of a page, without room under it for the table's
 header and first row, starts the next page instead, so a reader never meets a heading
 standing alone above the page break.
 """

@@ -51,7 +51,7 @@ MINIMAL_PUT = {"phone": "415-555-0100", "state": "CA"}
     ],
 )
 def test_me_endpoints_are_401_when_anonymous(api_client: APIClient, method: str, url: str) -> None:
-    """Every ``/me`` endpoint is 401 for a client with no session."""
+    """Every ``/me`` endpoint is 401 for a client without a session."""
     response = getattr(api_client, method)(url, {} if method in {"put", "patch", "post"} else None)
     assert response.status_code == 401
 
@@ -69,7 +69,7 @@ def test_every_role_reads_its_own_profile(
 def test_catalogs_are_public(
     api_client: APIClient, dart: Dart, annual_plan: MembershipPlan
 ) -> None:
-    """The DART and plan catalogs need no session."""
+    """The DART and plan catalogs don't need a session."""
     assert api_client.get(DARTS_URL).status_code == 200
     assert api_client.get(PLANS_URL).status_code == 200
 
@@ -195,10 +195,10 @@ def test_get_profile_hides_admin_only_fields(
     assert "how_heard" not in data
 
 
-def test_get_profile_creates_one_when_the_member_has_none(
+def test_get_profile_creates_one_when_the_member_does_not_have_one(
     api_client: APIClient, member: User
 ) -> None:
-    """A first ``GET`` with no existing profile row creates one and returns it."""
+    """A first ``GET`` without an existing profile row creates one and returns it."""
     assert not MemberProfile.objects.filter(user=member).exists()
     api_client.force_login(member)
 
@@ -212,7 +212,7 @@ def test_get_profile_creates_one_when_the_member_has_none(
 def test_get_profile_null_dart_reads_as_null(
     api_client: APIClient, member: User, profile_factory: type[MemberProfileFactory]
 ) -> None:
-    """A profile with no DART reports ``dart: null``."""
+    """A profile without a DART reports ``dart: null``."""
     profile_factory(user=member, dart=None)
     api_client.force_login(member)
     assert api_client.get(PROFILE_URL).json()["dart"] is None
@@ -267,10 +267,10 @@ def test_put_updates_every_writable_section(
     assert profile.total_hours == 1200
 
 
-def test_put_saves_a_profile_with_no_phone_number(
+def test_put_saves_a_profile_without_a_phone_number(
     api_client: APIClient, member: User, profile: MemberProfile
 ) -> None:
-    """A ``PUT`` with no phone number saves: every phone number is optional."""
+    """A ``PUT`` without a phone number saves: every phone number is optional."""
     api_client.force_login(member)
     response = api_client.put(PROFILE_URL, {"state": "CA"}, format="json")
     assert response.status_code == 200, response.json()
@@ -383,7 +383,7 @@ def test_a_member_can_only_edit_their_own_profile(
 def test_a_real_medical_may_be_saved_without_an_expiration(
     api_client: APIClient, member: User, profile_factory: type[MemberProfileFactory]
 ) -> None:
-    """Medical expires is always optional: a medical class with no date is saved."""
+    """Medical expires is always optional: a medical class without a date is saved."""
     profile_factory(user=member, medical_type="none", medical_expiration=None)
     api_client.force_login(member)
 
@@ -392,10 +392,10 @@ def test_a_real_medical_may_be_saved_without_an_expiration(
     assert response.status_code == 200, response.json()
 
 
-def test_medical_expiration_may_be_omitted_when_there_is_no_medical(
+def test_medical_expiration_may_be_omitted_without_a_medical(
     api_client: APIClient, member: User, profile_factory: type[MemberProfileFactory]
 ) -> None:
-    """A profile with no medical type needs no expiration date."""
+    """A profile without a medical type doesn't need an expiration date."""
     profile_factory(user=member, medical_type="none", medical_expiration=None)
     api_client.force_login(member)
     assert api_client.put(PROFILE_URL, MINIMAL_PUT, format="json").status_code == 200
@@ -418,7 +418,7 @@ def test_medical_expiration_supplied_together_is_accepted(
 def test_a_real_certificate_may_be_saved_without_a_number(
     api_client: APIClient, member: User, profile_factory: type[MemberProfileFactory]
 ) -> None:
-    """Certificate number is always optional: a certificate with no number is saved."""
+    """Certificate number is always optional: a certificate without a number is saved."""
     profile_factory(user=member, pilot_certificate_type="none", certificate_number="")
     api_client.force_login(member)
 
@@ -435,7 +435,7 @@ def test_a_real_certificate_may_be_saved_without_a_number(
 def test_a_certificate_number_that_is_not_seven_digits_is_refused(
     api_client: APIClient, member: User, profile: MemberProfile, number: str
 ) -> None:
-    """A certificate number holds exactly seven digits and nothing else."""
+    """A certificate number is exactly seven digits."""
     api_client.force_login(member)
 
     response = api_client.patch(PROFILE_URL, {"certificate_number": number}, format="json")
@@ -460,7 +460,7 @@ def test_a_seven_digit_certificate_number_is_saved(
 def test_certificate_number_is_not_required_without_a_certificate(
     api_client: APIClient, member: User, profile_factory: type[MemberProfileFactory]
 ) -> None:
-    """A profile with no certificate type needs no certificate number."""
+    """A profile without a certificate type doesn't need a certificate number."""
     profile_factory(user=member, pilot_certificate_type="none", certificate_number="")
     api_client.force_login(member)
     assert api_client.put(PROFILE_URL, MINIMAL_PUT, format="json").status_code == 200
@@ -542,7 +542,7 @@ def test_dart_id_rejects_an_inactive_dart(
 def test_dart_id_rejects_an_unknown_dart(
     api_client: APIClient, member: User, profile: MemberProfile
 ) -> None:
-    """An id with no matching DART is refused."""
+    """An id that doesn't match a DART is refused."""
     api_client.force_login(member)
     response = api_client.patch(PROFILE_URL, {"dart_id": 999_999}, format="json")
     assert response.status_code == 400
@@ -583,7 +583,7 @@ def test_membership_reports_status_and_history(
 
 
 def test_membership_for_a_member_who_never_paid(api_client: APIClient, member: User) -> None:
-    """A member with no membership row reads none, with the documented empty shape."""
+    """Without a membership row a member reads ``none``, in the documented empty shape."""
     api_client.force_login(member)
     data = api_client.get(MEMBERSHIP_URL).json()
     assert data == {
@@ -642,14 +642,14 @@ def test_payments_are_newest_first_and_scoped_to_the_caller(
 
 
 def test_payments_without_a_plan_report_a_null_plan(api_client: APIClient, member: User) -> None:
-    """A donation payment with no plan reports ``plan: null``."""
+    """A donation payment without a plan reports ``plan: null``."""
     PaymentFactory(user=member, plan=None, provider_ref="donation-1")
     api_client.force_login(member)
     assert api_client.get(PAYMENTS_URL).json()[0]["plan"] is None
 
 
 def test_payments_is_empty_for_a_new_member(api_client: APIClient, member: User) -> None:
-    """A member with no payments gets an empty list."""
+    """A member without any payments gets an empty list."""
     api_client.force_login(member)
     assert api_client.get(PAYMENTS_URL).json() == []
 
@@ -777,7 +777,7 @@ def test_the_secondary_airport_is_saved_on_the_profile(
 
 
 @pytest.mark.parametrize("field", ["home_airport_city", "ifr_rated"])
-def test_the_profile_carries_no_airport_city_or_ifr_rating(
+def test_the_profile_does_not_carry_an_airport_city_or_ifr_rating(
     api_client: APIClient, member: User, profile: MemberProfile, field: str
 ) -> None:
     """The airport says its own town, and ``ratings`` holds the instrument rating."""

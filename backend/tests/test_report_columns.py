@@ -49,7 +49,7 @@ AIRCRAFT_PDF_URL = "/api/v1/reports/aircraft/export.pdf"
 #: of the chosen columns share out between them.
 PRINTABLE_WIDTH = landscape(letter)[0] - 2 * MARGIN
 
-#: The member columns that are in the report when the caller chooses none.
+#: The member columns that are in the report when the caller doesn't choose any.
 MEMBER_DEFAULTS = (
     "name",
     "email",
@@ -64,7 +64,7 @@ MEMBER_DEFAULTS = (
     "aircraft",
 )
 
-#: The aircraft columns that are in the register when the caller chooses none.
+#: The aircraft columns that are in the register when the caller doesn't choose any.
 AIRCRAFT_DEFAULTS = (
     "n_number",
     "make",
@@ -111,13 +111,13 @@ def wrapped_headers[T](columns: Sequence[ReportColumn[T]]) -> list[str]:
 # The registries
 # --------------------------------------------------------------------------
 def test_the_member_defaults_are_the_eleven_columns_of_the_everyday_report() -> None:
-    """With no choice made, the membership report carries its eleven default columns."""
+    """Without a choice, the membership report carries its eleven default columns."""
     chosen = select_columns(MEMBER_REPORT_COLUMNS, None)
     assert tuple(column.key for column in chosen) == MEMBER_DEFAULTS
 
 
 def test_the_aircraft_defaults_are_the_nine_columns_of_the_everyday_register() -> None:
-    """With no choice made, the register carries its nine default columns."""
+    """Without a choice, the register carries its nine default columns."""
     chosen = select_columns(AIRCRAFT_REPORT_COLUMNS, None)
     assert tuple(column.key for column in chosen) == AIRCRAFT_DEFAULTS
 
@@ -228,7 +228,7 @@ def test_no_default_verification_cell_but_the_details_wraps_in_the_pdf(seeded: N
 # ?columns= on the four exports
 # --------------------------------------------------------------------------
 def test_the_member_csv_header_is_the_default_labels(account_admin_client: APIClient) -> None:
-    """With no choice made, the member CSV heads its columns with the default labels."""
+    """Without a choice, the member CSV heads its columns with the default labels."""
     table = read_csv(account_admin_client.get(MEMBER_CSV_URL))
     assert table[0] == [column.label for column in select_columns(MEMBER_REPORT_COLUMNS, None)]
 
@@ -242,7 +242,7 @@ def test_the_member_csv_follows_the_requested_columns(account_admin_client: APIC
 def test_the_aircraft_csv_header_is_the_default_labels(
     account_admin_client: APIClient, register: RegisterDict
 ) -> None:
-    """With no choice made, the register CSV heads its columns with the default labels."""
+    """Without a choice, the register CSV heads its columns with the default labels."""
     table = read_csv(account_admin_client.get(AIRCRAFT_CSV_URL))
     assert table[0] == [column.label for column in select_columns(AIRCRAFT_REPORT_COLUMNS, None)]
 

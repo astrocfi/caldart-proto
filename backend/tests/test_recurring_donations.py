@@ -1,6 +1,6 @@
-"""Recurring donations: a standing authority to give on a schedule, with no plan.
+"""Recurring donations: a standing authority to give on a schedule, without a plan.
 
-A mandate that names no plan is a recurring donation.  Anybody who can pay may hold
+A mandate that doesn't name a plan is a recurring donation.  Anybody who can pay may hold
 one, beside at most one mandate that renews a plan, and it charges monthly,
 quarterly or yearly.  These tests cover the model's constraints, the schedule, the
 scan, the ``/me/donation`` endpoints, a checkout that starts one, the rule that a
@@ -208,13 +208,13 @@ def test_the_next_charge_moves_on_by_the_cadence(day: date, cadence: str, expect
 # What may be set up
 # --------------------------------------------------------------------------
 def test_a_donation_needs_an_amount(member: User) -> None:
-    """A standing authority over nothing is refused, naming ``auto_renew``."""
+    """A standing authority without an amount is refused, naming ``auto_renew``."""
     with pytest.raises(DomainValidationError, match="A recurring donation needs an amount"):
         check_renewable(None, MandateProvider.MOCK, user=member, contribution_cents=0)
 
 
-def test_a_friend_with_no_term_may_hold_a_donation(friend: User) -> None:
-    """A donation accompanies no membership, so any account may give on a schedule."""
+def test_a_friend_without_a_term_may_hold_a_donation(friend: User) -> None:
+    """A donation stands apart from membership, so any account may give on a schedule."""
     assert (
         check_renewable(None, MandateProvider.MOCK, user=friend, contribution_cents=GIFT_CENTS)
         is None
@@ -225,7 +225,7 @@ def test_a_friend_with_no_term_may_hold_a_donation(friend: User) -> None:
 # The scan
 # --------------------------------------------------------------------------
 def test_a_monthly_donation_due_today_is_charged(friend: User, today: date) -> None:
-    """The charge is the donation alone, for a friend who holds no term at all."""
+    """The charge is the donation alone, for a friend who doesn't hold any term at all."""
     donation(friend, next_charge_on=today)
 
     run_auto_renewals(today=today)
@@ -234,8 +234,8 @@ def test_a_monthly_donation_due_today_is_charged(friend: User, today: date) -> N
     assert payment.contribution_cents == GIFT_CENTS
 
 
-def test_a_donation_attempt_names_no_term(friend: User, today: date) -> None:
-    """There is no membership behind a donation, so the attempt carries none."""
+def test_a_donation_attempt_does_not_name_a_term(friend: User, today: date) -> None:
+    """A donation isn't backed by a membership, so the attempt doesn't carry a term."""
     mandate = donation(friend, next_charge_on=today)
 
     run_auto_renewals(today=today)
@@ -269,7 +269,7 @@ def test_a_monthly_donation_sends_only_the_charged_email(
 def test_a_quarterly_donation_a_fortnight_out_is_not_announced(
     friend: User, today: date, mailoutbox: list[EmailMessage]
 ) -> None:
-    """A quarterly charge inside the notice window writes nothing and sends nothing."""
+    """A quarterly charge inside the notice window doesn't write or send anything."""
     donation(friend, cadence=MandateCadence.QUARTERLY, next_charge_on=today + timedelta(days=5))
 
     run = run_auto_renewals(today=today)
@@ -294,7 +294,7 @@ def test_a_yearly_donation_is_announced_a_fortnight_ahead(
 
 
 def test_a_rehearsal_reports_a_monthly_charge_due_today(friend: User, today: date) -> None:
-    """A dry run counts the charge it would take, and writes no attempt."""
+    """A dry run counts the charge it would take, and doesn't write an attempt."""
     donation(friend, next_charge_on=today)
 
     run = run_auto_renewals(today=today, dry_run=True)
@@ -302,7 +302,7 @@ def test_a_rehearsal_reports_a_monthly_charge_due_today(friend: User, today: dat
     assert run.charged == 1
 
 
-def test_a_rehearsal_writes_no_donation_attempt(friend: User, today: date) -> None:
+def test_a_rehearsal_does_not_write_a_donation_attempt(friend: User, today: date) -> None:
     """Nothing is written by a dry run, however due the charge."""
     donation(friend, next_charge_on=today)
 
@@ -325,7 +325,7 @@ def test_a_declined_donation_is_retried(friend: User, today: date) -> None:
 def test_a_renewal_held_by_a_friend_is_skipped(
     friend: User, annual_plan: MembershipPlan, today: date
 ) -> None:
-    """A friend pays no dues, so a renewal they still hold charges nothing."""
+    """A friend doesn't pay dues, so a renewal they still hold doesn't charge anything."""
     current_term(friend, annual_plan, today)
     RenewalMandateFactory(user=friend, plan=annual_plan, next_charge_on=today)
 
@@ -367,7 +367,7 @@ def test_a_donation_does_not_stop_the_renewal_reminders(
 # --------------------------------------------------------------------------
 # /me/donation
 # --------------------------------------------------------------------------
-def test_a_member_with_no_donation_reads_null(member_client: APIClient) -> None:
+def test_a_member_without_a_donation_reads_null(member_client: APIClient) -> None:
     """``GET /me/donation`` answers the envelope with a null mandate."""
     assert member_client.get(DONATION).json() == {"mandate": None}
 
@@ -375,7 +375,7 @@ def test_a_member_with_no_donation_reads_null(member_client: APIClient) -> None:
 def test_the_donation_endpoint_reads_the_donation(
     member_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """A member holding both reads the mandate with no plan from ``/me/donation``."""
+    """A member holding both reads the mandate without a plan from ``/me/donation``."""
     RenewalMandateFactory(user=member, plan=annual_plan)
     held = donation(member)
 
@@ -402,7 +402,7 @@ def test_a_mandate_reports_its_cadence(member_client: APIClient, member: User) -
 def test_donation_setup_saves_a_pending_donation(
     member_client: APIClient, member: User, today: date
 ) -> None:
-    """Setup writes a pending mandate with no plan, on the cadence and day asked for."""
+    """Setup writes a pending mandate without a plan, on the cadence and day asked for."""
     later = today + timedelta(days=10)
 
     member_client.post(DONATION_SETUP, donation_setup_body(next_charge_on=later.isoformat()))
@@ -447,8 +447,8 @@ def test_donation_confirm_leaves_a_pending_renewal_alone(
     assert renewal.status == MandateStatus.PENDING
 
 
-def test_donation_setup_refuses_nothing_to_give(member_client: APIClient) -> None:
-    """A donation of nothing is a 400 naming ``auto_renew``."""
+def test_donation_setup_refuses_a_zero_amount(member_client: APIClient) -> None:
+    """A donation of zero is a 400 naming ``auto_renew``."""
     response = member_client.post(DONATION_SETUP, donation_setup_body(contribution_cents=0))
 
     assert response.json() == {"auto_renew": ["A recurring donation needs an amount to give."]}
@@ -478,7 +478,7 @@ def test_patching_a_donation_changes_amount_cadence_and_day(
 def test_deleting_the_donation_leaves_the_renewal_on(
     member_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """``DELETE /me/donation`` turns the donation off and nothing else."""
+    """``DELETE /me/donation`` turns only the donation off."""
     renewal = RenewalMandateFactory(user=member, plan=annual_plan)
     donation(member)
 
@@ -543,7 +543,7 @@ def test_a_renewal_patch_refuses_any_cadence_but_yearly(
 
 
 def test_a_renewal_setup_needs_a_plan(member_client: APIClient) -> None:
-    """``/me/renewal/setup`` with no plan is refused: a donation has its own endpoint."""
+    """``/me/renewal/setup`` refuses a missing plan: a donation has its own endpoint."""
     response = member_client.post(
         RENEWAL_SETUP, {"contribution_cents": GIFT_CENTS, "provider": MandateProvider.MOCK}
     )
@@ -601,7 +601,7 @@ def test_a_donation_checkout_charges_today_and_schedules_the_next(
 def test_a_donation_checkout_is_open_to_a_friend(
     api_client: APIClient, friend: User, today: date
 ) -> None:
-    """A friend with no term may start a recurring donation at checkout."""
+    """A friend without a term may start a recurring donation at checkout."""
     api_client.force_login(friend)
 
     give_monthly(api_client)
@@ -635,7 +635,7 @@ def test_a_donation_checkout_beside_a_contributing_renewal_is_refused(
     assert give_monthly(member_client)["code"] == "renewal_contribution"
 
 
-def test_a_refused_donation_checkout_leaves_no_payment(
+def test_a_refused_donation_checkout_does_not_leave_a_payment(
     member_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
     """The pending payment is thrown away with the refusal."""
@@ -741,10 +741,10 @@ def test_a_checkout_the_provider_refuses_leaves_the_donation_on(
     assert held.status == MandateStatus.ACTIVE
 
 
-def test_a_canceled_renewal_contributes_nothing_to_move(
+def test_a_canceled_renewal_does_not_contribute_anything_to_move(
     member_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """A renewal that is off takes no contribution, so the donation starts at once."""
+    """A canceled renewal doesn't take a contribution, so the donation starts at once."""
     RenewalMandateFactory(
         user=member, plan=annual_plan, contribution_cents=2_000, status=MandateStatus.CANCELED
     )
@@ -830,7 +830,7 @@ def test_the_finance_list_refuses_an_unknown_kind(treasurer_client: APIClient) -
 def test_charging_a_donation_leaves_the_membership_alone(
     member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
-    """A donation charged beside a current term buys no further term."""
+    """A donation charged beside a current term doesn't buy a further term."""
     current_term(member, annual_plan, today)
     donation(member, next_charge_on=today)
 
@@ -861,7 +861,7 @@ def test_a_late_charge_sets_the_schedule_from_the_day_it_was_taken(
     assert mandate.next_charge_on == advance_by_cadence(today, MandateCadence.MONTHLY)
 
 
-def test_a_paused_donation_charges_nothing(friend: User, today: date) -> None:
+def test_a_paused_donation_does_not_charge_anything(friend: User, today: date) -> None:
     """Only an active donation is charged."""
     donation(friend, next_charge_on=today, status=MandateStatus.PAUSED)
 
@@ -871,7 +871,7 @@ def test_a_paused_donation_charges_nothing(friend: User, today: date) -> None:
 
 
 def test_the_scan_leaves_a_charged_donation_alone_the_same_day(friend: User, today: date) -> None:
-    """A second scan the same day takes nothing more."""
+    """A second scan the same day doesn't take anything more."""
     donation(friend, next_charge_on=today)
 
     run_auto_renewals(today=today)
@@ -920,7 +920,9 @@ def test_an_attempt_for_a_charge_already_taken_is_skipped(friend: User, today: d
     assert run.skipped_by_reason == {"already_charged": 1}
 
 
-def test_an_attempt_for_a_charge_already_taken_takes_no_payment(friend: User, today: date) -> None:
+def test_an_attempt_for_a_charge_already_taken_does_not_take_a_payment(
+    friend: User, today: date
+) -> None:
     """The giver is not charged a second time for the same day."""
     _stale_duplicate(friend, today)
 
@@ -941,7 +943,7 @@ def test_a_donation_charge_carries_its_receipt(
 
 
 def test_clock_today_is_what_the_default_run_uses(friend: User) -> None:
-    """A run with no ``today`` charges a donation due on the local date."""
+    """A run without a ``today`` charges a donation due on the local date."""
     donation(friend, next_charge_on=timezone.localdate())
 
     run_auto_renewals()
@@ -968,7 +970,7 @@ def test_a_monthly_donation_is_confirmed_in_its_own_cadence(
 
 @pytest.mark.slow
 def test_the_seed_leaves_one_monthly_donation_nine_days_out(today: date) -> None:
-    """One member gives $25.00 each month, next charged nine days out, with no renewal."""
+    """One member gives $25.00 a month, next charged nine days out, without a renewal."""
     call_command("seed_demo", stdout=StringIO())
 
     monthly = RenewalMandate.objects.get(plan__isnull=True, cadence=MandateCadence.MONTHLY)

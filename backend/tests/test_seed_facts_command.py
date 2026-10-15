@@ -62,16 +62,16 @@ def test_reports_the_plan_prices_in_cents(
     assert read_facts(capsys)["planPricesCents"] == {"annual": 4_500, "life": 65_000}
 
 
-def test_reports_no_plan_prices_when_no_plan_is_seeded(
+def test_reports_empty_plan_prices_when_no_plan_is_seeded(
     db: None, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """``planPricesCents`` is empty when the database holds no membership plan."""
+    """``planPricesCents`` is empty when the database doesn't hold a membership plan."""
     MembershipPlan.objects.all().delete()
     assert read_facts(capsys)["planPricesCents"] == {}
 
 
-def test_writes_one_json_object_and_nothing_else(capsys: pytest.CaptureFixture[str]) -> None:
-    """The command writes exactly the documented keys, and no other output."""
+def test_writes_only_one_json_object(capsys: pytest.CaptureFixture[str]) -> None:
+    """The command's only output is exactly the documented keys."""
     call_command("seed_facts")
     captured = capsys.readouterr()
     assert captured.err == ""
@@ -126,7 +126,7 @@ def test_names_a_member_for_each_leader_check_case(
     assert facts["expiredMember"]["name"] == "Eli West"
 
 
-def test_an_insured_pilot_holds_no_policy_inside_the_warning_window(
+def test_an_insured_pilot_does_not_hold_a_policy_inside_the_warning_window(
     capsys: pytest.CaptureFixture[str], annual_plan: MembershipPlan, today: date
 ) -> None:
     """``insuredPilot`` skips a member one of whose policies runs out within 30 days.
@@ -158,12 +158,12 @@ def test_an_insured_pilot_holds_no_policy_inside_the_warning_window(
     assert facts["insuredPilot"] == {"name": "Bea Best", "nNumber": "N666FF"}
 
 
-def test_a_plane_with_no_policy_on_file_is_not_a_lapsed_policy(
+def test_a_plane_without_a_policy_on_file_is_not_a_lapsed_policy(
     capsys: pytest.CaptureFixture[str], annual_plan: MembershipPlan, today: date
 ) -> None:
     """``lapsedInsurance`` needs an expiration date in the past, not a blank one.
 
-    An airframe with nothing on file reads as "No insurance on file" in the portal,
+    An airframe without a policy on file reads as "No insurance on file" in the portal,
     not as expired cover, so naming its owner would send the leader-check spec
     looking for words that are not on the screen.
     """
@@ -199,10 +199,10 @@ def test_names_the_member_whose_payment_came_back(
     assert facts["receiptNumber"] == payment.receipt_number
 
 
-def test_reports_no_refunded_payment_when_nothing_came_back(
+def test_reports_an_empty_refunded_payment_when_nothing_came_back(
     db: None, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """``refundedPayment`` carries empty strings when the seed refunded nothing."""
+    """``refundedPayment`` carries empty strings when the seed didn't refund anything."""
     assert read_facts(capsys)["refundedPayment"]["receiptNumber"] == ""
 
 
@@ -211,7 +211,7 @@ def test_names_an_active_mandate_whose_charge_is_still_ahead(
 ) -> None:
     """``autoRenewal.activeMandate`` skips a mandate charged today or already overdue.
 
-    A renewal spec that reads this member expects nothing to charge yet, so a
+    A renewal spec that reads this member doesn't expect a charge yet, so a
     mandate the daily scan would already be acting on is the wrong one to hand it.
     """
     day = timedelta(days=1)
@@ -224,7 +224,7 @@ def test_names_an_active_mandate_whose_charge_is_still_ahead(
     assert facts["email"] == ahead.user.email
 
 
-def test_reports_no_active_mandate_when_every_charge_is_due_or_overdue(
+def test_reports_an_empty_active_mandate_when_every_charge_is_due_or_overdue(
     db: None, today: date, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """``autoRenewal.activeMandate`` is empty when nothing is far enough out."""
@@ -256,10 +256,10 @@ def test_an_insured_pilot_is_verified_on_every_count(
     assert facts["insuredPilot"]["name"] == "Cy Able"
 
 
-def test_names_a_current_pilot_with_nothing_verified(
+def test_names_a_current_pilot_without_a_verified_item(
     capsys: pytest.CaptureFixture[str], annual_plan: MembershipPlan, today: date
 ) -> None:
-    """``unverifiedPilot`` is current, medically current, and has nothing verified."""
+    """``unverifiedPilot`` is current, medically current, and without a verified item."""
     day = timedelta(days=1)
     verified = UserFactory(email="done@example.test", first_name="Ann", last_name="Adams")
     MemberProfileFactory(user=verified, **VERIFIED_PROFILE)
@@ -285,7 +285,7 @@ def registry() -> None:
 def test_names_a_registered_n_number_not_on_the_register(
     registry: None, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """``registry.knownNNumber`` is in the registry and on no register record."""
+    """``registry.knownNNumber`` is in the registry but not on a register record."""
     known = read_facts(capsys)["registry"]["knownNNumber"]
     assert (
         Registration.objects.filter(n_number=known).exists(),
@@ -325,8 +325,8 @@ def test_reports_the_date_the_registry_is_as_of(
     assert read_facts(capsys)["registry"]["asOf"] == expected
 
 
-def test_reports_no_registry_before_an_import(capsys: pytest.CaptureFixture[str]) -> None:
-    """With nothing imported, the registry facts are empty."""
+def test_reports_empty_registry_facts_before_an_import(capsys: pytest.CaptureFixture[str]) -> None:
+    """Before an import, the registry facts are empty."""
     assert read_facts(capsys)["registry"] == {
         "knownNNumber": "",
         "knownType": "",

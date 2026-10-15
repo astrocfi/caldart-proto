@@ -66,7 +66,7 @@ def verifier_url(user: User) -> str:
 
 @pytest.fixture
 def target(db: None) -> User:
-    """An account holding no role at all, for a role to be granted to."""
+    """An account that doesn't hold any role, for a role to be granted to."""
     return UserFactory(email="target@example.test", roles=[])
 
 
@@ -156,7 +156,7 @@ def test_the_refusal_names_every_role_not_held_in_privilege_order(
     }
 
 
-def test_a_refused_list_writes_none_of_its_roles(
+def test_a_refused_list_does_not_write_any_of_its_roles(
     api_client: APIClient, user_admin: User, target: User
 ) -> None:
     """The allowed half of a refused list is not saved either."""
@@ -185,7 +185,7 @@ def test_a_role_not_held_is_refused_in_the_audit_log(
 def test_a_user_admin_may_change_the_open_roles_of_a_treasurer(
     api_client: APIClient, user_admin: User, treasurer: User
 ) -> None:
-    """A guarded role the target keeps is no obstacle to moving an open one."""
+    """A guarded role the target keeps doesn't block moving an open one."""
     api_client.force_login(user_admin)
     api_client.patch(detail(treasurer), {"roles": [MEMBER, DART_LEADER, TREASURER]}, format="json")
 
@@ -269,10 +269,10 @@ def test_changing_your_own_roles_is_refused_in_the_audit_log(
     ]
 
 
-def test_resending_your_own_roles_unchanged_is_no_change(
+def test_resending_your_own_roles_unchanged_is_not_refused(
     api_client: APIClient, user_admin: User
 ) -> None:
-    """A list that changes nothing is not refused, so a resent form still saves."""
+    """An unchanged list is not refused, so a resent form still saves."""
     api_client.force_login(user_admin)
     response = api_client.patch(detail(user_admin), {"roles": [USER_ADMIN, MEMBER]})
 
@@ -360,10 +360,10 @@ def test_the_record_lists_every_role_for_a_system_admin(
     assert api_client.get(detail(member)).json()["assignable_roles"] == list(ROLE_SLUGS)
 
 
-def test_the_record_lists_no_role_on_your_own_account(
+def test_the_record_does_not_list_a_role_on_your_own_account(
     api_client: APIClient, system_admin: User
 ) -> None:
-    """Your own record offers no box at all."""
+    """Your own record doesn't offer any box at all."""
     api_client.force_login(system_admin)
 
     assert api_client.get(detail(system_admin)).json()["assignable_roles"] == []
@@ -423,33 +423,33 @@ def posted_admin_form(superuser: User, member: User) -> User:
     return member
 
 
-def test_posting_groups_to_the_django_admin_changes_no_role(posted_admin_form: User) -> None:
+def test_posting_groups_to_the_django_admin_does_not_change_a_role(posted_admin_form: User) -> None:
     """A role posted to the change form is ignored."""
     assert posted_admin_form.roles == [MEMBER]
 
 
-def test_posting_the_superuser_flag_to_the_django_admin_changes_nothing(
+def test_posting_the_superuser_flag_to_the_django_admin_does_not_change_anything(
     posted_admin_form: User,
 ) -> None:
     """The superuser flag stays as the roles set it."""
     assert posted_admin_form.is_superuser is False
 
 
-def test_posting_the_staff_flag_to_the_django_admin_changes_nothing(
+def test_posting_the_staff_flag_to_the_django_admin_does_not_change_anything(
     posted_admin_form: User,
 ) -> None:
     """So does the staff flag."""
     assert posted_admin_form.is_staff is False
 
 
-def test_posting_a_permission_to_the_django_admin_changes_nothing(
+def test_posting_a_permission_to_the_django_admin_does_not_change_anything(
     posted_admin_form: User,
 ) -> None:
     """Per-user permissions are not written either."""
     assert posted_admin_form.user_permissions.count() == 0
 
 
-def test_the_django_admin_offers_no_group_screens(superuser: User) -> None:
+def test_the_django_admin_does_not_offer_group_screens(superuser: User) -> None:
     """Role groups are not renamed, deleted, or given permissions in the Django admin."""
     browser = Client()
     browser.force_login(superuser)
@@ -457,6 +457,6 @@ def test_the_django_admin_offers_no_group_screens(superuser: User) -> None:
     assert browser.get("/django-admin/auth/group/").status_code == 404
 
 
-def test_the_django_admin_registers_no_group_admin() -> None:
+def test_the_django_admin_does_not_register_a_group_admin() -> None:
     """``Group`` is unregistered, not merely hidden."""
     assert Group not in admin_site._registry

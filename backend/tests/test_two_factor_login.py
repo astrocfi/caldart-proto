@@ -2,8 +2,8 @@
 
 ``docs/developer/api-auth.rst`` describes the flow: a right password for an account
 that needs a second factor answers ``{"mfa": "verify"}`` or ``{"mfa": "enroll"}`` and
-starts no session; the code step, bound to that browser's session and to the password,
-finishes it.
+doesn't start a session; the code step, bound to that browser's session and to the
+password, finishes it.
 """
 
 from __future__ import annotations
@@ -39,7 +39,7 @@ WRONG_CREDENTIALS = {"detail": "Incorrect email address or password."}
 
 @pytest.fixture
 def admin() -> User:
-    """A user administrator, whose role requires a second factor, with no device yet."""
+    """A user administrator, whose role requires a second factor, without a device yet."""
     return UserFactory(email="ursula.admin@example.test", roles=[MEMBER, USER_ADMIN])
 
 
@@ -65,18 +65,20 @@ def code_step(client: APIClient, otp: str) -> ApiResponse:
 def test_a_required_role_without_a_device_is_asked_to_enroll(
     api_client: APIClient, admin: User
 ) -> None:
-    """The answer names the next step and nothing about the account."""
+    """The answer names only the next step, not anything about the account."""
     assert password_step(api_client, admin).json() == {"mfa": "enroll"}
 
 
 def test_an_account_with_a_device_is_asked_for_a_code(
     api_client: APIClient, device: TotpDevice
 ) -> None:
-    """The answer names the next step and nothing about the account."""
+    """The answer names only the next step, not anything about the account."""
     assert password_step(api_client, device.user).json() == {"mfa": "verify"}
 
 
-def test_the_password_step_starts_no_session(api_client: APIClient, device: TotpDevice) -> None:
+def test_the_password_step_does_not_start_a_session(
+    api_client: APIClient, device: TotpDevice
+) -> None:
     """Until the code step, the browser is not signed in."""
     password_step(api_client, device.user)
     assert api_client.get(ME_URL).status_code == 401
@@ -85,7 +87,7 @@ def test_the_password_step_starts_no_session(api_client: APIClient, device: Totp
 def test_a_member_without_two_factor_signs_in_with_the_password(
     api_client: APIClient, member: User
 ) -> None:
-    """Nothing changes for an account that needs no second factor."""
+    """Nothing changes for an account that doesn't need a second factor."""
     assert password_step(api_client, member).json()["email"] == member.email
 
 
@@ -104,7 +106,7 @@ def test_a_superuser_is_asked_to_enroll(api_client: APIClient) -> None:
 def test_a_wrong_password_reads_as_for_an_unknown_address(
     api_client: APIClient, device: TotpDevice
 ) -> None:
-    """A wrong password for a two-factor account says nothing more than for nobody."""
+    """A wrong password for a two-factor account gets an unknown address's answer."""
     wrong = password_step(api_client, device.user, "not-the-password").json()
     unknown = api_client.post(
         LOGIN_URL, {"email": "nobody@example.test", "password": "x"}, format="json"
@@ -150,7 +152,7 @@ def test_a_wrong_code_is_refused(api_client: APIClient, device: TotpDevice) -> N
     assert code_step(api_client, "000000").json() == WRONG_CODE
 
 
-def test_a_wrong_code_starts_no_session(api_client: APIClient, device: TotpDevice) -> None:
+def test_a_wrong_code_does_not_start_a_session(api_client: APIClient, device: TotpDevice) -> None:
     """Nobody is signed in after a refused code."""
     password_step(api_client, device.user)
     code_step(api_client, "000000")
@@ -180,7 +182,7 @@ def test_a_used_code_is_refused_at_the_next_sign_in(
 def test_the_code_step_needs_the_password_steps_session(
     api_client: APIClient, device: TotpDevice
 ) -> None:
-    """A code posted from another browser finishes nothing."""
+    """A code posted from another browser doesn't finish the sign-in."""
     password_step(api_client, device.user)
     assert code_step(APIClient(), totp_code(device)).json() == EXPIRED
 
@@ -188,7 +190,7 @@ def test_the_code_step_needs_the_password_steps_session(
 def test_the_code_step_without_a_password_step_is_refused(
     api_client: APIClient, device: TotpDevice
 ) -> None:
-    """There is no sign-in to finish."""
+    """There isn't a sign-in to finish."""
     assert code_step(api_client, totp_code(device)).json() == EXPIRED
 
 
@@ -222,7 +224,7 @@ def test_a_missing_code_is_asked_for(api_client: APIClient, device: TotpDevice) 
 def test_the_code_step_refuses_a_sign_in_that_must_enroll(
     api_client: APIClient, admin: User
 ) -> None:
-    """An account with no device has no code to give."""
+    """An account without a device doesn't have a code to give."""
     password_step(api_client, admin)
     assert code_step(api_client, "123456").json() == EXPIRED
 
@@ -377,7 +379,7 @@ def test_a_block_set_before_the_code_keeps_the_account_closed(
 
 
 def test_a_blocked_account_is_refused_before_any_code(api_client: APIClient) -> None:
-    """The closed answer comes first, as for an account with no second factor."""
+    """The closed answer comes first, as for an account without a second factor."""
     admin = UserFactory(roles=[MEMBER, USER_ADMIN], is_active=False, reactivation_blocked=True)
     confirmed_device(admin)
     assert reactivate_step(api_client, admin).status_code == 403

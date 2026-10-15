@@ -100,7 +100,7 @@ and <a class="reference internal" href="member/profile/">your profile</a>.</p>
 </body></html>
 """
 
-#: A page that links nothing restricted, byte for byte as the build wrote it.
+#: A page that doesn't link anything restricted, byte for byte as the build wrote it.
 PROFILE_PAGE = """<!doctype html>
 <html><head><title>My profile</title></head><body>
 <div class="sidebar-tree"><ul>
@@ -220,7 +220,9 @@ def test_a_members_index_keeps_only_the_objects_of_open_pages(reader: Client, gu
     assert index["objects"] == {"": [[1, 0, 1, "-", "callsign"]]}
 
 
-def test_a_members_index_keeps_the_fields_that_name_no_page(reader: Client, guide: Path) -> None:
+def test_a_members_index_keeps_the_fields_that_do_not_name_a_page(
+    reader: Client, guide: Path
+) -> None:
     """``envversion``, ``objnames`` and ``objtypes`` pass through unchanged."""
     index = read_index(reader.get(f"/docs/{SEARCH_INDEX}"))
     kept = {key: index[key] for key in ("envversion", "objnames", "objtypes")}
@@ -252,7 +254,7 @@ def test_the_trimmed_index_is_javascript(reader: Client, guide: Path) -> None:
 def test_a_guide_without_a_roles_file_serves_the_index_as_built(
     reader: Client, guide: Path
 ) -> None:
-    """With no ``roles.json`` nothing is restricted, so nothing is taken out."""
+    """Without ``roles.json`` nothing is restricted, so nothing is taken out."""
     (guide / GUIDE_ROLES).unlink()
     response = reader.get(f"/docs/{SEARCH_INDEX}")
     assert body(response) == (guide / SEARCH_INDEX).read_bytes()
@@ -333,7 +335,7 @@ def test_a_members_sidebar_keeps_the_pages_they_may_open(reader: Client, guide: 
     assert '<a class="reference internal" href="member/profile/">My profile</a>' in page
 
 
-def test_a_caption_with_nothing_left_under_it_is_removed(reader: Client, guide: Path) -> None:
+def test_a_caption_left_empty_is_removed(reader: Client, guide: Path) -> None:
     """A sidebar caption whose every entry is restricted goes with its list."""
     page = body(reader.get("/docs/")).decode()
     assert "Administration" not in page
@@ -381,8 +383,8 @@ def test_a_prose_link_to_an_open_page_is_kept(reader: Client, guide: Path) -> No
     assert '<a class="reference internal" href="member/profile/">your profile</a>' in page
 
 
-def test_a_page_with_nothing_to_remove_is_served_as_built(reader: Client, guide: Path) -> None:
-    """A page that links no restricted page is served byte for byte."""
+def test_a_page_without_anything_to_remove_is_served_as_built(reader: Client, guide: Path) -> None:
+    """A page that doesn't link a restricted page is served byte for byte."""
     response = reader.get("/docs/member/profile/")
     assert body(response) == PROFILE_PAGE.encode()
 
@@ -403,7 +405,7 @@ def test_a_page_reads_the_readers_roles_once(
         body(reader.get("/docs/"))
 
 
-def test_a_static_file_reads_no_roles(
+def test_a_static_file_does_not_read_the_roles(
     reader: Client, guide: Path, django_assert_max_num_queries: DjangoAssertNumQueries
 ) -> None:
     """A stylesheet is neither gated nor trimmed, so the reader's roles are not read."""
@@ -476,7 +478,7 @@ def real_settings(real_guide: Path, settings: Settings) -> Path:
 @pytest.mark.parametrize(
     "path", ["", "member/", "member/profile/", "search/", SEARCH_INDEX], ids=str
 )
-def test_a_member_finds_no_restricted_word_in_a_real_build(
+def test_a_member_does_not_find_a_restricted_word_in_a_real_build(
     reader: Client, real_settings: Path, path: str
 ) -> None:
     """Every page and the index of a real build omit the secrets for a member."""
@@ -504,10 +506,10 @@ def test_a_member_still_finds_open_words_in_a_real_build(
     assert docnames[cast(int, terms["roster"])] == "member/profile"
 
 
-def test_the_trim_logs_nothing_for_a_well_formed_guide(
+def test_the_trim_does_not_log_anything_for_a_well_formed_guide(
     reader: Client, guide: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """Trimming a sound index and page logs nothing at warning level or above."""
+    """Trimming a sound index and page doesn't log anything at warning level or above."""
     caplog.set_level(logging.WARNING, logger="caldart")
     body(reader.get(f"/docs/{SEARCH_INDEX}"))
     body(reader.get("/docs/"))

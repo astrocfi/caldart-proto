@@ -25,7 +25,7 @@ pytestmark = pytest.mark.django_db
 #: Where ``POST /system/renewals/run`` lives.
 RENEWALS_RUN_URL = "/api/v1/system/renewals/run"
 
-#: A stand-in member for the line-formatting tests, which need no database.
+#: A stand-in member for the line-formatting tests, which don't need a database.
 SAMPLE = RunAction(kind="renewal_notice", member="Dana Lee", email="dana@example.org")
 
 
@@ -113,8 +113,8 @@ def test_an_action_serializes_its_date_as_an_iso_string() -> None:
     }
 
 
-def test_a_scan_with_nothing_to_do_prints_no_action_lines() -> None:
-    """No actions means no lines, so the counts stand alone."""
+def test_an_idle_scan_does_not_print_action_lines() -> None:
+    """Without actions, there aren't any lines, so the counts stand alone."""
     assert action_lines([], dry_run=True) == []
 
 
@@ -261,7 +261,7 @@ def test_the_run_endpoint_answers_the_actions(
 def test_the_run_endpoint_answers_an_empty_list_when_nothing_is_due(
     api_client: APIClient, system_admin: User
 ) -> None:
-    """A scan with nothing to do reports no actions rather than leaving the key out."""
+    """An idle scan reports an empty ``actions`` list rather than leaving the key out."""
     api_client.force_login(system_admin)
 
     body = api_client.post(RENEWALS_RUN_URL, {"dry_run": True}, format="json").json()

@@ -2,7 +2,7 @@
 
 ``caldart.settings.prod`` is never exercised by the rest of the suite, so this
 module imports it against a minimal environment and checks the security
-posture it promises -- and that the four variables with no default really do
+posture it promises -- and that the four variables without a default really do
 fail loudly when they are missing.
 """
 
@@ -124,7 +124,7 @@ def test_prod_settings_import_cleanly(prod: ModuleType) -> None:
 
 
 @pytest.mark.parametrize("variable", ["SECRET_KEY", "ALLOWED_HOSTS", "SITE_URL", "EMAIL_URL"])
-def test_the_required_variables_have_no_default(
+def test_the_required_variables_do_not_have_a_default(
     prod_env: None, monkeypatch: pytest.MonkeyPatch, variable: str
 ) -> None:
     """Unsetting a required variable raises ``ImproperlyConfigured`` naming it."""
@@ -287,7 +287,7 @@ def test_the_error_mail_recipients_are_the_admin_email_addresses(setting: str) -
     [("ADMINS", mail.mail_admins), ("MANAGERS", mail.mail_managers)],
     ids=["admins", "managers"],
 )
-def test_mail_to_the_production_recipients_raises_no_deprecation_warning(
+def test_mail_to_the_production_recipients_does_not_raise_a_deprecation_warning(
     settings: Settings, setting: str, send: Callable[[str, str], None]
 ) -> None:
     """Django reads the recipient setting only when it sends, so send through it.

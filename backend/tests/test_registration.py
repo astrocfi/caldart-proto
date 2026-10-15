@@ -1,9 +1,9 @@
 """Registering: one answer for every address, and a message that tells the owner the rest.
 
 ``POST /auth/register`` answers 202 with the same body whoever holds the address, and
-signs nobody in; the address's owner learns the next step from the message mailed once
-the answer has gone.  ``docs/developer/api-auth.rst`` describes the endpoint and
-``docs/user/member/join.rst`` what a joiner sees.
+doesn't sign anyone in; the address's owner learns the next step from the message
+mailed once the answer has gone.  ``docs/developer/api-auth.rst`` describes the
+endpoint and ``docs/user/member/join.rst`` what a joiner sees.
 """
 
 from __future__ import annotations
@@ -34,7 +34,7 @@ HOLDERS = ["nobody", "donor", "member", "friend", "unverified", "deactivated", "
 
 
 def hold(holder: str) -> User | None:
-    """Give :data:`ADDRESS` to an account of the ``holder`` kind, or to nobody."""
+    """Give :data:`ADDRESS` to an account of the ``holder`` kind, unless ``nobody``."""
     if holder == "nobody":
         return None
     if holder == "donor":
@@ -72,7 +72,7 @@ def test_every_address_is_answered_alike(api_client: APIClient, holder: str) -> 
 
 
 @pytest.mark.parametrize("holder", HOLDERS)
-def test_registering_signs_nobody_in(api_client: APIClient, holder: str) -> None:
+def test_registering_does_not_sign_anyone_in(api_client: APIClient, holder: str) -> None:
     """No session comes back, so no cookie tells a new account from an old one."""
     hold(holder)
     api_client.post(REGISTER_URL, register_payload())
@@ -108,7 +108,7 @@ def test_a_missing_name_is_refused_alike(api_client: APIClient, holder: str) -> 
 
 @pytest.mark.parametrize("holder", ["member", "deactivated", "closed"])
 def test_an_existing_account_is_left_as_it_was(api_client: APIClient, holder: str) -> None:
-    """Registering an address that has an account writes nothing to it."""
+    """Registering an address that has an account doesn't write anything to it."""
     account = hold(holder)
     assert account is not None
 
@@ -201,7 +201,7 @@ def test_a_deactivated_account_is_told_how_to_come_back(api_client: APIClient) -
 
 
 def test_a_closed_account_is_told_to_ask(api_client: APIClient) -> None:
-    """A closed account's address reads that it was closed, and nothing to follow."""
+    """A closed account's address reads that it was closed, without a link to follow."""
     hold("closed")
 
     api_client.post(REGISTER_URL, register_payload())
@@ -210,8 +210,8 @@ def test_a_closed_account_is_told_to_ask(api_client: APIClient) -> None:
     assert "has been closed. Contact CalDART to reopen it." in body
 
 
-def test_a_closed_account_is_offered_no_sign_in(api_client: APIClient) -> None:
-    """The closed account's message carries no sign-in link."""
+def test_a_closed_account_is_not_offered_a_sign_in(api_client: APIClient) -> None:
+    """The closed account's message doesn't carry a sign-in link."""
     hold("closed")
 
     api_client.post(REGISTER_URL, register_payload())

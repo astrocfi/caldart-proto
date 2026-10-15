@@ -155,8 +155,8 @@ def test_a_receipt_with_a_contribution_carries_the_deduction_wording(
     assert CONTRIBUTION_NOTICE in page
 
 
-def test_a_dues_only_receipt_claims_no_deduction(pdf_text: PdfText) -> None:
-    """Dues are dues: without a gift the page says nothing about a deduction."""
+def test_a_dues_only_receipt_does_not_claim_a_deduction(pdf_text: PdfText) -> None:
+    """Dues are dues: without a gift the page doesn't mention a deduction."""
     page = pdf_text(render_receipt(receipt(DUES)))[0]
 
     assert CONTRIBUTION_NOTICE not in page
@@ -260,7 +260,7 @@ def test_the_statement_prints_the_letterhead(pdf_text: PdfText) -> None:
 def test_the_letterhead_leaves_out_what_nobody_has_filled_in(
     blank: str, gone: str, pdf_text: PdfText
 ) -> None:
-    """A letterhead field nobody has entered draws no line at all."""
+    """A letterhead field nobody has entered doesn't draw a line at all."""
     data = replace(receipt(DUES), org=replace(ORG, **{blank: ""}))
 
     page = pdf_text(render_receipt(data))[0]
@@ -269,8 +269,8 @@ def test_the_letterhead_leaves_out_what_nobody_has_filled_in(
     assert page[0] == "CalDART"
 
 
-def test_a_statement_year_with_nothing_in_it_still_renders(pdf_text: PdfText) -> None:
-    """A member with no contributions that year gets a page totaling zero."""
+def test_an_empty_statement_year_still_renders(pdf_text: PdfText) -> None:
+    """A member without any contributions that year gets a page totaling zero."""
     empty = replace(STATEMENT, contributions=())
 
     page = pdf_text(render_statement(empty))[0]

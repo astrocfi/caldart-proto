@@ -4,9 +4,9 @@ A tombstone, **Deleted member <id>**, keeps a deleted account's payments.  A rea
 or address written onto it would make ``is_tombstone`` false, after which a gift
 settling late would buy a term and mail a receipt; deleting it would only move the
 payments to a second tombstone.  So the member record's ``PATCH``, ``DELETE`` and term
-grant, and the users admin's ``PATCH``, refuse one with a 400 and change nothing.  The
-donors report, the payment list, the ledger and the record each flag it, so the
-portal offers no link or control that would try.
+grant, and the users admin's ``PATCH``, refuse one with a 400 and don't change
+anything.  The donors report, the payment list, the ledger and the record each flag it,
+so the portal doesn't offer a link or control that would try.
 """
 
 from __future__ import annotations
@@ -142,10 +142,10 @@ def test_granting_a_tombstone_a_term_is_refused(
     assert (response.status_code, response.json()) == (400, REFUSED)
 
 
-def test_a_refused_grant_writes_no_term_on_the_tombstone(
+def test_a_refused_grant_does_not_write_a_term_on_the_tombstone(
     admin_client: APIClient, tombstone: User, annual_plan: MembershipPlan
 ) -> None:
-    """The tombstone holds no term after the refusal."""
+    """The tombstone doesn't hold a term after the refusal."""
     admin_client.post(
         f"{_record_url(tombstone)}/memberships", {"plan": annual_plan.slug}, format="json"
     )

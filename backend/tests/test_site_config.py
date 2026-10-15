@@ -43,7 +43,7 @@ def site_tree(site_settings: SiteSettings) -> Page:
 def test_anonymous_callers_get_the_chrome(
     api_client: APIClient, site_settings: SiteSettings, site_tree: Page
 ) -> None:
-    """An anonymous caller gets the org name, contact email, theme and no member pages."""
+    """A visitor gets the org name, contact email, and theme, but not the member pages."""
     site_settings.org_name = "Example DART Network"
     site_settings.contact_email = "info@caldart.example.org"
     site_settings.theme = "pacific"
@@ -106,7 +106,7 @@ def test_a_current_member_gets_the_members_pages(
     }
 
 
-def test_an_expired_member_gets_no_members_pages(
+def test_an_expired_member_does_not_get_the_members_pages(
     api_client: APIClient, site_tree: Page, member: User, annual_plan: MembershipPlan
 ) -> None:
     """A member whose term expired gets an empty members-pages list."""
@@ -115,10 +115,10 @@ def test_an_expired_member_gets_no_members_pages(
     assert api_client.get(URL).json()["members_pages"] == []
 
 
-def test_a_member_who_never_paid_gets_no_members_pages(
+def test_a_member_who_never_paid_does_not_get_the_members_pages(
     api_client: APIClient, site_tree: Page, member: User
 ) -> None:
-    """A signed-in user with no membership at all gets an empty members-pages list."""
+    """A signed-in user without any membership at all gets an empty members-pages list."""
     api_client.force_login(member)
     assert api_client.get(URL).json()["members_pages"] == []
 
@@ -126,7 +126,7 @@ def test_a_member_who_never_paid_gets_no_members_pages(
 def test_a_dart_leader_without_a_membership_gets_the_members_pages(
     api_client: APIClient, site_tree: Page, dart_leader: User
 ) -> None:
-    """A DART leader with no membership of their own still gets the members pages."""
+    """A DART leader without a membership of their own still gets the members pages."""
     assert dart_leader.membership_status["status"] == "none"
     api_client.force_login(dart_leader)
     assert api_client.get(URL).json()["members_pages"]
@@ -151,9 +151,7 @@ def test_unpublished_members_pages_are_not_listed(
     assert "Documents and Links" not in titles
 
 
-def test_config_falls_back_when_there_is_no_site_settings_row(
-    api_client: APIClient, db: None
-) -> None:
+def test_config_falls_back_without_a_site_settings_row(api_client: APIClient, db: None) -> None:
     """The endpoint must answer before ``seed`` has run."""
     SiteSettings.objects.all().delete()
 

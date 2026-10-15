@@ -57,8 +57,8 @@ def test_a_reconciliation_subscription_loses_its_fixed_dates() -> None:
     assert _filters(subscription) == {"provider": "stripe", "period": "this_year"}
 
 
-def test_a_reconciliation_subscription_with_no_period_is_given_last_month() -> None:
-    """Fixed dates with no period become last month, not every date."""
+def test_a_reconciliation_subscription_without_a_period_is_given_last_month() -> None:
+    """Fixed dates without a period become last month, not every date."""
     subscription = ReportSubscriptionFactory(
         report="reconciliation", filters={"from": "2026-01-01", "provider": "stripe"}
     )

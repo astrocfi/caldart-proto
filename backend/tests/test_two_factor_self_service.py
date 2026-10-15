@@ -52,7 +52,7 @@ def enroll(client: APIClient, user: User) -> str:
 
 
 def test_a_member_starts_with_it_off(signed_in: APIClient) -> None:
-    """Off, not required, and no backup codes."""
+    """Off, not required, and without backup codes."""
     assert signed_in.get(STATUS_URL).json() == {
         "enabled": False,
         "required_by_role": False,
@@ -61,7 +61,7 @@ def test_a_member_starts_with_it_off(signed_in: APIClient) -> None:
 
 
 def test_a_treasurer_is_told_it_is_required(api_client: APIClient) -> None:
-    """The role requires it, so the Security card offers no way to turn it off."""
+    """The role requires it, so the Security card doesn't offer a way to turn it off."""
     treasurer = UserFactory(roles=[MEMBER, TREASURER])
     confirmed_device(treasurer)
     api_client.force_login(treasurer)
@@ -122,7 +122,7 @@ def test_starting_again_while_on_is_refused(signed_in: APIClient, device: TotpDe
 
 
 def test_confirming_before_starting_is_refused(signed_in: APIClient) -> None:
-    """There is nothing to confirm."""
+    """There isn't anything to confirm."""
     response = signed_in.post(CONFIRM_URL, {"otp": "123456"}, format="json")
     assert response.json() == {"detail": mfa.NOT_STARTED}
 
@@ -150,7 +150,7 @@ def test_new_backup_codes_refuse_a_wrong_code(signed_in: APIClient, device: Totp
 
 
 def test_new_backup_codes_need_two_factor_on(signed_in: APIClient) -> None:
-    """There are no codes to replace without a device."""
+    """There aren't any codes to replace without a device."""
     response = signed_in.post(CODES_URL, {"otp": "123456"}, format="json")
     assert response.json() == {"detail": mfa.NOT_ON}
 

@@ -187,10 +187,10 @@ def prefixed_content(prefixed: str, settings: Settings) -> Iterator[ModuleType]:
     ],
     ids=["empty", "slash", "blank", "bare", "leading", "both", "trailing", "two", "spaces"],
 )
-def test_the_prefix_is_normalized_to_a_leading_slash_and_no_trailing_one(
+def test_the_prefix_is_normalized_to_a_leading_slash_without_a_trailing_one(
     raw: str, expected: str
 ) -> None:
-    """Any spelling of a prefix reads as ``/segment[/segment]``, or empty for none."""
+    """Any spelling of a prefix reads as ``/segment[/segment]``, or empty when blank."""
     assert normalize_url_prefix(raw) == expected
 
 
@@ -205,7 +205,7 @@ def test_a_malformed_prefix_is_refused(raw: str) -> None:
         normalize_url_prefix(raw)
 
 
-def test_with_no_prefix_the_site_is_served_from_the_root(clean_env: pytest.MonkeyPatch) -> None:
+def test_without_a_prefix_the_site_is_served_from_the_root(clean_env: pytest.MonkeyPatch) -> None:
     """Unset, the prefix is empty and Django takes the script name from the request."""
     base = execute_base_settings()
 
@@ -263,7 +263,7 @@ def test_the_static_and_media_urls_carry_the_prefix_outside_a_request(
 def test_the_default_trusted_origin_is_the_site_urls_scheme_and_host(
     clean_env: pytest.MonkeyPatch,
 ) -> None:
-    """A browser's ``Origin`` carries no path, so the default trusted origin drops it."""
+    """A browser's ``Origin`` is path-free, so the default trusted origin drops it."""
     clean_env.setenv("URL_PREFIX", PREFIX)
     clean_env.setenv("SITE_URL", f"https://caldart.example.org{PREFIX}")
 
@@ -333,7 +333,7 @@ def test_a_media_url_carries_the_prefix(prefixed: str) -> None:
 
 
 def test_without_a_prefix_static_and_media_urls_stay_at_the_root() -> None:
-    """With no prefix, the static and media URLs are ``/static/`` and ``/media/``."""
+    """Without a prefix, the static and media URLs are ``/static/`` and ``/media/``."""
     assert (django_settings.STATIC_URL, django_settings.MEDIA_URL) == ("/static/", "/media/")
 
 
@@ -487,7 +487,7 @@ def test_the_donate_page_writes_every_link_under_the_prefix(
 def test_the_home_pages_blank_buttons_fall_back_under_the_prefix(
     client: Client, home_page: HomePage, site_settings: SiteSettings, prefixed: str
 ) -> None:
-    """A labeled button with no URL links the contact page, the join screen, or home."""
+    """A labeled button without a URL links the contact page, the join screen, or home."""
     HomePage.objects.filter(pk=home_page.pk).update(
         urgent_cta_label="Request air support",
         urgent_cta_url="",
@@ -542,7 +542,7 @@ def test_the_not_found_page_writes_every_link_under_the_prefix(
 
 
 def test_the_server_error_page_writes_every_link_under_the_prefix(prefixed: str) -> None:
-    """The 500 page, rendered with no request at all, still links under the prefix."""
+    """The 500 page, rendered without any request at all, still links under the prefix."""
     body = get_template("500.html").render()
 
     assert unprefixed_links(body) == []
@@ -587,7 +587,7 @@ def test_the_members_only_wall_for_a_lapsed_member_links_under_the_prefix(
 def test_the_dart_finder_falls_back_to_the_prefixed_home_page(
     client: Client, home_page: HomePage, prefixed: str
 ) -> None:
-    """With no DART directory published, the finder redirects to the prefixed root."""
+    """Without a published DART directory, the finder redirects to the prefixed root."""
     response = client.get("/find-dart/?dart=999", SCRIPT_NAME=PREFIX)
 
     assert response["Location"] == f"{PREFIX}/"

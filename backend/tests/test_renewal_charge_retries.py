@@ -78,7 +78,7 @@ class StripeLedger:
     """
 
     def __init__(self) -> None:
-        """Start with no intents, no keys, and every charge succeeding."""
+        """Start without intents or keys, and with every charge succeeding."""
         self.intents: dict[str, dict[str, Any]] = {}
         self.keys: dict[str, str] = {}
         self.keys_presented: list[str] = []
@@ -100,7 +100,7 @@ class StripeLedger:
             self.unreachable -= 1
             raise connection_error()
         if self.missing:
-            # The SDK's error classes carry no annotations, so this call is untyped.
+            # The SDK's error classes aren't annotated, so this call is untyped.
             raise stripe.InvalidRequestError(  # type: ignore[no-untyped-call]
                 "No such payment method", param=self.missing, code="resource_missing"
             )
@@ -193,8 +193,8 @@ def ledger(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> StripeLedger:
 def renewal_due(user: User, plan: MembershipPlan, today: date) -> RenewalMandate:
     """A Stripe renewal whose charge is due ``today``, its notice already sent.
 
-    The scan of the day before writes the attempt and sends the notice, which touch
-    no provider, so the next scan of ``today`` is the one that charges.
+    The scan of the day before writes the attempt and sends the notice, which don't
+    touch a provider, so the next scan of ``today`` is the one that charges.
     """
     MembershipFactory(
         user=user,
@@ -380,7 +380,7 @@ def test_a_claim_younger_than_the_timeout_is_left_to_its_scan(
     assert run.skipped_by_reason == {"in_flight": 1}
 
 
-def test_a_scan_that_died_after_charging_takes_nothing_twice(
+def test_a_scan_that_died_after_charging_never_takes_anything_twice(
     ledger: StripeLedger, member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """Stripe already holds the charge for the attempt's payment, so it is adopted."""
@@ -410,7 +410,7 @@ def test_a_scan_that_died_after_charging_takes_nothing_twice(
 def test_a_charge_stripe_is_still_processing_is_not_a_decline(
     ledger: StripeLedger, member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
-    """``processing`` spends no rung of the retry ladder."""
+    """``processing`` doesn't spend a rung of the retry ladder."""
     mandate = renewal_due(member, annual_plan, today)
     ledger.status = "processing"
 
@@ -432,7 +432,7 @@ def test_a_processing_charge_is_counted_as_pending(
     assert run.skipped_by_reason == {"pending": 1}
 
 
-def test_a_processing_charge_tells_the_member_nothing_yet(
+def test_a_processing_charge_does_not_tell_the_member_anything_yet(
     ledger: StripeLedger,
     member: User,
     annual_plan: MembershipPlan,
@@ -537,7 +537,7 @@ def test_an_unsettled_charge_is_still_recorded_after_renewal_is_turned_off(
 def test_an_unsettled_charge_stripe_never_made_is_dropped_once_renewal_is_off(
     ledger: StripeLedger, member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
-    """With no charge at Stripe and renewal off, nothing is charged and nothing kept."""
+    """Without a charge at Stripe and with renewal off, nothing is charged or kept."""
     mandate = renewal_due(member, annual_plan, today)
     ledger.unreachable = 1
     run_auto_renewals(today=today)
@@ -561,7 +561,7 @@ def lose_the_answer(ledger: StripeLedger, member: User, plan: MembershipPlan, to
     ledger.forget_keys()
 
 
-def test_a_new_card_after_a_lost_answer_takes_nothing_twice(
+def test_a_new_card_after_a_lost_answer_never_takes_anything_twice(
     ledger: StripeLedger, member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """The lookup asks after the customer the charge was sent for, not the new card's."""
@@ -609,9 +609,9 @@ def test_a_provider_switch_after_a_lost_answer_still_asks_stripe(
 
 
 # --------------------------------------------------------------------------
-# A scan that lost its claim records nothing
+# A scan that lost its claim doesn't record anything
 # --------------------------------------------------------------------------
-def test_a_scan_whose_claim_was_taken_over_records_nothing(
+def test_a_scan_whose_claim_was_taken_over_does_not_record_anything(
     ledger: StripeLedger,
     member: User,
     annual_plan: MembershipPlan,
@@ -676,7 +676,7 @@ def test_a_charge_pending_for_days_is_logged_at_error(
     assert any("pending at stripe for more than" in r.getMessage() for r in caplog.records)
 
 
-def test_a_lookup_with_more_pages_and_no_match_charges_nothing(
+def test_a_lookup_with_more_pages_and_without_a_match_does_not_charge_anything(
     ledger: StripeLedger, member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """The intent could be on a later page, so the charge is put off, not made again."""
@@ -703,7 +703,7 @@ def test_a_card_stripe_no_longer_has_is_a_decline(
     assert mandate.failure_count == 1
 
 
-def test_a_renewal_with_no_saved_customer_is_a_decline(
+def test_a_renewal_without_a_saved_customer_is_a_decline(
     ledger: StripeLedger, member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """Nothing can be charged, or looked up, without a customer, so nothing is listed."""

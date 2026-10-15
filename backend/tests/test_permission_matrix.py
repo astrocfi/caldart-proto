@@ -4,7 +4,7 @@ Every case here pins down behavior that already exists: anonymous access to
 the signed-in endpoints, ``system_admin`` writes on the members-admin API, three
 roles editing another member's aircraft, profile writes by every role, the
 Wagtail admin for ``user_admin`` and ``account_admin``, and everything a
-signed-in account with no roles at all may and may not reach.
+signed-in account without any roles may and may not reach.
 """
 
 from __future__ import annotations
@@ -56,7 +56,7 @@ NO_ROLE_ALLOWED_GETS = [
     "/api/v1/site/config",
 ]
 
-#: The aircraft register, open to current members only: a role-less account with no
+#: The aircraft register, open to current members only: a role-less account without a
 #: term is refused it like a friend (``apps.aircraft.access``).
 NO_ROLE_NO_TERM_AIRCRAFT_GETS = [
     "/api/v1/aircraft",
@@ -199,7 +199,7 @@ def test_anonymous_cannot_read_a_user_detail(api_client: APIClient, target_membe
 def test_anonymous_cannot_send_a_password_reset(
     api_client: APIClient, target_member: User, mailoutbox: list[EmailMessage]
 ) -> None:
-    """The administrator's reset route sends nothing to an anonymous caller."""
+    """An anonymous caller can't make the administrator's reset route send mail."""
     response = api_client.post(send_reset_url(target_member))
     assert response.status_code == 401
     assert len(mailoutbox) == 0
@@ -208,7 +208,7 @@ def test_anonymous_cannot_send_a_password_reset(
 def test_anonymous_cannot_send_an_email_verification(
     api_client: APIClient, target_member: User, mailoutbox: list[EmailMessage]
 ) -> None:
-    """The administrator's verification resend sends nothing to an anonymous caller."""
+    """An anonymous caller can't make the administrator's verification route send mail."""
     response = api_client.post(send_verification_url(target_member))
     assert response.status_code == 401
     assert len(mailoutbox) == 0
@@ -225,7 +225,7 @@ def test_anonymous_cannot_reach_the_signed_in_email_endpoints(
 
 
 def test_anonymous_may_post_a_verification_token(api_client: APIClient) -> None:
-    """Following a link needs no session: a bad token is judged, not refused as 401."""
+    """Following a link works without a session: a bad token is judged, not a 401."""
     assert api_client.post("/api/v1/auth/email/verify", {"token": "x"}).status_code == 400
 
 
@@ -376,7 +376,7 @@ def test_wagtail_admin_redirects_to_login(
 
 
 # --------------------------------------------------------------------------
-# A signed-in account with no roles at all
+# A signed-in account without any roles
 # --------------------------------------------------------------------------
 @pytest.mark.parametrize("url", NO_ROLE_ALLOWED_GETS)
 def test_no_role_user_reaches_self_service_endpoints(
@@ -417,7 +417,7 @@ def test_no_role_user_is_refused_role_gated_endpoints(
 
 
 # --------------------------------------------------------------------------
-# The treasurer: the money, and nothing else
+# The treasurer: the money only
 # --------------------------------------------------------------------------
 #: Role-gated endpoints outside the finance area, which a treasurer may not reach.
 TREASURER_DENIED_GETS = [
@@ -470,8 +470,8 @@ def test_treasurer_downloads_the_money_reports(treasurer_client: APIClient, url:
     assert treasurer_client.get(url).status_code == 200
 
 
-def test_a_member_is_offered_no_report(api_client: APIClient, member: User) -> None:
-    """``GET /reports`` answers a member who may read nothing with an empty list."""
+def test_a_member_is_not_offered_a_report(api_client: APIClient, member: User) -> None:
+    """``GET /reports`` answers a member who can't read any report with an empty list."""
     api_client.force_login(member)
     assert api_client.get("/api/v1/reports").json() == []
 
@@ -482,7 +482,7 @@ def test_treasurer_manages_the_report_subscriptions(treasurer_client: APIClient)
 
 
 # --------------------------------------------------------------------------
-# CalDART management: bulk email, and nothing else
+# CalDART management: bulk email only
 # --------------------------------------------------------------------------
 #: Role-gated endpoints outside bulk email, which CalDART management may not reach.
 MANAGEMENT_DENIED_GETS = [
@@ -504,7 +504,7 @@ MANAGEMENT_DENIED_GETS = [
 def test_management_is_refused_every_endpoint_outside_bulk_email(
     api_client: APIClient, management: User, url: str
 ) -> None:
-    """CalDART management reaches no member record, payment, or report: each is a 403."""
+    """CalDART management can't reach a member record, payment, or report: each is 403."""
     api_client.force_login(management)
     assert api_client.get(url).status_code == 403
 

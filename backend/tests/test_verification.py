@@ -113,10 +113,10 @@ def test_clear_stale_sets_both_columns_of_a_cleared_item_to_null(
     )
 
 
-def test_clear_stale_clears_nothing_for_a_value_resent_unchanged(
+def test_clear_stale_does_not_clear_anything_for_a_value_resent_unchanged(
     verified_profile: MemberProfile,
 ) -> None:
-    """Resending every covered field at its stored value clears nothing."""
+    """Resending every covered field at its stored value doesn't clear anything."""
     changes = {
         "pilot_certificate_type": verified_profile.pilot_certificate_type,
         "certificate_number": verified_profile.certificate_number,
@@ -128,13 +128,13 @@ def test_clear_stale_clears_nothing_for_a_value_resent_unchanged(
 
 
 def test_clear_stale_ignores_a_field_no_item_covers(verified_profile: MemberProfile) -> None:
-    """Ratings, the flight review, and hours are not verified, so clear nothing."""
+    """Editing the unverified ratings, flight review, or hours keeps every stamp."""
     changes = {"ratings": ["instrument"], "total_hours": 9000}
     assert clear_stale(verified_profile, changes) == []
 
 
 def test_clear_stale_does_not_report_an_item_that_was_not_verified(member: User) -> None:
-    """Moving an unverified item's field clears nothing, so nothing is reported."""
+    """Moving an unverified item's field doesn't clear a stamp, so nothing is reported."""
     profile = MemberProfileFactory(user=member)
     assert clear_stale(profile, {"certificate_number": "9999999"}) == []
 
@@ -187,7 +187,7 @@ def test_a_members_own_edit_clears_the_item_it_moves(
     assert verified_slugs(verified_profile) == left
 
 
-def test_a_members_own_edit_resending_the_values_clears_nothing(
+def test_a_members_own_edit_resending_the_values_does_not_clear_anything(
     member_client: APIClient, verified_profile: MemberProfile
 ) -> None:
     """A form that resends the stored certificate and medical keeps every item."""
@@ -204,7 +204,7 @@ def test_a_members_own_edit_resending_the_values_clears_nothing(
     assert verified_slugs(verified_profile) == list(PERSON_ITEMS)
 
 
-def test_a_members_own_edit_raises_profile_changed_and_no_verification_event(
+def test_a_members_own_edit_raises_profile_changed_but_not_a_verification_event(
     member_client: APIClient,
     verified_profile: MemberProfile,
     recorded_events: RecordedEvents,
@@ -255,7 +255,7 @@ def test_an_aircraft_edit_moving_an_insurance_field_clears_the_insurance(
     assert verified_aircraft.insurance_is_verified is False
 
 
-def test_an_aircraft_edit_moving_no_insurance_field_keeps_the_insurance(
+def test_an_aircraft_edit_that_does_not_move_an_insurance_field_keeps_the_insurance(
     account_admin_client: APIClient, verified_aircraft: Aircraft
 ) -> None:
     """An edit to the notes, resending the carrier unchanged, keeps it verified."""
@@ -268,7 +268,7 @@ def test_an_aircraft_edit_moving_no_insurance_field_keeps_the_insurance(
     assert verified_aircraft.insurance_is_verified is True
 
 
-def test_an_aircraft_edit_raises_aircraft_changed_and_no_verification_event(
+def test_an_aircraft_edit_raises_aircraft_changed_but_not_a_verification_event(
     account_admin_client: APIClient,
     verified_aircraft: Aircraft,
     recorded_events: RecordedEvents,
@@ -361,7 +361,7 @@ def test_verify_member_leaves_a_changed_item_unchecked_unverified(
 
 
 def test_verify_member_creates_a_missing_profile(dart_leader: User, member: User) -> None:
-    """An account with no profile gets one, with its fields written and items verified."""
+    """An account without a profile gets one, its fields written and items verified."""
     verify_member(
         dart_leader, member, changes={"photo_id_type": PhotoIdType.PASSPORT}, verified=["photo_id"]
     )
@@ -420,18 +420,18 @@ def test_verify_member_raises_profile_changed_for_the_fields_it_writes(
     ]
 
 
-def test_verify_member_raises_nothing_when_no_item_changes_state(
+def test_verify_member_does_not_raise_anything_when_no_item_changes_state(
     dart_leader: User,
     member: User,
     verified_profile: MemberProfile,
     recorded_events: RecordedEvents,
 ) -> None:
-    """Re-verifying what is already verified, with no change, raises nothing."""
+    """Re-verifying what is already verified, without a change, doesn't raise anything."""
     verify_member(dart_leader, member, changes={}, verified=list(PERSON_ITEMS))
     assert recorded_events == []
 
 
-def test_verify_member_with_no_changes_leaves_the_profile_stamp_alone(
+def test_verify_member_without_changes_leaves_the_profile_stamp_alone(
     dart_leader: User, member: User, verified_profile: MemberProfile
 ) -> None:
     """Verifying alone is not a profile edit, so ``profile_updated_at`` stays put."""
@@ -537,9 +537,9 @@ def test_verify_insurance_raises_a_clearing_event(
     ]
 
 
-def test_verify_insurance_raises_nothing_when_the_state_holds(
+def test_verify_insurance_does_not_raise_anything_when_the_state_holds(
     dart_leader: User, verified_aircraft: Aircraft, recorded_events: RecordedEvents
 ) -> None:
-    """Re-verifying with no change raises no event at all."""
+    """Re-verifying without a change doesn't raise any event at all."""
     verify_insurance(verified_aircraft, actor=dart_leader, changes={}, verified=True)
     assert recorded_events == []

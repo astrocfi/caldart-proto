@@ -83,7 +83,7 @@ def test_the_negative_contribution_refusal_names_the_contribution_field(
 
 
 def test_create_checkout_rejects_a_zero_total(member: User) -> None:
-    """No plan and no contribution leaves nothing to charge, so it is refused."""
+    """A checkout without a plan or a contribution has a zero total, so it is refused."""
     with pytest.raises(DomainValidationError, match=re.escape("Nothing to charge.")):
         create_checkout(member, None, 0, PaymentProvider.MOCK)
 
@@ -95,8 +95,8 @@ def test_the_zero_total_refusal_names_the_amount_field(member: User) -> None:
     assert refusal.value.field == "amount_cents"
 
 
-def test_donation_only_checkout_has_no_plan(member: User) -> None:
-    """A checkout with a contribution and no plan records no plan and the full amount."""
+def test_a_donation_only_checkout_does_not_have_a_plan(member: User) -> None:
+    """A checkout with only a contribution records the full amount without a plan."""
     payment = create_checkout(member, None, 5_000, PaymentProvider.MOCK)
     assert payment.plan is None
     assert payment.amount_cents == 5_000
@@ -124,10 +124,10 @@ def test_mock_provider_end_to_end(member: User, annual_plan: MembershipPlan) -> 
     assert term.source == MembershipSource.PAYMENT
 
 
-def test_mock_provider_failure_leaves_no_membership(
+def test_a_mock_provider_failure_does_not_leave_a_membership(
     member: User, annual_plan: MembershipPlan
 ) -> None:
-    """Confirming a checkout as failed marks it failed and grants no membership."""
+    """Confirming a checkout as failed marks it failed and doesn't grant a membership."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.MOCK)
     assert get_provider("mock").confirm(payment, outcome="fail") is False
     payment.refresh_from_db()
@@ -158,8 +158,8 @@ def test_mark_failed_never_downgrades_a_success(member: User, annual_plan: Membe
     assert payment.status == PaymentStatus.SUCCEEDED
 
 
-def test_donation_only_payment_creates_no_membership(member: User) -> None:
-    """Succeeding a donation-only payment grants no membership."""
+def test_a_donation_only_payment_does_not_create_a_membership(member: User) -> None:
+    """Succeeding a donation-only payment doesn't grant a membership."""
     payment = create_checkout(member, None, 3_000, PaymentProvider.MOCK)
     mark_succeeded(payment)
     assert Membership.objects.filter(user=member).count() == 0

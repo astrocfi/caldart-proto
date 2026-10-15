@@ -48,7 +48,7 @@ def checkout(member: User, annual_plan: MembershipPlan) -> Payment:
 # --------------------------------------------------------------------------
 # A payment that fails and is tried again
 # --------------------------------------------------------------------------
-def test_a_failed_payment_activates_nothing(checkout: Payment, member: User) -> None:
+def test_a_failed_payment_does_not_activate_anything(checkout: Payment, member: User) -> None:
     """A failure leaves the payment failed and uncompleted, and the member unpaid."""
     failed = mark_failed(checkout, raw={"code": "card_declined"})
 
@@ -109,7 +109,7 @@ def test_a_repeated_confirmation_grants_one_term(checkout: Payment) -> None:
 
 
 def test_a_webhook_after_the_capture_only_files_the_payload(checkout: Payment) -> None:
-    """A provider notification arriving after success records itself and nothing else."""
+    """A provider notification arriving after success only records itself."""
     mark_succeeded(checkout, provider_ref="pi_captured")
 
     recorded = record_provider_event(checkout, {"event_type": "PAYMENT.CAPTURE.COMPLETED"})
@@ -125,11 +125,11 @@ def test_a_webhook_after_the_capture_only_files_the_payload(checkout: Payment) -
 def test_a_payment_confirmed_after_deactivation_buys_a_suspended_term(
     checkout: Payment, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """A provider confirming a checkout after a self-deactivation buys no coverage.
+    """A provider confirming a checkout after a self-deactivation doesn't buy coverage.
 
     The confirmation can outrun the deactivation that happened in the browser
     meanwhile, so the term it buys is created ``suspended`` rather than
-    ``active``: an account that cannot sign in gets no membership to use until
+    ``active``: an account that cannot sign in doesn't get a membership to use until
     it reactivates.  It also chains after the term the deactivation suspended
     rather than starting today and overlapping it, so reactivating does not cost
     the member most of the year they already paid for.
@@ -164,7 +164,7 @@ def test_a_manual_grant_to_a_deactivated_account_is_suspended(
     """An administrator's grant to a deactivated account is suspended, not active.
 
     A grant is placed by the same rule a payment is, so an account that cannot
-    sign in gets no membership to use from it until it reactivates.
+    sign in doesn't get a membership to use from it until it reactivates.
     """
     member.is_active = False
     member.save(update_fields=["is_active"])
