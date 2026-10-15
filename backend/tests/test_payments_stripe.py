@@ -14,6 +14,7 @@ import hashlib
 import hmac
 import json
 import time
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import Any, Protocol
 
@@ -496,6 +497,80 @@ def test_confirm_is_idempotent(
     assert Membership.objects.filter(user=member).count() == 1
 
 
+# --- a payment already refunded ---------------------------------------------
+#: When the refunded payments below settled, well before any test runs.
+SETTLED_AT = datetime(2025, 3, 14, 12, 0, tzinfo=UTC)
+
+REFUNDED_STATUSES = [PaymentStatus.REFUNDED, PaymentStatus.PARTIALLY_REFUNDED]
+
+
+def refunded_stripe_payment(member: User, status: str, intent_id: str) -> Payment:
+    """A Stripe payment of ``intent_id`` settled at :data:`SETTLED_AT`, now ``status``."""
+    payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
+    payment.provider_ref = intent_id
+    payment.status = status
+    payment.completed_at = SETTLED_AT
+    payment.save(update_fields=["provider_ref", "status", "completed_at"])
+    return payment
+
+
+@pytest.mark.parametrize("status", REFUNDED_STATUSES)
+def test_confirm_leaves_a_refunded_payment_refunded(
+    api_client: APIClient,
+    member: User,
+    annual_plan: MembershipPlan,
+    fake_intents: FakeIntents,
+    status: str,
+) -> None:
+    """Confirming a refunded payment answers its refunded status and changes nothing."""
+    payment = refunded_stripe_payment(member, status, "pi_refunded")
+    fake_intents.payload = intent_payload(payment)
+
+    api_client.force_login(member)
+    response = api_client.post(
+        CONFIRM, {"payment_id": payment.pk, "payment_intent_id": "pi_refunded"}
+    )
+
+    assert response.json()["status"] == status
+
+
+@pytest.mark.parametrize("status", REFUNDED_STATUSES)
+def test_confirm_of_a_refunded_payment_asks_stripe_nothing(
+    api_client: APIClient,
+    member: User,
+    annual_plan: MembershipPlan,
+    fake_intents: FakeIntents,
+    status: str,
+) -> None:
+    """A payment whose money arrived is not looked up again."""
+    payment = refunded_stripe_payment(member, status, "pi_refunded")
+    fake_intents.payload = intent_payload(payment)
+
+    api_client.force_login(member)
+    api_client.post(CONFIRM, {"payment_id": payment.pk, "payment_intent_id": "pi_refunded"})
+
+    assert fake_intents.retrieved == {}
+
+
+@pytest.mark.parametrize("status", REFUNDED_STATUSES)
+def test_confirm_keeps_a_refunded_payments_completion_date(
+    api_client: APIClient,
+    member: User,
+    annual_plan: MembershipPlan,
+    fake_intents: FakeIntents,
+    status: str,
+) -> None:
+    """Confirming a refunded payment does not move it into the current period."""
+    payment = refunded_stripe_payment(member, status, "pi_refunded")
+    fake_intents.payload = intent_payload(payment)
+
+    api_client.force_login(member)
+    api_client.post(CONFIRM, {"payment_id": payment.pk, "payment_intent_id": "pi_refunded"})
+
+    payment.refresh_from_db()
+    assert payment.completed_at == SETTLED_AT
+
+
 # --------------------------------------------------------------------------
 # webhook
 # --------------------------------------------------------------------------
@@ -754,6 +829,61 @@ def test_webhook_needs_no_session_or_csrf(
     """``csrf_client`` enforces CSRF, so a 403 here would mean the exemption broke."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
     assert post_webhook(csrf_client, succeeded_event(payment, "pi_anon")).status_code == 200
+
+
+@pytest.mark.parametrize("status", REFUNDED_STATUSES)
+def test_a_replayed_success_leaves_a_refunded_payment_refunded(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, status: str
+) -> None:
+    """A ``payment_intent.succeeded`` delivered again after a refund changes no status."""
+    payment = refunded_stripe_payment(member, status, "pi_replayed")
+
+    post_webhook(api_client, succeeded_event(payment, "pi_replayed"))
+
+    payment.refresh_from_db()
+    assert payment.status == status
+
+
+@pytest.mark.parametrize("status", REFUNDED_STATUSES)
+def test_a_replayed_success_keeps_a_refunded_payments_completion_date(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, status: str
+) -> None:
+    """A ``payment_intent.succeeded`` delivered again after a refund moves no date."""
+    payment = refunded_stripe_payment(member, status, "pi_replayed")
+
+    post_webhook(api_client, succeeded_event(payment, "pi_replayed"))
+
+    payment.refresh_from_db()
+    assert payment.completed_at == SETTLED_AT
+
+
+@pytest.mark.parametrize("status", REFUNDED_STATUSES)
+def test_a_replayed_success_buys_a_refunded_payment_no_term(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, status: str
+) -> None:
+    """A ``payment_intent.succeeded`` delivered again after a refund grants nothing."""
+    payment = refunded_stripe_payment(member, status, "pi_replayed")
+
+    post_webhook(api_client, succeeded_event(payment, "pi_replayed"))
+
+    assert Membership.objects.filter(payment=payment).count() == 0
+
+
+@pytest.mark.parametrize("status", REFUNDED_STATUSES)
+def test_a_late_failure_leaves_a_refunded_payment_refunded(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, status: str
+) -> None:
+    """A ``payment_intent.payment_failed`` after a refund leaves the payment refunded."""
+    payment = refunded_stripe_payment(member, status, "pi_late_failure")
+    event = stripe_event(
+        "payment_intent.payment_failed",
+        intent_payload(payment, status="requires_payment_method"),
+    )
+
+    post_webhook(api_client, event)
+
+    payment.refresh_from_db()
+    assert payment.status == status
 
 
 # --- fees ------------------------------------------------------------------

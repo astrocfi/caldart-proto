@@ -174,7 +174,11 @@ The server retrieves the PaymentIntent from Stripe (expanding
 
 On success the membership term is created immediately and the wallet is
 recorded from ``latest_charge.payment_method_details`` — ``apple_pay``,
-``google_pay``, ``link``, or ``card``.
+``google_pay``, ``link``, or ``card``.  A payment whose money has already
+arrived — ``succeeded``, ``partially_refunded`` or ``refunded`` — is not looked
+up again: the call answers 200 with the payment's status as it stands and
+changes nothing, so confirming twice, or after a refund, neither grants a second
+term nor undoes the refund.
 
 **200**:
 
@@ -192,7 +196,8 @@ provider that cannot be reached is a **400** too, and the payment stays
 that was started with another provider is a **400** keyed by ``payment_id``:
 ``{"payment_id": "That payment is not a stripe payment."}``.
 
-Statuses: **200** for a verified intent and for one Stripe reports as failed;
+Statuses: **200** for a verified intent, for one Stripe reports as failed, and
+for a payment that had already settled;
 **400** for a missing field, a payment started with another provider, a
 mismatch against our row, an intent still in flight, or Stripe being
 unreachable; **401** when anonymous; **404** when the payment is not the
@@ -212,8 +217,9 @@ at least one completed capture, a captured total equal to ``amount_cents`` and
 the same currency.  ``custom_id`` is checked only when the capture carries one:
 a capture that names a payment is required to name *this* one, and a capture
 with no ``custom_id`` at all is accepted on the amount, the currency and the
-order id.  Capturing an already-succeeded payment is a no-op that answers 200
-without calling PayPal again.
+order id.  Capturing a payment whose money has already arrived —
+``succeeded``, ``partially_refunded`` or ``refunded`` — is a no-op that answers
+200 with the payment's status as it stands, without calling PayPal again.
 
 .. code-block:: json
 
@@ -230,7 +236,7 @@ dashboard: the mismatch names the payment and both amounts, and the call that
 never completed names the payment and the amount at stake.
 
 Statuses: **200** for a completed capture and for a payment that had already
-succeeded; **400** for a missing field, a payment started with another
+settled; **400** for a missing field, a payment started with another
 provider (``{"payment_id": "That payment is not a paypal payment."}``), a
 capture PayPal did not complete, a mismatch, or PayPal being unreachable;
 **401** when anonymous; **404** when the payment is not the caller's.
@@ -640,7 +646,9 @@ have, for a ``payment_intent.succeeded`` that fails the same verification the
 confirm endpoint applies, for a ``charge.updated`` whose fee is already known
 or still unreadable, and for every event type above that is not listed.
 It is idempotent, so it is safe for it to race the browser's confirm call or
-to be re-delivered from the Stripe dashboard.
+to be re-delivered from the Stripe dashboard.  A ``payment_intent.succeeded`` or
+``payment_intent.payment_failed`` for a payment that has since been refunded, in
+full or in part, leaves it refunded.
 
 Statuses: **200** whether or not the event was acted on; **400** for a
 signature that does not check out; **405** for any method but ``POST``.

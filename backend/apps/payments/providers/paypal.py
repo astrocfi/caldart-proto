@@ -36,6 +36,7 @@ from apps.payments.providers.base import (
     ProviderUnavailableError,
     register,
 )
+from apps.payments.receipts import SETTLED_STATUSES
 from apps.payments.refunds import record_dashboard_refund
 from apps.payments.services import mark_failed, mark_succeeded, record_provider_event
 
@@ -379,7 +380,8 @@ class PayPalProvider(Provider):
 
         ``order_id`` defaults to the payment's own ``provider_ref``.  Returns
         ``True`` once the term is activated, and ``True`` without calling PayPal
-        for a payment that already succeeded, so a second click is harmless.
+        for a payment whose money already arrived -- succeeded, partly refunded, or
+        refunded -- so a second click is harmless and a refund is never undone.
         Raises :class:`PaymentVerificationError` when there is no order to
         capture, when the order belongs to another payment, when PayPal reports
         anything but ``COMPLETED``, when it completes the order without a capture,
@@ -390,8 +392,8 @@ class PayPalProvider(Provider):
         :class:`ProviderUnavailableError` and is logged at ERROR for reconciliation,
         because the money may have moved.
         """
-        if payment.is_succeeded:
-            # A second click, or a webhook that beat the browser back.
+        if payment.status in SETTLED_STATUSES:
+            # A second click, a webhook that beat the browser back, or a refund since.
             return True
 
         order_id = order_id or payment.provider_ref

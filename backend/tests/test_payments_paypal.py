@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Iterator
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import httpx
@@ -430,6 +430,77 @@ def test_capturing_twice_grants_one_term(
     assert Membership.objects.filter(user=member).count() == 1
 
 
+# --- a payment already refunded ---------------------------------------------
+#: When the refunded payments below settled, well before any test runs.
+SETTLED_AT = datetime(2025, 3, 14, 12, 0, tzinfo=UTC)
+
+REFUNDED_STATUSES = [PaymentStatus.REFUNDED, PaymentStatus.PARTIALLY_REFUNDED]
+
+
+def refunded_paypal_payment(member: User, status: str) -> Payment:
+    """A PayPal payment for ``ORDER-1``, settled at :data:`SETTLED_AT`, now ``status``."""
+    payment = pending_paypal_payment(member)
+    payment.status = status
+    payment.completed_at = SETTLED_AT
+    payment.save(update_fields=["status", "completed_at"])
+    return payment
+
+
+@pytest.mark.parametrize("status", REFUNDED_STATUSES)
+@respx.mock
+def test_capture_leaves_a_refunded_payment_refunded(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, status: str
+) -> None:
+    """Capturing a refunded payment answers its refunded status."""
+    payment = refunded_paypal_payment(member, status)
+    token_route(respx.mock)
+    respx.post(f"{ORDERS_URL}/ORDER-1/capture").mock(
+        return_value=httpx.Response(201, json=capture_payload(payment))
+    )
+
+    api_client.force_login(member)
+    response = api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER-1"})
+
+    assert response.json()["status"] == status
+
+
+@pytest.mark.parametrize("status", REFUNDED_STATUSES)
+@respx.mock
+def test_capture_of_a_refunded_payment_asks_paypal_nothing(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, status: str
+) -> None:
+    """A payment whose money arrived is not captured again."""
+    payment = refunded_paypal_payment(member, status)
+    token_route(respx.mock)
+    route = respx.post(f"{ORDERS_URL}/ORDER-1/capture").mock(
+        return_value=httpx.Response(201, json=capture_payload(payment))
+    )
+
+    api_client.force_login(member)
+    api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER-1"})
+
+    assert route.call_count == 0
+
+
+@pytest.mark.parametrize("status", REFUNDED_STATUSES)
+@respx.mock
+def test_capture_keeps_a_refunded_payments_completion_date(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, status: str
+) -> None:
+    """Capturing a refunded payment does not move it into the current period."""
+    payment = refunded_paypal_payment(member, status)
+    token_route(respx.mock)
+    respx.post(f"{ORDERS_URL}/ORDER-1/capture").mock(
+        return_value=httpx.Response(201, json=capture_payload(payment))
+    )
+
+    api_client.force_login(member)
+    api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER-1"})
+
+    payment.refresh_from_db()
+    assert payment.completed_at == SETTLED_AT
+
+
 def test_capture_requires_a_session(
     api_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
@@ -567,6 +638,71 @@ def test_a_verified_denial_marks_the_payment_failed(
     post_webhook(api_client, webhook_event(payment, "PAYMENT.CAPTURE.DENIED"))
     payment.refresh_from_db()
     assert payment.status == PaymentStatus.FAILED
+
+
+@pytest.mark.parametrize("status", REFUNDED_STATUSES)
+@respx.mock
+def test_a_replayed_capture_leaves_a_refunded_payment_refunded(
+    api_client: APIClient,
+    member: User,
+    annual_plan: MembershipPlan,
+    settings: Settings,
+    status: str,
+) -> None:
+    """A verified capture-completed delivered again after a refund changes no status."""
+    settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
+    payment = refunded_paypal_payment(member, status)
+    token_route(respx.mock)
+    verification_route(respx.mock)
+
+    post_webhook(api_client, webhook_event(payment))
+
+    payment.refresh_from_db()
+    assert payment.status == status
+
+
+@pytest.mark.parametrize("status", REFUNDED_STATUSES)
+@respx.mock
+def test_a_replayed_capture_keeps_a_refunded_payments_completion_date(
+    api_client: APIClient,
+    member: User,
+    annual_plan: MembershipPlan,
+    settings: Settings,
+    status: str,
+) -> None:
+    """A verified capture-completed delivered again after a refund moves no date."""
+    settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
+    payment = refunded_paypal_payment(member, status)
+    token_route(respx.mock)
+    verification_route(respx.mock)
+
+    post_webhook(api_client, webhook_event(payment))
+
+    payment.refresh_from_db()
+    assert payment.completed_at == SETTLED_AT
+
+
+@pytest.mark.parametrize("event_type", sorted(paypal.CAPTURE_FAILED))
+@pytest.mark.parametrize("status", REFUNDED_STATUSES)
+@respx.mock
+def test_a_verified_reversal_leaves_a_refunded_payment_refunded(
+    api_client: APIClient,
+    member: User,
+    annual_plan: MembershipPlan,
+    settings: Settings,
+    status: str,
+    event_type: str,
+) -> None:
+    """A verified denial or reversal after a refund does not mark the payment failed."""
+    settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
+    payment = refunded_paypal_payment(member, status)
+    token_route(respx.mock)
+    verification_route(respx.mock)
+
+    post_webhook(api_client, webhook_event(payment, event_type))
+
+    payment.refresh_from_db()
+    assert payment.status == status
 
 
 def test_a_webhook_for_an_unknown_payment_is_accepted(
