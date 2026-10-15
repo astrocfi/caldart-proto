@@ -918,7 +918,8 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ✓
-     - ``PUT`` → 405; delete is a hard delete; a tombstone refuses ``PATCH`` and ``DELETE`` with 400
+     - ``PUT`` → 405; delete is a hard delete, refused 403 for an account holding a role
+       the caller lacks; a tombstone refuses ``PATCH`` and ``DELETE`` with 400
    * - ``GET | POST /admin/darts``
      - ·
      - ·

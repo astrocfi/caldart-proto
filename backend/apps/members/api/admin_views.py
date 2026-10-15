@@ -150,10 +150,11 @@ class MemberAdminDetailView(
         return Response(MemberDetailSerializer(self.get_queryset().get(pk=instance.pk)).data)
 
     def destroy(self, request: Request, *args: Any, **kwargs: Any) -> Response:
-        """204 once the account is gone, refused three ways by ``delete_member``.
+        """204 once the account is gone, refused four ways by ``delete_member``.
 
-        Deleting yourself, or a system administrator unless you are one, is a 403
-        carrying the sentence the service raised; deleting a tombstone is a 400
+        Deleting yourself, a system administrator unless you are one, or an account
+        holding any role you do not hold, is a 403 carrying the sentence the service
+        raised; deleting a tombstone is a 400
         ``{"detail": "This record keeps a deleted member's payments in the books and
         cannot be changed."}``.
         """

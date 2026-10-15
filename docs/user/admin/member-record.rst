@@ -207,7 +207,8 @@ Delete this member
 The card is for a duplicate, a spam sign-up, a test record, or a person who asks to be
 removed. The delete is permanent and takes the profile and every term with it. Type the
 person's email address into the box; **Delete member** stays disabled until it matches.
-Your own account, and a system administrator's unless you are one, cannot be deleted.
+Your own account, a system administrator's unless you are one, and one holding a role you
+lack (*You cannot delete an account that holds roles you do not hold.*) cannot be deleted.
 
 Payments are the organization's financial record, so they are never deleted. The card says
 how many the person has, if any, and that they stay in the books under **Deleted member** and
