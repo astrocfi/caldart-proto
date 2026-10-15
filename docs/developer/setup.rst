@@ -383,7 +383,7 @@ list, in full:
    * - ``lint-spelling``
      - ``codespell`` — American spelling and common typos
    * - ``lint-wording``
-     - ``scripts/check_wording.py`` — a verb with a negative object, held
+     - ``scripts/check_wording.py`` — a negative object or complement, held
        to the per-file counts in ``scripts/wording-baseline.txt``; see
        :doc:`testing`
    * - ``format``

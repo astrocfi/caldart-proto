@@ -1286,7 +1286,7 @@ Linting and type-checking
    $ make lint-shell      # shellcheck over deploy/ and scripts/
    $ make lint-frontend   # tsc --noEmit, eslint --max-warnings 0, prettier --check
    $ make lint-spelling   # codespell over the prose, the code and the tests
-   $ make lint-wording    # a verb with a negative object, against its baseline
+   $ make lint-wording    # a negative object or complement, against its baseline
    $ make format          # fix what can be fixed automatically
 
 ``ruff`` is configured in ``pyproject.toml``: line length 100, target
@@ -1316,8 +1316,8 @@ request, *args, **kwargs)``, where the framework dictates the parameter list.
 
 ``mypy`` type-checks ``backend`` — the application and the tests alike — and
 the two Python files kept outside it, ``frontend/e2e/prefix_proxy.py`` and
-``scripts/check_wording.py``, as the third step of ``make lint-backend``.  ``[tool.mypy]`` in ``pyproject.toml`` sets
-``strict = true``, the ``mypy_django_plugin`` and ``mypy_drf_plugin`` plugins,
+``scripts/check_wording.py``, as the third step of ``make lint-backend``.
+``[tool.mypy]`` in ``pyproject.toml`` sets ``strict = true``, the ``mypy_django_plugin`` and ``mypy_drf_plugin`` plugins,
 and ``caldart.settings.test`` as the settings module the Django plugin reads;
 migrations are excluded.  ``disallow_subclassing_any`` is off because Wagtail's
 page, block, and settings base classes carry no types, and Wagtail, the four
@@ -1407,22 +1407,38 @@ this repository.  Two words are ignored repository-wide, ``nnumber``, and
 a ``codespell:ignore`` comment naming the word rather than widening the list.
 
 ``make lint-wording`` runs ``scripts/check_wording.py``, which holds the prose
-rule that a negation goes on the verb, never on its object.  Over the tree
-``lint-spelling`` scans, as git lists it, minus generated files (the OpenAPI
-description and its snapshot, whose text comes from the serializer docstrings
-the check reads at their source), lock files, and binaries, it flags a word
-from the script's ``FLAGGED_VERBS`` followed by ``no``, ``nothing``,
-``nobody``, ``none``, or ``no one``, across whitespace that may include one
-line break and a comment leader.  The match ignores case, an underscore joins
-words into an identifier that never matches, and ``None`` spelled that way is
-Python's value.  It passes over a verb form after an article or another
-determiner, which makes it a noun; ``no longer`` and the other adverbs listed
-in ``NOT_OBJECTS``; and the words in ``ALLOWED_WORDS``, which record the
-linking verbs, modals, prepositions, and conjunctions left alone on purpose.
-Each hit prints as ``path:line: text``, with a suggested rewrite below it when
-the verb is a simple present or past form.  To keep a line verbatim, such as
-a third party's error message, end it with a ``wording:ignore`` comment, or
-put a ``wording:ignore-next-line`` comment on the line above it.
+rule that a negation goes on the verb, never on its object, its complement, or
+the object of a preposition.  Over the tree ``lint-spelling`` scans, as git
+lists it, minus generated files (the OpenAPI description and its snapshot,
+whose text comes from the serializer docstrings the check reads at their
+source, and the golden files under ``backend/tests/golden/``), lock files, and
+binaries, it reports a flagged word followed by ``no``, ``nothing``, ``nobody``,
+``none``, or ``no one``.  The flagged words are the verb forms in
+``FLAGGED_VERBS``; the forms of *be* and the prepositions in
+``FLAGGED_WORDS``, so that *there is* and *with* before a negative count as
+well; and any other word ending in *-ed*, read as a past tense, outside
+``ALLOWED_WORDS`` and ``NOT_PAST_TENSE``.  One pronoun from ``PRONOUNS`` or one
+adverb from ``ADVERBS`` may stand between the two; a noun there is a known
+gap.  The words are separated by a single space or tab, so a table's padding
+never joins two cells, or by one line break, which may carry a comment
+leader.  The match ignores case, an underscore joins words into an identifier
+that never matches, and ``None`` spelled that way is Python's value.  It
+passes over an all-caps negative after a verb in lower case, such as a
+constant; ``no`` followed by punctuation, which is an answer; a verb form
+after an article or another determiner, which makes it a noun; and ``no
+longer``, ``no matter``, and the other adverbs listed in ``NOT_OBJECTS``.
+``ALLOWED_WORDS`` records the modals, conjunctions, and adverbs left alone on
+purpose, since a negative after them is a subject; to flag one, move it to
+``FLAGGED_WORDS``.  Each hit prints as ``path:line: text``, with a suggested
+rewrite below it when the verb is a simple present or past form, a form of
+*be*, or *with*.
+
+To keep a line verbatim, such as a third party's error message, end it with a
+``wording:ignore`` comment, or put a ``wording:ignore-next-line`` comment on
+the line above it.  reStructuredText can't end a line of prose with a
+comment, so there a comment line holding only ``.. wording:ignore-next-line``,
+followed by a blank line, covers the whole next paragraph, through the next
+blank line.
 
 ``scripts/wording-baseline.txt`` lists every file that held hits when the
 check arrived, with its count.  The check fails when a file has more hits
@@ -1433,8 +1449,13 @@ baseline with it.  ``--update-baseline`` refuses to raise a count unless
 ``--accept-new`` is given as well.  ``--all`` lists every hit, ignoring the
 baseline, and exits 1 while any remains; ``--path`` limits it to a subtree,
 so ``--all --path docs/user`` shows what is left to rewrite in the user
-guide.  ``backend/tests/test_check_wording.py`` covers the matching, the
-markers, the suggestions, and the baseline.
+guide.  ``--update-baseline`` writes only the files git tracks, and names
+any untracked file it leaves out.  Renaming a file that has hits moves its
+count to a path the baseline doesn't list, so the rename runs
+``--update-baseline --accept-new``, and its review reads the baseline's diff
+to confirm that the count moved unchanged.
+``backend/tests/test_check_wording.py`` covers the matching, the markers,
+the suggestions, and the baseline.
 
 System checks and dependency audits
 ===================================
@@ -1488,7 +1509,8 @@ commands above run locally.
 **Backend**
     A PostgreSQL 16 service container, ``uv sync --frozen``, then
     ``make lint-backend``, ``make lint-shell``, ``make lint-spelling``,
-    ``make lint-wording``, ``make check-backend``, ``make check-deploy`` and ``make test-backend``.
+    ``make lint-wording``, ``make check-backend``, ``make check-deploy``, and
+    ``make test-backend``.
 
 **Frontend**
     Node 22 and ``npm ci``, plus uv and ``uv sync`` because every frontend
