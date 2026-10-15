@@ -10,9 +10,11 @@ two pieces of the letterhead almost every template asks for.
 Because every email goes through :func:`send_templated`, it is also the one
 place that records what went out: each send writes an ``apps.mail.EmailLog``
 row, successful or refused, which is what the email log screen reads.  Each
-message carries a ``Message-ID`` stored on that row, and goes out with
-``BOUNCE_ADDRESS`` as its envelope sender when that is set, which is how the
-bounce check (``apps.mail.bounces``) matches a returned report to its row.  A
+message carries a ``Message-ID`` stored on that row and, when ``BOUNCE_ADDRESS`` is
+set, goes out with an envelope sender tagged with the row's id and signed over the id
+and the ``Message-ID`` (:func:`signed_bounce_address`), which is how the bounce check
+(``apps.mail.bounces``) ties a returned report to its row and tells a genuine report
+from one anybody could write (:func:`bounce_tag`, :func:`bounce_tag_matches`).  A
 ``List-Unsubscribe`` header a caller passes is written as itself, never as encoded
 words, so mail programs can read its links.
 
@@ -29,9 +31,12 @@ the client has its answer.  Production routes that logger to the error mail
 from __future__ import annotations
 
 import email.policy
+import hmac
 import logging
+import re
 import smtplib
 from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass
 from email.headerregistry import BaseHeader, HeaderRegistry, UnstructuredHeader
 from email.policy import EmailPolicy, Policy
 from email.utils import make_msgid, parseaddr
@@ -41,10 +46,11 @@ from django.contrib.auth import get_user_model
 from django.core.mail import EmailMultiAlternatives
 from django.core.mail.backends.base import BaseEmailBackend
 from django.core.mail.utils import DNS_NAME
-from django.db import transaction
+from django.db import DatabaseError, connection, transaction
 from django.http import HttpResponseBase
 from django.template.loader import render_to_string
 from django.utils import timezone
+from django.utils.crypto import salted_hmac
 
 from caldart.org import org_details
 
@@ -61,6 +67,42 @@ type Attachment = tuple[str, bytes, str]
 #: while the message is handed over counts, so a template that does not render is never
 #: taken for a refusal.
 _TRANSPORT_ERRORS: tuple[type[Exception], ...] = (smtplib.SMTPException, OSError)
+
+#: The ``salted_hmac`` purpose a signed bounce address is keyed with, so its signature
+#: can never stand for any other value the site signs.
+BOUNCE_SIGNATURE_SALT = "caldart.mail.bounce-address"
+
+#: How many hex digits of the signature a signed bounce address keeps: 64 bits, far
+#: beyond guessing, in 16 characters, so the tag (``+``, the id, ``.``, the signature)
+#: leaves room in a local part's 64 for the bounce address's own.
+BOUNCE_SIGNATURE_LENGTH = 16
+
+#: The most digits an email log id in a signed bounce address may have, so the id
+#: always fits the table's ``bigint`` key.
+BOUNCE_ID_MAX_DIGITS = 18
+
+#: The longest local part ``BOUNCE_ADDRESS`` may have: an address's local part holds 64
+#: characters, and the tag (``+``, the id, ``.``, the signature) takes up to 36 of them.
+BOUNCE_LOCAL_PART_MAX_LENGTH = 64 - (1 + BOUNCE_ID_MAX_DIGITS + 1 + BOUNCE_SIGNATURE_LENGTH)
+
+#: The plus tag of a signed bounce address: an email log id and its signature.
+_SIGNED_TAG = re.compile(
+    rf"(?P<id>[1-9][0-9]{{0,{BOUNCE_ID_MAX_DIGITS - 1}}})"
+    rf"\.(?P<signature>[0-9a-f]{{{BOUNCE_SIGNATURE_LENGTH}}})"
+)
+
+
+@dataclass(frozen=True)
+class BounceTag:
+    """The plus tag of a signed bounce address, read but not yet verified.
+
+    ``log_id`` is the email log id the tag names and ``signature`` the hex digits
+    signed with it; :func:`bounce_tag_matches` says whether the signature is the one
+    the site gave that row.
+    """
+
+    log_id: int
+    signature: str
 
 
 class MailRefusedError(OSError):
@@ -174,8 +216,11 @@ def send_templated(
     renders both bodies.  Each entry of ``attachments`` is attached by filename,
     bytes and media type, which is how a receipt PDF rides along.  The message's
     ``From`` is ``DEFAULT_FROM_EMAIL``, and so is its envelope sender unless
-    ``BOUNCE_ADDRESS`` is set, when that address is the envelope sender instead and a
-    receiving server returns an undeliverable message there.  The message carries a
+    ``BOUNCE_ADDRESS`` is set.  Then the envelope sender is that address tagged with the
+    id of the email log row the send writes and signed over the id and the message's
+    ``Message-ID`` (:func:`signed_bounce_address`), the id taken from the table's
+    sequence before the hand-over, and a receiving server returns an undeliverable
+    message there.  The message carries a
     fresh ``Message-ID`` on the domain of ``DEFAULT_FROM_EMAIL``, recorded on its email
     log row; ``message_id``, when given, is used instead, which is how a caller that
     must record the ``Message-ID`` before the hand-over (one from :func:`new_message_id`)
@@ -211,8 +256,11 @@ def send_templated(
     rendered = context or {}
     message_id = message_id or new_message_id()
     message_headers = {**(headers or {}), "Message-ID": message_id}
-    envelope_sender = settings.BOUNCE_ADDRESS or settings.DEFAULT_FROM_EMAIL
-    if settings.BOUNCE_ADDRESS:
+    log_id = _reserve_log_id() if settings.BOUNCE_ADDRESS else None
+    envelope_sender = (
+        settings.DEFAULT_FROM_EMAIL if log_id is None else signed_bounce_address(log_id, message_id)
+    )
+    if log_id is not None:
         # Django sends the envelope from ``from_email`` and writes the header from a
         # ``From`` given in ``headers``, which is how the two addresses differ.
         message_headers["From"] = settings.DEFAULT_FROM_EMAIL
@@ -248,6 +296,7 @@ def send_templated(
             error=type(exc).__name__,
             to_name=to_name,
             message_id=message_id,
+            log_id=log_id,
         )
         if isinstance(exc, _TRANSPORT_ERRORS):
             raise MailRefusedError.from_transport(exc) from exc
@@ -261,6 +310,7 @@ def send_templated(
         error="",
         to_name=to_name,
         message_id=message_id,
+        log_id=log_id,
     )
     return message
 
@@ -358,6 +408,100 @@ def new_message_id() -> str:
     return make_msgid(domain=_message_id_domain())
 
 
+def bounce_address() -> str:
+    """``BOUNCE_ADDRESS`` as a bare address, without any display name, or ``""``.
+
+    ``CalDART bounces <bounces@caldart.example.org>`` reads as
+    ``bounces@caldart.example.org``; the system check ``mail.E001`` asks for the bare
+    form in the first place.
+    """
+    return parseaddr(settings.BOUNCE_ADDRESS)[1]
+
+
+def signed_bounce_address(log_id: int, message_id: str) -> str:
+    """:func:`bounce_address` tagged with ``log_id``, signed over it and ``message_id``.
+
+    The address is ``<local>+<log_id>.<signature>@<domain>``, from the bounce address's
+    ``<local>@<domain>``, so a mailbox that accepts plus addresses delivers it to the
+    bounce mailbox.  The signature is the first :data:`BOUNCE_SIGNATURE_LENGTH` hex
+    digits of an HMAC-SHA256 over ``"<log_id>:<message_id>"``, keyed with ``SECRET_KEY``
+    under :data:`BOUNCE_SIGNATURE_SALT`.  Only the site can make one, and because the
+    ``Message-ID`` is drawn at random for each message, a signature stays the row's own
+    even when a restored or reset database hands the same id to another row later.
+    """
+    local, at, domain = bounce_address().rpartition("@")
+    signature = _bounce_signature(log_id, message_id, settings.SECRET_KEY)
+    return f"{local}+{log_id}.{signature}{at}{domain}"
+
+
+def bounce_tag(address: str) -> BounceTag | None:
+    """The tag ``address`` carries when it is shaped as a signed bounce address.
+
+    It is one only on :func:`bounce_address`'s own local part and domain, ignoring case,
+    with a plus tag of an id of at most :data:`BOUNCE_ID_MAX_DIGITS` digits, a dot, and
+    :data:`BOUNCE_SIGNATURE_LENGTH` hex digits.  The bare bounce address, another
+    address, an unsigned tag, and any address at all while ``BOUNCE_ADDRESS`` is empty
+    answer ``None``.  Nothing is verified here: :func:`bounce_tag_matches` checks the
+    signature against the row the id names.
+    """
+    configured = bounce_address().lower()
+    if not configured:
+        return None
+    local, _at, domain = configured.rpartition("@")
+    candidate_local, _at, candidate_domain = address.lower().rpartition("@")
+    prefix = f"{local}+"
+    if candidate_domain != domain or not candidate_local.startswith(prefix):
+        return None
+    tag = _SIGNED_TAG.fullmatch(candidate_local.removeprefix(prefix))
+    if tag is None:
+        return None
+    return BounceTag(log_id=int(tag["id"]), signature=tag["signature"])
+
+
+def bounce_tag_matches(tag: BounceTag, message_id: str) -> bool:
+    """Whether ``tag`` is signed for its id and ``message_id``, the row's ``Message-ID``.
+
+    The signature is compared in constant time against the one made under
+    ``SECRET_KEY`` and under each of ``SECRET_KEY_FALLBACKS``, so mail sent before the
+    key was rotated still reads while the old key is a fallback.
+    """
+    keys = [settings.SECRET_KEY, *settings.SECRET_KEY_FALLBACKS]
+    matched = [
+        hmac.compare_digest(tag.signature, _bounce_signature(tag.log_id, message_id, key))
+        for key in keys
+    ]
+    return any(matched)
+
+
+def _bounce_signature(log_id: int, message_id: str, key: str) -> str:
+    """The signature :func:`signed_bounce_address` gives the row under ``key``."""
+    signature = salted_hmac(
+        BOUNCE_SIGNATURE_SALT, f"{log_id}:{message_id}", secret=key, algorithm="sha256"
+    )
+    return signature.hexdigest()[:BOUNCE_SIGNATURE_LENGTH]
+
+
+def _reserve_log_id() -> int:
+    """Take the next email log id from the table's sequence, for the row a send writes.
+
+    The row is written after the hand-over, as the transport answers, but the envelope
+    sender must name it before; taking the id from the sequence first lets it.  A
+    sequence never gives the same value twice, rolled back or not, so an id taken by a
+    send that never wrote its row is never another row's.
+    """
+    # Inline, as in ``_record``: apps.mail sits above every project module.
+    from apps.mail.models import EmailLog
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT nextval(pg_get_serial_sequence(%s, 'id'))", [EmailLog._meta.db_table]
+        )
+        row = cursor.fetchone()
+    if row is None:
+        raise DatabaseError("nextval answered no row")
+    return int(row[0])
+
+
 def _message_id_domain() -> str:
     """The domain of ``DEFAULT_FROM_EMAIL``'s address, or the host's name without one."""
     _name, address = parseaddr(settings.DEFAULT_FROM_EMAIL)
@@ -375,10 +519,12 @@ def _record(
     error: str,
     to_name: str = "",
     message_id: str = "",
+    log_id: int | None = None,
 ) -> None:
     """Write one email log row.  A blank ``error`` records a send that went out.
 
-    ``message_id`` is the ``Message-ID`` header the message carried.
+    ``message_id`` is the ``Message-ID`` header the message carried, and ``log_id`` the
+    id :func:`_reserve_log_id` took for the row, or ``None`` to let the table choose.
 
     A blank ``to_name`` with a ``user_id`` is filled in from that account's current
     ``display_name`` before the row is written, so the log keeps the name the
@@ -407,6 +553,7 @@ def _record(
         name = name[:max_length]
 
     EmailLog.objects.create(
+        id=log_id,
         to_email=to,
         to_name=name,
         user_id=user_id,

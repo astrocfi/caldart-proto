@@ -4292,7 +4292,7 @@ system said to whom, which is what ``GET /system/emails`` reads
    * - ``message_id``
      - ``CharField(255)``, indexed
      - not null; default ``""``
-     - the ``Message-ID`` header the message went out with, angle brackets included, which the bounce check matches a report by
+     - the ``Message-ID`` header the message went out with, angle brackets included; it ties the row to its bulk email copy and to the bulk sender's crash recovery, and the signed bounce address is signed over it
    * - ``bounced_at``
      - ``DateTimeField``
      - null; default ``NULL``

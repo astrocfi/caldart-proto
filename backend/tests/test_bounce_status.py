@@ -1,8 +1,9 @@
 """Whether bounce checking is set up, read before anyone presses Run now.
 
-``GET /system/bounces`` answers ``{"enabled": <bool>}``, true when a bounce mailbox is
-configured (``BOUNCE_IMAP_URL``), so the Scheduled screen can say bounce checking is off
-and hold its Run now back from the start.
+``GET /system/bounces`` answers ``{"enabled": <bool>}``, true when a bounce mailbox
+(``BOUNCE_IMAP_URL``) and the address its reports return to (``BOUNCE_ADDRESS``) are both
+configured, so the Scheduled screen can say bounce checking is off and hold its Run now
+back from the start.
 """
 
 from __future__ import annotations
@@ -30,13 +31,19 @@ def test_only_a_system_administrator_reads_the_bounce_status(
 
 
 @pytest.mark.parametrize(
-    ("url", "enabled"),
-    [("", False), ("imaps://bounce:secret@mail.example.test/INBOX", True)],
-    ids=["no-mailbox", "mailbox"],
+    ("url", "address", "enabled"),
+    [
+        ("", "", False),
+        ("", "bounces@mail.example.test", False),
+        ("imaps://bounce:secret@mail.example.test/INBOX", "", False),
+        ("imaps://bounce:secret@mail.example.test/INBOX", "bounces@mail.example.test", True),
+    ],
+    ids=["neither", "address-only", "mailbox-only", "both"],
 )
 def test_the_status_says_whether_a_bounce_mailbox_is_set_up(
-    system_admin_client: APIClient, settings: Settings, url: str, enabled: bool
+    system_admin_client: APIClient, settings: Settings, url: str, address: str, enabled: bool
 ) -> None:
-    """``enabled`` follows ``BOUNCE_IMAP_URL``, and nothing is read from the mailbox."""
+    """``enabled`` needs ``BOUNCE_IMAP_URL`` and ``BOUNCE_ADDRESS``; nothing is read."""
     settings.BOUNCE_IMAP_URL = url
+    settings.BOUNCE_ADDRESS = address
     assert system_admin_client.get(STATUS_URL).json() == {"enabled": enabled}

@@ -52,7 +52,10 @@ class EmailLog(TimestampedModel):
     that rode along, comma-separated, and is blank when none did.
 
     ``message_id`` is the ``Message-ID`` header the message went out with, angle
-    brackets included, which is how a bounce report is matched back to its row.
+    brackets included.  It ties the row to its bulk email copy and lets the bulk sender
+    recover a copy that went out before a crash, and the signed bounce address the
+    message went out from is signed over it, so a bounce report is matched to this row
+    alone.
     ``bounced_at`` is when the bounce check read a permanent-failure report for the
     message, and ``bounce_detail`` that report's status code and diagnostic text; both
     are empty unless ``status`` is ``bounced``.

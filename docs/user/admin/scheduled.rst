@@ -172,7 +172,9 @@ Bounces
 Every hour CalDART reads the mailbox that undeliverable email comes back to. When another
 mail server has refused one of its emails for good, because the address does not exist or
 no longer takes mail, CalDART marks that email *Bounced* on :doc:`sent-emails` and puts a
-**Bounced** flag beside the address on the person's member record and user record. Delays
+**Bounced** flag beside the address on the person's member record and user record. An email
+refused for its content or by the other server's rules, with the address itself fine, is
+marked *Bounced* too, but the address is not flagged. Delays
 and temporary failures, which the other server is still retrying, are ignored. The flag stays
 until the address is changed, until the person follows a verification or password reset link
 sent to it, or until a user administrator clears it on :doc:`user-record`.
@@ -181,7 +183,8 @@ sent to it, or until a user administrator clears it on :doc:`user-record`.
    Nothing is marked, and every message stays in the mailbox for the next run.
 #. Press **Run now**. The result reads, for example, *Would mark 1 bounced, leave 1
    unmatched, ignore 2, and skip 0.* *Bounced* counts the emails matched to a bounce,
-   *unmatched* the bounces CalDART could not tie to an email it sent in the last week,
+   *unmatched* the bounces that did not come back to the return address of an email
+   CalDART sent, which change nothing,
    *ignored* the messages that were not a refusal for good, and *skip* the messages left
    unread because the mail server would not hand them over or they were too large to be a
    bounce.

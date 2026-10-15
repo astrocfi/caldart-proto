@@ -51,8 +51,9 @@
 #   --bounce-imap-url URL      BOUNCE_IMAP_URL, the mailbox the hourly bounce check reads,
 #                              as imaps://user:password@host[:port]/MAILBOX with the
 #                              credentials URL-encoded (default: bounce checking off)
-#   --bounce-address ADDRESS   BOUNCE_ADDRESS, the envelope sender a refused message is
-#                              returned to (default: DEFAULT_FROM_EMAIL)
+#   --bounce-address ADDRESS   BOUNCE_ADDRESS, the address a refused message is
+#                              returned to, signed per message with a plus tag
+#                              (default: DEFAULT_FROM_EMAIL)
 #   --admin-email ADDRESS      create the first administrator with this address
 #   --seed-demo                load the demo accounts (the shared password README.rst
 #                              documents; a server seeded with them is a demonstration

@@ -1,6 +1,7 @@
 Return-Path: <{recipient}>
 From: Dana Doe <{recipient}>
-To: CalDART <bounces@caldart.example.org>
+Delivered-To: {delivered_to}
+To: CalDART <{to}>
 Subject: Automatic reply: CalDART: your membership renews soon
 Date: Thu, 01 Oct 2026 10:00:12 -0700
 Auto-Submitted: auto-replied

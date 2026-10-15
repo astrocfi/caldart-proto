@@ -528,12 +528,20 @@ Email
       bounce it.
 
 ``BOUNCE_ADDRESS``
-   The envelope sender (the ``Return-Path``) of every message, which is where a
-   receiving server returns a message it cannot deliver; the ``From`` stays
-   ``DEFAULT_FROM_EMAIL``.  Set it to the address of the bounce mailbox
-   ``BOUNCE_IMAP_URL`` reads (:ref:`email-bounces`).
+   The address the envelope sender (the ``Return-Path``) of every message is made
+   from, which is where a receiving server returns a message it cannot deliver;
+   the ``From`` stays ``DEFAULT_FROM_EMAIL``.  Each message goes out from this
+   address with a plus tag of its email log id and a signature over it,
+   ``bounces+<id>.<signature>@caldart.example.org``, and the bounce check counts
+   only reports returned to such an address (:ref:`email-bounces`).  Set it to the
+   address of the bounce mailbox ``BOUNCE_IMAP_URL`` reads; the mailbox must accept
+   plus addresses.  It must be a bare address, with no display name, and its local
+   part at most 28 characters, so the signed address fits; ``manage.py check``
+   reports anything else as ``mail.E001`` or ``mail.E002``.  Bounce checking needs
+   it as well as ``BOUNCE_IMAP_URL``.
 
-   :Both: empty, which sends the envelope from ``DEFAULT_FROM_EMAIL`` as well.
+   :Both: empty, which sends the envelope from ``DEFAULT_FROM_EMAIL`` as well and
+      leaves bounce checking off.
    :Production: ``bounces@caldart.example.org``, on the same domain as
       ``DEFAULT_FROM_EMAIL`` so the relay's SPF covers it.
 
@@ -543,8 +551,9 @@ Email
    percent-encoded (an ``@`` becomes ``%40``).  The port defaults to 993 and the
    mailbox to ``INBOX``.  Only IMAP over TLS is accepted.
 
-   :Both: empty, which turns bounce checking off: the hourly run and **Run now**
-      on the Scheduled tasks page say so and read nothing.
+   :Both: empty, which turns bounce checking off, as an empty ``BOUNCE_ADDRESS``
+      does: the hourly run and **Run now** on the Scheduled tasks page say so and
+      read nothing.
    :Production: ``imaps://bounces%40caldart.example.org:app-password@imap.example.org/INBOX``.
 
 ``DKIM_SELECTOR``
