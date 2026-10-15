@@ -678,7 +678,12 @@ order id) and answers:
 
 ``verified`` is true only when ``PAYPAL_WEBHOOK_ID`` is set *and* PayPal's
 ``verify-webhook-signature`` call passes.  A verified
-``PAYMENT.CAPTURE.COMPLETED`` for the right amount activates the membership;
+``PAYMENT.CAPTURE.COMPLETED`` activates the membership once it passes the
+capture call's own checks: the amount, the currency, a ``custom_id`` when the
+capture carries one, and the order, read from
+``supplementary_data.related_ids.order_id``, which has to be the payment's own
+``provider_ref``.  One that fails them is logged at ``ERROR`` for reconciliation
+and answered with ``handled`` false;
 ``PAYMENT.CAPTURE.DENIED`` and ``PAYMENT.CAPTURE.REVERSED`` mark it failed; and
 a verified ``PAYMENT.CAPTURE.REFUNDED`` records the refund, as
 :ref:`api-refunds-webhooks` describes.

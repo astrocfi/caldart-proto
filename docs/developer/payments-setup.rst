@@ -592,9 +592,11 @@ process and nothing else.  Emptying the cache forces the next call to fetch —
 which is how the tests do it.
 
 A capture only activates a membership when PayPal answers ``COMPLETED`` *and*
-the captured amount and currency match our own record.  A ``custom_id`` on the
-capture has to match too, but a capture that carries none is still accepted:
-see :doc:`api-payments`.
+the captured amount, the currency, and the order match our own record.  A
+``custom_id`` on the capture has to match too, but a capture that carries none is
+still accepted: see :doc:`api-payments`.  A ``PAYMENT.CAPTURE.COMPLETED``
+notification is held to the same checks, with the order read from its
+``supplementary_data.related_ids.order_id``.
 
 Testing it
 ----------
@@ -619,7 +621,8 @@ up if you want a belt-and-braces record:
 
 With that id set, each delivery is verified through
 ``POST /v1/notifications/verify-webhook-signature``, and a verified
-``PAYMENT.CAPTURE.COMPLETED`` for the right amount activates the membership.
+``PAYMENT.CAPTURE.COMPLETED`` whose amount, currency, and order match the
+payment activates the membership.
 **Without** it the endpoint still accepts and records the payload against the
 payment, but changes nothing — an unverifiable notification is not evidence
 that money moved.

@@ -312,20 +312,68 @@ def capture_id(payment: Payment) -> str:
     return str(found)
 
 
-def log_capture_mismatch(payment: Payment, order: dict[str, Any], reason: str) -> None:
+def log_capture_mismatch(payment: Payment, captured: int, reason: str) -> None:
     """Record at ERROR a capture that took money we cannot match to our row.
 
     PayPal has the money by this point, so the refusal needs a human to
-    reconcile it.  ``reason`` names the field that disagreed.  The record
-    carries the payment id and both amounts, and no personal data.
+    reconcile it.  ``captured`` is what PayPal took, in cents, and ``reason`` names
+    the field that disagreed.  The record carries the payment id and both amounts,
+    and no personal data.
     """
     log.error(
         "PayPal capture mismatch (%s) for payment %s: captured %s cents, expected %s cents",
         reason,
         payment.pk,
-        captured_cents(order),
+        captured,
         payment.amount_cents,
     )
+
+
+def verify_capture(
+    payment: Payment, capture: dict[str, Any], *, captured: int, order_id: str
+) -> None:
+    """Everything about a completed capture that must match our own row.
+
+    ``capture`` is one completed capture, ``captured`` the total PayPal took for the
+    order in cents, and ``order_id`` the id of the order the capture belongs to.  The
+    capture call and the ``PAYMENT.CAPTURE.COMPLETED`` notification both check here.
+
+    Returns ``None`` when ``captured`` equals the payment's ``amount_cents``, the
+    capture's ``amount.currency_code`` is the payment's currency in any case, the
+    capture's ``custom_id``, when it carries one, is the payment's id, and
+    ``order_id`` is the payment's own ``provider_ref``.  Otherwise records the
+    mismatch through :func:`log_capture_mismatch`, since PayPal holds the money, and
+    raises :class:`PaymentVerificationError` naming the first check that failed.
+    """
+    if captured != payment.amount_cents:
+        log_capture_mismatch(payment, captured, "amount")
+        raise PaymentVerificationError(
+            f"PayPal captured ${captured / 100:,.2f}, not ${payment.amount_cents / 100:,.2f}."
+        )
+
+    currency = str((capture.get("amount") or {}).get("currency_code") or "")
+    if currency.lower() != payment.currency.lower():
+        log_capture_mismatch(payment, captured, "currency")
+        raise PaymentVerificationError("PayPal captured a different currency.")
+
+    custom_id = capture.get("custom_id")
+    if custom_id and str(custom_id) != str(payment.pk):
+        log_capture_mismatch(payment, captured, "custom_id")
+        raise PaymentVerificationError("The PayPal capture belongs to another payment.")
+
+    if not order_id or order_id != payment.provider_ref:
+        log_capture_mismatch(payment, captured, "order")
+        raise PaymentVerificationError("The PayPal capture belongs to another order.")
+
+
+def related_order_id(capture: dict[str, Any]) -> str:
+    """The id of the order a capture notification's resource belongs to.
+
+    Read from ``supplementary_data.related_ids.order_id``, where PayPal puts it on a
+    capture; an empty string when the resource carries none.
+    """
+    related = (capture.get("supplementary_data") or {}).get("related_ids") or {}
+    return str(related.get("order_id") or "")
 
 
 @register
@@ -398,9 +446,10 @@ class PayPalProvider(Provider):
         Raises :class:`PaymentVerificationError` when the payment holds no order of
         its own, when ``order_id`` names another order, when PayPal reports
         anything but ``COMPLETED``, when it completes the order without a capture,
-        and when the captured total, the currency or the capture's ``custom_id``
-        disagrees with the payment.  Of those, a status other than ``COMPLETED``
-        and a completed order without a capture also mark the payment failed;
+        and when :func:`verify_capture` finds the captured total, the currency, the
+        capture's ``custom_id`` or the order id disagreeing with the payment.  Of
+        those, a status other than ``COMPLETED`` and a completed order without a
+        capture also mark the payment failed;
         the rest leave it as it was.  A capture that never completes raises
         :class:`ProviderUnavailableError` and is logged at ERROR for reconciliation,
         because the money may have moved.
@@ -440,22 +489,12 @@ class PayPalProvider(Provider):
             mark_failed(payment, order)
             raise PaymentVerificationError("PayPal completed the order without a capture.")
 
-        total = captured_cents(order)
-        if total != payment.amount_cents:
-            log_capture_mismatch(payment, order, "amount")
-            raise PaymentVerificationError(
-                f"PayPal captured ${total / 100:,.2f}, not ${payment.amount_cents / 100:,.2f}."
-            )
-
-        currency = (captures[0].get("amount") or {}).get("currency_code", "")
-        if currency.lower() != payment.currency.lower():
-            log_capture_mismatch(payment, order, "currency")
-            raise PaymentVerificationError("PayPal captured a different currency.")
-
-        custom_id = captures[0].get("custom_id")
-        if custom_id and str(custom_id) != str(payment.pk):
-            log_capture_mismatch(payment, order, "custom_id")
-            raise PaymentVerificationError("The PayPal capture belongs to another payment.")
+        verify_capture(
+            payment,
+            captures[0],
+            captured=captured_cents(order),
+            order_id=str(order.get("id") or ""),
+        )
 
         fees = fees_from_order(order)
         mark_succeeded(
@@ -531,9 +570,14 @@ class PayPalProvider(Provider):
             return JsonResponse({"received": True, "verified": False, "handled": False})
 
         if event_type == CAPTURE_COMPLETED:
-            amount = cents((resource.get("amount") or {}).get("value", 0))
-            if amount != payment.amount_cents:
-                log.error("PayPal webhook amount %s does not match payment %s", amount, payment.pk)
+            try:
+                verify_capture(
+                    payment,
+                    resource,
+                    captured=cents((resource.get("amount") or {}).get("value", 0)),
+                    order_id=related_order_id(resource),
+                )
+            except PaymentVerificationError:
                 return JsonResponse({"received": True, "verified": True, "handled": False})
             fees = fees_from_capture(resource)
             mark_succeeded(
@@ -715,7 +759,7 @@ class PayPalProvider(Provider):
             raise PaymentDeclinedError(DECLINED_MESSAGE)
         total = captured_cents(order)
         if total != payment.amount_cents:
-            log_capture_mismatch(payment, order, "amount")
+            log_capture_mismatch(payment, total, "amount")
             raise PaymentVerificationError(
                 f"PayPal captured ${total / 100:,.2f}, not ${payment.amount_cents / 100:,.2f}."
             )

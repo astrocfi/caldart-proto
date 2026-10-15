@@ -381,6 +381,24 @@ def test_capture_for_another_payment_is_refused(
 
 
 @respx.mock
+def test_capture_answered_for_another_order_is_refused(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A capture response naming an order other than the payment's own grants nothing."""
+    payment = pending_paypal_payment(member)
+    token_route(respx.mock)
+    respx.post(f"{ORDERS_URL}/ORDER1/capture").mock(
+        return_value=httpx.Response(201, json=capture_payload(payment, order_id="ORDEROTHER"))
+    )
+
+    api_client.force_login(member)
+    response = api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER1"})
+
+    assert response.status_code == 400
+    assert Membership.objects.count() == 0
+
+
+@respx.mock
 def test_completed_order_without_a_capture_is_refused(
     api_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
@@ -608,7 +626,11 @@ def test_capture_rejects_someone_elses_payment(
 def webhook_event(
     payment: Payment, event_type: str = "PAYMENT.CAPTURE.COMPLETED"
 ) -> dict[str, Any]:
-    """A PayPal webhook payload of ``event_type`` for ``payment``."""
+    """A PayPal webhook payload of ``event_type`` for ``payment``.
+
+    The resource is a capture of the payment's own order, as PayPal sends it: it names
+    the payment in ``custom_id`` and the order in ``supplementary_data``.
+    """
     return {
         "id": "WH-1",
         "event_type": event_type,
@@ -617,6 +639,7 @@ def webhook_event(
             "custom_id": str(payment.pk),
             "status": "COMPLETED",
             "amount": {"currency_code": "USD", "value": f"{payment.amount_cents / 100:.2f}"},
+            "supplementary_data": {"related_ids": {"order_id": payment.provider_ref}},
         },
     }
 
@@ -700,6 +723,68 @@ def test_a_verified_webhook_of_the_wrong_amount_is_ignored(
     assert json.loads(response.content)["handled"] is False
     payment.refresh_from_db()
     assert payment.status == PaymentStatus.PENDING
+
+
+@respx.mock
+def test_a_verified_capture_in_another_currency_is_ignored(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, settings: Settings
+) -> None:
+    """A verified capture of the right number in another currency activates nothing."""
+    settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
+    payment = pending_paypal_payment(member)
+    token_route(respx.mock)
+    verification_route(respx.mock)
+    event = webhook_event(payment)
+    event["resource"]["amount"]["currency_code"] = "JPY"
+
+    post_webhook(api_client, event)
+
+    payment.refresh_from_db()
+    assert payment.status == PaymentStatus.PENDING
+
+
+@pytest.mark.parametrize(
+    "related_ids",
+    [{"order_id": "ORDERSOMEONEELSE"}, {}],
+    ids=["another order", "no order"],
+)
+@respx.mock
+def test_a_verified_capture_of_another_order_is_ignored(
+    api_client: APIClient,
+    member: User,
+    annual_plan: MembershipPlan,
+    settings: Settings,
+    related_ids: dict[str, str],
+) -> None:
+    """A verified capture naming the payment but not its own order activates nothing."""
+    settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
+    payment = pending_paypal_payment(member)
+    token_route(respx.mock)
+    verification_route(respx.mock)
+    event = webhook_event(payment)
+    event["resource"]["supplementary_data"] = {"related_ids": related_ids}
+
+    post_webhook(api_client, event)
+
+    payment.refresh_from_db()
+    assert payment.status == PaymentStatus.PENDING
+
+
+@respx.mock
+def test_a_verified_capture_of_another_order_is_reported_unhandled(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, settings: Settings
+) -> None:
+    """The notification is acknowledged, so PayPal stops retrying it, but not handled."""
+    settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
+    payment = pending_paypal_payment(member)
+    token_route(respx.mock)
+    verification_route(respx.mock)
+    event = webhook_event(payment)
+    event["resource"]["supplementary_data"] = {"related_ids": {"order_id": "ORDERSOMEONEELSE"}}
+
+    response = post_webhook(api_client, event)
+
+    assert json.loads(response.content)["handled"] is False
 
 
 @respx.mock
