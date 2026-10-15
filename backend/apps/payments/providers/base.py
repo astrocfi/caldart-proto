@@ -34,7 +34,7 @@ class RequestNotSentError(ProviderUnavailableError):
 
     The connection was never made, or the credentials it needs could not be
     fetched, so the provider cannot have acted: an off-session charge that ends
-    here took nothing, and is put off rather than held in doubt.
+    here didn't take anything, and is put off rather than held in doubt.
     """
 
 

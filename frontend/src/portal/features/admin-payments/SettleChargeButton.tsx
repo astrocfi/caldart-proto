@@ -1,14 +1,14 @@
 /**
  * **Settle** on a renewal charge held in doubt: the payment provider may have taken
- * it and cannot say, so the automatic run charges nothing more until a treasurer has
- * looked in the provider's own dashboard.
+ * it and cannot say, so the automatic run doesn't charge it again until a treasurer
+ * has looked in the provider's own dashboard.
  *
  * The panel names what to search the dashboard for -- the charge's invoice id, its
  * amount, and when it was sent -- and takes the treasurer's answer: **Record as
  * paid** with the provider's capture id, which renews the member's term and emails
- * them as any charge does; or, once the treasurer has checked that they found no
- * charge, **It took nothing**, which lets the next run charge it again, or **Close
- * as failed**, which charges nothing and pauses the member's automatic renewal.
+ * them as any charge does; or, once the treasurer has checked that they didn't find
+ * a payment, **No payment found**, which lets the next run charge it again, or **Close
+ * as failed**, which doesn't charge it and pauses the member's automatic renewal.
  */
 import { useState } from 'react';
 import type { ChangeEvent, JSX } from 'react';
@@ -77,7 +77,7 @@ export function SettleChargeButton({ attempt }: SettleChargeButtonProps): JSX.El
           onChoose: () => answer('paid', `The charge for ${name} is recorded.`),
         },
         {
-          label: 'It took nothing',
+          label: 'No payment found',
           disabled: !isNothingFound,
           onChoose: () =>
             answer('released', `The charge for ${name} will be taken on the next run.`),
@@ -118,11 +118,11 @@ export function SettleChargeButton({ attempt }: SettleChargeButtonProps): JSX.El
       </Field>
       <label className="cluster">
         <input type="checkbox" checked={isNothingFound} onChange={handleNothingFoundChange} />I
-        searched the dashboard and it holds no charge for this invoice
+        searched the dashboard and didn&rsquo;t find a payment for this invoice
       </label>
       <p className="muted">
-        It took nothing lets the next run charge it again; Close as failed charges nothing more and
-        pauses {name}&rsquo;s automatic renewal. Either needs the search confirmed.
+        No payment found lets the next run charge it again; Close as failed doesn&rsquo;t charge it
+        again and pauses {name}&rsquo;s automatic renewal. Either needs the search confirmed.
       </p>
     </ConfirmButton>
   );

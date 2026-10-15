@@ -640,7 +640,7 @@ class RenewalSettleSerializer(serializers.Serializer[dict[str, Any]]):
 
     ``outcome`` is ``paid`` when the provider took the charge, and ``reference`` is
     then its id for it -- a PayPal capture id -- which is required; ``released``
-    when it took nothing; and ``failed`` to close the charge without one.
+    when it didn't take anything; and ``failed`` to close the charge without one.
     ``reference`` is read only for ``paid``.
     """
 

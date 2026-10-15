@@ -297,8 +297,8 @@ def settle_in_doubt(
       settled at once, as the scan settles one -- the term renewed and the member
       emailed.  ``defer``, when given, is handed that email to send later, so a slow
       mail server never holds the request up.
-    * ``released``: the provider took nothing.  The hold is lifted and the next scan
-      charges the same payment again, under the same ``invoice_id``.
+    * ``released``: the provider didn't take anything.  The hold is lifted and the next
+      scan charges the same payment again, under the same ``invoice_id``.
     * ``failed``: neither is right.  The attempt is closed as failed without a
       charge, the payment is marked failed, and an active mandate is paused, raising
       ``auto_renewal_off`` with ``how="administrator"``; the member is not emailed,
@@ -459,8 +459,8 @@ def _resume(attempt: RenewalAttempt, today: date, run: RenewalRun) -> None:
     the provider's webhook has already marked succeeded is recorded as the charge.
     Otherwise the provider is asked for the charge it made for this payment
     (``find_mandate_charge``), and what it found is recorded: a success, a decline, a
-    charge still settling, or one in doubt.  Only when it holds no charge at all is
-    the payment charged, under the same payment and so the same idempotency key --
+    charge still settling, or one in doubt.  Only when it doesn't hold a charge at all
+    is the payment charged, under the same payment and so the same idempotency key --
     unless the attempt should no longer be charged, in which case the payment is
     thrown away and the attempt skipped.  This is reached whatever the mandate's
     status, so a charge taken just before the member turned renewal off is still

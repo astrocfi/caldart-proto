@@ -109,16 +109,16 @@ search PayPal's own dashboard for: the charge's invoice id, such as
   the membership, and emails the member the usual *your membership has been renewed*
   message. A capture for another payment, another amount, or another currency is refused
   and the charge stays as it was.
-* If PayPal took nothing, check *I searched the dashboard and it holds no charge for this
-  invoice* and press **It took nothing**. The next morning's run charges it again. If
+* If you don't find a payment, check *I searched the dashboard and didn't find a payment
+  for this invoice* and press **No payment found**. The next morning's run charges it again. If
   PayPal did take it after all, and PayPal's *Block accidental payments* setting is on,
   PayPal refuses the second charge and the row returns to **Needs checking**, and you are
   told again. PayPal's *Block accidental payments* must be on for that to happen.
-* If neither fits, check the same box and press **Close as failed**. Nothing more is
-  charged, the member's automatic renewal is paused, and the ordinary renewal reminders
+* If neither fits, check the same box and press **Close as failed**. The member isn't
+  charged again, their automatic renewal is paused, and the ordinary renewal reminders
   take over. The member is not emailed, so get in touch with them yourself.
 
-Once a charge's payment has gone through, **It took nothing** and **Close as failed** are
+Once a charge's payment has gone through, **No payment found** and **Close as failed** are
 refused: record it as paid instead.
 
 Turn a standing charge off
