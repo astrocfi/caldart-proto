@@ -191,7 +191,7 @@ class Registration(models.Model):
     ``N``.  Its uniqueness gives it, on Postgres, a second index built with
     ``varchar_pattern_ops``, which is what serves the N-number typeahead's prefix
     match.  ``airworthiness`` is the classification of the airworthiness certificate,
-    blank when the registry gives none.  No address is kept.
+    blank when the registry doesn't give one.  No address is kept.
     """
 
     n_number = models.CharField("N-number", max_length=6, unique=True)
@@ -465,7 +465,7 @@ class AircraftCoveragePolicy(models.Model):
     def __str__(self) -> str:
         """Return what the policy excludes, e.g. ``excludes helicopter``."""
         excluded = [*self.excluded_categories, *self.excluded_airworthiness]
-        return f"excludes {', '.join(excluded)}" if excluded else "excludes nothing"
+        return f"excludes {', '.join(excluded)}" if excluded else "doesn't exclude anything"
 
     def save(self, *args: Any, **kwargs: Any) -> None:
         """Save the policy as the one row, primary key 1."""
@@ -474,7 +474,7 @@ class AircraftCoveragePolicy(models.Model):
 
     @classmethod
     def load(cls) -> AircraftCoveragePolicy:
-        """The stored policy, or an unsaved empty one (excluding nothing) before any is.
+        """The stored policy, or an unsaved empty one before any is.
 
         Reading never writes: the row first appears when the empty policy is saved.
         """

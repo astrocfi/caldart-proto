@@ -103,7 +103,7 @@ class AircraftQuerysetMixin(generics.GenericAPIView[Aircraft]):
     """The register, filtered and ordered identically everywhere.
 
     The insurance verifier and the aircraft type are joined, so naming who verified each
-    row, and its make and model, costs no query.
+    row, and its make and model, doesn't cost a query.
     """
 
     queryset = Aircraft.objects.select_related("insurance_verified_by", "type")
@@ -198,7 +198,7 @@ class AircraftLookupView(APIView):
     def get(self, request: Request) -> Response:
         """Look up the aircraft with the normalized ``n_number``.
 
-        Answers 400 when ``n_number`` is missing or normalizes to nothing, and 404 when
+        Answers 400 when ``n_number`` is missing or blank after normalizing, and 404 when
         no aircraft matches.
         """
         n_number = normalize_n_number(request.query_params.get("n_number", ""))
@@ -264,7 +264,7 @@ class CoveragePolicyView(APIView):
 
     @extend_schema(responses={200: CoveragePolicySerializer})
     def get(self, request: Request) -> Response:
-        """Return the policy, an empty one (excluding nothing) before any is written."""
+        """Return the policy, or an empty one before any is written."""
         return Response(CoveragePolicySerializer(AircraftCoveragePolicy.load()).data)
 
     @extend_schema(request=CoveragePolicySerializer, responses={200: CoveragePolicySerializer})
@@ -304,7 +304,7 @@ class RegistrationLookupView(APIView):
     def get(self, request: Request, n_number: str) -> Response:
         """Return the registration for the normalized ``n_number``.
 
-        Answers 400 when ``n_number`` normalizes to nothing, and 404 with
+        Answers 400 when ``n_number`` is blank after normalizing, and 404 with
         ``No registration for <N-number> in the registry.`` when the registry does not
         hold it.
         """
@@ -335,8 +335,8 @@ class RegistrationSearchView(APIView):
 
         ``q`` is normalized as an N-number is (upper case, punctuation dropped, a leading
         ``N`` added when it starts with a digit), and the matches come in N-number order,
-        each shaped as ``GET /aircraft/registry/{n_number}`` answers it.  A ``q`` shorter
-        than two characters after normalizing, or none at all, answers an empty list
+        each shaped as ``GET /aircraft/registry/{n_number}`` answers it.  A ``q`` that is
+        missing or shorter than two characters after normalizing answers an empty list
         rather than an error, so a typeahead may ask on every keystroke.
         """
         prefix = normalize_n_number(request.query_params.get("q", ""))
@@ -393,7 +393,7 @@ class LeaderAircraftView(APIView):
     def get(self, request: Request) -> Response:
         """Return the insurance card for the aircraft with the normalized ``n_number``.
 
-        Answers 400 when ``n_number`` is missing or normalizes to nothing, and 404 when
+        Answers 400 when ``n_number`` is missing or blank after normalizing, and 404 when
         no aircraft matches.
         """
         n_number = normalize_n_number(request.query_params.get("n_number", ""))

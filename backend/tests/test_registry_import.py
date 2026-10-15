@@ -264,7 +264,7 @@ def test_a_file_missing_a_column_is_refused(tmp_path: Path) -> None:
     )
     with (
         path.open("rb") as stream,
-        pytest.raises(RegistryFormatError, match=r"ACFTREF\.txt has no NO-SEATS column\."),
+        pytest.raises(RegistryFormatError, match=r"ACFTREF\.txt doesn't have a NO-SEATS column\."),
     ):
         list(read_types(stream))
 

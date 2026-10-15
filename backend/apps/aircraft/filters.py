@@ -38,7 +38,7 @@ ORDERING_FIELDS = ["n_number", "make", "insurance_expiration", "model", "owner_n
 #: The query path each ordering name that is not a column of ``Aircraft`` sorts on.
 ORDERING_PATHS: dict[str, str] = {"make": "type__make", "model": "type__model"}
 
-#: The order the register takes when ``?ordering=`` names nothing it accepts.
+#: The order the register takes when ``?ordering=`` doesn't name anything it accepts.
 DEFAULT_ORDERING = ["n_number"]
 
 #: The ``?insurance=`` choices, labeled in the words the register's insurance dot shows.
@@ -137,7 +137,7 @@ class NullsLastOrderingFilter(OrderingFilter):
     """``?ordering=`` that keeps empty values at the bottom either way.
 
     Postgres sorts NULLs first on a descending order, which would put every
-    aircraft with no insurance on file at the top of "latest expiry" -- the
+    aircraft without insurance on file at the top of "latest expiry" -- the
     opposite of what an administrator chasing lapsed cover wants to see.
 
     Every ordering also ends in the primary key.  Sorting the register by a

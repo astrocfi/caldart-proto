@@ -61,7 +61,7 @@ def changed_fields(aircraft: Aircraft, validated: dict[str, Any]) -> list[str]:
     """The concrete column names in ``validated`` whose value differs from ``aircraft``.
 
     ``validated`` is a serializer's validated data, so it may also carry a relation
-    or a key the table has no column for; such a key is left out.  Compare before
+    or a key the table doesn't have a column for; such a key is left out.  Compare before
     the save, while ``aircraft`` still holds the stored values: the portal's forms
     resend every field they show, and only the ones that moved are the change.
     """
@@ -115,8 +115,8 @@ def record_updated(aircraft: Aircraft, *, actor: UserModel, fields: list[str]) -
     ``fields`` is :func:`changed_fields`, worked out before the save.  Writes the
     ``updated`` history row and the ``aircraft.update`` audit record naming them, and,
     when any column moved, raises the ``aircraft_changed`` event with the aircraft,
-    those column names and ``actor``; an edit that moved nothing raises nothing.  When
-    an insurance field moved, a verified insurance is cleared
+    those column names and ``actor``; an edit that didn't move anything doesn't raise it.
+    When an insurance field moved, a verified insurance is cleared
     (:func:`apps.aircraft.verification.clear_stale_insurance`) and no
     ``verification_changed`` is raised: ``aircraft_changed`` already tells of the edit.
     """
@@ -216,7 +216,7 @@ def search_result(user: UserModel) -> dict[str, Any]:
     uses: ``go_no_go`` is a current membership, a current medical, and whether the
     pilot certificate, medical, and photo ID are all verified, so a leader reads the
     list and only opens the card for the detail.  Everything comes from the row the
-    search already fetched, so a result costs no query of its own.
+    search already fetched, so a result doesn't cost a query of its own.
     """
     profile = getattr(user, "profile", None)
     dart = profile.dart if profile is not None else None
@@ -235,7 +235,7 @@ def _go_no_go(status: str, profile: MemberProfile | None) -> dict[str, bool]:
 
     ``membership`` is a current membership, ``medical`` a current medical, and
     ``verified`` whether every item is held and verified (``is_fully_verified``).  An
-    account with no profile has neither a medical nor anything verified.  The search
+    account without a profile doesn't have a medical or anything verified.  The search
     row, the status card, and the aircraft card's pilot list all answer with this, so
     the checks never disagree about one person.
     """
@@ -253,8 +253,9 @@ def leader_status(user: UserModel) -> dict[str, Any]:
     a member is a no-go, not just that they are.  ``verified`` among them is true when
     the pilot certificate, the medical, and the photo ID are all verified; each of the
     three carries its own ``verification``.  ``is_dart_leader`` and ``is_verifier`` say
-    whether the member holds the DART leader role and the verifier role.  An account with
-    no profile has nothing verified and a photo ID of ``not_provided``.
+    whether the member holds the DART leader role and the verifier role.  An account
+    without a profile doesn't have anything verified, and its photo ID reads
+    ``not_provided``.
     """
     profile = getattr(user, "profile", None)
     status = membership_status(user)
@@ -295,7 +296,7 @@ def leader_status(user: UserModel) -> dict[str, Any]:
 
 
 def _item_state(profile: MemberProfile | None, slug: str) -> VerificationState:
-    """The item ``slug``'s state on ``profile``, unverified when there is no profile."""
+    """The item ``slug``'s state on ``profile``, unverified without a profile."""
     if profile is None:
         return verification_state(None, None)
     return item_state(profile, slug)

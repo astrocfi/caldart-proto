@@ -79,7 +79,7 @@ def _expires(row: RegisterRow) -> Marked | None:
 #: Every column the register exports can carry, in export order.  ``key`` is
 #: what ``?columns=`` names and what ``GET /reports/aircraft/columns`` answers
 #: with, ``label`` is the header both exports print, ``default`` says whether
-#: the column appears when the caller chooses none, and ``width`` is the share
+#: the column appears when the caller doesn't choose any, and ``width`` is the share
 #: of the page the PDF gives it.  The ones that are off by default -- the
 #: category, the airworthiness, the owner's kind, the per-person liability limit and
 #: the pilots who fly the plane -- are there for an insurance review or a roster
