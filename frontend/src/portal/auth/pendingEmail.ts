@@ -5,7 +5,7 @@ import type { User } from '@/portal/api/types';
  * The sentence that says a change of address is waiting, or `null` when none is:
  * `We sent a link to <pending>. Your sign-in address stays <email> until you follow it.`
  *
- * @param user - The signed-in user, whose `pending_email` is `''` with no change waiting.
+ * @param user - The signed-in user, whose `pending_email` is `''` when no change is waiting.
  */
 export function pendingEmailNotice(user: Pick<User, 'email' | 'pending_email'>): string | null {
   if (user.pending_email === '') return null;
@@ -17,7 +17,7 @@ export function pendingEmailNotice(user: Pick<User, 'email' | 'pending_email'>):
  * when none does: `Waiting for <pending> to confirm. The address changes when the link
  * sent there is followed.`
  *
- * @param pendingEmail - The record's `pending_email`, `''` with no change waiting.
+ * @param pendingEmail - The record's `pending_email`, `''` when no change is waiting.
  */
 export function pendingEmailStatus(pendingEmail: string): string | null {
   if (pendingEmail === '') return null;

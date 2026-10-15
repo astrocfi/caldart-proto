@@ -277,7 +277,7 @@ describe('CSRF bootstrap recovery', () => {
     expect(sentToken).toBe('recovered');
   });
 
-  it('fetches the cookie again when the bootstrap set no cookie', async () => {
+  it("fetches the cookie again when the bootstrap didn't set a cookie", async () => {
     let csrfCalls = 0;
     server.use(
       http.get(`${API}/auth/csrf`, () => {

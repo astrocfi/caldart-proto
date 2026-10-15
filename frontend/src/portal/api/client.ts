@@ -1,7 +1,7 @@
 /**
  * The single fetch wrapper the portal talks to Django through.
  *
- * - same-origin session cookies, so there is no token to store; a request for any other
+ * - same-origin session cookies, so the portal never stores a token; a request for any other
  *   origin is refused with a `TypeError` before it is sent;
  * - CSRF fetched from `GET <API_BASE>/auth/csrf` whenever the `csrftoken` cookie is
  *   missing, then sent as `X-CSRFToken` on every unsafe method; a request the
@@ -21,10 +21,10 @@ const CSRF_COOKIE = 'csrftoken';
 /** How DRF starts the `detail` of a 403 it raised before the view ran. */
 const CSRF_FAILURE_PREFIX = 'CSRF Failed';
 
-/** What a person reads when a read fails and the server said nothing usable. */
+/** What a person reads when a read fails and the server didn't say anything usable. */
 export const LOAD_FAILED_MESSAGE = "That didn't load. Try again in a moment.";
 
-/** What a person reads when a change fails and the server said nothing usable. */
+/** What a person reads when a change fails and the server didn't say anything usable. */
 export const SAVE_FAILED_MESSAGE = "That didn't save. Try again in a moment.";
 
 /** A non-2xx response, with the DRF error body attached. */
@@ -98,7 +98,7 @@ export function isNotFound(error: unknown): boolean {
 /**
  * A 2xx response whose body is not the JSON the caller was typed to expect.
  *
- * It carries no server message, so a screen that special-cases `ApiError` falls back to
+ * It doesn't carry a server message, so a screen that special-cases `ApiError` falls back to
  * its own copy, and the query client treats it like any other transport failure.
  */
 export class UnexpectedResponseError extends Error {
@@ -233,9 +233,9 @@ async function parseErrorBody(response: Response): Promise<unknown> {
 }
 
 /**
- * Read a successful body, which must be JSON or nothing at all.
+ * Read a successful body, which must be JSON or empty.
  *
- * Every body-less 2xx the API answers is a 204 with no `Content-Type`, so an empty body
+ * Every body-less 2xx the API answers is a 204 without a `Content-Type`, so an empty body
  * is `null`. Anything else has to parse as JSON, because the caller's declared type says
  * it is JSON: an HTML maintenance page served with status 200 is a fault, not a value.
  *
@@ -300,7 +300,7 @@ function send(url: string, method: string, options: RequestOptions): Promise<Res
  *
  * An unsafe method bootstraps the CSRF cookie first, and a `CSRF Failed` 403 is retried
  * exactly once against a freshly fetched token: the server rejected the request before
- * the view ran, so repeating it changes nothing else.
+ * the view ran, so repeating it doesn't change anything else.
  *
  * The URL is resolved before anything else happens, so a caller that names another
  * origin is refused before a CSRF token is fetched or a cookie is sent.

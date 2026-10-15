@@ -30,7 +30,7 @@ export interface Role {
 /* -------------------------------------------------------------- membership */
 /**
  * A donor's membership reads `donor`; no screen draws it, since a donor cannot sign in.
- * `none` is an account that chose to be a member and holds no term yet, such as one an
+ * `none` is an account that chose to be a member and doesn't hold a term yet, such as one an
  * administrator created that has not paid: *Not yet paid*, never *Friend*.
  */
 export type MembershipState = 'current' | 'expired' | 'friend' | 'none' | 'donor';
@@ -42,7 +42,7 @@ export interface MembershipStatus {
   is_lifetime: boolean;
 }
 
-/** A `suspended` term belongs to an account its holder deactivated; it counts for nothing. */
+/** A `suspended` term belongs to an account its holder deactivated; it doesn't count. */
 export type MembershipTermStatus = 'active' | 'expired' | 'canceled' | 'suspended';
 export type MembershipSource = 'payment' | 'manual' | 'seed';
 
@@ -250,7 +250,7 @@ export interface VerificationSentResult {
  */
 export interface AdminUser extends User {
   email_verified_at: IsoDateTime | null;
-  /** When the bounce check last found the address bouncing; null with no bounce known. */
+  /** When the bounce check last found the address bouncing; null when no bounce is known. */
   email_bounced_at: IsoDateTime | null;
   /** That report's status code and diagnostic, or `''`. */
   email_bounce_detail: string;
@@ -290,7 +290,10 @@ export interface AccountChange {
   id: number;
   changed_at: IsoDateTime;
   changed_by: AccountActor | null;
-  /** True for a change a management command made; false with no actor means one since deleted. */
+  /**
+   * True for a change a management command made; false without an actor means one since
+   * deleted.
+   */
   by_command: boolean;
   kind: AccountChangeKind;
   added: RoleSlug[];
@@ -409,7 +412,7 @@ export interface Dart {
   name: string;
   /** Every field the team flies from, as `"CCR, C83"`. */
   airport_identifiers: string;
-  /** The team's own site, or `''` when it has none. */
+  /** The team's own site, or `''` when it doesn't have one. */
   website_url: string;
   contacts: DartContact[];
 }
@@ -649,7 +652,7 @@ export interface AttachedAircraft {
  * One address `GET /addresses/suggest` offers for the street line typed so far:
  * the whole address on one line, and the five profile fields a pick fills.
  * `state` is a two-letter code and `county` one of California's, each empty when
- * the provider named none the profile stores.
+ * the provider didn't name one the profile stores.
  */
 export interface AddressSuggestion {
   label: string;
@@ -678,7 +681,7 @@ export interface MemberRow {
   joined_on: IsoDate | null;
   profile_updated_at: IsoDateTime | null;
   certificate_number: string;
-  /** Whether a pilot holds an instrument rating; null for somebody who is no pilot. */
+  /** Whether a pilot holds an instrument rating; null for somebody who isn't a pilot. */
   instrument: boolean | null;
   home_airport: string;
   secondary_airport: string;
@@ -747,7 +750,7 @@ export interface MemberDetail {
   roles: RoleSlug[];
   created_at: IsoDateTime;
   email_verified_at: IsoDateTime | null;
-  /** When the bounce check last found the address bouncing; null with no bounce known. */
+  /** When the bounce check last found the address bouncing; null when no bounce is known. */
   email_bounced_at: IsoDateTime | null;
   /** That report's status code and diagnostic, or `''`. */
   email_bounce_detail: string;
@@ -831,7 +834,7 @@ export type Airworthiness =
 
 /**
  * Whether the coverage policy excludes an aircraft.  `reason` is blank when there
- * is nothing to say, `Category not recorded` for an aircraft with no category the
+ * isn't anything to say, `Category not recorded` for an aircraft without a category the
  * policy does not otherwise exclude, and `Not covered: …` for an excluded one.
  */
 export interface AircraftCoverage {
@@ -902,7 +905,7 @@ export interface Registration {
   status: RegistrationStatus;
   certificate_issued_on: IsoDate | null;
   expires_on: IsoDate | null;
-  /** Blank when the registry records no airworthiness certificate. */
+  /** Blank when the registry doesn't record an airworthiness certificate. */
   airworthiness: Airworthiness | '';
   imported_at: IsoDateTime;
 }
@@ -1178,7 +1181,7 @@ export interface CheckoutRequest {
   provider: PaymentProvider;
   /**
    * Save the method and charge it again on a schedule.  With a plan, the membership
-   * renews each year; with none, the contribution is a recurring donation.  Defaults
+   * renews each year; without one, the contribution is a recurring donation.  Defaults
    * to false.
    */
   auto_renew?: boolean;
@@ -1328,7 +1331,7 @@ export type RenewalOutcome = 'scheduled' | 'succeeded' | 'failed' | 'skipped';
 
 /**
  * What a standing authority charges for. `contribution` is a recurring donation, which
- * renews nothing; `both` is an automatic renewal with a contribution beside the dues.
+ * doesn't renew anything; `both` is an automatic renewal with a contribution beside the dues.
  */
 export type MandateKind = 'renewal' | 'both' | 'contribution';
 
@@ -1337,7 +1340,7 @@ export type MandateCadence = 'monthly' | 'quarterly' | 'yearly';
 
 /**
  * One person's standing authority for CalDART to charge them on a schedule: an
- * automatic renewal, which names a plan, or a recurring donation, which names none.
+ * automatic renewal, which names a plan, or a recurring donation, which doesn't name one.
  */
 export interface RenewalMandate {
   id: number;
@@ -1376,7 +1379,7 @@ export interface RenewalMandate {
   created_at: IsoDateTime;
 }
 
-/** `GET | PATCH /me/renewal` and `/me/donation`: `mandate` is null when there is none. */
+/** `GET | PATCH /me/renewal` and `/me/donation`: `mandate` is null when there isn't one. */
 export interface RenewalEnvelope {
   mandate: RenewalMandate | null;
 }
@@ -1398,8 +1401,8 @@ export interface RenewalAttempt {
   noticed_at: IsoDateTime | null;
   attempted_at: IsoDateTime | null;
   /**
-   * The provider may have taken this charge and cannot say: the scan charges nothing
-   * more for it until a treasurer settles it, and `error` says why.
+   * The provider may have taken this charge and cannot say: the scan doesn't charge for
+   * it again until a treasurer settles it, and `error` says why.
    */
   in_doubt: boolean;
   /** When the treasurer was told this charge needs checking, or null. */
@@ -1696,7 +1699,7 @@ export type EmailStatus = 'sent' | 'failed' | 'bounced';
  * One email the system tried to send, as `GET /system/emails` returns it.
  *
  * `purpose` is the template's name and `purpose_label` the words a reader sees
- * for it, the name itself when the server has no label for the template.
+ * for it, the name itself when the server doesn't have a label for the template.
  * `bounced_at` and `bounce_detail` are set only on a `bounced` row: when the bounce
  * check read the report, and its status code and diagnostic.
  */
@@ -1714,7 +1717,10 @@ export interface EmailLogEntry {
   attachments: string;
   bounced_at: IsoDateTime | null;
   bounce_detail: string;
-  /** The portal page the message belongs to, such as `/bulk-email/sent/9`; blank for none. */
+  /**
+   * The portal page the message belongs to, such as `/bulk-email/sent/9`; blank when
+   * there isn't one.
+   */
   link: string;
 }
 
@@ -1946,8 +1952,8 @@ export interface MailDeliveryFinding {
 }
 
 /**
- * `GET /mail/delivery-check`: the domain of the site's From address (blank when it has
- * none), when the lookups were made, and one finding per line.
+ * `GET /mail/delivery-check`: the domain of the site's From address (blank when it
+ * doesn't have one), when the lookups were made, and one finding per line.
  */
 export interface MailDeliveryCheck {
   domain: string;
@@ -2191,7 +2197,7 @@ export type BulkEmailRecipientStatus =
 /**
  * One bulk email, from `GET /bulk-email/{id}`: the message, where it stands, its
  * batch counts, and its progress. `sender` and `stopped_by` are display names,
- * blank when there is none. `remaining` counts the copies waiting to go, and
+ * blank when there isn't one. `remaining` counts the copies waiting to go, and
  * `estimated_finish_at` is set while it is sending. `confirm_above` is the batch
  * size above which Send asks for the count to be typed, and `undo_seconds` the
  * undo window the countdown runs over. `body` is the message as sanitized HTML,
@@ -2200,8 +2206,8 @@ export type BulkEmailRecipientStatus =
  * `email_type_name` its name, blank then. `not_sent_reason` says why the background
  * sender returned the email unsent, and is blank otherwise. `dart_name` is the DART a
  * DART leader's email goes to, blank for CalDART management's. `sender_notice` says why
- * nobody can be added to the email, naming its sender, while that sender's profile names
- * no DART; it is blank otherwise.
+ * nobody can be added to the email, naming its sender, while that sender's profile
+ * doesn't name a DART; it is blank otherwise.
  * `reply_to` is where replies go, blank for `default_reply_to`; once the email is
  * queued it is the address its copies carry. `bounced_count` counts the
  * copies the bounce check later found refused, which `sent_count` no longer counts;
@@ -2286,7 +2292,7 @@ export interface BulkEmailHideRequest {
 /**
  * One bulk email the signed-in person received, from `GET /messages`: the subject as
  * their copy had it, when it went to them, who sent it (the organization's name once
- * the sender's account is gone), and its type, blank for none. `answer_url` is the
+ * the sender's account is gone), and its type, blank when it doesn't have one. `answer_url` is the
  * reader's own answer page for a mission callout, blank for any other email.
  */
 export interface BulkEmailMessage {
@@ -2339,8 +2345,8 @@ export interface BulkEmailSummary {
 /**
  * `GET /bulk-email/sender`: who the signed-in sender may send to. CalDART management
  * sends to everyone (`is_management`); a DART leader to `dart`, the DART on their
- * profile. `can_send` is false when there is nobody to send to, and `reason` says why.
- * `default_reply_to` is where replies go when the sender chooses no Reply-To address.
+ * profile. `can_send` is false when there isn't anyone to send to, and `reason` says why.
+ * `default_reply_to` is where replies go when the sender doesn't choose a Reply-To address.
  */
 export interface BulkEmailSender {
   is_management: boolean;
@@ -2445,7 +2451,7 @@ export interface BulkEmailBatch {
 
 /**
  * What one run of the bulk email sender did, from `POST /system/bulk-email/run`.
- * `busy` is true when another run was working and this one did nothing;
+ * `busy` is true when another run was working and this one didn't do anything;
  * `out_of_time` is true when the run's time ran out with `remaining` copies left
  * for the next run.
  */
@@ -2541,8 +2547,9 @@ export interface BulkEmailPreview {
 
 /**
  * One saved template from `/bulk-email/templates`: a message a draft can start from.
- * `email_type` is null and `email_type_name` blank for none; `reply_to` is blank for
- * the default. `created_by` is who saved it, blank once that account is gone.
+ * `email_type` is null and `email_type_name` blank when the template doesn't have a type;
+ * `reply_to` is blank for the default. `created_by` is who saved it, blank once that
+ * account is gone.
  */
 export interface EmailTemplate {
   id: number;
@@ -2680,7 +2687,7 @@ export interface SaveGroupRequest {
 /** What a recipient answered a mission callout. */
 export type CalloutAnswerKind = 'available' | 'limited' | 'unavailable';
 
-/** How many people a callout reached, and how many gave each answer or none. */
+/** How many people a callout reached, how many gave each answer, and how many didn't answer. */
 export interface CalloutCounts {
   reached: number;
   available: number;

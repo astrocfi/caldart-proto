@@ -8,8 +8,8 @@
  * when a component disappears from the schema altogether.
  *
  * The comparison ignores `readonly` and optionality: OpenAPI marks a field
- * optional whenever the serializer does not require it on input, which says
- * nothing about whether the response carries it.  Property names and property
+ * optional whenever the serializer does not require it on input, which doesn't say
+ * anything about whether the response carries it.  Property names and property
  * types are what the two sides must agree on.
  */
 
