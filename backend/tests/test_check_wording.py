@@ -18,6 +18,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = REPO_ROOT / "scripts" / "check_wording.py"
+WORDS = REPO_ROOT / "scripts" / "wording_words.py"
 MAKEFILE = REPO_ROOT / "Makefile"
 CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "ci.yml"
 
@@ -40,13 +41,13 @@ PAGE_WITH_THREE = PAGE + "It took none.\n"  # wording:ignore
 PAGE_WITH_ONE = "It doesn't have a token.\nIt sends nothing.\n"  # wording:ignore
 
 
-def _load_checker() -> ModuleType:
-    """Import ``check_wording.py`` from its path, since ``scripts`` isn't a package.
+def _load(name: str, source: Path) -> ModuleType:
+    """Import ``source`` as ``name`` from its path, since ``scripts`` isn't a package.
 
     The module is registered in ``sys.modules`` first, as a normal import would, so its
-    dataclasses can resolve their own module.
+    dataclasses can resolve their own module and a later import of ``name`` finds it.
     """
-    spec = importlib.util.spec_from_file_location("caldart_check_wording", SCRIPT)
+    spec = importlib.util.spec_from_file_location(name, source)
     assert spec is not None
     assert spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -55,7 +56,10 @@ def _load_checker() -> ModuleType:
     return module
 
 
-checker = _load_checker()
+# The check imports its word lists as ``wording_words``, the name a run from ``scripts/``
+# gives them, so they load under that name first.
+_load("wording_words", WORDS)
+checker = _load("caldart_check_wording", SCRIPT)
 
 
 def _hit_count(text: str) -> int:
@@ -135,7 +139,10 @@ ALLOWED = {
     "said-no-full-stop": "The member said no.",
     "says-no-comma": "If the member says no, nothing is sent.",
     "all-caps-constant": "It returns NONE when the key is unset.",
-    "table-padding": "| has       | no         |",
+    "table-padding": "joined_on   Joined      no      Start",
+    "preposition-then-pronoun": "Pass --yes; without it nothing runs.",
+    "pronoun-then-a-clause": "Tell them nobody is coming.",
+    "pronoun-then-a-modal": "Tell them nobody can sign in.",
     "indeed-no": "Indeed no payment was found.",
     "noun-object-known-gap": "It sends a donor nothing.",
 }
@@ -273,6 +280,9 @@ SUGGESTIONS = {
     "after-has": ("It has sent none.", "has sent none -> hasn't sent any"),  # wording:ignore
     "capital": ("Has no fee.", "Has no fee -> Doesn't have a fee"),  # wording:ignore
     "pronoun": ("It costs you none.", "costs you none -> doesn't cost you any"),  # wording:ignore
+    "at-most": ("It has no more than 255.", "has no more than -> has at most"),  # wording:ignore
+    "at-least": ("It has no fewer than 2.", "has no fewer than -> has at least"),  # wording:ignore
+    "less-than": ("It is no less than 5.", "is no less than -> is at least"),  # wording:ignore
     "is": ("There is no payment.", "is no payment -> isn't a payment"),  # wording:ignore
     "are": ("There are no rows.", "are no rows -> aren't any rows"),  # wording:ignore
     "was": ("There was none.", "was none -> wasn't any"),  # wording:ignore
@@ -514,6 +524,53 @@ def test_a_binary_file_is_never_counted(tree: Path) -> None:
     """A file holding a NUL byte is skipped, whatever text it also holds."""
     (tree / "docs" / "image.dat").write_bytes(b"\x00It took nothing.\n")  # wording:ignore
     assert checker.main([], root=tree) == 0
+
+
+COORDINATED_PAGE = (
+    "It gets 400 and no message.\n"  # wording:ignore
+    "It is fine, and no email is sent.\n"
+    "It reads yes or no.\n"
+    "It is quick but no longer free.\n"
+)
+
+
+def _listed(out: str) -> list[str]:
+    """The ``path:line`` of each listed entry in ``out``."""
+    return [":".join(line.split(":")[:2]) for line in out.splitlines() if ": " in line]
+
+
+def test_coordinated_lists_each_conjunction_before_a_negative(
+    tree: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """``--coordinated`` lists the object and the subject alike, for review by hand.
+
+    "or no." is an answer and "but no longer" an idiom, so neither is listed.
+    """
+    _write(tree / "docs" / "other.rst", COORDINATED_PAGE)
+    checker.main(["--coordinated", "--path", "docs/other.rst"], root=tree)
+    assert _listed(capsys.readouterr().out) == ["docs/other.rst:1", "docs/other.rst:2"]
+
+
+def test_coordinated_always_exits_0(tree: Path) -> None:
+    """A candidate is for review, never a failure."""
+    _write(tree / "docs" / "other.rst", COORDINATED_PAGE)
+    assert checker.main(["--coordinated"], root=tree) == 0
+
+
+def test_coordinated_candidates_are_never_hits(tree: Path) -> None:
+    """The check against the baseline ignores the conjunctions."""
+    _write(tree / "docs" / "other.rst", COORDINATED_PAGE)
+    _track(tree)
+    assert checker.main([], root=tree) == 0
+
+
+def test_coordinated_skips_a_marked_line(tree: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """A reviewed candidate kept with the marker stays out of the listing."""
+    _write(
+        tree / "docs" / "other.rst", f"It gets 400 and no message. .. {MARKER}\n"
+    )  # wording:ignore
+    checker.main(["--coordinated", "--path", "docs/other.rst"], root=tree)
+    assert _listed(capsys.readouterr().out) == []
 
 
 def test_accept_new_without_update_baseline_is_refused(tree: Path) -> None:

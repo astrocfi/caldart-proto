@@ -643,12 +643,14 @@ rehearse-deploy: ## Rehearse the server install in a throwaway systemd container
 lint: lint-backend lint-shell lint-frontend lint-spelling lint-wording ## ruff + mypy + shellcheck + tsc + eslint + prettier + contrast + codespell + wording
 
 # The wording check is Python kept under scripts/, so mypy checks it beside the backend.
+# Its word lists sit beside it in scripts/wording_words.py.
 WORDING_CHECK := scripts/check_wording.py
+WORDING_WORDS := scripts/wording_words.py
 
 lint-backend: ## ruff check + ruff format --check + mypy
 	$(UV) run ruff check .
 	$(UV) run ruff format --check .
-	$(UV) run mypy backend $(E2E_PROXY) $(WORDING_CHECK)
+	$(UV) run mypy backend $(E2E_PROXY) $(WORDING_CHECK) $(WORDING_WORDS)
 
 # Every shell script: the server installer under deploy/ and the developer
 # conveniences under scripts/.  shellcheck comes from the shellcheck-py wheel in

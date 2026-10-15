@@ -34,6 +34,10 @@ The match ignores case.  An underscore or a letter joins words into an identifie
   paragraph.  Keep the markers for text that must stay verbatim, such as a third party's
   error message.
 
+The word lists (``FLAGGED_VERBS``, ``ALLOWED_WORDS``, ``FLAGGED_WORDS``, and the small
+tables beside them) live in ``scripts/wording_words.py``, which this script imports from
+its own directory.
+
 The scanned tree is the one ``make lint-spelling`` scans, as git lists it (tracked files,
 plus untracked files ``.gitignore`` does not exclude), minus generated files, lock files,
 and binaries.  Hits in the generated OpenAPI files are reported at their source, the
@@ -52,6 +56,8 @@ Usage::
     scripts/check_wording.py --update-baseline --accept-new
                                                   record every count, raised ones too
     scripts/check_wording.py --all [--path DIR]   list every hit, ignoring the baseline
+    scripts/check_wording.py --coordinated [--path DIR]
+                                                  list "and/or/but no" for review
 
 ``--update-baseline`` refuses (exit 1) to raise a count or add a file unless
 ``--accept-new`` is given.  It writes tracked files only: a file git doesn't track yet is
@@ -59,9 +65,18 @@ left out with a warning, so a scratch file never lands in the baseline.  Renamin
 that has hits moves its count to a path the baseline doesn't list, so the rename needs
 ``--update-baseline --accept-new``, and a review of the baseline's diff to confirm that
 the old path's count moved to the new one unchanged.  ``--all`` exits 1 when it lists a
-hit, so it confirms that an area is clean; ``--path`` (repeatable) limits ``--all`` or the
-check to a subtree, and is refused with ``--update-baseline``, since the baseline covers
-the whole tree.
+hit, so it confirms that an area is clean; ``--path`` (repeatable) limits ``--all``,
+``--coordinated``, or the check to a subtree, and is refused with ``--update-baseline``,
+since the baseline covers the whole tree.
+
+Known gaps, which the sweep reviews by hand:
+
+* a noun between the verb and the negative (an indirect object such as "a donor");
+* a coordinated object after ``and``, ``or``, or ``but`` ("gets 400 and" followed by a
+  negative), which the rule covers but the check can't tell from a new negative subject;
+  ``--coordinated`` lists every such candidate and always exits 0;
+* text inside a literal or code-block body, which a marker can't reach without showing
+  in the rendered page.
 """
 
 import argparse
@@ -70,10 +85,29 @@ import re
 import shutil
 import subprocess
 import sys
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import NamedTuple
+
+from wording_words import (
+    ADVERBS,
+    ALLOWED_WORDS,
+    ANY_BEFORE,
+    BE_FORMS,
+    BOUNDS,
+    DETERMINERS,
+    FLAGGED_VERBS,
+    FLAGGED_WORDS,
+    MODALS,
+    NEGATED_WORDS,
+    NOT_OBJECTS,
+    NOT_PAST_TENSE,
+    PERFECT_AUXILIARIES,
+    POSITIVES,
+    PREPOSITIONS,
+    PRONOUNS,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -137,277 +171,6 @@ SKIPPED_SUFFIXES = (
     "package-lock.json",
 )
 
-# The verbs the check flags, one family per string: base form, third person singular,
-# simple past, past participle, and present participle.  The list was built by
-# extracting every word that precedes ``no``, ``nothing``, ``nobody``, or ``none`` in the
-# scanned tree and keeping each one that can act as a verb (possession or action), with
-# its other forms, plus common verbs the tree doesn't use yet; an unlisted ``-ed`` word is
-# flagged too (see ``NOT_PAST_TENSE``).  A word that is also a
-# noun ("changes", "records", "names") is flagged anyway: a determiner before it already
-# marks the plain noun use, and a rewrite costs less than a missed hit.  Linking verbs
-# are flagged only where the phrase reads as a negative object, as "becomes" can.
-# A table of short strings, packed several to a line; the formatter would give each its
-# own line and more than double the module's length.
-# fmt: off
-FLAGGED_VERBS = (
-    "accept accepts accepted accepted accepting",
-    "accompany accompanies accompanied accompanied accompanying",
-    "accrue accrues accrued accrued accruing", "activate activates activated activated activating",
-    "add adds added added adding", "affect affects affected affected affecting",
-    "alert alerts alerted alerted alerting", "allow allows allowed allowed allowing",
-    "alter alters altered altered altering", "answer answers answered answered answering",
-    "apply applies applied applied applying", "approve approves approved approved approving",
-    "ask asks asked asked asking", "assert asserts asserted asserted asserting",
-    "assign assigns assigned assigned assigning", "assume assumes assumed assumed assuming",
-    "attach attaches attached attached attaching", "award awards awarded awarded awarding",
-    "bear bears bore borne bearing", "become becomes became become becoming",
-    "bill bills billed billed billing", "bind binds bound bound binding",
-    "block blocks blocked blocked blocking", "break breaks broke broken breaking",
-    "bring brings brought brought bringing", "build builds built built building",
-    "buy buys bought bought buying", "call calls called called calling",
-    "cancel cancels canceled canceled canceling", "cap caps capped capped capping",
-    "capture captures captured captured capturing", "carry carries carried carried carrying",
-    "catch catches caught caught catching", "cause causes caused caused causing",
-    "change changes changed changed changing", "charge charges charged charged charging",
-    "check checks checked checked checking", "choose chooses chose chosen choosing",
-    "cite cites cited cited citing", "claim claims claimed claimed claiming",
-    "clear clears cleared cleared clearing", "close closes closed closed closing",
-    "collect collects collected collected collecting",
-    "commit commits committed committed committing",
-    "configure configures configured configured configuring",
-    "confirm confirms confirmed confirmed confirming",
-    "connect connects connected connected connecting",
-    "consume consumes consumed consumed consuming",
-    "contact contacts contacted contacted contacting",
-    "contain contains contained contained containing",
-    "contribute contributes contributed contributed contributing",
-    "control controls controlled controlled controlling",
-    "convert converts converted converted converting", "copy copies copied copied copying",
-    "cost costs cost cost costing", "count counts counted counted counting",
-    "cover covers covered covered covering", "create creates created created creating",
-    "declare declares declared declared declaring", "decline declines declined declined declining",
-    "define defines defined defined defining", "delete deletes deleted deleted deleting",
-    "deliver delivers delivered delivered delivering", "deny denies denied denied denying",
-    "deploy deploys deployed deployed deploying",
-    "describe describes described described describing",
-    "detect detects detected detected detecting", "disable disables disabled disabled disabling",
-    "display displays displayed displayed displaying", "do does did done doing",
-    "document documents documented documented documenting", "draw draws drew drawn drawing",
-    "drop drops dropped dropped dropping",
-    "duplicate duplicates duplicated duplicated duplicating", "earn earns earned earned earning",
-    "edit edits edited edited editing", "email emails emailed emailed emailing",
-    "emit emits emitted emitted emitting", "enable enables enabled enabled enabling",
-    "encode encodes encoded encoded encoding", "end ends ended ended ending",
-    "enforce enforces enforced enforced enforcing", "enter enters entered entered entering",
-    "exclude excludes excluded excluded excluding", "execute executes executed executed executing",
-    "exempt exempts exempted exempted exempting", "exist exists existed existed existing",
-    "expand expands expanded expanded expanding", "expect expects expected expected expecting",
-    "expire expires expired expired expiring", "export exports exported exported exporting",
-    "expose exposes exposed exposed exposing", "extend extends extended extended extending",
-    "fail fails failed failed failing", "fetch fetches fetched fetched fetching",
-    "file files filed filed filing", "fill fills filled filled filling",
-    "filter filters filtered filtered filtering", "find finds found found finding",
-    "finish finishes finished finished finishing", "fire fires fired fired firing",
-    "fit fits fitted fitted fitting", "flag flags flagged flagged flagging",
-    "flip flips flipped flipped flipping", "fly flies flew flown flying",
-    "follow follows followed followed following",
-    "forward forwards forwarded forwarded forwarding",
-    "gather gathers gathered gathered gathering",
-    "generate generates generated generated generating", "get gets got gotten getting",
-    "give gives gave given giving", "go goes went gone going",
-    "grant grants granted granted granting", "handle handles handled handled handling",
-    "have has had had having", "hear hears heard heard hearing",
-    "help helps helped helped helping", "hide hides hid hidden hiding", "hit hits hit hit hitting",
-    "hold holds held held holding", "host hosts hosted hosted hosting",
-    "identify identifies identified identified identifying",
-    "ignore ignores ignored ignored ignoring", "imply implies implied implied implying",
-    "import imports imported imported importing", "impose imposes imposed imposed imposing",
-    "include includes included included including", "incur incurs incurred incurred incurring",
-    "infer infers inferred inferred inferring", "inherit inherits inherited inherited inheriting",
-    "inject injects injected injected injecting",
-    "install installs installed installed installing", "invite invites invited invited inviting",
-    "involve involves involved involved involving", "issue issues issued issued issuing",
-    "join joins joined joined joining", "keep keeps kept kept keeping",
-    "kill kills killed killed killing", "know knows knew known knowing",
-    "launch launches launched launched launching", "lay lays laid laid laying",
-    "lead leads led led leading", "learn learns learned learned learning",
-    "leave leaves left left leaving", "lend lends lent lent lending", "let lets let let letting",
-    "lift lifts lifted lifted lifting", "limit limits limited limited limiting",
-    "link links linked linked linking", "list lists listed listed listing",
-    "load loads loaded loaded loading", "lock locks locked locked locking",
-    "log logs logged logged logging", "look looks looked looked looking",
-    "lose loses lost lost losing", "mail mails mailed mailed mailing",
-    "make makes made made making", "manage manages managed managed managing",
-    "mark marks marked marked marking", "match matches matched matched matching",
-    "mean means meant meant meaning", "mention mentions mentioned mentioned mentioning",
-    "modify modifies modified modified modifying", "mount mounts mounted mounted mounting",
-    "move moves moved moved moving", "name names named named naming",
-    "narrow narrows narrowed narrowed narrowing", "need needs needed needed needing",
-    "notify notifies notified notified notifying", "obtain obtains obtained obtained obtaining",
-    "occupy occupies occupied occupied occupying", "offer offers offered offered offering",
-    "omit omits omitted omitted omitting", "open opens opened opened opening",
-    "orchestrate orchestrates orchestrated orchestrated orchestrating",
-    "order orders ordered ordered ordering", "outlive outlives outlived outlived outliving",
-    "owe owes owed owed owing", "own owns owned owned owning",
-    "paint paints painted painted painting", "parse parses parsed parsed parsing",
-    "pass passes passed passed passing", "pay pays paid paid paying",
-    "perform performs performed performed performing",
-    "permit permits permitted permitted permitting", "pick picks picked picked picking",
-    "pin pins pinned pinned pinning", "pipe pipes piped piped piping",
-    "place places placed placed placing", "play plays played played playing",
-    "pose poses posed posed posing", "post posts posted posted posting",
-    "preserve preserves preserved preserved preserving",
-    "prevent prevents prevented prevented preventing", "print prints printed printed printing",
-    "process processes processed processed processing",
-    "produce produces produced produced producing", "promise promises promised promised promising",
-    "protect protects protected protected protecting", "prove proves proved proven proving",
-    "provide provides provided provided providing",
-    "publish publishes published published publishing", "pull pulls pulled pulled pulling",
-    "push pushes pushed pushed pushing", "put puts put put putting",
-    "queue queues queued queued queuing", "raise raises raised raised raising",
-    "reach reaches reached reached reaching",
-    "reactivate reactivates reactivated reactivated reactivating", "read reads read read reading",
-    "receive receives received received receiving",
-    "recognize recognizes recognized recognized recognizing",
-    "record records recorded recorded recording",
-    "redirect redirects redirected redirected redirecting",
-    "reference references referenced referenced referencing",
-    "refund refunds refunded refunded refunding", "refuse refuses refused refused refusing",
-    "register registers registered registered registering",
-    "reject rejects rejected rejected rejecting", "release releases released released releasing",
-    "remain remains remained remained remaining", "remind reminds reminded reminded reminding",
-    "remove removes removed removed removing", "render renders rendered rendered rendering",
-    "renew renews renewed renewed renewing", "repeat repeats repeated repeated repeating",
-    "replace replaces replaced replaced replacing", "report reports reported reported reporting",
-    "request requests requested requested requesting",
-    "require requires required required requiring",
-    "resemble resembles resembled resembled resembling",
-    "reserve reserves reserved reserved reserving", "reset resets reset reset resetting",
-    "resolve resolves resolved resolved resolving",
-    "respect respects respected respected respecting",
-    "restore restores restored restored restoring",
-    "restrict restricts restricted restricted restricting",
-    "retain retains retained retained retaining", "retry retries retried retried retrying",
-    "return returns returned returned returning", "reveal reveals revealed revealed revealing",
-    "revoke revokes revoked revoked revoking", "rewrite rewrites rewrote rewritten rewriting",
-    "run runs ran run running", "satisfy satisfies satisfied satisfied satisfying",
-    "save saves saved saved saving", "say says said said saying",
-    "schedule schedules scheduled scheduled scheduling",
-    "search searches searched searched searching", "see sees saw seen seeing",
-    "seed seeds seeded seeded seeding", "seek seeks sought sought seeking",
-    "seem seems seemed seemed seeming", "select selects selected selected selecting",
-    "sell sells sold sold selling", "send sends sent sent sending",
-    "serve serves served served serving", "set sets set set setting",
-    "settle settles settled settled settling", "share shares shared shared sharing",
-    "ship ships shipped shipped shipping", "show shows showed shown showing",
-    "sign signs signed signed signing", "signal signals signaled signaled signaling",
-    "skip skips skipped skipped skipping", "spawn spawns spawned spawned spawning",
-    "specify specifies specified specified specifying", "spend spends spent spent spending",
-    "stack stacks stacked stacked stacking", "stamp stamps stamped stamped stamping",
-    "start starts started started starting", "stay stays stayed stayed staying",
-    "store stores stored stored storing", "strip strips stripped stripped stripping",
-    "submit submits submitted submitted submitting",
-    "suggest suggests suggested suggested suggesting",
-    "supply supplies supplied supplied supplying",
-    "support supports supported supported supporting",
-    "surface surfaces surfaced surfaced surfacing", "tag tags tagged tagged tagging",
-    "take takes took taken taking", "tell tells told told telling",
-    "terminate terminates terminated terminated terminating", "test tests tested tested testing",
-    "throw throws threw thrown throwing", "touch touches touched touched touching",
-    "track tracks tracked tracked tracking",
-    "transfer transfers transferred transferred transferring",
-    "translate translates translated translated translating",
-    "treat treats treated treated treating", "trigger triggers triggered triggered triggering",
-    "trust trusts trusted trusted trusting",
-    "unaffiliate unaffiliates unaffiliated unaffiliated unaffiliating",
-    "undo undoes undid undone undoing", "unlock unlocks unlocked unlocked unlocking",
-    "unsubscribe unsubscribes unsubscribed unsubscribed unsubscribing",
-    "update updates updated updated updating", "upload uploads uploaded uploaded uploading",
-    "use uses used used using", "validate validates validated validated validating",
-    "verify verifies verified verified verifying", "want wants wanted wanted wanting",
-    "warn warns warned warned warning", "work works worked worked working",
-    "write writes wrote written writing", "yield yields yielded yielded yielding",
-)
-# fmt: on
-
-# The words found before a negative that are deliberately left alone, one group per
-# string.  Modals ("may no longer") always wait for a verb.  Conjunctions, relative words,
-# and adverbs introduce a negative subject ("so no reset email was sent", "when nobody
-# is signed in"), which the rule allows.  ``than`` compares with zero ("more than
-# nothing").  A pronoun ("it", "them", "you") isn't a verb; the check reads past one to
-# the verb before it.  A word in neither tuple is left alone too: this one records the
-# decisions.  To flag a word listed here, move it to ``FLAGGED_WORDS``.
-ALLOWED_WORDS = (
-    # Modals.
-    "can could may might must shall should will would",
-    # Conjunctions, relative words, and adverbs, which introduce a negative subject.
-    "after alone although and because before but deliberately else here if nor once only",
-    "or otherwise possibly simply since so that then there though until when where",
-    "whereas whether which while who whom why yet",
-    # Comparison with zero.
-    "than",
-    # Pronouns, articles, and the rest.
-    "it not sure the them true you",
-)
-
-# Words that are not verb families but are flagged all the same, one group per string.
-# A form of "be" puts the negation on its complement, and a preposition on its object,
-# as these phrases do, one example per line:
-#     is no help; there is no payment; were none  # wording:ignore
-#     with no term; for no reason; of no use; at no cost; in no case  # wording:ignore
-# Write "isn't any help", "there isn't a payment", or "without a term", or move the
-# negation to the verb.
-FLAGGED_WORDS = (
-    # Forms of "be".
-    "am are be been being is was were",
-    # Prepositions.
-    "about against as at by during for from in into like of on onto over per plus",
-    "through to toward towards under upon via with within without",
-)
-
-#: The negated form a flagged word other than a verb takes in a suggestion.
-NEGATED_WORDS = {
-    "am": "am not",
-    "are": "aren't",
-    "is": "isn't",
-    "was": "wasn't",
-    "were": "weren't",
-    "with": "without",
-}
-
-# The small word tables below are packed by hand, as ``FLAGGED_VERBS`` is.
-# fmt: off
-
-#: A word ending in ``-ed`` reads as a past tense and is flagged even when no family
-#: lists it, except these, which only end in the same letters.
-NOT_PAST_TENSE = frozenset((
-    "bed", "embed", "exceed", "feed", "hundred", "indeed", "proceed", "red", "shed", "speed",
-    "succeed",
-))
-
-#: The words the check reads past between the verb and the negative: an indirect object
-#: ("costs you nothing") or an adverb ("has almost no room").  # wording:ignore
-PRONOUNS = ("her", "him", "it", "me", "them", "us", "you")
-ADVERBS = (
-    "absolutely", "almost", "also", "deliberately", "hardly", "nearly", "practically",
-    "really", "simply", "still", "then", "virtually",
-)
-
-#: A word before the verb form that makes it a noun: "a change nobody made".
-DETERMINERS = frozenset((
-    "a", "an", "any", "each", "every", "her", "his", "its", "my", "our", "some", "the",
-    "their", "whose", "your",
-))
-
-#: A word after ``no`` that makes it an adverb rather than an object: "no longer", "no
-#: deeper than".
-NOT_OBJECTS = frozenset((
-    "bigger", "closer", "deeper", "earlier", "faster", "greater", "higher", "larger", "later",
-    "longer", "lower", "matter", "slower", "smaller", "sooner", "wider",
-))
-
-# fmt: on
-
 #: Every flagged form, lower case: each verb form, plus ``FLAGGED_WORDS``.
 FLAGGED_FORMS = frozenset(
     [form for family in FLAGGED_VERBS for form in family.split()]
@@ -417,18 +180,20 @@ FLAGGED_FORMS = frozenset(
 #: Every deliberately allowed word, lower case.
 ALLOWED_FORMS = frozenset(word for group in ALLOWED_WORDS for word in group.split())
 
+#: The prepositions, lower case: a pronoun after one is its object, never read past.
+PREPOSITION_FORMS = frozenset(word for group in PREPOSITIONS for word in group.split())
+
+#: A word after a negative that makes the negative a subject, once a pronoun stands
+#: before it ("tell them nobody is coming"): a verb form, a form of "be", or a modal.
+CLAUSE_VERBS = frozenset(
+    [form for family in FLAGGED_VERBS for form in family.split()]
+    + BE_FORMS.split()
+    + MODALS.split()
+)
+
 #: A character right after ``no`` that makes it an answer rather than a determiner:
 #: "the member said no."
 ANSWER_ENDINGS = frozenset(".,;:!?)]}\"'" + chr(0x2019) + chr(0x201D))
-
-#: A word after ``no`` that takes ``any`` in the rewrite whatever its number.
-ANY_BEFORE = frozenset(("further", "less", "more", "other", "such"))
-
-#: The negative's positive counterpart in a rewrite; ``no`` depends on the next word.
-POSITIVES = {"nothing": "anything", "nobody": "anybody", "none": "any"}
-
-#: The perfect auxiliaries a past participle is rewritten with.
-PERFECT_AUXILIARIES = frozenset(("had", "has", "have"))
 
 # A single space or tab, so that a table's padding never joins two cells; or one line
 # break, with the continuation's indentation and comment leader.
@@ -449,6 +214,18 @@ _CANDIDATE = re.compile(
 )
 
 _NEXT_WORD = re.compile(_SEPARATOR + r"([A-Za-z]+)")
+
+_THAN = re.compile(_SEPARATOR + r"[A-Za-z]+" + _SEPARATOR + r"than\b", re.IGNORECASE)
+
+# A coordinating conjunction before a negative: "gets 400 and no message".  The rule
+# covers a coordinated object, but the check can't tell one from a new negative subject
+# ("and no email is sent"), so ``--coordinated`` only lists these for review by hand.
+_COORDINATED = re.compile(
+    rf"(?<![\w{_APOSTROPHES}])(?=(?P<verb>and|but|or)"
+    + _SEPARATOR
+    + rf"(?P<negative>nothing|nobody|none|no)(?![\w{_APOSTROPHES}-]))",
+    re.IGNORECASE,
+)
 
 _PREVIOUS_WORD = re.compile(rf"(?<![\w{_APOSTROPHES}])([A-Za-z]+)" + _SEPARATOR + r"\Z")
 
@@ -530,20 +307,41 @@ def find_hits(text: str, path: str) -> list[Hit]:
     ``path`` is only recorded on each hit.  See the module docstring for what is flagged
     and what is passed over.
     """
+    return _find(text, path, coordinated=False)
+
+
+def find_coordinated(text: str, path: str) -> list[Hit]:
+    """Return every ``and``, ``or``, or ``but`` before a negative in ``text``, in order.
+
+    These are candidates for review by hand, never hits: "gets 400 and no message" puts
+    the negation on a coordinated object, which the rule forbids, but "and no email is
+    sent" starts a clause with a negative subject, which it allows.  The exemptions and
+    markers that apply to a hit apply here too; ``suggestion`` is always ``None``.
+    """
+    return _find(text, path, coordinated=True)
+
+
+def _find(text: str, path: str, *, coordinated: bool) -> list[Hit]:
+    """The hits, or with ``coordinated`` the conjunction candidates, in ``text``."""
     lines = text.split("\n")
     line_starts = [0]
     for line in lines[:-1]:
         line_starts.append(line_starts[-1] + len(line) + 1)
     silenced = _silenced_lines(lines) if _MARKER in text else set()
     hits = []
-    for match in _CANDIDATE.finditer(text):
-        verb, middle, negative = match["verb"], match["middle"], match["negative"]
-        if not _is_flagged(verb) or _is_not_an_object(text, match):
+    for match in (_COORDINATED if coordinated else _CANDIDATE).finditer(text):
+        verb, negative = match["verb"], match["negative"]
+        middle = None if coordinated else match["middle"]
+        if not coordinated and not _is_flagged(verb):
+            continue
+        if _is_not_an_object(text, match):
             continue
         next_match = _NEXT_WORD.match(text, match.end("negative"))
         next_word = next_match[1] if next_match is not None else None
         is_adverb = next_word is not None and next_word.lower() in NOT_OBJECTS
         if negative.lower() == "no" and is_adverb:
+            continue
+        if middle is not None and _starts_a_clause(verb, middle, next_word):
             continue
         verb_start = match.start("verb")
         previous_match = _PREVIOUS_WORD.search(text, max(0, verb_start - 80), verb_start)
@@ -554,16 +352,38 @@ def find_hits(text: str, path: str) -> list[Hit]:
         last = bisect.bisect_right(line_starts, match.start("negative"))
         if any(number in silenced for number in range(first, last + 1)):
             continue
-        phrase = _Phrase(verb, middle, negative, next_word=next_word, previous=previous)
+        phrase = _Phrase(
+            verb,
+            middle,
+            negative,
+            next_word=next_word,
+            previous=previous,
+            is_bound=_THAN.match(text, match.end("negative")) is not None,
+        )
         hits.append(
             Hit(
                 path=path,
                 line=first,
                 text=" ".join(lines[number - 1].strip() for number in range(first, last + 1)),
-                suggestion=_suggestion(phrase),
+                suggestion=None if coordinated else _suggestion(phrase),
             )
         )
     return hits
+
+
+def _starts_a_clause(verb: str, middle: str, next_word: str | None) -> bool:
+    """Whether a pronoun between ``verb`` and the negative ends the phrase there.
+
+    A pronoun after a preposition is that preposition's object ("without it nothing
+    runs"), and a pronoun followed by a negative and then a verb, a form of "be", or a
+    modal is an object whose own clause has a negative subject ("tell them nobody is
+    coming").  An adverb in between never ends the phrase.
+    """
+    if middle.lower() not in PRONOUNS:
+        return False
+    if verb.lower() in PREPOSITION_FORMS:
+        return True
+    return next_word is not None and next_word.lower() in CLAUSE_VERBS
 
 
 def _is_flagged(word: str) -> bool:
@@ -625,6 +445,7 @@ class _Phrase(NamedTuple):
     negative: str
     next_word: str | None
     previous: str | None
+    is_bound: bool
 
 
 def _suggestion(phrase: _Phrase) -> str | None:
@@ -635,13 +456,20 @@ def _suggestion(phrase: _Phrase) -> str | None:
     in ``NEGATED_WORDS`` its negated form (``is`` -> ``isn't``, ``with`` -> ``without``);
     a pronoun before the negative stays where it is.  ``no`` is rewritten with ``anyone``
     before ``one``, ``any`` before a plural or a word in ``ANY_BEFORE``, and ``a`` or
-    ``an`` otherwise; the word after ``no`` is shown on both sides.  Returns ``None`` for
-    any other word or form, and for a phrase with an adverb in it.
+    ``an`` otherwise; the word after ``no`` is shown on both sides.  A bound keeps its
+    meaning without the negative: ``no more than`` becomes ``at most``, and ``no fewer
+    than`` or ``no less than`` becomes ``at least``, after any flagged word.  Returns
+    ``None`` for any other word or form, and for a phrase with an adverb in it.
     """
     verb, middle, previous = phrase.verb, phrase.middle, phrase.previous
     form = verb.lower()
     if middle is not None and middle.lower() in ADVERBS:
         return None
+    next_word = phrase.next_word
+    if phrase.is_bound and next_word is not None and next_word.lower() in BOUNDS:
+        lead = verb if middle is None else f"{verb} {middle}"
+        bound = BOUNDS[next_word.lower()]
+        return f"{lead} {phrase.negative} {next_word} than -> {lead} {bound}"
     objects, positive = _objects(phrase.negative, phrase.next_word)
     if middle is not None:
         objects, positive = f"{middle} {objects}", f"{middle} {positive}"
@@ -688,12 +516,18 @@ def _like(model: str, word: str) -> str:
     return word[0].upper() + word[1:] if model[0].isupper() else word
 
 
-def scan(root: Path, *, paths: Sequence[str] = ()) -> dict[str, list[Hit]]:
+def scan(
+    root: Path,
+    *,
+    paths: Sequence[str] = (),
+    finder: Callable[[str, str], list[Hit]] = find_hits,
+) -> dict[str, list[Hit]]:
     """Return the hits in every scanned file under ``root`` that has any, by path.
 
     ``paths`` limits the scan to those files and directories (relative to ``root``); an
-    empty sequence scans the whole tree.  A file holding a NUL byte, or one that is not
-    UTF-8, is skipped as binary.
+    empty sequence scans the whole tree.  ``finder`` reads each file's text and path:
+    ``find_hits`` by default, or ``find_coordinated``.  A file holding a NUL byte, or one
+    that is not UTF-8, is skipped as binary.
     """
     found = {}
     for path in scanned_files(root):
@@ -706,7 +540,7 @@ def scan(root: Path, *, paths: Sequence[str] = ()) -> dict[str, list[Hit]]:
             text = data.decode("utf-8")
         except UnicodeDecodeError:
             continue
-        hits = find_hits(text, path)
+        hits = finder(text, path)
         if len(hits) > 0:
             found[path] = hits
     return found
@@ -802,6 +636,8 @@ def main(argv: Sequence[str] | None = None, *, root: Path = REPO_ROOT) -> int:
         parser.error("--path cannot be combined with --update-baseline")
     if args.accept_new and not args.update_baseline:
         parser.error("--accept-new needs --update-baseline")
+    if args.coordinated:
+        return _list_coordinated(scan(root, paths=roots, finder=find_coordinated))
     hits = scan(root, paths=roots)
     if args.all:
         return _list_all(hits)
@@ -815,13 +651,18 @@ def main(argv: Sequence[str] | None = None, *, root: Path = REPO_ROOT) -> int:
 
 
 def _parser() -> argparse.ArgumentParser:
-    """The parser for ``--all``, ``--path``, ``--update-baseline``, ``--accept-new``."""
+    """The parser for the switches the module docstring lists."""
     parser = argparse.ArgumentParser(
         prog="check_wording.py",
         description="Flag a verb whose object is a negative, against a per-file baseline.",
     )
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--all", action="store_true", help="list every hit, ignoring the baseline")
+    mode.add_argument(
+        "--coordinated",
+        action="store_true",
+        help="list every 'and', 'or', or 'but' before a negative, for review by hand",
+    )
     mode.add_argument(
         "--update-baseline",
         action="store_true",
@@ -837,7 +678,7 @@ def _parser() -> argparse.ArgumentParser:
         action="append",
         default=[],
         metavar="PATH",
-        help="limit the check or --all to this file or directory (repeatable)",
+        help="limit the check, --all, or --coordinated to this file or directory (repeatable)",
     )
     return parser
 
@@ -849,6 +690,15 @@ def _list_all(hits: dict[str, list[Hit]]) -> int:
     total = sum(len(found) for found in hits.values())
     _out(f"{_plural(total, 'hit')} in {_plural(len(hits), 'file')}\n")
     return 1 if total > 0 else 0
+
+
+def _list_coordinated(candidates: dict[str, list[Hit]]) -> int:
+    """Print every conjunction candidate and a total; always 0, since none is a hit."""
+    for path in sorted(candidates):
+        _print_hits(candidates[path])
+    total = sum(len(found) for found in candidates.values())
+    _out(f"{_plural(total, 'candidate')} in {_plural(len(candidates), 'file')}\n")
+    return 0
 
 
 def _update(

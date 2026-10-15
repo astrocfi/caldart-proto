@@ -444,7 +444,7 @@ deploy/install.sh 1
 deploy/lib.sh 14
 deploy/nginx/caldart-attach.conf 2
 deploy/nginx/caldart.conf 3
-deploy/reset-database.sh 3
+deploy/reset-database.sh 2
 deploy/seed.sh 1
 deploy/steps/check.sh 2
 deploy/steps/configure.sh 7
@@ -455,7 +455,7 @@ deploy/systemd/caldart-backup.service 1
 deploy/systemd/caldart-bounces.timer 1
 deploy/systemd/caldart-bulk-email.service 2
 deploy/systemd/caldart-statements.service 1
-deploy/uninstall.sh 2
+deploy/uninstall.sh 1
 deploy/upgrade.sh 2
 docs/_ext/guide_roles.py 6
 docs/_static/figure-zoom.js 2
