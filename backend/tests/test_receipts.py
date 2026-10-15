@@ -113,7 +113,7 @@ def test_the_receipt_carries_the_pdf_as_an_attachment(
 def test_the_receipt_subject_names_the_organization_and_the_amount(
     member: User, annual_plan: MembershipPlan, mailoutbox: list[EmailMultiAlternatives]
 ) -> None:
-    """The subject reads as the house voice asks, with no exclamation."""
+    """The subject reads as the house voice asks, without an exclamation mark."""
     payment = create_checkout(member, "annual", 1_000, PaymentProvider.MOCK)
 
     mark_succeeded(payment)
@@ -135,7 +135,7 @@ def test_the_receipt_stamps_when_it_was_sent(
 
 
 @pytest.mark.usefixtures("run_on_commit")
-def test_a_second_confirmation_sends_no_second_receipt(
+def test_a_second_confirmation_does_not_send_a_second_receipt(
     member: User, annual_plan: MembershipPlan, mailoutbox: list[EmailMultiAlternatives]
 ) -> None:
     """A webhook racing the browser must not send the member two receipts."""
@@ -181,12 +181,12 @@ def test_a_refused_receipt_leaves_the_stamp_unset(
     assert payment.receipt_sent_at is None
 
 
-def test_a_payer_with_no_address_gets_no_receipt(
+def test_a_payer_without_an_address_does_not_get_a_receipt(
     annual_plan: MembershipPlan,
     user_factory: type[UserFactory],
     mailoutbox: list[EmailMultiAlternatives],
 ) -> None:
-    """There is nowhere to send a receipt for a member with no email address."""
+    """A member without an email address can't be sent a receipt."""
     nameless = user_factory(email="")
     payment = succeeded_payment(nameless, annual_plan)
 
@@ -255,7 +255,7 @@ def test_the_receipt_pdf_names_how_a_check_arrived(
 # --------------------------------------------------------------------------
 # The statement
 # --------------------------------------------------------------------------
-def test_a_year_with_no_contribution_offers_no_statement(
+def test_a_year_without_a_contribution_does_not_offer_a_statement(
     member: User, annual_plan: MembershipPlan
 ) -> None:
     """Dues alone are not a gift, so they do not earn a statement."""
@@ -315,10 +315,10 @@ def test_a_refund_against_the_contribution_nets_the_statement(
     assert statement.total_cents == 7_500
 
 
-def test_a_refund_larger_than_the_gift_nets_no_further(
+def test_a_refund_larger_than_the_gift_does_not_net_any_further(
     member: User, annual_plan: MembershipPlan
 ) -> None:
-    """Once the whole gift is back, refunding the dues as well takes nothing more."""
+    """Once the whole gift is back, refunding the dues as well doesn't take any more."""
     payment = succeeded_payment(member, annual_plan, contribution_cents=10_000)
     RefundFactory(payment=payment, amount_cents=payment.amount_cents)
 
@@ -359,17 +359,17 @@ def test_a_member_cannot_download_someone_elses_receipt(
     assert api_client.get(f"/api/v1/me/payments/{payment.pk}/receipt.pdf").status_code == 404
 
 
-def test_a_pending_payment_has_no_receipt(
+def test_a_pending_payment_does_not_have_a_receipt(
     api_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """Money that has not arrived has bought nothing to acknowledge."""
+    """Money that has not arrived hasn't bought anything to acknowledge."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.MOCK)
     api_client.force_login(member)
 
     assert api_client.get(f"/api/v1/me/payments/{payment.pk}/receipt.pdf").status_code == 404
 
 
-def test_an_anonymous_visitor_gets_no_receipt(
+def test_an_anonymous_visitor_does_not_get_a_receipt(
     api_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
     """Signing in is the whole permission check on a member's own receipt."""
@@ -393,8 +393,8 @@ def test_the_statement_years_endpoint_lists_what_can_be_downloaded(
     assert api_client.get(MY_STATEMENTS).json() == {"years": [2026]}
 
 
-def test_a_member_who_never_gave_is_offered_no_year(api_client: APIClient, member: User) -> None:
-    """An empty list, not a 404: there is simply nothing to download."""
+def test_a_member_who_never_gave_is_not_offered_a_year(api_client: APIClient, member: User) -> None:
+    """An empty list, not a 404: there simply isn't anything to download."""
     api_client.force_login(member)
 
     assert api_client.get(MY_STATEMENTS).json() == {"years": []}
@@ -422,10 +422,10 @@ def test_a_member_downloads_their_own_statement(
     )
 
 
-def test_a_statement_for_a_member_with_no_usable_name_is_named_by_id(
+def test_a_statement_for_a_member_without_a_usable_name_is_named_by_id(
     api_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """A display name that slugifies to nothing falls back to the account id."""
+    """A display name that slugifies to an empty string falls back to the account id."""
     member.first_name = ""
     member.last_name = ""
     member.email = "@@@@@@@@"
@@ -445,10 +445,10 @@ def test_a_statement_for_a_member_with_no_usable_name_is_named_by_id(
     )
 
 
-def test_a_year_the_member_gave_nothing_in_has_no_statement(
+def test_a_year_the_member_did_not_give_anything_in_does_not_have_a_statement(
     api_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """A page of zeroes would be worse than saying there is nothing."""
+    """A page of zeroes would be worse than saying there isn't a statement."""
     succeeded_payment(member, annual_plan, contribution_cents=5_000)
     api_client.force_login(member)
 
@@ -604,8 +604,10 @@ def test_a_payment_row_carries_the_term_it_bought(
     assert row["membership"]["starts_on"] == timezone.localdate().isoformat()
 
 
-def test_a_contribution_only_payment_carries_no_term(api_client: APIClient, member: User) -> None:
-    """A bare donation buys no membership, and says so rather than guessing."""
+def test_a_contribution_only_payment_does_not_carry_a_term(
+    api_client: APIClient, member: User
+) -> None:
+    """A bare donation doesn't buy a membership, and says so rather than guessing."""
     payment = create_checkout(member, None, 5_000, PaymentProvider.MOCK)
     mark_succeeded(payment)
     api_client.force_login(member)

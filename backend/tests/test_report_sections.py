@@ -82,7 +82,7 @@ def sections_of(spec: ReportSpec[Row]) -> list[ReportSection]:
 # Grouping
 # --------------------------------------------------------------------------
 def test_a_spec_without_sections_has_one_untitled_section_of_every_row() -> None:
-    """With no ``section`` function, the table is one section titled ``""``."""
+    """Without a ``section`` function, the table is one section titled ``""``."""
     assert sections_of(spec_for(ROWS, sectioned=False)) == [
         ReportSection(title="", rows=[["Beta", "Bo"], ["Alpha", "Al"], ["Beta", "Bea"]])
     ]
@@ -96,7 +96,7 @@ def test_listed_sections_come_in_the_listed_order() -> None:
     ]
 
 
-def test_a_listed_section_with_no_rows_still_appears() -> None:
+def test_a_listed_section_without_rows_still_appears() -> None:
     """A title the query lists but no row names is an empty section, in its place."""
     spec = spec_for(ROWS, sections=["Alpha", "Gamma", "Beta"])
     titles = [(section.title, len(section.rows)) for section in sections_of(spec)]
@@ -124,7 +124,7 @@ def test_the_flat_rows_keep_every_row_in_query_order() -> None:
 # The CSV
 # --------------------------------------------------------------------------
 def test_the_csv_of_a_sectioned_report_is_one_flat_table() -> None:
-    """The header, then every row, with no section heading between them."""
+    """The header, then every row, without a section heading between them."""
     document = build_report(spec_for(ROWS, sections=["Alpha", "Beta"]), {}, fmt="csv", today=DAY)
     assert document.content.decode().splitlines() == [
         "Group,Name",
@@ -162,13 +162,13 @@ def test_the_pdf_draws_a_heading_and_a_table_per_section(pdf_text: PdfText) -> N
 
 
 def test_an_empty_section_draws_the_spec_s_line(pdf_text: PdfText) -> None:
-    """A section with no rows draws its title and then the spec's ``empty_section``."""
+    """A section without rows draws its title and then the spec's ``empty_section``."""
     spec = spec_for(ROWS, sections=["Gamma", "Alpha", "Beta"], empty_section=EMPTY_LINE)
     assert pdf_strings(spec, pdf_text)[2:5] == ["Gamma", EMPTY_LINE, "Alpha"]
 
 
 def test_an_empty_section_is_its_title_alone_without_a_line(pdf_text: PdfText) -> None:
-    """With a blank ``empty_section``, an empty section draws nothing under its title."""
+    """With a blank ``empty_section``, an empty section draws only its title."""
     spec = spec_for(ROWS, sections=["Gamma", "Alpha", "Beta"])
     assert pdf_strings(spec, pdf_text)[2:5] == ["Gamma", "Alpha", "Group"]
 
@@ -179,13 +179,13 @@ def test_one_titled_section_is_drawn_with_its_heading(pdf_text: PdfText) -> None
     assert pdf_strings(spec, pdf_text)[2:4] == ["Alpha", "Group"]
 
 
-def test_an_unsectioned_pdf_draws_no_heading(pdf_text: PdfText) -> None:
+def test_an_unsectioned_pdf_does_not_draw_a_heading(pdf_text: PdfText) -> None:
     """A spec without sections draws the header row straight under the subtitle."""
     assert pdf_strings(spec_for(ROWS, sectioned=False), pdf_text)[2:4] == ["Group", "Name"]
 
 
 def test_build_pdf_table_without_sections_draws_the_rows(pdf_text: PdfText) -> None:
-    """``build_pdf_table`` given no ``sections`` draws ``rows`` as its one table."""
+    """``build_pdf_table`` called without ``sections`` draws ``rows`` as its one table."""
     buffer = io.BytesIO()
     build_pdf_table(buffer, title="T", header=["A"], rows=[["x"]])
     assert pdf_text(buffer.getvalue())[0][1:3] == ["A", "x"]
@@ -269,8 +269,8 @@ def test_a_column_the_chooser_leaves_out_is_left_out_of_every_section() -> None:
     assert [section.header for section in table.sections] == [["Note"], []]
 
 
-def test_a_section_left_with_no_column_draws_its_title_alone(pdf_text: PdfText) -> None:
-    """When the chooser keeps no column a section draws, only its title is drawn."""
+def test_a_section_left_without_a_column_draws_its_title_alone(pdf_text: PdfText) -> None:
+    """When the chooser drops every column a section draws, only its title is drawn."""
     document = build_report(own_spec(), {"columns": "group,note"}, fmt="pdf", today=DAY)
     drawn = {"Alpha", "Note", "Al note", "Beta", "Bo", "Bea"}
     strings = pdf_text(document.content)[0]
@@ -278,7 +278,7 @@ def test_a_section_left_with_no_column_draws_its_title_alone(pdf_text: PdfText) 
 
 
 def test_a_section_the_spec_does_not_name_keeps_every_chosen_column() -> None:
-    """A section with no declaration has no header of its own, and every cell."""
+    """An undeclared section doesn't carry a header of its own, and holds every cell."""
     spec = own_spec([("Gamma", "Gil")], sections=("Alpha", "Beta", "Gamma"))
     assert sections_of(spec)[2] == ReportSection(title="Gamma", rows=[["Gamma", "Gil", "Gil note"]])
 

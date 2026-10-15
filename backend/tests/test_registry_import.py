@@ -217,8 +217,8 @@ def test_each_status_code_maps_to_its_choice(code: str, expected: str) -> None:
     ("value", "expected"),
     [("20270131", date(2027, 1, 31)), ("", None), ("00000000", None), ("2027013", None)],
 )
-def test_a_registry_date_reads_as_a_date_or_nothing(value: str, expected: date | None) -> None:
-    """``YYYYMMDD`` is a date; a blank or malformed value is none."""
+def test_a_registry_date_reads_as_a_date_or_none(value: str, expected: date | None) -> None:
+    """``YYYYMMDD`` is a date; a blank or malformed value is ``None``."""
     assert parse_date(value) == expected
 
 
@@ -250,7 +250,7 @@ def test_the_master_file_reads_as_normalized_registrations(small_registry: Path)
 
 
 def test_a_blank_year_reads_as_none(small_registry: Path) -> None:
-    """A master row without a year of manufacture has no year."""
+    """A master row without a year of manufacture reads its year as ``None``."""
     with (small_registry / "MASTER.txt").open("rb") as stream:
         rows = list(read_registrations(stream))
     assert rows[2].year is None
@@ -383,7 +383,7 @@ def test_the_source_opens_before_any_transaction(
     assert savepoints_when_opened == [0]
 
 
-def test_a_call_with_no_row_refuses_while_one_is_running(small_registry: Path) -> None:
+def test_a_call_without_a_row_refuses_while_one_is_running(small_registry: Path) -> None:
     """The nightly timer's own path -- no ``run`` passed in -- takes the same lock.
 
     So it can never overlap a Run now press: whichever gets there first runs.
@@ -393,7 +393,7 @@ def test_a_call_with_no_row_refuses_while_one_is_running(small_registry: Path) -
         import_registry(str(small_registry))
 
 
-def test_a_call_with_no_row_ignores_a_stale_one(small_registry: Path) -> None:
+def test_a_call_without_a_row_ignores_a_stale_one(small_registry: Path) -> None:
     """A run stuck past the stale limit does not block a fresh unattended one."""
     RegistryImport.objects.create(started_at=timezone.now() - timedelta(minutes=31))
     run = import_registry(str(small_registry))
@@ -510,7 +510,7 @@ def test_folding_moves_the_aliases_to_the_faa_entry(
 
 
 def test_a_custom_type_the_faa_does_not_list_stays(small_registry: Path) -> None:
-    """A hand-added type with no FAA twin is kept."""
+    """A hand-added type without an FAA twin is kept."""
     custom = AircraftType.objects.create(
         faa_code="CUSTOM-2", faa_make="X", faa_model="Y", make="Zenith", model="CH 750"
     )
@@ -534,7 +534,7 @@ def test_a_source_missing_the_master_file_fails_and_says_why(tmp_path: Path) -> 
     assert (run.ok, run.finished_at is not None, "MASTER.txt" in run.error) == (False, True, True)
 
 
-def test_a_failed_import_writes_nothing(tmp_path: Path) -> None:
+def test_a_failed_import_does_not_write_anything(tmp_path: Path) -> None:
     """A failure rolls back every type and registration the run wrote."""
     source = tmp_path / "half"
     source.mkdir()
@@ -583,7 +583,7 @@ def test_the_command_fails_with_a_command_error(tmp_path: Path) -> None:
 
 
 def test_the_command_refuses_an_unknown_import_id(small_registry: Path) -> None:
-    """``--import-id`` naming no row is refused before anything is read."""
+    """An ``--import-id`` that doesn't name a row is refused before anything is read."""
     with pytest.raises(CommandError, match="No registry import 999999"):
         call_command("import_faa_registry", source=str(small_registry), import_id=999999)
 

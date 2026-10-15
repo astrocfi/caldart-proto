@@ -39,7 +39,7 @@ def _renewal_due(user: User, plan: MembershipPlan, today: date) -> RenewalMandat
     """A mock-provider renewal whose charge is due ``today``, already noticed.
 
     The term ends ``today`` and the scan has run the day before, so the scheduled
-    attempt is waiting and its notice has gone out; the notice touches no provider.
+    attempt is waiting and its notice has gone out; the notice doesn't touch a provider.
     """
     MembershipFactory(
         user=user,
@@ -63,13 +63,13 @@ def _run_fields(caplog: pytest.LogCaptureFixture) -> dict[str, str]:
     return dict(pair.split("=", 1) for pair in line.split())
 
 
-def test_the_renewals_job_records_no_failure_for_a_disabled_provider(
+def test_the_renewals_job_does_not_record_a_failure_for_a_disabled_provider(
     member: User,
     annual_plan: MembershipPlan,
     today: date,
     audit_log: pytest.LogCaptureFixture,
 ) -> None:
-    """The command runs to its audit record, which counts no refused charge."""
+    """The command runs to its audit record, which doesn't count a refused charge."""
     _renewal_due(member, annual_plan, today)
     audit_log.clear()
 
@@ -101,7 +101,7 @@ def test_a_charge_a_disabled_provider_stopped_is_not_left_in_flight(
     assert (attempt.outcome, attempt.attempted_at) == (RenewalOutcome.SCHEDULED, None)
 
 
-def test_a_disabled_provider_costs_the_member_no_rung_of_the_retry_ladder(
+def test_a_disabled_provider_does_not_cost_the_member_a_rung_of_the_retry_ladder(
     member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """Nothing was learned about the card, so nothing is held against it."""
@@ -113,7 +113,7 @@ def test_a_disabled_provider_costs_the_member_no_rung_of_the_retry_ladder(
     assert mandate.failure_count == 0
 
 
-def test_a_disabled_provider_tells_the_member_nothing(
+def test_a_disabled_provider_does_not_tell_the_member_anything(
     member: User,
     annual_plan: MembershipPlan,
     today: date,
@@ -128,7 +128,7 @@ def test_a_disabled_provider_tells_the_member_nothing(
     assert mailoutbox == []
 
 
-def test_a_charge_a_disabled_provider_stopped_leaves_no_pending_payment(
+def test_a_charge_a_disabled_provider_stopped_does_not_leave_a_pending_payment(
     member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """The payment row started for the charge is thrown away again."""

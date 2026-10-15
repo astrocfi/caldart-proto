@@ -147,7 +147,7 @@ class FakeSetupIntents:
     """Stand-in for ``v1.setup_intents`` that records the SetupIntents it cancels."""
 
     def __init__(self) -> None:
-        """Start with nothing canceled."""
+        """Start with an empty list of canceled intents."""
         self.canceled: list[str] = []
 
     def cancel(
@@ -182,7 +182,7 @@ class FakeIntents:
     """Stand-in for ``v1.payment_intents`` that records what it was asked."""
 
     def __init__(self, payload: dict[str, Any] | None = None) -> None:
-        """Start with no recorded calls, answering ``retrieve`` with ``payload``."""
+        """Start without any recorded calls, answering ``retrieve`` with ``payload``."""
         self.payload = payload or {}
         self.api_key = ""
         self.created: dict[str, Any] = {}
@@ -308,7 +308,7 @@ def test_start_stores_the_intent_as_a_dict(
 def test_start_without_a_secret_key_is_a_400(
     api_client: APIClient, member: User, annual_plan: MembershipPlan, settings: Settings
 ) -> None:
-    """Checkout without a secret key is a 400, not a 500, and creates no payment."""
+    """Checkout without a secret key is a 400, not a 500, and doesn't create a payment."""
     settings.STRIPE_SECRET_KEY = ""
     api_client.force_login(member)
     response = api_client.post(
@@ -395,7 +395,7 @@ def test_wallet_is_read_from_the_charge(
 
 
 def test_wallet_is_unknown_without_a_charge() -> None:
-    """An intent with no charge at all reads as an unknown wallet."""
+    """An intent without any charge at all reads as an unknown wallet."""
     assert wallet_from_intent({"id": "pi", "latest_charge": None}) == PaymentWallet.UNKNOWN
 
 
@@ -457,7 +457,7 @@ def test_confirm_rejects_metadata_for_another_payment(
 def test_confirm_marks_a_canceled_intent_failed(
     api_client: APIClient, member: User, annual_plan: MembershipPlan, fake_intents: FakeIntents
 ) -> None:
-    """A canceled intent marks the payment failed and grants no membership."""
+    """A canceled intent marks the payment failed and doesn't grant a membership."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
     fake_intents.payload = intent_payload(payment, id="pi_dead", status="canceled")
 
@@ -474,7 +474,7 @@ def test_confirm_marks_a_canceled_intent_failed(
 def test_confirm_cancels_a_declined_intent(
     api_client: APIClient, member: User, annual_plan: MembershipPlan, fake_intents: FakeIntents
 ) -> None:
-    """A declined intent is canceled, so its client secret takes no other card."""
+    """A declined intent is canceled, so its client secret can't take another card."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
     fake_intents.payload = intent_payload(
         payment, id="pi_declined", status="requires_payment_method"
@@ -619,7 +619,7 @@ def test_confirm_leaves_a_refunded_payment_refunded(
     fake_intents: FakeIntents,
     status: str,
 ) -> None:
-    """Confirming a refunded payment answers its refunded status and changes nothing."""
+    """Confirming a refunded payment answers its refunded status and leaves it alone."""
     payment = refunded_stripe_payment(member, status, "pi_refunded")
     fake_intents.payload = intent_payload(payment)
 
@@ -632,7 +632,7 @@ def test_confirm_leaves_a_refunded_payment_refunded(
 
 
 @pytest.mark.parametrize("status", REFUNDED_STATUSES)
-def test_confirm_of_a_refunded_payment_asks_stripe_nothing(
+def test_confirm_of_a_refunded_payment_does_not_ask_stripe_anything(
     api_client: APIClient,
     member: User,
     annual_plan: MembershipPlan,
@@ -762,7 +762,7 @@ def test_webhook_rejects_a_stale_timestamp(
 def test_webhook_rejects_a_missing_signature_header(
     api_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """A request with no ``Stripe-Signature`` header at all is refused."""
+    """A request without any ``Stripe-Signature`` header at all is refused."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
     response = api_client.post(
         WEBHOOK,
@@ -829,7 +829,7 @@ def test_webhook_stores_the_intent_as_a_dict(
 def test_webhook_after_confirm_is_a_no_op(
     api_client: APIClient, member: User, annual_plan: MembershipPlan, fake_intents: FakeIntents
 ) -> None:
-    """A webhook that arrives after the client already confirmed changes nothing."""
+    """A webhook that arrives after the client already confirmed leaves it as it was."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
     fake_intents.payload = intent_payload(payment, id="pi_both")
 
@@ -849,7 +849,7 @@ def test_webhook_after_confirm_is_a_no_op(
 def test_webhook_marks_a_failure(
     api_client: APIClient, member: User, annual_plan: MembershipPlan, fake_intents: FakeIntents
 ) -> None:
-    """A failed-intent webhook marks the payment failed and grants no membership."""
+    """A failed-intent webhook marks the payment failed and doesn't grant a membership."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
     event = stripe_event(
         "payment_intent.payment_failed",
@@ -865,7 +865,7 @@ def test_webhook_marks_a_failure(
 def test_a_failure_webhook_cancels_the_declined_intent(
     api_client: APIClient, member: User, annual_plan: MembershipPlan, fake_intents: FakeIntents
 ) -> None:
-    """A decline the webhook reports cancels the intent, so it takes no other card."""
+    """A decline the webhook reports cancels the intent, so it can't take another card."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
     event = stripe_event(
         "payment_intent.payment_failed",
@@ -877,7 +877,7 @@ def test_a_failure_webhook_cancels_the_declined_intent(
     assert fake_intents.canceled == ["pi_hook_declined"]
 
 
-def test_a_late_failure_webhook_cancels_nothing_that_succeeded(
+def test_a_late_failure_webhook_does_not_cancel_anything_that_succeeded(
     api_client: APIClient, member: User, annual_plan: MembershipPlan, fake_intents: FakeIntents
 ) -> None:
     """A decline reported after the payment succeeded leaves the intent alone."""
@@ -922,7 +922,7 @@ def pending_stripe_donation(member: User, setup_id: str) -> RenewalMandate:
 def test_a_failed_setup_cancels_the_setup_intent(
     api_client: APIClient, member: User, fake_intents: FakeIntents
 ) -> None:
-    """A declined SetupIntent is canceled, so its client secret takes no other card."""
+    """A declined SetupIntent is canceled, so its secret can't take another card."""
     mandate = pending_stripe_donation(member, "seti_declined")
 
     post_webhook(api_client, setup_failed_event(mandate, "seti_declined"))
@@ -944,7 +944,7 @@ def test_a_canceled_setup_is_reported_handled(
 def test_a_failed_setup_leaves_the_pending_mandate_to_the_next_setup(
     api_client: APIClient, member: User, fake_intents: FakeIntents
 ) -> None:
-    """The webhook changes no mandate: the member's next setup replaces a pending one."""
+    """The webhook keeps the mandate: the member's next setup replaces a pending one."""
     mandate = pending_stripe_donation(member, "seti_declined")
 
     post_webhook(api_client, setup_failed_event(mandate, "seti_declined"))
@@ -1023,7 +1023,7 @@ def test_webhook_finds_the_payment_by_provider_ref(
     assert payment.status == PaymentStatus.PENDING
 
 
-def test_webhook_needs_no_session_or_csrf(
+def test_webhook_does_not_need_a_session_or_csrf(
     csrf_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
     """``csrf_client`` enforces CSRF, so a 403 here would mean the exemption broke."""
@@ -1035,7 +1035,7 @@ def test_webhook_needs_no_session_or_csrf(
 def test_a_replayed_success_leaves_a_refunded_payment_refunded(
     api_client: APIClient, member: User, annual_plan: MembershipPlan, status: str
 ) -> None:
-    """A ``payment_intent.succeeded`` delivered again after a refund changes no status."""
+    """A ``payment_intent.succeeded`` delivered again after a refund keeps the status."""
     payment = refunded_stripe_payment(member, status, "pi_replayed")
 
     post_webhook(api_client, succeeded_event(payment, "pi_replayed"))
@@ -1048,7 +1048,7 @@ def test_a_replayed_success_leaves_a_refunded_payment_refunded(
 def test_a_replayed_success_keeps_a_refunded_payments_completion_date(
     api_client: APIClient, member: User, annual_plan: MembershipPlan, status: str
 ) -> None:
-    """A ``payment_intent.succeeded`` delivered again after a refund moves no date."""
+    """A replayed ``payment_intent.succeeded`` after a refund keeps ``completed_at``."""
     payment = refunded_stripe_payment(member, status, "pi_replayed")
 
     post_webhook(api_client, succeeded_event(payment, "pi_replayed"))
@@ -1058,10 +1058,10 @@ def test_a_replayed_success_keeps_a_refunded_payments_completion_date(
 
 
 @pytest.mark.parametrize("status", REFUNDED_STATUSES)
-def test_a_replayed_success_buys_a_refunded_payment_no_term(
+def test_a_replayed_success_does_not_buy_a_refunded_payment_a_term(
     api_client: APIClient, member: User, annual_plan: MembershipPlan, status: str
 ) -> None:
-    """A ``payment_intent.succeeded`` delivered again after a refund grants nothing."""
+    """A replayed ``payment_intent.succeeded`` after a refund doesn't grant a term."""
     payment = refunded_stripe_payment(member, status, "pi_replayed")
 
     post_webhook(api_client, succeeded_event(payment, "pi_replayed"))
@@ -1127,10 +1127,10 @@ def test_confirm_records_the_net_from_the_balance_transaction(
     assert payment.net_cents == 4_300
 
 
-def test_an_intent_with_no_balance_transaction_leaves_the_fee_unknown(
+def test_an_intent_without_a_balance_transaction_leaves_the_fee_unknown(
     api_client: APIClient, member: User, annual_plan: MembershipPlan, fake_intents: FakeIntents
 ) -> None:
-    """Stripe settles some methods later, and until it does there is no fee to store."""
+    """Stripe settles some methods later, and until it does there isn't a fee to store."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
     fake_intents.payload = intent_payload(payment, id="pi_unsettled")
 
@@ -1141,7 +1141,7 @@ def test_an_intent_with_no_balance_transaction_leaves_the_fee_unknown(
     assert fees_are_known(payment) is False
 
 
-def test_an_unexpanded_balance_transaction_reads_as_no_fee_yet(
+def test_an_unexpanded_balance_transaction_does_not_read_as_a_fee_yet(
     member: User, annual_plan: MembershipPlan
 ) -> None:
     """An id where the transaction should be is not a figure we can record."""
@@ -1179,7 +1179,7 @@ def test_charge_updated_fills_in_a_fee_the_payment_did_not_have(
     assert payment.fee_cents == 161
 
 
-def test_charge_updated_re_reads_the_intent_when_the_event_carries_no_transaction(
+def test_charge_updated_re_reads_the_intent_when_the_event_does_not_carry_a_transaction(
     api_client: APIClient, member: User, annual_plan: MembershipPlan, fake_intents: FakeIntents
 ) -> None:
     """An unexpanded event sends us back to Stripe rather than giving up."""
@@ -1196,7 +1196,7 @@ def test_charge_updated_re_reads_the_intent_when_the_event_carries_no_transactio
 def test_charge_updated_leaves_a_fee_we_already_know_alone(
     api_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """A second delivery of the same event changes nothing."""
+    """A second delivery of the same event doesn't change anything."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
     post_webhook(api_client, succeeded_event(payment, "pi_twice"))
     event = charge_event(payment, "pi_twice", balance_transaction=balance_transaction(161, 4_339))
@@ -1215,7 +1215,7 @@ def test_charge_updated_leaves_a_fee_we_already_know_alone(
 def test_charge_updated_for_an_unknown_payment_is_acknowledged(
     api_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """An event about a payment this installation does not have changes nothing."""
+    """An event about a payment this installation does not have is left alone."""
     event = stripe_event(
         stripe_provider.CHARGE_UPDATED,
         {"id": "ch_nobody", "object": "charge", "payment_intent": "pi_nobody", "metadata": {}},
@@ -1229,7 +1229,7 @@ def test_charge_updated_for_an_unknown_payment_is_acknowledged(
 def test_charge_updated_records_the_fee_before_the_payment_has_settled(
     api_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """Stripe orders no deliveries, so the fee may arrive before the success does."""
+    """Stripe doesn't order deliveries, so the fee may arrive before the success does."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
 
     event = charge_event(payment, "pi_early", balance_transaction=balance_transaction(161, 4_339))
@@ -1243,7 +1243,7 @@ def test_charge_updated_records_the_fee_before_the_payment_has_settled(
 def test_a_success_after_an_early_charge_updated_keeps_the_fee(
     api_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """The success event carries no expanded transaction and must not wipe the fee."""
+    """The success event lacks an expanded transaction and must not wipe the fee."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
     post_webhook(
         api_client,
@@ -1263,7 +1263,7 @@ class FakeRefunds:
     """Stand-in for ``v1.refunds`` that records what it was asked to create."""
 
     def __init__(self, refund_id: str = "re_test_1") -> None:
-        """Start with no recorded call, answering ``create`` with ``refund_id``."""
+        """Start without a recorded call, answering ``create`` with ``refund_id``."""
         self.refund_id = refund_id
         self.created: dict[str, Any] = {}
         self.create_options: dict[str, Any] = {}
@@ -1423,7 +1423,7 @@ def test_a_dashboard_refund_webhook_updates_the_payment(
     assert payment.status == PaymentStatus.REFUNDED
 
 
-def test_a_second_delivery_of_charge_refunded_records_nothing(
+def test_a_second_delivery_of_charge_refunded_does_not_record_anything(
     api_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
     """Stripe retries a webhook, and the refund id is what makes that harmless."""
@@ -1454,7 +1454,7 @@ def test_a_pending_refund_in_the_webhook_is_not_recorded(
 
 
 def test_charge_refunded_for_an_unknown_payment_is_ignored(api_client: APIClient) -> None:
-    """A charge that matches no row of ours is received and left alone."""
+    """A charge that doesn't match a row of ours is received and left alone."""
     event = stripe_event(
         "charge.refunded",
         {

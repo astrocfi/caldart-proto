@@ -68,7 +68,7 @@ def paid(member: User, annual_plan: MembershipPlan) -> Payment:
 # --------------------------------------------------------------------------
 # What is left to refund
 # --------------------------------------------------------------------------
-def test_a_payment_with_no_refunds_has_all_of_it_left(paid: Payment) -> None:
+def test_a_payment_without_refunds_has_all_of_it_left(paid: Payment) -> None:
     """Nothing refunded yet means the whole amount is still refundable."""
     assert refund_service.remaining_cents(paid) == 6_500
 
@@ -80,7 +80,7 @@ def test_a_partial_refund_leaves_the_rest(paid: Payment) -> None:
 
 
 def test_a_failed_refund_leaves_the_whole_amount(paid: Payment) -> None:
-    """A refund the provider refused gave nothing back, so nothing is off the total."""
+    """A refused refund didn't give anything back, so nothing is off the total."""
     RefundFactory(payment=paid, amount_cents=2_000, status=RefundStatus.FAILED)
     assert refund_service.remaining_cents(paid) == 6_500
 
@@ -159,7 +159,9 @@ def test_a_succeeded_refund_is_stamped_with_the_time_it_was_taken(
     assert refund.refunded_at is not None
 
 
-def test_a_mock_refund_carries_no_provider_reference(paid: Payment, account_admin: User) -> None:
+def test_a_mock_refund_does_not_carry_a_provider_reference(
+    paid: Payment, account_admin: User
+) -> None:
     """No provider is holding a refund id, so the reference is blank."""
     refund = refund_service.issue_refund(
         paid, amount_cents=1_000, reason=RefundReason.OTHER, actor=account_admin
@@ -170,7 +172,7 @@ def test_a_mock_refund_carries_no_provider_reference(paid: Payment, account_admi
 def test_a_manual_payment_is_refunded_without_calling_a_provider(
     member: User, annual_plan: MembershipPlan, account_admin: User
 ) -> None:
-    """A check written back by hand leaves a refund row with no provider reference."""
+    """A check written back by hand leaves a refund row without a provider reference."""
     payment = PaymentFactory(
         user=member,
         plan=annual_plan,
@@ -189,7 +191,7 @@ def test_a_manual_payment_is_refunded_without_calling_a_provider(
 # --------------------------------------------------------------------------
 # What a refund refuses
 # --------------------------------------------------------------------------
-def test_a_refund_of_nothing_is_refused(paid: Payment, account_admin: User) -> None:
+def test_a_refund_of_zero_is_refused(paid: Payment, account_admin: User) -> None:
     """Zero is not an amount, and the complaint is keyed by ``amount_cents``."""
     with pytest.raises(DomainValidationError, match="more than zero") as caught:
         refund_service.issue_refund(
@@ -208,8 +210,8 @@ def test_a_refund_larger_than_what_is_left_is_refused(paid: Payment, account_adm
     assert caught.value.field == "amount_cents"
 
 
-def test_an_over_refund_writes_no_row(paid: Payment, account_admin: User) -> None:
-    """A refused refund leaves nothing behind."""
+def test_an_over_refund_does_not_write_a_row(paid: Payment, account_admin: User) -> None:
+    """A refused refund doesn't leave anything behind."""
     with pytest.raises(DomainValidationError, match=r"\$65\.00"):
         refund_service.issue_refund(
             paid, amount_cents=7_000, reason=RefundReason.OTHER, actor=account_admin
@@ -220,7 +222,7 @@ def test_an_over_refund_writes_no_row(paid: Payment, account_admin: User) -> Non
 def test_a_pending_payment_cannot_be_refunded(
     member: User, annual_plan: MembershipPlan, account_admin: User
 ) -> None:
-    """There is no money to give back until the payment succeeded."""
+    """There isn't any money to give back until the payment succeeded."""
     pending = PaymentFactory(user=member, plan=annual_plan, status=PaymentStatus.PENDING)
     with pytest.raises(DomainValidationError, match="was never paid") as caught:
         refund_service.issue_refund(
@@ -256,7 +258,7 @@ def test_a_refund_still_pending_holds_its_amount_against_the_payment(
 
 
 def test_a_refund_that_failed_frees_its_amount_again(paid: Payment, account_admin: User) -> None:
-    """A refund the provider refused took no money, so it holds none back."""
+    """A refused refund didn't take any money, so it doesn't hold any back."""
     RefundFactory(payment=paid, amount_cents=6_500, status=RefundStatus.FAILED, refunded_at=None)
     refund = refund_service.issue_refund(
         paid, amount_cents=6_500, reason=RefundReason.OTHER, actor=account_admin
@@ -418,10 +420,10 @@ def test_a_refund_leaves_the_term_alone_by_default(
     assert term.status == MembershipStatusChoices.ACTIVE
 
 
-def test_cancel_term_on_a_payment_that_bought_none_is_harmless(
+def test_cancel_term_on_a_payment_that_did_not_buy_one_is_harmless(
     member: User, account_admin: User
 ) -> None:
-    """A pure contribution has no term, and asking to cancel one changes nothing."""
+    """A pure contribution lacks a term, so canceling its term doesn't change anything."""
     donation = PaymentFactory(
         user=member,
         plan=None,
@@ -482,7 +484,7 @@ def test_the_refund_email_says_the_term_was_canceled(
 def test_the_refund_email_is_silent_about_a_term_that_stands(
     paid: Payment, member: User, annual_plan: MembershipPlan, account_admin: User
 ) -> None:
-    """A contribution refund leaves the membership, and says nothing about it."""
+    """A contribution refund leaves the membership, and its email doesn't mention it."""
     MembershipFactory(user=member, plan=annual_plan, payment=paid)
     refund_service.issue_refund(
         paid, amount_cents=2_000, reason=RefundReason.REQUESTED_BY_MEMBER, actor=account_admin
@@ -513,10 +515,10 @@ def test_a_refused_email_does_not_undo_the_refund(
     assert "refund" in caplog.text.lower()
 
 
-def test_a_failed_refund_emails_nobody(
+def test_a_failed_refund_does_not_email_anyone(
     paid: Payment, account_admin: User, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Nothing was given back, so there is nothing to tell the member."""
+    """Nothing was given back, so there isn't anything to tell the member."""
 
     def refuse(self: MockProvider, payment: Payment, refund: Refund) -> dict[str, Any]:
         raise ProviderUnavailableError("The provider could not be reached.")
@@ -576,7 +578,7 @@ def test_a_dashboard_refund_updates_the_payment_status(paid: Payment) -> None:
     assert paid.status == PaymentStatus.REFUNDED
 
 
-def test_a_second_delivery_of_a_dashboard_refund_records_nothing(paid: Payment) -> None:
+def test_a_second_delivery_of_a_dashboard_refund_does_not_record_anything(paid: Payment) -> None:
     """The provider's reference is what makes the record idempotent."""
     refund_service.record_dashboard_refund(
         paid, amount_cents=2_000, provider_ref="re_twice", raw={}
@@ -589,7 +591,7 @@ def test_a_second_delivery_of_a_dashboard_refund_records_nothing(paid: Payment) 
     assert Refund.objects.count() == 1
 
 
-def test_a_dashboard_refund_of_one_we_issued_records_nothing(
+def test_a_dashboard_refund_of_one_we_issued_does_not_record_anything(
     paid: Payment, account_admin: User
 ) -> None:
     """A refund issued here comes back by webhook and must not be counted twice."""
@@ -604,7 +606,9 @@ def test_a_dashboard_refund_of_one_we_issued_records_nothing(
     assert Refund.objects.count() == 1
 
 
-def test_a_dashboard_refund_with_no_readable_amount_records_nothing(paid: Payment) -> None:
+def test_a_dashboard_refund_without_a_readable_amount_does_not_record_anything(
+    paid: Payment,
+) -> None:
     """A notification CalDART cannot read an amount from is not a refund of $0.00."""
     written = refund_service.record_dashboard_refund(
         paid, amount_cents=0, provider_ref="re_unreadable", raw={}
@@ -613,7 +617,7 @@ def test_a_dashboard_refund_with_no_readable_amount_records_nothing(paid: Paymen
     assert written is None
 
 
-def test_a_dashboard_refund_with_no_readable_amount_writes_no_row(paid: Payment) -> None:
+def test_a_dashboard_refund_without_a_readable_amount_does_not_write_a_row(paid: Payment) -> None:
     """Nothing reaches the ledger, so no total and no screen counts it."""
     refund_service.record_dashboard_refund(
         paid, amount_cents=0, provider_ref="re_unreadable", raw={}
@@ -622,7 +626,7 @@ def test_a_dashboard_refund_with_no_readable_amount_writes_no_row(paid: Payment)
     assert Refund.objects.count() == 0
 
 
-def test_a_dashboard_refund_with_no_readable_amount_emails_nobody(paid: Payment) -> None:
+def test_a_dashboard_refund_without_a_readable_amount_does_not_email_anyone(paid: Payment) -> None:
     """The member is not told about money that did not move."""
     refund_service.record_dashboard_refund(
         paid, amount_cents=0, provider_ref="re_unreadable", raw={}
@@ -638,7 +642,7 @@ def test_a_dashboard_refund_emails_the_member(paid: Payment) -> None:
     assert len(mail.outbox) == 1
 
 
-def test_a_dashboard_refund_cancels_no_term(
+def test_a_dashboard_refund_does_not_cancel_a_term(
     paid: Payment, member: User, annual_plan: MembershipPlan
 ) -> None:
     """The treasurer decides about the term; a webhook never does."""
@@ -693,7 +697,7 @@ def test_the_response_carries_the_refund(treasurer_client: APIClient, paid: Paym
 def test_the_response_carries_the_payment_as_it_now_stands(
     treasurer_client: APIClient, paid: Payment
 ) -> None:
-    """The caller needs no second request to redraw the row it refunded."""
+    """The caller doesn't need a second request to redraw the row it refunded."""
     response = treasurer_client.post(
         refunds_url(paid), {"amount_cents": 2_000, "reason": RefundReason.OTHER}
     )
@@ -751,7 +755,7 @@ def test_an_unknown_reason_is_a_400_keyed_by_the_reason(
 
 
 def test_an_unknown_payment_is_a_404(treasurer_client: APIClient) -> None:
-    """There is nothing to refund."""
+    """There isn't anything to refund."""
     response = treasurer_client.post(
         "/api/v1/admin/payments/424242/refunds",
         {"amount_cents": 1_000, "reason": RefundReason.OTHER},

@@ -37,10 +37,10 @@ BAD_SIGNATURE = 400
 
 @pytest.fixture(autouse=True)
 def _empty_throttle_cache(settings: Settings) -> Iterator[None]:
-    """Start and end each test with no counters, and with neither provider able to act.
+    """Start and end each test with empty counters, and with neither provider able to act.
 
     A Stripe delivery is refused for its signature and a PayPal one for the missing
-    webhook id, so every request reaches the throttle and nothing past it.
+    webhook id, so every request reaches the throttle and stops there.
     """
     settings.STRIPE_WEBHOOK_SECRET = "whsec_test"  # noqa: S105 - test fixture
     settings.PAYPAL_WEBHOOK_ID = ""
@@ -87,7 +87,7 @@ def test_the_paypal_webhook_counts_an_ipv6_64_as_one_address(
     assert post(api_client, PAYPAL_WEBHOOK, remote_addr="2001:db8:1:2:ffff::9") == 429
 
 
-def test_the_paypal_webhook_is_unthrottled_with_no_rate(
+def test_the_paypal_webhook_is_unthrottled_without_a_rate(
     api_client: APIClient, settings: Settings
 ) -> None:
     """With the rate switched off, no delivery is refused for its count."""

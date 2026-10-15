@@ -84,7 +84,7 @@ class PayPalLedger:
     """
 
     def __init__(self) -> None:
-        """Start with no orders and every call answering."""
+        """Start with an empty order book and every call answering."""
         self.orders: dict[str, dict[str, Any]] = {}
         self.request_ids: dict[str, str] = {}
         self.create_faults: list[int | str] = []
@@ -216,7 +216,7 @@ def order_id_in(request: httpx.Request) -> str:
 
 @pytest.fixture
 def ledger(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> Iterator[PayPalLedger]:
-    """PayPal behind ``respx``, with no wait between retries and the claim timeout set."""
+    """PayPal behind ``respx``, retries that don't pause, and the claim timeout set."""
     settings.RENEWAL_STALE_MINUTES = STALE_MINUTES
     pauses: list[float] = []
     monkeypatch.setattr(paypal_provider, "pause", pauses.append)
@@ -270,7 +270,7 @@ def the_attempt() -> RenewalAttempt:
 
 
 def held_in_doubt(ledger: PayPalLedger, member: User, plan: MembershipPlan, today: date) -> None:
-    """Leave the member's renewal in doubt: PayPal answered none of the creates."""
+    """Leave the member's renewal in doubt: PayPal didn't answer any of the creates."""
     renewal_due(member, plan, today)
     ledger.create_faults = [503, "timeout", 503, 503]
     run_auto_renewals(today=today)
@@ -295,7 +295,7 @@ def test_a_create_paypal_answers_on_a_retry_is_charged_once(
 def test_a_create_paypal_never_answers_is_held_in_doubt(
     ledger: PayPalLedger, member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
-    """With no order to look up, the attempt waits for a treasurer instead of a retry."""
+    """Without an order to look up, the attempt waits for a treasurer, not a retry."""
     held_in_doubt(ledger, member, annual_plan, today)
 
     attempt = the_attempt()
@@ -326,7 +326,7 @@ def test_a_charge_in_doubt_is_never_created_again(
     assert len(ledger.bodies) == created
 
 
-def test_a_charge_in_doubt_costs_the_member_nothing(
+def test_a_charge_in_doubt_does_not_cost_the_member_anything(
     ledger: PayPalLedger,
     member: User,
     annual_plan: MembershipPlan,
@@ -408,7 +408,7 @@ def sent_and_unanswered(member: User, plan: MembershipPlan, today: date, hours_a
     )
 
 
-def test_a_create_sent_hours_ago_with_no_order_is_held_in_doubt(
+def test_a_create_sent_hours_ago_without_an_order_is_held_in_doubt(
     ledger: PayPalLedger, member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """Past the hours PayPal keeps the id a repeat could charge again, so none is sent."""
@@ -420,7 +420,7 @@ def test_a_create_sent_hours_ago_with_no_order_is_held_in_doubt(
     assert ledger.bodies == []
 
 
-def test_a_create_sent_recently_with_no_order_is_asked_for_again(
+def test_a_create_sent_recently_without_an_order_is_asked_for_again(
     ledger: PayPalLedger, member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """Inside those hours the same id brings back the order PayPal made, if any."""
@@ -475,7 +475,7 @@ def test_a_capture_paypal_cannot_answer_is_put_off_with_its_order(
 def test_a_capture_paypal_cannot_answer_is_taken_once_by_the_next_scan(
     ledger: PayPalLedger, member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
-    """The next scan reads the order back and captures it, making no second order."""
+    """The next scan reads the order back and captures it without a second order."""
     renewal_due(member, annual_plan, today)
     ledger.approve_only = True
     ledger.capture_faults = [503]
@@ -491,7 +491,7 @@ def test_a_capture_paypal_cannot_answer_is_taken_once_by_the_next_scan(
 def test_a_read_paypal_cannot_answer_is_put_off_again(
     ledger: PayPalLedger, member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
-    """A 503 reading the order back fails nothing and makes no order."""
+    """A 503 reading the order back doesn't fail anything or make an order."""
     renewal_due(member, annual_plan, today)
     ledger.approve_only = True
     ledger.capture_faults = [503]
@@ -590,7 +590,7 @@ def test_a_treasurer_releases_a_charge_paypal_never_took(
     assert ledger.made() == 1
 
 
-def test_a_capture_of_another_payment_settles_nothing(
+def test_a_capture_of_another_payment_does_not_settle_anything(
     ledger: PayPalLedger,
     treasurer_client: APIClient,
     member: User,
@@ -725,7 +725,7 @@ def test_a_refusal_after_an_unanswered_try_is_held_in_doubt(
     assert mandate.failure_count == 0
 
 
-def test_a_refusal_after_an_unanswered_try_takes_nothing_twice(
+def test_a_refusal_after_an_unanswered_try_does_not_take_anything_twice(
     ledger: PayPalLedger, member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """No later scan makes a second order for the payment held in doubt."""
@@ -744,7 +744,7 @@ def test_a_refusal_after_an_unanswered_try_takes_nothing_twice(
 def test_paypal_refusing_caldart_on_the_first_try_is_put_off(
     ledger: PayPalLedger, member: User, annual_plan: MembershipPlan, today: date, refusal: int
 ) -> None:
-    """PayPal refusing our credentials says nothing about the member's account."""
+    """PayPal refusing our credentials doesn't say anything about the member's account."""
     mandate = renewal_due(member, annual_plan, today)
     ledger.create_faults = [refusal]
 
@@ -791,7 +791,7 @@ def test_a_create_that_never_left_is_put_off_not_held(
 def test_a_token_paypal_will_not_give_is_put_off_not_held(
     member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
-    """With no token nothing was sent, so the charge simply waits for the next run."""
+    """Without a token nothing was sent, so the charge simply waits for the next run."""
     renewal_due(member, annual_plan, today)
     with respx.mock as router:
         router.post(f"{PAYPAL_SANDBOX}/v1/oauth2/token").mock(return_value=httpx.Response(503))
@@ -918,14 +918,14 @@ def test_a_charge_in_doubt_whose_payment_succeeded_settles_itself(
 # --------------------------------------------------------------------------
 # Settling: replays, closing, and what PayPal says about the capture
 # --------------------------------------------------------------------------
-def test_settling_again_after_paid_changes_nothing(
+def test_settling_again_after_paid_does_not_change_anything(
     ledger: PayPalLedger,
     treasurer_client: APIClient,
     member: User,
     annual_plan: MembershipPlan,
     today: date,
 ) -> None:
-    """A second press finds nothing in doubt, and no second charge is recorded."""
+    """A second press doesn't find anything in doubt, and no second charge is recorded."""
     made_but_unanswered(ledger, member, annual_plan, today)
     body = {"outcome": "paid", "reference": CAPTURE_ID}
     treasurer_client.post(settle_url(the_attempt().pk), body, format="json")
@@ -965,7 +965,7 @@ def test_a_closed_charge_is_never_created_again(
     annual_plan: MembershipPlan,
     today: date,
 ) -> None:
-    """The paused renewal charges nothing on the next run."""
+    """The paused renewal isn't charged on the next run."""
     held_in_doubt(ledger, member, annual_plan, today)
     treasurer_client.post(settle_url(the_attempt().pk), {"outcome": "failed"}, format="json")
 
@@ -990,7 +990,7 @@ def test_a_closed_charge_is_never_created_again(
     ],
     ids=["amount", "currency", "not-completed", "no-order"],
 )
-def test_a_capture_that_does_not_match_settles_nothing(
+def test_a_capture_that_does_not_match_does_not_settle_anything(
     ledger: PayPalLedger,
     treasurer_client: APIClient,
     member: User,
@@ -1014,7 +1014,7 @@ def test_a_capture_that_does_not_match_settles_nothing(
     assert the_attempt().in_doubt is True
 
 
-def test_a_capture_paypal_has_no_record_of_settles_nothing(
+def test_a_capture_unknown_to_paypal_does_not_settle_anything(
     ledger: PayPalLedger,
     treasurer_client: APIClient,
     member: User,

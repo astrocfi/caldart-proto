@@ -1,10 +1,10 @@
 """The report subscriptions' schedule and the daily run that sends them.
 
 ``next_due_after`` over every cadence from several dates; a run on a frozen clock
-sends what is due and nothing else, moves each sent subscription on, leaves a refused
-send or a report that no longer builds due, brings the recipient up to date, pauses a
-recipient who lost the role, attaches both files for ``both``, sends nothing twice when
-two runs overlap, and writes one audit line.  The DART rosters the same run sends are
+sends only what is due, moves each sent subscription on, leaves a refused send or a
+report that no longer builds due, brings the recipient up to date, pauses a recipient
+who lost the role, attaches both files for ``both``, never sends anything twice when two
+runs overlap, and writes one audit line.  The DART rosters the same run sends are
 covered by ``test_dart_rosters.py``, and the endpoints by
 ``test_report_subscriptions.py``.
 """
@@ -151,7 +151,7 @@ def named_site(settings: Settings, site_settings: SiteSettings) -> None:
 
 
 @pytest.mark.django_db
-def test_a_run_sends_what_is_due_and_nothing_else(mailoutbox: list[EmailMessage]) -> None:
+def test_a_run_sends_only_what_is_due(mailoutbox: list[EmailMessage]) -> None:
     """Due today or earlier and active is sent; due later, or paused, is not."""
     ReportSubscriptionFactory(recipient_email="today@example.test", next_due_on=TODAY)
     ReportSubscriptionFactory(recipient_email="overdue@example.test", next_due_on=date(2026, 9, 1))
@@ -239,7 +239,7 @@ def test_a_subscription_whose_filters_no_longer_build_fails_and_stays_due(
 def test_a_dry_run_counts_a_subscription_that_would_not_build_as_failed(
     mailoutbox: list[EmailMessage],
 ) -> None:
-    """A rehearsal builds the report, so it names no email the live run would not send."""
+    """A rehearsal builds the report, so it names only emails the live run would send."""
     ReportSubscriptionFactory(report="payments", filters={"period": "someday"}, next_due_on=TODAY)
 
     run = run_scheduled_reports(today=TODAY, dry_run=True)
@@ -332,7 +332,7 @@ def test_a_recipient_who_lost_the_role_is_skipped_and_paused(
 def test_a_deactivated_recipient_is_skipped_as_not_permitted(
     account_admin: User, mailoutbox: list[EmailMessage]
 ) -> None:
-    """An account that can no longer sign in is sent nothing."""
+    """An account that can no longer sign in isn't sent anything."""
     account_admin.is_active = False
     account_admin.save(update_fields=["is_active"])
     ReportSubscriptionFactory(
@@ -417,7 +417,7 @@ def test_the_body_matches_its_recorded_text(
 
 
 @pytest.mark.django_db
-def test_a_dry_run_sends_and_changes_nothing(mailoutbox: list[EmailMessage]) -> None:
+def test_a_dry_run_does_not_send_or_change_anything(mailoutbox: list[EmailMessage]) -> None:
     """A rehearsal names the email it would send and leaves the subscription due."""
     subscription = ReportSubscriptionFactory(recipient_email="board@example.org", next_due_on=TODAY)
 
@@ -546,7 +546,7 @@ def test_the_command_sends_and_reports(mailoutbox: list[EmailMessage]) -> None:
 
 @pytest.mark.django_db
 def test_the_command_rehearses_with_dry_run(mailoutbox: list[EmailMessage]) -> None:
-    """``--dry-run`` says what it would send and sends nothing."""
+    """``--dry-run`` says what it would send and doesn't send anything."""
     ReportSubscriptionFactory(next_due_on=TODAY)
     out = StringIO()
 

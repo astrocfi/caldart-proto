@@ -202,7 +202,7 @@ def test_a_signed_out_page_keeps_its_links_to_other_signed_out_pages(
 def test_a_signed_out_page_loses_the_sidebar_entries_of_gated_pages(
     client: Client, guide: Path
 ) -> None:
-    """A gated page with nothing signed out under it leaves the sidebar whole."""
+    """A gated page without a signed-out page under it leaves the sidebar whole."""
     page = body(client.get("/docs/member/sign-in/"))
     assert "Overview" not in page
 
@@ -282,25 +282,25 @@ def test_anything_else_sends_a_signed_out_visitor_to_sign_in(
     assert response.headers["Location"] == f"/portal/login?next=/docs/{path}"
 
 
-def test_a_guide_without_the_signed_out_file_serves_nothing_signed_out(
+def test_a_guide_without_the_signed_out_file_does_not_serve_anything_signed_out(
     client: Client, guide: Path
 ) -> None:
-    """With no ``signed-out.json``, even the sign-in page needs sign-in."""
+    """Without ``signed-out.json``, even the sign-in page needs sign-in."""
     (guide / GUIDE_SIGNED_OUT).unlink()
     response = client.get("/docs/member/sign-in/")
     assert response.status_code == 302
 
 
-def test_a_guide_without_the_signed_out_file_serves_no_stylesheet_signed_out(
+def test_a_guide_without_the_signed_out_file_does_not_serve_a_stylesheet_signed_out(
     client: Client, guide: Path
 ) -> None:
-    """With no ``signed-out.json``, a ``_static/`` file needs sign-in as well."""
+    """Without ``signed-out.json``, a ``_static/`` file needs sign-in as well."""
     (guide / GUIDE_SIGNED_OUT).unlink()
     response = client.get("/docs/_static/styles.css")
     assert response.status_code == 302
 
 
-def test_an_unreadable_signed_out_file_serves_nothing_signed_out(
+def test_an_unreadable_signed_out_file_does_not_serve_anything_signed_out(
     client: Client, guide: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
     """A ``signed-out.json`` that is not JSON is logged, and every page needs sign-in."""
@@ -311,7 +311,7 @@ def test_an_unreadable_signed_out_file_serves_nothing_signed_out(
     assert f"The user guide's {signed_out_file} is not valid JSON" in caplog.text
 
 
-def test_a_signed_out_file_of_the_wrong_shape_serves_nothing_signed_out(
+def test_a_signed_out_file_of_the_wrong_shape_does_not_serve_anything_signed_out(
     client: Client, guide: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
     """A ``signed-out.json`` not in the build's shape is logged and refused."""

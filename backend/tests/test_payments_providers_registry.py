@@ -77,7 +77,7 @@ def test_available_providers_lists_every_configured_provider(unconfigured: Setti
 def test_available_providers_is_empty_when_nothing_is_configured(
     unconfigured: Settings,
 ) -> None:
-    """No provider with its settings present means nothing to offer."""
+    """Without a provider's settings present, the list of providers is empty."""
     assert available_providers() == []
 
 

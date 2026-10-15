@@ -86,14 +86,14 @@ def test_an_unknown_grouping_is_refused(report_client: APIClient, url: str) -> N
 
 
 @pytest.mark.parametrize("url", REPORTS)
-def test_an_empty_date_is_no_bound_at_all(report_client: APIClient, url: str) -> None:
+def test_an_empty_date_is_not_a_bound(report_client: APIClient, url: str) -> None:
     """The report screen sends every parameter, empty or not."""
     assert report_client.get(url, {"from": "", "to": ""}).status_code == 200
 
 
 @pytest.mark.parametrize("url", REPORTS)
-def test_an_empty_provider_and_status_are_no_filter(report_client: APIClient, url: str) -> None:
-    """An empty provider, status or grouping is accepted and applies no filter."""
+def test_an_empty_provider_and_status_are_not_a_filter(report_client: APIClient, url: str) -> None:
+    """An empty provider, status or grouping is accepted and doesn't apply a filter."""
     assert report_client.get(url, {"provider": "", "status": "", "group": ""}).status_code == 200
 
 
@@ -126,7 +126,7 @@ def test_an_unknown_kind_is_refused(report_client: APIClient, url: str) -> None:
 def test_a_reconciled_flag_that_is_neither_word_is_refused(
     report_client: APIClient, url: str
 ) -> None:
-    """``?reconciled=`` takes ``yes`` or ``no`` and nothing else."""
+    """``?reconciled=`` takes only ``yes`` or ``no``."""
     assert report_client.get(url, {"reconciled": "maybe"}).json() == {
         "reconciled": ["Expected 'yes' or 'no'."]
     }
@@ -139,8 +139,8 @@ def test_a_negative_amount_bound_is_refused(report_client: APIClient, url: str) 
 
 
 @pytest.mark.parametrize("url", REPORTS)
-def test_an_empty_amount_bound_is_no_bound_at_all(report_client: APIClient, url: str) -> None:
-    """The filter bar sends every parameter, so an empty bound narrows nothing."""
+def test_an_empty_amount_bound_is_not_a_bound(report_client: APIClient, url: str) -> None:
+    """The filter bar sends every parameter, so an empty bound doesn't narrow anything."""
     assert report_client.get(url, {"min_cents": "", "max_cents": ""}).status_code == 200
 
 
@@ -152,9 +152,9 @@ def test_a_repeated_column_is_refused(report_client: APIClient, url: str) -> Non
     }
 
 
-def test_a_plan_slug_nobody_holds_narrows_to_nothing(
+def test_a_plan_slug_nobody_holds_narrows_to_an_empty_list(
     report_client: APIClient, member: User, payment_factory: type[PaymentFactory]
 ) -> None:
-    """An unknown plan slug is a filter that matches nothing, not a 400."""
+    """An unknown plan slug is a filter that doesn't match anything, not a 400."""
     payment_factory(user=member)
     assert report_client.get(LIST, {"plan": "gold-wings"}).json()["count"] == 0

@@ -94,20 +94,20 @@ def test_a_card_expires_at_the_end_of_its_printed_month(
     assert card_expires_on(mandate) == date(2028, 2, 29)
 
 
-def test_a_method_with_no_expiry_has_no_expiry_date(
+def test_a_method_without_an_expiry_does_not_have_an_expiry_date(
     member: User, annual_plan: MembershipPlan
 ) -> None:
-    """A PayPal vault entry carries no card month or year, so it never expires."""
+    """A PayPal vault entry doesn't carry a card month or year, so it never expires."""
     mandate = RenewalMandateFactory(
         user=member, plan=annual_plan, method_exp_month=None, method_exp_year=None
     )
     assert card_expires_on(mandate) is None
 
 
-def test_a_lifetime_member_has_no_term_to_renew(
+def test_a_lifetime_member_does_not_have_a_term_to_renew(
     member: User, life_plan: MembershipPlan, today: date
 ) -> None:
-    """A term that never ends is never renewed, so the scanner finds nothing."""
+    """A term that never ends is never renewed, so the scanner doesn't find anything."""
     MembershipFactory(user=member, plan=life_plan, starts_on=today, ends_on=None)
     assert term_to_renew(member, today) is None
 
@@ -172,7 +172,7 @@ def test_a_term_further_out_than_the_notice_window_is_left_alone(
     assert RenewalAttempt.objects.count() == 0
 
 
-def test_a_second_scan_the_same_day_sends_no_second_notice(
+def test_a_second_scan_the_same_day_does_not_send_a_second_notice(
     member: User, annual_plan: MembershipPlan, today: date, mailoutbox: list[EmailMessage]
 ) -> None:
     """The attempt already on file is what keeps a repeated scan quiet."""
@@ -197,7 +197,7 @@ def test_a_paused_mandate_is_not_scanned_for_notices(
     assert RenewalAttempt.objects.count() == 0
 
 
-def test_a_dry_run_schedules_nothing_and_sends_nothing(
+def test_a_dry_run_does_not_schedule_or_send_anything(
     member: User, annual_plan: MembershipPlan, today: date, mailoutbox: list[EmailMessage]
 ) -> None:
     """A rehearsal reports what it would do and writes not one row."""
@@ -297,7 +297,7 @@ def test_a_term_renewed_by_hand_in_the_meantime_is_skipped(
     assert run.skipped_by_reason["already_renewed"] == 1
 
 
-def test_a_skipped_attempt_takes_no_money(
+def test_a_skipped_attempt_does_not_take_any_money(
     member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """Nothing is charged for a term somebody else already renewed."""
@@ -466,7 +466,7 @@ def test_the_last_failure_tells_the_member_the_reminders_resume(
     assert "That was the last attempt" in mailoutbox[-1].body
 
 
-def test_a_paused_mandate_schedules_nothing_further(
+def test_a_paused_mandate_does_not_schedule_anything_further(
     member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """Once paused, no attempt is left waiting to charge the member again."""
@@ -544,10 +544,10 @@ def test_the_card_warning_goes_out_only_once(
     assert len(warnings) == 1
 
 
-def test_a_card_good_past_the_next_charge_earns_no_warning(
+def test_a_card_good_past_the_next_charge_does_not_earn_a_warning(
     member: User, annual_plan: MembershipPlan, today: date, mailoutbox: list[EmailMessage]
 ) -> None:
-    """A card that outlasts the renewal is nothing to tell the member about."""
+    """The member isn't told about a card that outlasts the renewal."""
     make_mandate(member, annual_plan, ends_on=today + timedelta(days=45))
 
     run_auto_renewals(today=today)
@@ -581,7 +581,7 @@ def test_the_next_charge_date_follows_the_scheduled_attempt(
     assert charge_date(mandate, today) == ends_on
 
 
-def test_a_canceled_mandate_has_no_next_charge_date(
+def test_a_canceled_mandate_does_not_have_a_next_charge_date(
     member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """Nothing is due on a mandate that has been turned off."""
@@ -675,7 +675,7 @@ def unreachable_provider(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(MockProvider, "charge_mandate", refuse)
 
 
-def test_a_provider_outage_costs_the_member_no_rung_of_the_retry_ladder(
+def test_a_provider_outage_does_not_cost_the_member_a_rung_of_the_retry_ladder(
     unreachable_provider: None, member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """Nothing was learned about the card, so nothing is held against it."""
@@ -701,7 +701,7 @@ def test_a_provider_outage_leaves_the_mandate_active(
     assert mandate.status == MandateStatus.ACTIVE
 
 
-def test_a_provider_outage_tells_the_member_nothing(
+def test_a_provider_outage_does_not_tell_the_member_anything(
     unreachable_provider: None,
     member: User,
     annual_plan: MembershipPlan,
@@ -918,7 +918,7 @@ def test_a_scan_forty_days_late_pauses_the_mandate(
     assert mandate.status == MandateStatus.PAUSED
 
 
-def test_a_scan_forty_days_late_takes_no_money(
+def test_a_scan_forty_days_late_does_not_take_any_money(
     member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """Nothing is charged for a term that ran out more than a month ago."""
@@ -998,7 +998,7 @@ def test_a_lapsed_term_already_attempted_is_not_caught_up_again(
 def test_a_lifetime_member_is_never_caught_up(
     member: User, annual_plan: MembershipPlan, life_plan: MembershipPlan, today: date
 ) -> None:
-    """A lifetime term has no expiry to catch up to, whatever else the member holds."""
+    """A lifetime term lacks an expiry to catch up to, whatever else the member holds."""
     lapsed_mandate(member, annual_plan, ended_days_ago=20, today=today)
     MembershipFactory(
         user=member,

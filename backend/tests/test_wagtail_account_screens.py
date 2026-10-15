@@ -1,4 +1,4 @@
-"""The Wagtail admin manages no accounts: the portal is the one place that does.
+"""The Wagtail admin doesn't manage accounts: the portal is the one place that does.
 
 Wagtail's own screens for users and groups, its bulk actions on accounts, its
 password reset, and its account page would each change an account outside the
@@ -45,7 +45,7 @@ def test_a_wagtail_account_screen_is_not_found(wagtail_client: Client, url: str)
     assert wagtail_client.get(url.format(pk=other.pk)).status_code == 404
 
 
-def test_a_delete_posted_to_wagtail_deletes_nothing(wagtail_client: Client) -> None:
+def test_a_delete_posted_to_wagtail_does_not_delete_anything(wagtail_client: Client) -> None:
     """A delete posted to Wagtail's user delete view leaves the account in place."""
     other = UserFactory()
     wagtail_client.post(f"/admin/users/delete/{other.pk}/")
@@ -62,7 +62,9 @@ def test_the_wagtail_account_page_sends_the_reader_to_their_portal_profile(
 
 
 @pytest.mark.parametrize("label", ["Users", "Groups"])
-def test_the_settings_menu_offers_no_account_screens(wagtail_client: Client, label: str) -> None:
-    """The Wagtail dashboard's menu carries no Users or Groups entry."""
+def test_the_settings_menu_does_not_offer_the_account_screens(
+    wagtail_client: Client, label: str
+) -> None:
+    """The Wagtail dashboard's menu doesn't carry a Users or Groups entry."""
     page = wagtail_client.get("/admin/").content.decode()
     assert f'"label": "{label}"' not in page

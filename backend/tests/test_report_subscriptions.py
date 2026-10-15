@@ -358,7 +358,7 @@ def test_a_contributions_subscription_may_cover_last_year(
     assert response.json()["filters"] == {"period": "last_year"}
 
 
-def test_a_fixed_report_takes_no_columns(
+def test_a_fixed_report_does_not_take_columns(
     account_admin_client: APIClient, account_admin: User
 ) -> None:
     """A report whose columns are fixed refuses a column choice."""
@@ -388,7 +388,7 @@ def test_pausing_a_subscription(account_admin_client: APIClient) -> None:
 def test_a_subscription_whose_filters_no_longer_build_can_be_paused(
     account_admin_client: APIClient,
 ) -> None:
-    """Pausing checks nothing else, so a subscription failing every run can be stopped."""
+    """Pausing checks only the flag, so a subscription failing each run can be stopped."""
     subscription = ReportSubscriptionFactory(filters={"status": "sideways"})
 
     response = account_admin_client.patch(

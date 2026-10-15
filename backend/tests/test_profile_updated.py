@@ -243,7 +243,7 @@ def test_admin_patch_with_only_is_active_leaves_the_stamp_alone(
 def test_admin_patch_with_only_a_name_leaves_a_profile_less_target_untouched(
     account_admin_client: APIClient,
 ) -> None:
-    """A name-only edit for a target with no profile creates none and stamps nothing."""
+    """A name-only edit for a target without a profile doesn't create or stamp one."""
     target = UserFactory(email="target@example.test", roles=[MEMBER])
     assert MemberProfile.objects.filter(user=target).exists() is False
 
@@ -255,10 +255,10 @@ def test_admin_patch_with_only_a_name_leaves_a_profile_less_target_untouched(
     assert MemberProfile.objects.filter(user=target).exists() is False
 
 
-def test_update_member_with_no_account_or_profile_change_leaves_the_stamp_alone(
+def test_update_member_without_an_account_or_profile_change_leaves_the_stamp_alone(
     account_admin: User, member: User
 ) -> None:
-    """Calling the service with neither half changed touches nothing."""
+    """Calling the service with neither half changed doesn't touch anything."""
     profile = MemberProfileFactory(user=member)
     touch_profile(profile)
     stamp = profile.profile_updated_at

@@ -57,8 +57,8 @@ def test_a_refunded_payment_keeps_its_completion_date(status: str) -> None:
 
 
 @pytest.mark.parametrize("status", REFUNDED_STATUSES)
-def test_a_refunded_payment_buys_no_second_term(status: str) -> None:
-    """A success reported after a refund activates no membership term."""
+def test_a_refunded_payment_does_not_buy_a_second_term(status: str) -> None:
+    """A success reported after a refund doesn't activate a membership term."""
     payment = settled_payment(status)
 
     mark_succeeded(payment)
@@ -67,8 +67,8 @@ def test_a_refunded_payment_buys_no_second_term(status: str) -> None:
 
 
 @pytest.mark.parametrize("status", REFUNDED_STATUSES)
-def test_a_refunded_payment_sends_no_second_receipt(status: str) -> None:
-    """A success reported after a refund emails nobody."""
+def test_a_refunded_payment_does_not_send_a_second_receipt(status: str) -> None:
+    """A success reported after a refund doesn't email anyone."""
     payment = settled_payment(status)
 
     mark_succeeded(payment)
@@ -102,7 +102,7 @@ def test_a_failure_for_a_settled_payment_keeps_its_stored_response(status: str) 
 
 @pytest.mark.parametrize("status", [PaymentStatus.PENDING, PaymentStatus.FAILED])
 def test_a_dashboard_refund_of_an_unsettled_payment_is_not_filed(status: str) -> None:
-    """A refund reported for a payment CalDART never saw settle writes no refund row."""
+    """A refund for a payment CalDART never saw settle doesn't write a refund row."""
     payment = PaymentFactory(status=status)
 
     record_dashboard_refund(

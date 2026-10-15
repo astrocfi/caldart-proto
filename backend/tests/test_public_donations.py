@@ -119,8 +119,8 @@ def complete(api_client: APIClient, body: dict[str, Any]) -> None:
 
 
 # ---------------------------------------------------------------- donor_for
-def test_donor_for_creates_a_donor_with_no_role_and_no_password() -> None:
-    """A new address becomes a donor account that holds no role and cannot sign in."""
+def test_donor_for_creates_a_donor_without_a_role_or_a_password() -> None:
+    """A new address becomes a role-less donor account that cannot sign in."""
     donor = donor_for(donor_fields())
 
     assert (donor.kind, donor.roles, donor.has_usable_password()) == (
@@ -137,8 +137,8 @@ def test_donor_for_leaves_the_new_donor_unverified() -> None:
     assert donor.email_verified_at is None
 
 
-def test_donor_for_sends_the_new_donor_no_email() -> None:
-    """Making a donor sends nothing: no verification, no invitation."""
+def test_donor_for_does_not_email_the_new_donor() -> None:
+    """Making a donor doesn't send anything: neither a verification nor an invitation."""
     donor_for(donor_fields())
 
     assert mail.outbox == []
@@ -156,8 +156,8 @@ def test_donor_for_leaves_a_new_donor_unnamed() -> None:
     assert (donor.first_name, donor.last_name) == ("", "")
 
 
-def test_donor_for_writes_no_profile_yet() -> None:
-    """A new donor gets no profile row until a gift naming them settles."""
+def test_donor_for_does_not_write_a_profile_yet() -> None:
+    """A new donor doesn't get a profile row until a gift naming them settles."""
     donor = donor_for(donor_fields())
 
     assert MemberProfile.objects.filter(user=donor).exists() is False
@@ -192,7 +192,7 @@ def test_gifts_from_one_address_in_any_case_wait_on_one_lock() -> None:
 
 
 def test_donor_for_does_not_touch_an_existing_donors_stored_details() -> None:
-    """Finding an existing donor writes nothing: it takes no details to be found.
+    """Finding an existing donor doesn't write anything: finding takes only the address.
 
     An unauthenticated caller who only knows a donor's address must not be able to
     overwrite what an earlier, completed gift recorded merely by starting a new
@@ -227,7 +227,7 @@ def test_donor_for_finds_the_account_of_a_member_or_a_friend(
 
 @pytest.mark.parametrize("kind", [AccountKind.MEMBER, AccountKind.FRIEND])
 def test_donor_for_leaves_a_member_or_a_friend_as_they_are(kind: AccountKind) -> None:
-    """Finding a member's or a friend's account for a gift changes nothing about it."""
+    """Finding a member's or a friend's account for a gift leaves it as it was."""
     UserFactory(email=DONOR_EMAIL, kind=kind)
 
     donor_for(donor_fields())
@@ -244,7 +244,7 @@ def test_a_donation_token_names_its_payment() -> None:
 
 
 def test_a_token_for_another_payment_is_refused() -> None:
-    """A good token is no proof for a payment it was not minted for."""
+    """A good token doesn't prove a payment it was not minted for."""
     mine, theirs = PaymentFactory(), PaymentFactory()
 
     with pytest.raises(DonationTokenError, match=re.escape(NO_SUCH_PAYMENT)):
@@ -329,7 +329,7 @@ def test_the_config_lists_only_active_darts(api_client: APIClient) -> None:
 def test_a_gift_makes_a_pending_contribution_for_the_donor(
     give: Callable[..., dict[str, Any]],
 ) -> None:
-    """The checkout starts a pending payment of the gift alone, with no plan."""
+    """The checkout starts a pending payment of the gift alone, without a plan."""
     body = give()
 
     payment = Payment.objects.get(pk=body["payment_id"])
@@ -401,7 +401,7 @@ def test_a_gift_from_a_members_address_goes_to_the_member(
 def test_a_gift_from_a_members_address_reads_donor(
     api_client: APIClient, member: User, give: Callable[..., dict[str, Any]]
 ) -> None:
-    """The completed gift's answer says nothing about the member's membership."""
+    """The completed gift's answer doesn't reveal the member's membership."""
     body = give(email=member.email)
 
     response = api_client.post(
@@ -426,17 +426,17 @@ def test_a_gift_from_a_members_address_keeps_the_members_details(
     assert (member.first_name, member.last_name) != ("Someone", "Else")
 
 
-def test_a_gift_from_a_friends_address_makes_no_donor(
+def test_a_gift_from_a_friends_address_does_not_make_a_donor(
     api_client: APIClient, friend: User, give: Callable[..., dict[str, Any]]
 ) -> None:
-    """A friend's address makes no second account."""
+    """A friend's address doesn't make a second account."""
     give(email=friend.email)
 
     assert User.objects.filter(email__iexact=friend.email).count() == 1
 
 
-def test_a_refused_gift_writes_nothing(api_client: APIClient) -> None:
-    """A gift the checkout refuses leaves no payment behind."""
+def test_a_refused_gift_does_not_write_anything(api_client: APIClient) -> None:
+    """A gift the checkout refuses doesn't leave a payment behind."""
     api_client.post(CHECKOUT_URL, gift(contribution_cents=0), format="json")
 
     assert Payment.objects.count() == 0
@@ -463,7 +463,7 @@ def test_a_gift_without_a_phone_number_goes_through(api_client: APIClient) -> No
     assert response.status_code == 201, response.json()
 
 
-def test_a_gift_of_nothing_is_refused(api_client: APIClient) -> None:
+def test_a_gift_of_zero_is_refused(api_client: APIClient) -> None:
     """A gift needs an amount, and the refusal says so against ``contribution_cents``."""
     response = api_client.post(CHECKOUT_URL, gift(contribution_cents=0), format="json")
 
@@ -490,7 +490,7 @@ def test_a_phone_that_is_not_ten_digits_is_refused(api_client: APIClient) -> Non
     assert response.json() == {"phone": ["Use a ten-digit number like 415-555-0100."]}
 
 
-def test_a_pilot_certificate_needs_no_number_from_a_donor(
+def test_a_pilot_certificate_does_not_need_a_number_from_a_donor(
     api_client: APIClient, give: Callable[..., dict[str, Any]]
 ) -> None:
     """A donor may name their certificate without giving its number."""
@@ -514,7 +514,7 @@ def test_a_gift_names_its_dart_by_id(
 
 
 def test_an_unconfigured_provider_is_refused(api_client: APIClient) -> None:
-    """A provider this deployment has no keys for is refused by field."""
+    """A provider this deployment doesn't have keys for is refused by field."""
     response = api_client.post(CHECKOUT_URL, gift(provider="stripe"), format="json")
 
     assert (response.status_code, response.json()) == (
@@ -557,7 +557,7 @@ def test_the_checkout_is_throttled(api_client: APIClient, settings: Settings) ->
 
 
 def test_the_config_is_not_throttled(api_client: APIClient, settings: Settings) -> None:
-    """Reading the config costs nothing against the ``donate`` rate."""
+    """Reading the config doesn't count against the ``donate`` rate."""
     settings.AUTH_THROTTLE_RATES = {"donate": "1/hour"}
 
     statuses = {api_client.get(CONFIG_URL).status_code for _ in range(3)}
@@ -584,7 +584,7 @@ def test_completing_a_mock_gift_succeeds(
 def test_a_pending_gift_leaves_the_new_donors_account_unwritten(
     api_client: APIClient, give: Callable[..., dict[str, Any]]
 ) -> None:
-    """Starting a gift makes the donor account, but writes no name or profile yet."""
+    """Starting a gift makes the donor account but doesn't write a name or profile yet."""
     give()
 
     donor = User.objects.get(email=DONOR_EMAIL)
@@ -640,7 +640,7 @@ def test_completing_a_gift_keeps_an_optional_field_the_giver_left_blank(
 
 
 def start_without_phone(api_client: APIClient, **overrides: Any) -> dict[str, Any]:
-    """Start a mock gift whose body carries no phone at all; the 201 body."""
+    """Start a mock gift whose body doesn't carry a phone at all; the 201 body."""
     body = gift(**overrides)
     del body["phone"]
     response = api_client.post(CHECKOUT_URL, body, format="json")
@@ -650,7 +650,7 @@ def start_without_phone(api_client: APIClient, **overrides: Any) -> dict[str, An
 
 
 def test_a_gift_without_a_phone_number_settles(api_client: APIClient) -> None:
-    """Completing a gift that gave no phone succeeds, and the donor's phone is blank."""
+    """Completing a gift without a phone succeeds, and the donor's phone is blank."""
     complete(api_client, start_without_phone(api_client))
 
     assert MemberProfile.objects.get(user__email=DONOR_EMAIL).phone == ""
@@ -690,7 +690,7 @@ def test_an_existing_donors_stored_details_stay_put_until_a_new_gift_settles(
 def test_a_completed_gift_reads_donor(
     api_client: APIClient, give: Callable[..., dict[str, Any]]
 ) -> None:
-    """A donor holds no membership, so the answer's ``membership`` reads ``donor``."""
+    """A donor doesn't hold a membership, so the answer's ``membership`` is ``donor``."""
     body = give()
 
     response = api_client.post(
@@ -714,7 +714,7 @@ def test_a_completed_gift_emails_the_donor_a_receipt(
 
 
 @pytest.mark.usefixtures("run_on_commit")
-def test_a_donors_receipt_has_no_payments_link(
+def test_a_donors_receipt_does_not_have_a_payments_link(
     api_client: APIClient, give: Callable[..., dict[str, Any]]
 ) -> None:
     """A donor cannot sign in, so their receipt does not point them at the portal."""
@@ -851,7 +851,7 @@ def stripe_intent(settings: Settings, monkeypatch: pytest.MonkeyPatch) -> dict[s
 def test_a_stripe_gift_is_confirmed_with_its_token(
     api_client: APIClient, stripe_intent: dict[str, Any]
 ) -> None:
-    """A succeeded intent settles the gift, reads no membership, and mails the receipt."""
+    """A succeeded intent settles the gift, reads ``donor``, and mails the receipt."""
     payment = pending_gift(PaymentProvider.STRIPE, "pi_gift")
     stripe_intent.update(
         {
@@ -892,7 +892,7 @@ def test_a_stripe_gift_is_confirmed_with_its_token(
 def test_a_paypal_gift_is_captured_with_its_token(
     api_client: APIClient, settings: Settings
 ) -> None:
-    """A completed capture settles the gift, reads no membership, and mails a receipt."""
+    """A completed capture settles the gift, reads ``donor``, and mails a receipt."""
     settings.PAYPAL_CLIENT_ID = "client-id"
     settings.PAYPAL_CLIENT_SECRET = "client-secret"  # noqa: S105 - test fixture
     settings.PAYPAL_ENV = "sandbox"
@@ -954,7 +954,7 @@ def test_a_gift_capture_refuses_an_order_id_that_is_not_paypals_shape(
 def test_a_gift_paypal_never_ordered_is_not_captured(
     api_client: APIClient, settings: Settings
 ) -> None:
-    """A gift with no order of its own is refused rather than captured under another."""
+    """A gift without an order of its own is refused, not captured under another."""
     settings.PAYPAL_CLIENT_ID = "client-id"
     settings.PAYPAL_CLIENT_SECRET = "client-secret"  # noqa: S105 - test fixture
     payment = pending_gift(PaymentProvider.PAYPAL, "")
@@ -986,7 +986,7 @@ class _FakeIntents:
     """
 
     def __init__(self) -> None:
-        """Start having created nothing."""
+        """Start before anything is created."""
         self.created: dict[str, Any] = {}
 
     def create(
@@ -1186,7 +1186,7 @@ def test_the_status_is_not_found_without_the_token(
 def test_a_member_cannot_read_a_gift_without_its_token(
     api_client: APIClient, give: Callable[..., dict[str, Any]], member: User
 ) -> None:
-    """Being signed in grants nothing here: the token is the only proof."""
+    """Being signed in doesn't grant anything here: the token is the only proof."""
     body = give()
     api_client.force_login(member)
 
@@ -1255,7 +1255,7 @@ def test_a_donate_page_may_sit_below_home_and_standard_pages(
     assert DonatePage in parent_model.allowed_subpage_models()
 
 
-def test_a_donate_page_takes_no_children() -> None:
+def test_a_donate_page_does_not_take_children() -> None:
     """A donate page is a leaf."""
     assert DonatePage.allowed_subpage_models() == []
 

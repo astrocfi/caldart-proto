@@ -295,7 +295,7 @@ def test_a_certificate_number_that_is_not_seven_digits_is_refused(
     }
 
 
-def test_a_refused_body_writes_nothing(leader_client: APIClient, pilot: User) -> None:
+def test_a_refused_body_does_not_write_anything(leader_client: APIClient, pilot: User) -> None:
     """A refusal leaves every item unverified and the fields as they were."""
     leader_client.put(
         member_verification_url(pilot),
@@ -354,7 +354,7 @@ def test_the_insurance_verified_flag_is_required(
     assert (response.status_code, list(response.json())) == (400, ["verified"])
 
 
-def test_the_insurance_body_writes_no_other_field(
+def test_the_insurance_body_does_not_write_another_field(
     leader_client: APIClient, aircraft: Aircraft
 ) -> None:
     """A register field outside the insurance, such as the make, is ignored."""
@@ -413,7 +413,7 @@ def test_the_card_carries_the_photo_id(
 def test_the_card_carries_the_certificate_verification(
     leader_client: APIClient, pilot: User
 ) -> None:
-    """An unverified certificate reads ``verified`` false with no name or date."""
+    """An unverified certificate reads ``verified`` false without a name or a date."""
     body = leader_client.get(status_url(pilot)).json()
     assert body["certificate"]["verification"] == {
         "verified": False,
@@ -448,10 +448,10 @@ def test_the_cards_aircraft_rows_carry_insurance_verified(
     assert [row["insurance_verified"] for row in rows] == [True]
 
 
-def test_a_card_for_an_account_with_no_profile_reads_unverified(
+def test_a_card_for_an_account_without_a_profile_reads_unverified(
     leader_client: APIClient,
 ) -> None:
-    """An account with no profile has nothing verified and a *Not provided* photo ID."""
+    """An account without a profile reads unverified, with a *Not provided* photo ID."""
     user = UserFactory()
     body = leader_client.get(status_url(user)).json()
     assert (body["photo_id"]["type"], body["go_no_go"]["verified"]) == ("not_provided", False)
@@ -467,7 +467,7 @@ def test_a_search_row_reads_verified_when_all_three_items_are(
 
 
 @pytest.mark.parametrize("size", [3, 20])
-def test_the_verified_flag_costs_the_search_no_query(
+def test_the_verified_flag_does_not_cost_the_search_a_query(
     leader_client: APIClient,
     stamper: User,
     django_assert_num_queries: DjangoAssertNumQueries,
@@ -502,7 +502,7 @@ def test_the_register_carries_the_insurance_verification(
 
 @pytest.mark.parametrize("size", [3, 20])
 @pytest.mark.usefixtures("member_is_current")
-def test_the_verifier_names_cost_the_register_no_query(
+def test_the_verifier_names_do_not_cost_the_register_a_query(
     api_client: APIClient,
     member: User,
     stamper: User,
@@ -552,7 +552,7 @@ def test_a_member_writes_their_photo_id_type(api_client: APIClient, pilot: User)
 
 
 def test_a_member_cannot_write_their_own_verification(api_client: APIClient, pilot: User) -> None:
-    """``verification`` is read-only: sending it verifies nothing."""
+    """``verification`` is read-only: sending it doesn't verify anything."""
     api_client.force_login(pilot)
     api_client.patch(
         PROFILE_URL,

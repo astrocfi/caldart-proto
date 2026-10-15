@@ -1,9 +1,9 @@
 """The day a standing authority is charged on, which the member chooses.
 
 A mandate stores ``next_charge_on``.  It defaults to the day the membership runs
-out -- one year from today for a life member, who has no expiry -- and the member
-may name any later day instead.  The scanner notices ``NOTICE_DAYS`` before the
-stored date, charges on it, and rolls it forward once the charge goes through.
+out -- one year from today for a life member, who doesn't have an expiry -- and the
+member may name any later day instead.  The scanner notices ``NOTICE_DAYS`` before
+the stored date, charges on it, and rolls it forward once the charge goes through.
 """
 
 from __future__ import annotations
@@ -125,8 +125,8 @@ def test_the_default_charge_day_is_the_day_the_membership_runs_out(
     assert default_charge_date(dated_member, today) == expires_on
 
 
-def test_a_donation_begun_with_no_day_is_charged_today(life_member: User, today: date) -> None:
-    """A recurring donation renews nothing, so with no day of its own it starts today."""
+def test_a_donation_begun_without_a_day_is_charged_today(life_member: User, today: date) -> None:
+    """A donation doesn't renew anything, so without a day of its own it starts today."""
     mandate = begin_mandate(
         life_member,
         plan=None,
@@ -137,15 +137,15 @@ def test_a_donation_begun_with_no_day_is_charged_today(life_member: User, today:
     assert mandate.next_charge_on == today
 
 
-def test_a_member_with_no_term_at_all_is_charged_today(member: User, today: date) -> None:
-    """With no expiry there is no later day to wait for."""
+def test_a_member_without_any_term_is_charged_today(member: User, today: date) -> None:
+    """Without an expiry there isn't a later day to wait for."""
     assert default_charge_date(member, today) == today
 
 
 def test_beginning_a_mandate_without_a_date_takes_the_default(
     dated_member: User, annual_plan: MembershipPlan, expires_on: date
 ) -> None:
-    """A mandate begun with no date is stored against the membership's expiry."""
+    """A mandate begun without a date is stored against the membership's expiry."""
     mandate = begin_mandate(
         dated_member,
         plan=annual_plan,
@@ -173,10 +173,10 @@ def test_beginning_a_mandate_with_a_date_keeps_it(
 # --------------------------------------------------------------------------
 # Reading the date back
 # --------------------------------------------------------------------------
-def test_a_mandate_that_is_not_active_has_no_charge_date(
+def test_a_mandate_that_is_not_active_does_not_have_a_charge_date(
     dated_member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
-    """A canceled authority charges nothing, so it answers no date at all."""
+    """A canceled authority doesn't charge anything, so it answers a null date."""
     mandate = RenewalMandateFactory(
         user=dated_member,
         plan=annual_plan,
@@ -189,7 +189,7 @@ def test_a_mandate_that_is_not_active_has_no_charge_date(
 def test_the_charge_date_is_the_stored_day(
     dated_member: User, annual_plan: MembershipPlan, today: date, expires_on: date
 ) -> None:
-    """With nothing scheduled, the stored day is what the screens and emails show."""
+    """When nothing is scheduled, the stored day is what the screens and emails show."""
     mandate = active_mandate(dated_member, annual_plan, next_charge_on=expires_on)
     assert charge_date(mandate, today) == expires_on
 
@@ -334,7 +334,7 @@ def test_checkout_refuses_a_day_already_past(
     assert response.json()["next_charge_on"] == [PAST_CHARGE_DATE_MESSAGE]
 
 
-def test_a_checkout_with_no_date_charges_on_the_new_terms_expiry(
+def test_a_checkout_without_a_date_charges_on_the_new_terms_expiry(
     api_client: APIClient, dated_member: User, annual_plan: MembershipPlan
 ) -> None:
     """The term the money buys is what sets the first automatic charge."""
@@ -418,7 +418,7 @@ def test_a_successful_charge_rolls_the_stored_day_to_the_new_expiry(
 
 
 def test_a_yearly_donations_stored_day_rolls_on_a_year(life_member: User, today: date) -> None:
-    """A donation has no term, so it moves one cadence on from the day it was taken."""
+    """Without a term, a donation moves one cadence on from the day it was taken."""
     mandate = active_mandate(
         life_member, None, next_charge_on=today, contribution_cents=CONTRIBUTION_CENTS
     )
@@ -574,7 +574,7 @@ def test_a_day_chosen_after_the_expiry_waits_for_its_notice_window(
     assert run.noticed == 0
 
 
-def test_the_notice_for_a_day_after_the_expiry_promises_no_continuous_coverage(
+def test_the_notice_for_a_day_after_the_expiry_does_not_promise_continuous_coverage(
     dated_member: User,
     annual_plan: MembershipPlan,
     today: date,

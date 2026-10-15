@@ -1,7 +1,7 @@
 """The CalDART verification report: what a verifier still has to check.
 
 The report has two sections, People and Aircraft insurance, each present even when it
-has no rows.  A person is listed once under People, with a check column for each of
+is empty.  A person is listed once under People, with a check column for each of
 their photo ID, certificate, and medical, and an aircraft once under Aircraft insurance
 when it has a policy on file.  ``?status=`` chooses whether the rows with something
 unverified (the default), the fully verified ones, or all of them are listed.  Every
@@ -128,14 +128,14 @@ def test_the_report_is_read_by_every_verifying_role() -> None:
     assert VERIFICATION_REPORT.roles == VERIFY_ROLES
 
 
-def test_the_report_is_landscape_with_choosable_columns_and_no_period() -> None:
+def test_the_report_is_landscape_with_choosable_columns_and_without_a_period() -> None:
     """``(choosable, landscape, periods)``: a wide table whose columns can be chosen."""
     spec = VERIFICATION_REPORT
     assert (spec.choosable, spec.landscape, spec.periods) == (True, True, False)
 
 
-def test_an_empty_section_says_there_is_nothing_to_show() -> None:
-    """The PDF draws ``Nothing to show.`` under a section with no rows."""
+def test_an_empty_section_says_there_is_not_anything_to_show() -> None:
+    """The PDF draws ``Nothing to show.`` under an empty section."""
     assert VERIFICATION_REPORT.empty_section == "Nothing to show."
 
 
@@ -158,7 +158,7 @@ def test_every_column_is_registered_in_export_order() -> None:
 
 
 def test_the_default_columns_leave_out_the_stamp() -> None:
-    """Choosing no columns prints everything but the three verification stamp columns.
+    """Without a column choice, it prints all but the three verification stamp columns.
 
     The check columns already say which items are verified, and the stamp columns are
     always *No* and blank in the default list of what requires validation.
@@ -178,7 +178,7 @@ def test_the_default_columns_leave_out_the_stamp() -> None:
 
 
 def test_the_default_csv_keeps_each_row_s_section() -> None:
-    """A flat CSV has no headings, so its first column says which section a row is in."""
+    """A flat CSV lacks headings, so its first column says which section a row is in."""
     person()
     table = VERIFICATION_REPORT.table({}, fmt="csv", today=TODAY)
     assert table.header[0] == "Section"
@@ -228,7 +228,7 @@ def test_the_pdf_heads_people_with_the_three_checks() -> None:
 
 
 def test_the_pdf_heads_aircraft_insurance_without_check_columns() -> None:
-    """Aircraft insurance draws the owner and carrier, and no check column."""
+    """Aircraft insurance draws the owner and carrier, without a check column."""
     assert pdf_section_headers()[1] == INSURANCE_PDF_HEADER
 
 
@@ -270,13 +270,13 @@ def test_the_registry_lists_the_report_right_after_the_roles_report() -> None:
 # --------------------------------------------------------------------------
 # Rows and sections
 # --------------------------------------------------------------------------
-def test_every_section_is_drawn_even_with_nothing_in_it() -> None:
-    """The two sections, in order, with no rows at all."""
+def test_every_section_is_drawn_even_when_it_is_empty() -> None:
+    """The two sections, in order, without any rows at all."""
     assert section_titles() == SECTION_TITLES
 
 
 def test_an_unverified_person_is_listed_once_under_people() -> None:
-    """A member with nothing verified has one row, under People."""
+    """A member without any item verified has one row, under People."""
     person("Pat", "Doe")
     assert pairs(rows_for()) == [("People", "Pat Doe")]
 
@@ -294,7 +294,7 @@ def test_an_aircraft_with_unverified_insurance_is_listed_by_n_number() -> None:
 
 
 def test_a_partly_verified_person_is_listed_by_default(dart_leader: User) -> None:
-    """With no ``status``, a person with one item still to verify is listed."""
+    """Without a ``status``, a person with one item still to verify is listed."""
     profile = person("Pat", "Doe")
     profile.medical_verified_at = STAMP
     profile.medical_verified_by = dart_leader
@@ -317,7 +317,7 @@ def test_a_fully_verified_person_is_left_out_by_default(dart_leader: User) -> No
 
 
 def test_status_verified_lists_the_fully_verified_alone(dart_leader: User) -> None:
-    """``?status=verified`` keeps a person with every item verified, and nobody else."""
+    """``?status=verified`` keeps only a person with every item verified."""
     verify_all(person("Ann", "Abe"), dart_leader)
     partly = person("Bea", "Abe")
     partly.medical_verified_at = STAMP
@@ -339,7 +339,7 @@ def test_status_all_lists_every_row() -> None:
 
 
 def test_verified_insurance_is_left_out_by_default() -> None:
-    """An aircraft whose insurance is verified has nothing to show by default."""
+    """An aircraft whose insurance is verified isn't shown by default."""
     AircraftFactory(n_number="N123AB", insurance_verified_at=STAMP)
     assert rows_for() == []
 
@@ -359,19 +359,19 @@ def test_a_friend_is_listed() -> None:
     ids=["donor", "deactivated"],
 )
 def test_a_donor_or_a_deactivated_account_is_never_listed(fields: dict[str, object]) -> None:
-    """Donors and deactivated accounts have nothing to verify."""
+    """Donors and deactivated accounts don't have anything to verify."""
     user = UserFactory(email="out@example.test", **fields)
     MemberProfileFactory(user=user)
     assert rows_for({"status": "all"}) == []
 
 
 def test_an_account_without_a_profile_is_not_listed(verifier: User) -> None:
-    """With no profile there are no details to verify."""
+    """Without a profile there aren't any details to verify."""
     assert rows_for({"status": "all"}) == []
 
 
 def test_an_aircraft_out_of_service_is_not_listed() -> None:
-    """A retired airframe flies no mission, so its insurance is not listed."""
+    """A retired airframe doesn't fly missions, so its insurance is not listed."""
     AircraftFactory(n_number="N123AB", is_active=False)
     assert rows_for({"status": "all"}) == []
 
@@ -424,7 +424,7 @@ def test_a_person_s_row_reads_the_checks_the_details_and_the_expiry() -> None:
     ]
 
 
-def test_a_certificate_with_no_number_reads_its_type_alone() -> None:
+def test_a_certificate_without_a_number_reads_its_type_alone() -> None:
     """An empty certificate number leaves the type on its own in the details."""
     person(pilot_certificate_type=PilotCertificateType.PRIVATE, certificate_number="")
     assert cells("People", "Pat Doe")[4] == "Driver's license \u00b7 Private \u00b7 Third class"
@@ -434,7 +434,7 @@ def test_a_certificate_with_no_number_reads_its_type_alone() -> None:
 def test_a_person_without_a_medical_reads_not_provided_in_the_medical_check(
     status: str,
 ) -> None:
-    """With no medical there is nothing to verify: the Medical check says so."""
+    """Without a medical there isn't anything to verify: the Medical check says so."""
     person(medical_type=MedicalType.NONE, medical_expiration=None)
     assert cells("People", "Pat Doe", {"status": status})[1:4] == [
         "Not verified",
@@ -443,26 +443,26 @@ def test_a_person_without_a_medical_reads_not_provided_in_the_medical_check(
     ]
 
 
-def test_a_person_without_a_medical_has_no_expiry() -> None:
+def test_a_person_without_a_medical_does_not_have_an_expiry() -> None:
     """The Expires cell is the medical's, so it is blank without one."""
     person(medical_type=MedicalType.NONE, medical_expiration=None)
     assert cells("People", "Pat Doe")[5] == ""
 
 
 def test_a_non_pilot_reads_not_provided_in_the_certificate_check() -> None:
-    """*Not a pilot* holds no certificate to verify."""
+    """*Not a pilot* doesn't hold a certificate to verify."""
     person(pilot_certificate_type=PilotCertificateType.NONE, certificate_number="")
     assert cells("People", "Pat Doe")[1:4] == ["Not verified", "Not provided", "Not verified"]
 
 
 def test_a_person_without_a_photo_id_reads_not_provided_in_the_photo_id_check() -> None:
-    """A photo ID of *Not provided* is no document a verifier could check."""
+    """A photo ID of *Not provided* isn't a document a verifier could check."""
     person(photo_id_type=PhotoIdType.NOT_PROVIDED)
     assert cells("People", "Pat Doe")[1:4] == ["Not provided", "Not verified", "Not verified"]
 
 
-def test_a_person_who_holds_nothing_is_not_listed() -> None:
-    """No certificate, no medical, and no photo ID leave nothing to verify."""
+def test_a_person_who_does_not_hold_anything_is_not_listed() -> None:
+    """Without a certificate, a medical, or a photo ID, there isn't anything to verify."""
     person(
         pilot_certificate_type=PilotCertificateType.NONE,
         certificate_number="",
@@ -474,7 +474,7 @@ def test_a_person_who_holds_nothing_is_not_listed() -> None:
 
 
 def test_an_unheld_item_s_stamp_does_not_make_a_person_verified() -> None:
-    """A stamp on a medical of *None* counts for nothing, as on the member check."""
+    """A stamp on a medical of *None* doesn't count, as on the member check."""
     profile = person(medical_type=MedicalType.NONE, medical_expiration=None)
     profile.medical_verified_at = STAMP
     profile.save()
@@ -499,8 +499,8 @@ def test_insurance_reads_the_owner_the_carrier_and_the_expiry() -> None:
     ]
 
 
-def test_an_aircraft_with_no_policy_on_file_is_not_listed() -> None:
-    """Insurance with no expiration is no policy, so there is nothing to verify."""
+def test_an_aircraft_without_a_policy_on_file_is_not_listed() -> None:
+    """Insurance without an expiration isn't a policy, so the aircraft isn't listed."""
     AircraftFactory(n_number="N123AB", insurance_carrier="", insurance_expiration=None)
     assert rows_for({"status": "all"}) == []
 
@@ -512,7 +512,7 @@ def test_a_person_s_updated_cell_is_when_the_profile_was_last_written() -> None:
 
 
 def test_a_person_nobody_has_edited_is_updated_when_the_profile_was_made() -> None:
-    """A profile with no ``profile_updated_at`` dates its items from its creation."""
+    """A profile without a ``profile_updated_at`` dates its items from its creation."""
     profile = person(profile_updated_at=None)
     MemberProfile.objects.filter(pk=profile.pk).update(created_at=STAMP)
     assert cells("People", "Pat Doe")[6] == "09/20/2026"
@@ -622,7 +622,7 @@ def test_status_refuses_anything_else() -> None:
 
 
 def test_the_default_status_is_named_among_the_filters() -> None:
-    """With nothing given, the PDF subtitle says the items not yet verified are listed."""
+    """Without a filter, the PDF subtitle says the items not yet verified are listed."""
     assert VERIFICATION_REPORT.query({}).filters == {"Showing": "Not yet verified"}
 
 
@@ -633,13 +633,13 @@ def test_each_status_is_named_in_words(status: str, words: str) -> None:
 
 
 def test_the_report_names_the_filters_it_applied(dart: Dart) -> None:
-    """Status and the DART by name, in that order, and nothing it does not read."""
+    """Status and the DART by name, in that order, and only what it reads."""
     query = VERIFICATION_REPORT.query({"dart": str(dart.pk), "status": "all", "page": "2"})
     assert query.filters == {"Showing": "Everything", "DART": dart.name}
 
 
 def test_a_dart_given_by_part_of_its_name_is_named_as_given() -> None:
-    """A name fragment names no one DART, so the subtitle repeats it."""
+    """A name fragment doesn't name a single DART, so the subtitle repeats it."""
     assert VERIFICATION_REPORT.query({"dart": "south"}).filters == {
         "Showing": "Not yet verified",
         "DART": "south",
@@ -767,7 +767,7 @@ def test_the_csv_keeps_one_header_with_blank_checks_on_an_aircraft_row(
 def test_the_pdf_says_so_under_an_empty_section(
     account_admin_client: APIClient, pdf_text: PdfText
 ) -> None:
-    """With nothing on file, the first section reads ``Nothing to show.``."""
+    """Without anything on file, the first section reads ``Nothing to show.``."""
     strings = pdf_text(account_admin_client.get(PDF_URL).content)[0]
     assert strings[2:4] == ["People", "Nothing to show."]
 
@@ -799,7 +799,7 @@ def test_the_report_can_be_sent_to_a_verifier(
 def test_the_report_cannot_be_sent_to_a_treasurer(
     account_admin_client: APIClient, treasurer: User
 ) -> None:
-    """A treasurer holds no verifying role, so sending the report to one is refused."""
+    """A treasurer doesn't hold a verifying role, so sending it the report is refused."""
     response = subscribe(account_admin_client, treasurer)
     assert response.status_code == 400
     assert response.json() == {

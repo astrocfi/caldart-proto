@@ -72,7 +72,7 @@ def test_the_user_payload_follows_the_model_when_a_field_is_cleared() -> None:
 
 
 def test_a_user_without_a_profile_is_not_complete() -> None:
-    """A user with no ``MemberProfile`` at all is reported as profile-incomplete."""
+    """A user without any ``MemberProfile`` is reported as profile-incomplete."""
     assert UserSerializer(UserFactory(email="fresh@example.test")).data["profile_complete"] is False
 
 

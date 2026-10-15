@@ -3,8 +3,8 @@
 ``PUT /leader/members/{user_id}/verifier`` goes through
 ``apps.accounts.services.set_verifier``, which writes the role list through
 ``update_account``: the change is audited as ``account.roles`` and raised as
-``roles_changed``, and a list that changes nothing writes nothing.  The contract is
-``docs/developer/api-aircraft.rst``.
+``roles_changed``, and a list that doesn't change anything doesn't write anything.  The
+contract is ``docs/developer/api-aircraft.rst``.
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ def verifier_url(user: User) -> str:
 
 @pytest.fixture
 def pilot(db: None) -> User:
-    """A plain member with a profile, holding no verifier role."""
+    """A plain member with a profile, who doesn't hold the verifier role."""
     user = UserFactory(
         email="pilot@example.test", first_name="Ana", last_name="Bracco", roles=[MEMBER]
     )
@@ -85,13 +85,13 @@ def test_set_verifier_raises_roles_changed(
     ]
 
 
-def test_set_verifier_that_changes_nothing_writes_nothing(
+def test_set_verifier_that_does_not_change_anything_does_not_write_anything(
     dart_leader: User,
     verifier: User,
     audit_log: pytest.LogCaptureFixture,
     recorded_events: RecordedEvents,
 ) -> None:
-    """Granting a role the target already holds records and raises nothing."""
+    """Granting a role the target already holds doesn't record or raise anything."""
     set_verifier(dart_leader, verifier, wanted=True)
     assert (audit_messages(audit_log), recorded_events) == ([], [])
 

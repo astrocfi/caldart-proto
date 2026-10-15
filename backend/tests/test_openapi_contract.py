@@ -54,8 +54,8 @@ def property_type(schema: dict[str, Any]) -> str:
     ``integer``, ``string``, ``string(date)``, ``string(date-time)``.  A reference to
     another component answers ``ref:<name>``, an array ``array<element>``, and a
     free-keyed object ``map<value>``, each describing the inner type the same way.  A
-    property the generator marks nullable has ``|null`` appended.  A property with no
-    type at all answers ``unknown``.
+    property the generator marks nullable has ``|null`` appended.  A property without
+    a type answers ``unknown``.
     """
     suffix = "|null" if schema.get("nullable") else ""
     if "$ref" in schema:
@@ -86,7 +86,7 @@ def component_summaries(schema: dict[str, Any]) -> dict[str, ComponentSummary]:
     where ``properties`` maps each property name to the type :func:`property_type`
     describes and ``required`` is sorted, so the summary is stable against a reordering
     of the serializer's field list but not against a rename or a change of type.  A
-    document with no components yields an empty mapping.
+    document without components yields an empty mapping.
     """
     components: dict[str, Any] = schema.get("components", {}).get("schemas", {})
     summaries: dict[str, ComponentSummary] = {}
@@ -123,7 +123,7 @@ def summary_differences(
     only ``actual`` has yields ``"<name>: not in the snapshot"``; a component both
     carry whose summary differs yields
     ``"<name>: snapshot <expected summary>, schema <actual summary>"``.  Lines come
-    back in component-name order, and an identical pair yields no lines.
+    back in component-name order, and an identical pair yields an empty list.
     """
     differences: list[str] = []
     for name in sorted(set(expected) | set(actual)):
@@ -139,7 +139,7 @@ def summary_differences(
 @pytest.fixture(scope="session")
 def openapi_schema() -> dict[str, Any]:
     """The OpenAPI document the project's serializers and views generate."""
-    # drf-spectacular's generator carries no annotations, so mypy sees both calls
+    # drf-spectacular's generator isn't annotated, so mypy sees both calls
     # as untyped; the document it returns is a plain JSON-shaped dict.
     generator = SchemaGenerator()  # type: ignore[no-untyped-call]
     schema: dict[str, Any] = generator.get_schema(request=None, public=True)  # type: ignore[no-untyped-call]
@@ -200,7 +200,7 @@ def test_schema_renders_as_yaml(openapi_schema: dict[str, Any]) -> None:
     member used as a key -- a ``str`` subclass -- is one PyYAML's safe dumper refuses,
     and the JSON format the contract check runs would never notice.
     """
-    # The renderer carries no annotations, like the generator above; it answers bytes.
+    # The renderer isn't annotated either, like the generator above; it answers bytes.
     rendered: bytes = OpenApiYamlRenderer().render(openapi_schema)  # type: ignore[no-untyped-call]
     assert b"CheckoutResponse" in rendered
 
@@ -212,7 +212,7 @@ def test_mock_checkout_response_documents_its_client(
 
     The mock provider's ``start`` returns ``{}`` and the view puts it under ``client``
     like every other provider's, so the component carries the property even though it
-    has no fields of its own.
+    doesn't have fields of its own.
     """
     assert generated_summaries["MockCheckoutResponse"]["properties"]["client"] == "object"
 
@@ -394,6 +394,6 @@ def test_an_added_component_is_reported_against_the_snapshot() -> None:
     assert differences == ["SquawkNote: not in the snapshot"]
 
 
-def test_identical_summaries_report_no_differences() -> None:
-    """Comparing a set of summaries with an identical copy reports nothing."""
+def test_identical_summaries_do_not_report_a_difference() -> None:
+    """Comparing a set of summaries with an identical copy reports an empty list."""
     assert summary_differences(squawk_summaries(), squawk_summaries()) == []

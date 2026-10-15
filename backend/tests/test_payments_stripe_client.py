@@ -94,7 +94,7 @@ def test_the_client_carries_the_configured_secret_key(settings: Settings) -> Non
 
 
 def test_the_client_refuses_to_build_without_a_secret_key(settings: Settings) -> None:
-    """Building a client with no secret key raises ``ProviderNotConfiguredError``."""
+    """Building a client without a secret key raises ``ProviderNotConfiguredError``."""
     settings.STRIPE_SECRET_KEY = ""
     with pytest.raises(ProviderNotConfiguredError, match="STRIPE_SECRET_KEY is empty"):
         stripe_client()

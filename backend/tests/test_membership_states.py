@@ -2,8 +2,8 @@
 
 A membership is Current, Expired, Friend, Not yet paid, or Donor.  The stored
 ``kind`` is what the person asked for; the effective kind is what they are: an account
-that chose to be a member but holds no term that has started and was ever paid for,
-granted, or set aside by a deactivation is a friend until one covers it, and its
+that chose to be a member but doesn't hold a term that has started and was ever paid
+for, granted, or set aside by a deactivation is a friend until one covers it, and its
 membership reads *Not yet paid* rather than *Friend*.  These tests pin that rule
 in both of its statements (``account_kind`` in Python and ``kind_annotation`` in SQL),
 the five answers ``membership_status`` and ``membership_payload`` agree on, the member
@@ -178,7 +178,7 @@ def test_the_membership_states_are_current_expired_friend_none_and_donor() -> No
 
 
 def test_a_term_is_active_expired_canceled_or_suspended() -> None:
-    """``MembershipStatusChoices`` has no unpaid state."""
+    """``MembershipStatusChoices`` doesn't have an unpaid state."""
     assert MembershipStatusChoices.values == ["active", "expired", "canceled", "suspended"]
 
 
@@ -346,10 +346,10 @@ def test_membership_payload_agrees_with_membership_status(
         ("suspended-only", MembershipState.FRIEND),
     ],
 )
-def test_a_friend_or_a_member_with_no_term_reads_with_no_expiry_and_no_plan(
+def test_a_friend_or_a_member_without_a_term_reads_without_an_expiry_or_a_plan(
     build: Callable[[Builder], User], today: date, label: str, state: MembershipState
 ) -> None:
-    """Every answer with no term is one shape: no expiry, no plan, never lifetime."""
+    """Every answer without a term is one shape: no expiry, no plan, never lifetime."""
     builder = {case[0]: case[1] for case in CASES}[label]
     assert membership_status(build(builder), today) == {
         "status": state,
@@ -360,7 +360,7 @@ def test_a_friend_or_a_member_with_no_term_reads_with_no_expiry_and_no_plan(
 
 
 def test_a_donor_reads_donor(today: date) -> None:
-    """A donor's membership is ``donor``, with no expiry, no plan, never lifetime."""
+    """A donor's membership is ``donor``, without an expiry or a plan, never lifetime."""
     assert membership_status(_user("giver", AccountKind.DONOR), today) == {
         "status": MembershipState.DONOR,
         "expires_on": None,
@@ -401,7 +401,7 @@ def test_the_status_filter_puts_every_account_under_its_state(
 def test_the_member_list_never_lists_a_donor(
     account_admin_client: APIClient, annual_plan: MembershipPlan, today: date
 ) -> None:
-    """``?status=donor`` on the member list finds nobody: donors are never listed."""
+    """``?status=donor`` on the member list comes back empty: donors are never listed."""
     _user("listed-donor", AccountKind.DONOR)
     response = account_admin_client.get("/api/v1/admin/members", {"status": "donor"})
     assert response.status_code == 200
@@ -421,7 +421,7 @@ def test_the_member_list_never_lists_a_donor(
 def test_a_new_account_keeps_its_intent_and_reads_as_unpaid(
     api_client: APIClient, kind: str, expected: dict[str, str]
 ) -> None:
-    """A joiner's stored kind is what they chose; a member reads none until they pay."""
+    """A joiner's stored kind is their choice; a member reads ``none`` until they pay."""
     api_client.post(REGISTER_URL, register_payload(kind=kind))
     api_client.force_login(User.objects.get(email="new.member@example.test"))
     body = api_client.get(ME_URL).json()

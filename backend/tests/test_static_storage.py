@@ -42,7 +42,7 @@ def built(tmp_path: Path, settings: Settings) -> Path:
     """
     dist = tmp_path / "dist"
     (dist / "assets").mkdir(parents=True)
-    # Long enough to shrink under gzip: whitenoise keeps no copy that does not.
+    # Long enough to shrink under gzip: whitenoise keeps only smaller copies.
     padding = "".join(f"export const line{index} = {index};\n" for index in range(200))
     (dist / ENTRY).write_text(f'{padding}import("./ProfilePage-XyZ98765.js");\n')
     (dist / CHUNK).write_text(

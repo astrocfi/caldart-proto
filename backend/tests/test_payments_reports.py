@@ -43,7 +43,7 @@ EXPORT = "/api/v1/reports/payments/export.csv"
 EXPORT_PDF = "/api/v1/reports/payments/export.pdf"
 COLUMNS = "/api/v1/reports/payments/columns"
 
-#: The header the export prints when the caller chooses no columns.
+#: The header the export prints when the caller doesn't choose any columns.
 DEFAULT_HEADER = ["Date", "Name", "Email", "Plan", "Total", "Fee", "Net", "Status"]
 
 #: The columns the recorded export document carries, in registry order.
@@ -234,7 +234,7 @@ def test_list_dates_a_recorded_payment_by_the_day_it_was_received(
 def test_list_runs_the_same_queries_however_many_payments_it_holds(
     treasurer_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """Serializing one more payment, renewal attempt and all, costs no more queries."""
+    """Serializing one more payment, renewal attempt and all, keeps the query count."""
     mandate = RenewalMandateFactory(user=member)
     first = make_payment(member, annual_plan, when=paid_at(2026, 2, 2))
     RenewalAttemptFactory(mandate=mandate, payment=first, outcome=RenewalOutcome.SUCCEEDED)
@@ -321,7 +321,7 @@ def test_summary_by_year(
 def test_summary_defaults_to_month(
     api_client: APIClient, account_admin: User, history: list[Payment]
 ) -> None:
-    """With no group parameter the summary groups by month."""
+    """Without a group parameter, the summary groups by month."""
     api_client.force_login(account_admin)
     assert api_client.get(SUMMARY).json()[0]["period"] == "2025-11"
 
@@ -353,8 +353,10 @@ def test_summary_rejects_an_unknown_grouping(
     assert api_client.get(SUMMARY, {"group": "week"}).status_code == 400
 
 
-def test_summary_of_nothing_is_an_empty_list(api_client: APIClient, account_admin: User) -> None:
-    """With no payments at all the summary is an empty list."""
+def test_a_summary_without_payments_is_an_empty_list(
+    api_client: APIClient, account_admin: User
+) -> None:
+    """Without any payments, the summary is an empty list."""
     api_client.force_login(account_admin)
     assert api_client.get(SUMMARY).json() == []
 
@@ -436,7 +438,7 @@ def test_export_returns_a_csv_download_named_for_today(
 def test_export_prints_the_default_columns_when_none_are_chosen(
     treasurer_client: APIClient, history: list[Payment]
 ) -> None:
-    """With no ``columns`` parameter the export carries the default eight."""
+    """Without a ``columns`` parameter, the export carries the default eight."""
     assert read_csv(treasurer_client.get(EXPORT))[0] == DEFAULT_HEADER
 
 
@@ -506,7 +508,7 @@ def test_export_formats_money_as_dollars(
 def test_export_leaves_the_date_blank_for_a_payment_that_never_arrived(
     treasurer_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """A failed attempt has no ledger date, so its date cell is empty."""
+    """A failed attempt doesn't have a ledger date, so its date cell is empty."""
     make_payment(member, annual_plan, when=paid_at(2026, 3, 9), status=PaymentStatus.FAILED)
     assert read_csv(treasurer_client.get(EXPORT))[1][0] == ""
 

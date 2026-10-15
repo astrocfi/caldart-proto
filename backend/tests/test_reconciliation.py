@@ -219,7 +219,7 @@ def test_a_payment_that_never_arrived_is_not_on_the_statement(
 
 
 def test_an_unknown_grouping_is_refused(treasurer_client: APIClient) -> None:
-    """The grouping is month, year or provider, and nothing else."""
+    """The grouping is only month, year, or provider."""
     assert treasurer_client.get(TABLE, {"group": "week"}).json() == {
         "group": ["Expected 'month', 'year' or 'provider'."]
     }
@@ -274,7 +274,7 @@ def test_the_csv_export_carries_the_same_rows_as_the_table(
 def test_the_csv_export_writes_money_a_spreadsheet_can_add_up(
     treasurer_client: APIClient, books: list[Payment]
 ) -> None:
-    """The cells are plain decimals, with no currency symbol."""
+    """The cells are plain decimals, without a currency symbol."""
     rows = read_csv(treasurer_client.get(EXPORT_CSV))
     assert rows[2][2] == "150.00"
 

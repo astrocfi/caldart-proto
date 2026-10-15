@@ -192,7 +192,7 @@ def test_a_stripe_failure_at_checkout_is_a_400(
 
 
 @pytest.mark.parametrize("error", STRIPE_ERRORS, ids=STRIPE_ERROR_IDS)
-def test_a_stripe_failure_at_checkout_leaves_no_payment_behind(
+def test_a_stripe_failure_at_checkout_does_not_leave_a_payment_behind(
     api_client: APIClient,
     member: User,
     annual_plan: MembershipPlan,
@@ -298,10 +298,10 @@ def test_a_paypal_token_timeout_at_checkout_is_a_400(
 
 
 @respx.mock
-def test_a_paypal_token_timeout_at_checkout_leaves_no_payment_behind(
+def test_a_paypal_token_timeout_at_checkout_does_not_leave_a_payment_behind(
     api_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """A PayPal token timeout at checkout leaves no payment row behind."""
+    """A PayPal token timeout at checkout doesn't leave a payment row behind."""
     respx.post(TOKEN_URL).mock(side_effect=httpx.ConnectTimeout("timed out"))
 
     api_client.force_login(member)
@@ -346,10 +346,10 @@ def test_an_order_connection_error_at_checkout_is_a_400(
 
 
 @respx.mock
-def test_an_order_connection_error_at_checkout_leaves_no_payment_behind(
+def test_an_order_connection_error_at_checkout_does_not_leave_a_payment_behind(
     api_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """An order-creation connection error leaves no payment row behind."""
+    """An order-creation connection error doesn't leave a payment row behind."""
     token_route(respx.mock)
     respx.post(ORDERS_URL).mock(side_effect=httpx.ConnectError("refused"))
 
@@ -486,10 +486,10 @@ def test_a_capture_mismatch_never_logs_an_email_address(
 
 
 @respx.mock
-def test_a_capture_mismatch_grants_no_membership(
+def test_a_capture_mismatch_does_not_grant_a_membership(
     api_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """A capture that does not match the payment grants no membership."""
+    """A capture that does not match the payment doesn't grant a membership."""
     payment = pending_paypal_payment(member)
     token_route(respx.mock)
     respx.post(f"{ORDERS_URL}/ORDER1/capture").mock(

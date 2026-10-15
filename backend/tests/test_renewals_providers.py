@@ -63,12 +63,12 @@ def test_a_card_label_names_the_brand_the_digits_and_the_expiry() -> None:
     assert card_label("visa", "4242", 3, 2028) == "Visa ending 4242, expires 03/2028"
 
 
-def test_a_card_with_no_expiry_is_labeled_without_one() -> None:
-    """A provider that gives no expiry still produces a usable label."""
+def test_a_card_without_an_expiry_is_labeled_without_one() -> None:
+    """A provider that doesn't give an expiry still produces a usable label."""
     assert card_label("mastercard", "5555", None, None) == "Mastercard ending 5555"
 
 
-def test_a_method_with_nothing_known_still_has_a_label() -> None:
+def test_a_method_without_any_known_detail_still_has_a_label() -> None:
     """An unrecognizable saved method never shows the member a blank line."""
     assert card_label("", "", None, None) == "Saved payment method"
 
@@ -78,8 +78,8 @@ def test_a_paypal_account_is_labeled_with_a_masked_address() -> None:
     assert paypal_label("maria@example.org") == "PayPal (m***@example.org)"
 
 
-def test_a_paypal_account_with_no_address_is_labeled_plainly() -> None:
-    """PayPal that gives no email address still reads as PayPal."""
+def test_a_paypal_account_without_an_address_is_labeled_plainly() -> None:
+    """PayPal that doesn't give an email address still reads as PayPal."""
     assert paypal_label("") == "PayPal"
 
 
@@ -132,7 +132,7 @@ class FakeStripe:
     """Stand-in for the SDK client, recording what the provider asked for."""
 
     def __init__(self) -> None:
-        """Start with no recorded calls and nothing to answer with."""
+        """Start without recorded calls or anything to answer with."""
         self.customer_payload: dict[str, Any] = {"id": "cus_test_1"}
         self.setup_payload: dict[str, Any] = {}
         self.intent_payload: dict[str, Any] = {}
@@ -214,7 +214,7 @@ def stripe_mandate(user: User, plan: MembershipPlan, **overrides: Any) -> Renewa
     return RenewalMandateFactory(user=user, plan=plan, provider=MandateProvider.STRIPE, **overrides)
 
 
-def test_stripe_creates_a_customer_for_a_mandate_that_has_none(
+def test_stripe_creates_a_customer_for_a_mandate_that_does_not_have_one(
     fake_stripe: FakeStripe, member: User, annual_plan: MembershipPlan
 ) -> None:
     """The customer the card is saved against is created once and kept."""
@@ -305,7 +305,7 @@ def test_stripe_refuses_a_setup_that_did_not_succeed(
 def test_stripe_cancels_a_setup_intent_that_was_declined(
     fake_stripe: FakeStripe, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """A declined SetupIntent is canceled, so its client secret takes no other card."""
+    """A declined SetupIntent is canceled, so its secret can't take another card."""
     mandate = stripe_mandate(member, annual_plan, customer_ref="cus_test_1")
     fake_stripe.setup_payload = {
         "id": "seti_1",
@@ -397,7 +397,7 @@ def test_discarding_a_pending_mandate_cancels_its_setup(
     assert fake_stripe.canceled_setups == ["seti_open"]
 
 
-def test_a_checkout_that_saves_nothing_cancels_an_open_setup(
+def test_a_checkout_that_does_not_save_anything_cancels_an_open_setup(
     fake_stripe: FakeStripe, api_client: APIClient, member: User
 ) -> None:
     """A donation checkout without ``auto_renew`` discards the setup and cancels it."""
@@ -458,7 +458,7 @@ def test_a_stripe_card_error_becomes_the_reason_the_member_is_given(
     """Stripe's own wording is what the failure email quotes."""
     mandate = stripe_mandate(member, annual_plan, customer_ref="cus_test_1", method_ref="pm_test_1")
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
-    # The SDK's error classes carry no annotations, so the construction is untyped.
+    # The SDK's error classes aren't annotated, so the construction is untyped.
     fake_stripe.decline = stripe.CardError(  # type: ignore[no-untyped-call]
         "Your card has insufficient funds.", param="", code="card_declined", json_body={}
     )
@@ -546,10 +546,10 @@ def test_stripe_reads_the_method_from_a_webhook_shaped_intent(
     assert method.label == "Visa ending 4242, expires 03/2028"
 
 
-def test_a_webhook_shaped_intent_that_saved_no_card_yields_no_method(
+def test_a_webhook_shaped_intent_that_did_not_save_a_card_does_not_yield_a_method(
     fake_stripe: FakeStripe, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """A method Stripe reports without a card activates nothing."""
+    """A method Stripe reports without a card doesn't activate anything."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
     payment.raw = {"id": "pi_1", "payment_method": "pm_test_1", "latest_charge": "ch_1"}
     payment.save(update_fields=["raw"])
@@ -558,10 +558,10 @@ def test_a_webhook_shaped_intent_that_saved_no_card_yields_no_method(
     assert get_provider(MandateProvider.STRIPE).method_from_payment(payment) is None
 
 
-def test_a_stripe_checkout_that_saved_nothing_yields_no_method(
+def test_a_stripe_checkout_that_did_not_save_anything_does_not_yield_a_method(
     fake_stripe: FakeStripe, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """An ordinary one-off payment activates no mandate."""
+    """An ordinary one-off payment doesn't activate a mandate."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
     payment.raw = {"id": "pi_1", "latest_charge": {"payment_method_details": {"type": "card"}}}
     payment.save(update_fields=["raw"])
@@ -654,10 +654,10 @@ def test_paypal_labels_the_vaulted_account_for_the_member(
     assert method.label == "PayPal (m***@example.org)"
 
 
-def test_paypal_refuses_a_confirm_with_no_setup_token(
+def test_paypal_refuses_a_confirm_without_a_setup_token(
     paypal_configured: None, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """Nothing is asked of PayPal when the browser sent no token."""
+    """Nothing is asked of PayPal when the browser didn't send a token."""
     mandate = RenewalMandateFactory(user=member, plan=annual_plan, provider=MandateProvider.PAYPAL)
     with pytest.raises(PaymentVerificationError, match="No PayPal setup token"):
         get_provider(MandateProvider.PAYPAL).confirm_mandate(mandate)
@@ -710,7 +710,7 @@ def test_a_paypal_renewal_charges_the_vaulted_account(
 def test_a_paypal_renewal_order_carries_its_own_request_id(
     paypal_configured: None, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """The order is keyed like Stripe's charge, so a repeated scan takes nothing twice."""
+    """The order is keyed like Stripe's charge, so a repeated scan never charges twice."""
     mandate = RenewalMandateFactory(
         user=member, plan=annual_plan, provider=MandateProvider.PAYPAL, method_ref="vault_1"
     )
@@ -762,10 +762,10 @@ def test_a_paypal_checkout_order_asks_to_vault_when_a_mandate_is_pending(
     assert body["payment_source"]["paypal"]["attributes"]["vault"]["store_in_vault"] == "ON_SUCCESS"
 
 
-def test_a_paypal_checkout_without_a_mandate_asks_for_no_vault(
+def test_a_paypal_checkout_without_a_mandate_does_not_ask_for_a_vault(
     paypal_configured: None, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """An ordinary payment saves nothing, so the order carries no vault block."""
+    """An ordinary payment doesn't save anything, so the order omits the vault block."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.PAYPAL)
     with respx.mock as router:
         mock_token(router)
@@ -827,7 +827,7 @@ def test_paypal_settles_an_earlier_order_it_completed(
     assert payment.status == PaymentStatus.SUCCEEDED
 
 
-def test_paypal_creates_no_second_order_for_a_payment_that_names_one(
+def test_paypal_does_not_create_a_second_order_for_a_payment_that_names_one(
     paypal_configured: None, member: User, annual_plan: MembershipPlan
 ) -> None:
     """Settling the earlier order is all the lookup does: nothing new is charged."""
@@ -851,7 +851,7 @@ def test_paypal_creates_no_second_order_for_a_payment_that_names_one(
 def test_paypal_captures_an_earlier_order_under_its_own_request_id(
     paypal_configured: None, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """An order made but never captured is captured, keyed so a repeat takes nothing."""
+    """An uncaptured order is captured, keyed so a repeat doesn't take anything."""
     mandate = RenewalMandateFactory(
         user=member, plan=annual_plan, provider=MandateProvider.PAYPAL, method_ref="vault_1"
     )
@@ -870,10 +870,10 @@ def test_paypal_captures_an_earlier_order_under_its_own_request_id(
     assert request_id == f"caldart-renewal-{payment.pk}-capture"
 
 
-def test_paypal_finds_nothing_for_a_payment_that_names_no_order(
+def test_paypal_does_not_find_anything_for_a_payment_that_does_not_name_an_order(
     paypal_configured: None, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """With no order to read, PayPal is not asked; charging is left to the request id."""
+    """Without an order to read, PayPal isn't asked; the request id governs charging."""
     mandate = RenewalMandateFactory(
         user=member, plan=annual_plan, provider=MandateProvider.PAYPAL, method_ref="vault_1"
     )

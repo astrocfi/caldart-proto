@@ -113,7 +113,7 @@ def test_member_report_keeps_other_certificates_spelled_out(
 
 
 def test_report_certificate_labels_overrides_only_the_atp_certificate() -> None:
-    """The report-only abbreviation applies to ATP and to nothing else."""
+    """The report-only abbreviation applies only to ATP."""
     assert REPORT_CERTIFICATE_LABELS == {PilotCertificateType.ATP: "ATP"}
 
 

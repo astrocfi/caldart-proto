@@ -80,7 +80,7 @@ def turn_on(client: APIClient, **overrides: object) -> None:
 # --------------------------------------------------------------------------
 # GET /me/renewal
 # --------------------------------------------------------------------------
-def test_a_member_with_no_mandate_reads_null(member_client: APIClient) -> None:
+def test_a_member_without_a_mandate_reads_null(member_client: APIClient) -> None:
     """A member who has never turned renewal on is answered ``null``, not a 404."""
     response = member_client.get(ME)
     assert response.json()["mandate"] is None
@@ -200,7 +200,7 @@ def test_turning_renewal_on_emails_the_member(
 def test_confirming_without_a_setup_is_a_404(
     member_client: APIClient, annual_plan: MembershipPlan
 ) -> None:
-    """There is nothing to confirm before a setup has been started."""
+    """There isn't anything to confirm before a setup has been started."""
     assert member_client.post(CONFIRM, {}).status_code == 404
 
 
@@ -286,7 +286,7 @@ def test_a_plan_that_never_expires_may_not_be_patched_in(
 def test_a_life_member_may_not_patch_their_contribution_away(
     member_client: APIClient, member: User, life_plan: MembershipPlan
 ) -> None:
-    """An authority over nothing at all is refused on the patch as it is at setup."""
+    """An empty authority is refused on the patch as it is at setup."""
     MembershipFactory(
         user=member,
         plan=life_plan,
@@ -310,7 +310,7 @@ def test_a_negative_contribution_is_refused(
 
 
 def test_changing_a_mandate_that_does_not_exist_is_a_404(member_client: APIClient) -> None:
-    """There is nothing to change before renewal has been turned on."""
+    """There isn't anything to change before renewal has been turned on."""
     response = member_client.patch(ME, {"contribution_cents": 100}, format="json")
     assert response.status_code == 404
 
@@ -327,7 +327,7 @@ def test_a_member_turns_renewal_off(
 def test_turning_renewal_off_answers_204(
     member_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """The member is told it worked, with no body to read."""
+    """The member is told it worked, without a body to read."""
     RenewalMandateFactory(user=member, plan=annual_plan)
     assert member_client.delete(ME).status_code == 204
 
@@ -392,10 +392,10 @@ def test_a_paid_checkout_activates_the_mandate(
     assert RenewalMandate.objects.get(user=member).status == MandateStatus.ACTIVE
 
 
-def test_a_checkout_that_did_not_ask_for_renewal_creates_no_mandate(
+def test_a_checkout_that_did_not_ask_for_renewal_does_not_create_a_mandate(
     member_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """An ordinary payment leaves no standing authority behind it."""
+    """An ordinary payment doesn't leave a standing authority behind it."""
     started = checkout(member_client, auto_renew=False)
     member_client.post(MOCK_COMPLETE, {"payment_id": started["payment_id"]}, format="json")
     assert RenewalMandate.objects.filter(user=member).count() == 0
@@ -404,7 +404,7 @@ def test_a_checkout_that_did_not_ask_for_renewal_creates_no_mandate(
 def test_a_checkout_that_declines_renewal_throws_away_an_abandoned_mandate(
     member_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """A member who says no is not renewed from a mandate they walked away from."""
+    """A member who declines is not renewed from a mandate they walked away from."""
     RenewalMandateFactory(
         user=member,
         plan=annual_plan,
@@ -418,7 +418,7 @@ def test_a_checkout_that_declines_renewal_throws_away_an_abandoned_mandate(
     assert RenewalMandate.objects.filter(user=member).count() == 0
 
 
-def test_a_payment_that_declined_renewal_activates_no_abandoned_mandate(
+def test_a_payment_that_declined_renewal_does_not_activate_an_abandoned_mandate(
     member_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
     """Paying without asking to renew never turns a stale mandate on."""
@@ -437,7 +437,7 @@ def test_a_checkout_cannot_ask_to_renew_a_lifetime_plan(
     assert body["auto_renew"] == ["A lifetime membership never expires, so it cannot renew itself."]
 
 
-def test_a_checkout_refused_for_renewal_leaves_no_pending_payment(
+def test_a_checkout_refused_for_renewal_does_not_leave_a_pending_payment(
     member_client: APIClient, member: User, life_plan: MembershipPlan
 ) -> None:
     """The payment started for a refused checkout is deleted again, as for any refusal."""
@@ -446,10 +446,10 @@ def test_a_checkout_refused_for_renewal_leaves_no_pending_payment(
     assert Payment.objects.filter(user=member).count() == 0
 
 
-def test_a_checkout_for_no_plan_asks_for_a_recurring_donation(
+def test_a_checkout_without_a_plan_asks_for_a_recurring_donation(
     member_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """With no plan to renew, ``auto_renew`` leaves a pending donation behind."""
+    """Without a plan to renew, ``auto_renew`` leaves a pending donation behind."""
     checkout(member_client, plan="", contribution_cents=1_000)
     assert RenewalMandate.objects.get(user=member).plan_id is None
 
@@ -637,14 +637,14 @@ def test_the_run_endpoint_reports_what_it_would_charge(
     assert body["noticed"] == 1
 
 
-def test_a_dry_run_through_the_endpoint_charges_nobody(
+def test_a_dry_run_through_the_endpoint_does_not_charge_anyone(
     api_client: APIClient,
     system_admin: User,
     member: User,
     annual_plan: MembershipPlan,
     today: date,
 ) -> None:
-    """A rehearsal writes nothing, so no attempt is left behind."""
+    """A rehearsal doesn't write anything, so no attempt is left behind."""
     MembershipFactory(
         user=member,
         plan=annual_plan,

@@ -152,7 +152,7 @@ def test_pg_command_uses_the_local_binary_when_docker_is_not_forced(
 def test_pg_command_falls_back_to_docker_without_a_local_binary(
     settings: Settings, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """With no local binary but docker available, the command falls back to docker."""
+    """Without a local binary but with docker, the command falls back to docker."""
     settings.DB_BACKUP_VIA_DOCKER = False
     monkeypatch.setattr(shutil, "which", lambda tool: None if tool != "docker" else "/d")
 
@@ -215,7 +215,7 @@ def test_db_restore_accepts_a_bare_name_inside_the_backup_directory(
 def test_db_restore_rejects_a_missing_file(
     backup_dir: Path, no_schema_drop: list[dict[str, Any]]
 ) -> None:
-    """Restoring a missing name raises ``CommandError`` and drops nothing."""
+    """Restoring a missing name raises ``CommandError`` and doesn't drop anything."""
     with pytest.raises(CommandError, match="No such backup"):
         call_command("db_restore", "nope.sql.gz", "--yes", stdout=StringIO())
 
@@ -316,7 +316,7 @@ def test_db_reset_seed_flag_runs_the_seeders(reset_calls: list[str]) -> None:
 
 
 def test_db_reset_asks_first(reset_calls: list[str], monkeypatch: pytest.MonkeyPatch) -> None:
-    """Answering anything but ``yes`` at the prompt aborts and orchestrates nothing."""
+    """Answering anything but ``yes`` at the prompt aborts before any step runs."""
     monkeypatch.setattr("builtins.input", lambda prompt="": "no thanks")
 
     with pytest.raises(CommandError, match="Aborted"):

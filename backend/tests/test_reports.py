@@ -99,7 +99,7 @@ def test_pdf_draws_the_title_the_subtitle_and_every_cell(pdf_text: PdfText) -> N
     page = pdf_text(body)[0]
     assert page[:2] == ["Membership report", SUBTITLE]
     assert page[2:6] == HEADER
-    # The ``None`` cell of the second row draws nothing at all.
+    # The ``None`` cell of the second row doesn't draw anything at all.
     assert page[6:17] == [
         "Marta Reyes",
         "marta@example.org",
@@ -134,7 +134,7 @@ def test_pdf_paginates_100_rows_with_a_repeated_header(
 
 
 def test_pdf_handles_an_empty_result_set(pdf_text: PdfText) -> None:
-    """A table with no rows renders one page carrying the title and header alone."""
+    """A table without rows renders one page carrying the title and header alone."""
     pages = pdf_text(pdf_table(title="Membership report", header=HEADER, rows=[]))
     assert len(pages) == 1
     assert pages[0][:5] == ["Membership report", *HEADER]
@@ -185,7 +185,7 @@ def test_select_columns_follows_the_requested_order() -> None:
 
 
 def test_select_columns_rejects_the_first_unknown_key() -> None:
-    """An unrecognized key raises ``ValueError`` naming that key and nothing else."""
+    """An unrecognized key raises ``ValueError`` naming only that key."""
     with pytest.raises(ValueError, match="Unknown column: shoe_size"):
         select_columns(COLUMNS, ["name", "shoe_size", "hat_size"])
 
@@ -225,7 +225,7 @@ def test_chosen_columns_reads_a_comma_separated_query_parameter() -> None:
 
 
 def test_chosen_columns_answers_the_defaults_for_an_absent_parameter() -> None:
-    """An empty ``?columns=`` means the caller chose nothing, so the defaults apply."""
+    """An empty ``?columns=`` means the caller didn't choose, so the defaults apply."""
     assert [column.key for column in chosen_columns(COLUMNS, "")] == ["name", "email"]
 
 
@@ -423,7 +423,7 @@ def test_ordering_terms_splits_a_comma_separated_parameter() -> None:
 
 
 def test_ordering_terms_of_an_empty_parameter_is_empty() -> None:
-    """An absent ``ordering`` asks for no terms, so the report's default applies."""
+    """An absent ``ordering`` doesn't ask for terms, so the report's default applies."""
     assert ordering_terms("") == []
 
 

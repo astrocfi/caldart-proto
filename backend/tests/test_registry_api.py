@@ -216,7 +216,7 @@ def test_an_unregistered_n_number_answers_404(member_client: APIClient) -> None:
 
 
 def test_a_blank_n_number_answers_400(member_client: APIClient) -> None:
-    """An N-number that normalizes to nothing is refused as the register refuses it."""
+    """An N-number that normalizes to a blank is refused as the register refuses it."""
     response = member_client.get(registration_url("--"))
     assert (response.status_code, response.json()) == (
         400,
@@ -233,7 +233,7 @@ def test_a_lookup_needs_a_signed_in_user(api_client: APIClient) -> None:
 
 
 def test_the_status_before_any_import_is_empty(member_client: APIClient) -> None:
-    """With no import, there is no date, nothing running, and no last run."""
+    """Before any import, the date and the last run are null, and nothing is running."""
     assert member_client.get(REGISTRY_URL).json() == {"as_of": None, "running": False, "last": None}
 
 

@@ -38,7 +38,7 @@ def pat() -> User:
 
 @pytest.fixture
 def north() -> Dart:
-    """The DART Pat chose, with no roster contact yet."""
+    """The DART Pat chose, without a roster contact yet."""
     return DartFactory(name="North Bay DART")
 
 
@@ -108,7 +108,7 @@ def test_nothing_is_sent_before_the_transaction_commits(
     mailoutbox: list[EmailMessage],
     django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
 ) -> None:
-    """The send waits on the commit, so a rolled-back request sends nothing."""
+    """The send waits on the commit, so a rolled-back request doesn't send anything."""
     subscribe("outside@example.test", ["signed_up"])
 
     with django_capture_on_commit_callbacks(execute=False):
@@ -199,7 +199,7 @@ def test_a_paused_subscription_is_not_sent(
     mailoutbox: list[EmailMessage],
     django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
 ) -> None:
-    """A subscription whose ``is_active`` is false is sent nothing."""
+    """A subscription whose ``is_active`` is false isn't sent anything."""
     subscribe("outside@example.test", ["signed_up"], is_active=False)
 
     sign_up(django_capture_on_commit_callbacks, pat)
@@ -228,7 +228,7 @@ def test_a_deactivated_account_is_skipped(
     mailoutbox: list[EmailMessage],
     django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
 ) -> None:
-    """An inactive account is sent nothing."""
+    """An inactive account isn't sent anything."""
     account_admin.is_active = False
     account_admin.save(update_fields=["is_active"])
     subscribe(account_admin.email, ["signed_up"], recipient_user=account_admin)
@@ -346,7 +346,7 @@ def test_a_roster_contact_is_logged_by_name_with_the_notification_purpose(
     mailoutbox: list[EmailMessage],
     django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
 ) -> None:
-    """The contact's name and the sign-up purpose are recorded, with no account."""
+    """The contact's name and the sign-up purpose are recorded, without an account."""
     DartContactFactory(dart=north, name="Lee Lead", email="lead@example.test", receives_roster=True)
 
     sign_up(django_capture_on_commit_callbacks, pat, north)
@@ -380,7 +380,7 @@ def test_only_a_sign_up_goes_to_the_roster_contacts(
     mailoutbox: list[EmailMessage],
     django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
 ) -> None:
-    """Another event about a person on the DART reaches nobody unsubscribed."""
+    """Another event about a person on the DART doesn't reach an unsubscribed contact."""
     DartContactFactory(dart=north, email="lead@example.test", receives_roster=True)
 
     with django_capture_on_commit_callbacks(execute=True):
@@ -468,7 +468,7 @@ def test_an_event_whose_email_cannot_be_built_does_not_fail_the_caller(
     mailoutbox: list[EmailMessage],
     django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
 ) -> None:
-    """A payload missing its objects is logged and sends nothing; ``emit`` returns."""
+    """A payload missing its objects is logged without sending; ``emit`` returns."""
     subscribe("outside@example.test", ["signed_up"])
 
     with (
@@ -482,12 +482,12 @@ def test_an_event_whose_email_cannot_be_built_does_not_fail_the_caller(
 
 
 # -- suspending the dispatcher, for seeding ---------------------------------------
-def test_an_event_raised_while_suspended_sends_nothing(
+def test_an_event_raised_while_suspended_does_not_send_anything(
     pat: User,
     mailoutbox: list[EmailMessage],
     django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
 ) -> None:
-    """Inside :func:`dispatch.suspended`, a subscribed address hears nothing."""
+    """Inside :func:`dispatch.suspended`, a subscribed address doesn't hear anything."""
     subscribe("outside@example.test", ["signed_up"])
 
     with dispatch.suspended(), django_capture_on_commit_callbacks(execute=True):

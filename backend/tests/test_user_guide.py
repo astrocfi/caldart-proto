@@ -115,14 +115,14 @@ def test_the_guide_is_private_and_revalidated(reader: Client, guide_root: Path) 
 
 
 def test_an_unchanged_page_answers_304(reader: Client, guide_root: Path) -> None:
-    """``If-Modified-Since`` at or after the file's mtime gets 304 and no body."""
+    """``If-Modified-Since`` at or after the file's mtime gets 304 without a body."""
     modified = (guide_root / GUIDE_INDEX).stat().st_mtime
     response = reader.get("/docs/", HTTP_IF_MODIFIED_SINCE=http_date(modified))
     assert response.status_code == 304
 
 
 def test_a_missing_page_is_404(reader: Client, guide_root: Path) -> None:
-    """A path that names no file in the guide is 404."""
+    """A path that doesn't name a file in the guide is 404."""
     response = reader.get("/docs/no-such-page/")
     assert response.status_code == 404
 
@@ -144,7 +144,7 @@ def test_a_path_that_leaves_the_root_is_404(
 def test_an_unbuilt_guide_is_404_and_logged(
     reader: Client, tmp_path: Path, settings: Settings, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """With no index under ``USER_GUIDE_ROOT``, every page is 404, and it is logged."""
+    """Without an index under ``USER_GUIDE_ROOT``, every page is 404, and it is logged."""
     settings.USER_GUIDE_ROOT = tmp_path / "nowhere"
     # The test settings quiet the root logger to ERROR; the warning is the point here.
     caplog.set_level(logging.WARNING, logger="caldart.views")
@@ -174,7 +174,7 @@ def gated_guide(guide_root: Path) -> Path:
 
     ``admin/`` is an index page (docname ``admin/index``), ``admin/members/`` a page for
     an account administrator or a DART leader, and ``admin/health-database/`` a page for
-    a system administrator; ``member-guide/`` carries no roles.
+    a system administrator; ``member-guide/`` doesn't carry any roles.
     """
     (guide_root / "admin" / "members").mkdir(parents=True)
     (guide_root / "admin" / "health-database").mkdir()
@@ -258,7 +258,7 @@ def test_a_page_without_roles_is_served_to_a_member(reader: Client, gated_guide:
 
 
 def test_a_guide_without_a_roles_file_serves_every_page(reader: Client, gated_guide: Path) -> None:
-    """With no ``roles.json`` (a build without the extension), every page is served."""
+    """Without ``roles.json`` (a build without the extension), every page is served."""
     (gated_guide / GUIDE_ROLES).unlink()
     response = reader.get("/docs/admin/health-database/")
     assert response.status_code == 200

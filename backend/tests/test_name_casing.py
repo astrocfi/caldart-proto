@@ -333,7 +333,7 @@ def test_resending_a_name_in_another_case_is_not_a_change(
     profile: MemberProfile,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """``SMITH`` resent for a stored ``Smith`` stores the same name and raises nothing."""
+    """Resending ``SMITH`` for a stored ``Smith`` keeps it and doesn't raise an event."""
     member.last_name = "Smith"
     member.save()
     seen: list[str] = []
@@ -380,8 +380,8 @@ def test_normalize_casing_prints_one_line_per_changed_field() -> None:
     ]
 
 
-def test_normalize_casing_reports_nothing_for_rows_already_normalized() -> None:
-    """A database already in order prints no change lines, only the count."""
+def test_normalize_casing_does_not_report_rows_already_normalized() -> None:
+    """A database already in order prints only the count, without a change line."""
     UserFactory(first_name="DeAnna", last_name="McDonald")
     assert run_normalize().splitlines() == ["Changed 0 fields."]
 

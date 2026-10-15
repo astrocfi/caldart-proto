@@ -198,7 +198,7 @@ def test_the_schedule_needs_a_session(api_client: APIClient, method: str) -> Non
 def test_the_defaults_apply_before_anyone_saves_a_schedule(
     system_admin_client: APIClient,
 ) -> None:
-    """60, 30, 7 and 30 days, saved by nobody, at no time."""
+    """60, 30, 7, and 30 days, with ``updated_by`` and ``updated_at`` both null."""
     assert system_admin_client.get(SCHEDULE_URL).json() == {
         **DEFAULTS,
         "updated_by": None,
@@ -206,7 +206,7 @@ def test_the_defaults_apply_before_anyone_saves_a_schedule(
     }
 
 
-def test_reading_the_schedule_writes_nothing(system_admin_client: APIClient) -> None:
+def test_reading_the_schedule_does_not_write_anything(system_admin_client: APIClient) -> None:
     """The defaults are answered without storing a row."""
     system_admin_client.get(SCHEDULE_URL)
     assert ReminderSchedule.objects.count() == 0
@@ -251,7 +251,7 @@ def test_a_refused_schedule_answers_400_keyed_by_field(system_admin_client: APIC
     }
 
 
-def test_a_refused_schedule_changes_nothing(system_admin_client: APIClient) -> None:
+def test_a_refused_schedule_does_not_change_anything(system_admin_client: APIClient) -> None:
     """The stored days stay as they were."""
     store(EDITED)
     system_admin_client.put(SCHEDULE_URL, body(final_days_before=0), format="json")
@@ -329,7 +329,7 @@ def send_first_then_second_then_restore(plan: MembershipPlan) -> ReminderRun:
     return send_renewal_reminders(today=TODAY + timedelta(days=2))
 
 
-def test_a_schedule_edit_that_moves_a_member_back_sends_nothing(
+def test_a_schedule_edit_that_moves_a_member_back_does_not_send_anything(
     annual_plan: MembershipPlan,
 ) -> None:
     """A member put back into ``first`` after having it is skipped as already sent."""
@@ -338,10 +338,10 @@ def test_a_schedule_edit_that_moves_a_member_back_sends_nothing(
     assert run.skipped_by_reason == {"already_sent": 1}
 
 
-def test_a_schedule_edit_that_moves_a_member_back_writes_no_log_row(
+def test_a_schedule_edit_that_moves_a_member_back_does_not_write_a_log_row(
     annual_plan: MembershipPlan,
 ) -> None:
-    """The member's log holds one ``first`` row and one ``second`` row, and no more."""
+    """The member's log holds only one ``first`` row and one ``second`` row."""
     send_first_then_second_then_restore(annual_plan)
 
     kinds = sorted(ReminderLog.objects.values_list("kind", flat=True))
@@ -356,7 +356,7 @@ def test_a_schedule_edit_that_moves_a_member_back_writes_no_log_row(
 def test_the_spans_tile_without_a_gap_or_an_overlap(
     first: int, second: int, final: int, lapsed: int
 ) -> None:
-    """Every expiry date is in exactly the one stage the schedule puts it in, or none."""
+    """Every expiry date is in exactly the one stage the schedule puts it in, if any."""
     schedule = ReminderSchedule(
         first_days_before=first,
         second_days_before=second,

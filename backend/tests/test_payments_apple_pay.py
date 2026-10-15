@@ -43,7 +43,7 @@ def test_the_response_is_cacheable(client: Client, association_file: Path) -> No
 
 
 def test_it_is_404_when_unconfigured(client: Client, settings: Settings) -> None:
-    """An empty setting means no file is configured, so the endpoint 404s."""
+    """An empty setting means that no file is configured, so the endpoint 404s."""
     settings.STRIPE_APPLE_PAY_DOMAIN_ASSOCIATION = ""
     assert client.get(URL).status_code == 404
 

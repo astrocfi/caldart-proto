@@ -161,7 +161,7 @@ def test_health_reports_the_newest_backup(
 def test_backup_list_is_empty_to_start(
     api_client: APIClient, system_admin: User, backup_dir: Path
 ) -> None:
-    """With no dumps on disk, the backup list is empty."""
+    """Without dumps on disk, the backup list is empty."""
     api_client.force_login(system_admin)
 
     assert api_client.get(BACKUPS_URL).json() == []
@@ -235,7 +235,7 @@ def test_download_streams_the_dump(
 def test_download_404s_for_a_name_that_is_not_there(
     api_client: APIClient, system_admin: User, backup_dir: Path
 ) -> None:
-    """Downloading a name with no matching file on disk gets a 404."""
+    """Downloading a name without a matching file on disk gets a 404."""
     api_client.force_login(system_admin)
 
     assert api_client.get(download_url("caldart-19700101-000000.sql.gz")).status_code == 404

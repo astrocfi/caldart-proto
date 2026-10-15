@@ -115,7 +115,7 @@ def test_member_creation_ignores_roles_and_the_django_flags(
     assert user.is_superuser is False
 
 
-def test_member_update_applies_the_name_and_nothing_else(
+def test_member_update_applies_only_the_name(
     api_client: APIClient, account_admin: UserModel, member: UserModel
 ) -> None:
     """The member form edits names; roles and the flags are not its to change."""

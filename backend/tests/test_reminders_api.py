@@ -168,7 +168,7 @@ def test_run_dry_run_reports_without_writing(
     annual_plan: MembershipPlan,
     mailoutbox: list[EmailMessage],
 ) -> None:
-    """A dry run through the endpoint reports what it would send but sends nothing."""
+    """A dry run through the endpoint reports what it would send but doesn't send it."""
     user = UserFactory(email="expiring@example.test")
     MembershipFactory(
         user=user,
@@ -244,7 +244,7 @@ def test_run_is_idempotent(
     annual_plan: MembershipPlan,
     mailoutbox: list[EmailMessage],
 ) -> None:
-    """A second live run the same day sends nothing and reports the skip."""
+    """A second live run the same day doesn't send anything and reports the skip."""
     user = UserFactory(email="twice@example.test")
     MembershipFactory(
         user=user,
@@ -267,8 +267,8 @@ def test_run_is_idempotent(
     assert len(mailoutbox) == 1
 
 
-def test_run_with_no_one_due_is_still_a_200(api_client: APIClient, system_admin: User) -> None:
-    """A run with no membership due reports zero sent and zero skipped, not an error."""
+def test_run_when_no_one_is_due_is_still_a_200(api_client: APIClient, system_admin: User) -> None:
+    """When no membership is due, a run reports zero sent and skipped, not an error."""
     api_client.force_login(system_admin)
 
     response = api_client.post(RUN_URL, {"dry_run": False})

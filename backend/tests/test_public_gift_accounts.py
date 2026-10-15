@@ -87,7 +87,7 @@ def test_a_public_gift_is_marked(api_client: APIClient, member: User) -> None:
     assert Payment.objects.get(pk=body["payment_id"]).is_public_gift is True
 
 
-def test_a_public_gift_matches_no_pending_mandate(
+def test_a_public_gift_does_not_match_a_pending_mandate(
     api_client: APIClient, member: User, pending_donation: RenewalMandate
 ) -> None:
     """The member's pending recurring donation is not this gift's to start."""
@@ -165,7 +165,7 @@ def test_the_receipt_says_how_the_gift_was_made(api_client: APIClient, member: U
     assert "made on the public donation page with your email address" in body
 
 
-def test_a_members_own_payment_names_nobody_else(member: User) -> None:
+def test_a_members_own_payment_names_only_the_member(member: User) -> None:
     """A payment that is not a public gift is made out to the account's own name."""
     payment = Payment(user=member)
 

@@ -30,7 +30,7 @@ SOURCE = "https://registry.example.test/ReleasableAircraft.zip"
 
 @pytest.fixture
 def launched(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> list[int]:
-    """The ids of the import rows handed to the launcher, which starts nothing."""
+    """The ids of the import rows handed to the launcher, which doesn't start anything."""
     settings.FAA_REGISTRY_URL = SOURCE
     settings.REGISTRY_IMPORT_STALE_MINUTES = 30
     started: list[int] = []
@@ -71,7 +71,7 @@ def test_run_now_records_who_pressed_it(
 def test_a_second_press_while_one_runs_is_refused(
     system_admin_client: APIClient, launched: list[int]
 ) -> None:
-    """While an import runs, Run now answers 409 and launches nothing more."""
+    """While an import runs, Run now answers 409 and doesn't launch another."""
     system_admin_client.post(RUN_URL)
     response = system_admin_client.post(RUN_URL)
     assert (response.status_code, response.json(), len(launched)) == (

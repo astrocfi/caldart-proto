@@ -11,7 +11,7 @@ from django.conf import settings
 from django.core.checks import run_checks
 
 
-def test_the_system_checks_report_nothing() -> None:
+def test_the_system_checks_do_not_report_anything() -> None:
     """No check reports an issue beyond the two ``SILENCED_SYSTEM_CHECKS`` ids.
 
     Those two only report that ``frontend/dist`` has not been built, which the

@@ -2,7 +2,7 @@
 
 A gift whose amount the payer chooses on its own -- a public gift, a donation from the
 portal, a recurring donation -- has a floor, ``DONATION_MINIMUM_CENTS``; a contribution
-added to dues has none.  Starting a payment, saving a method, and confirming or
+added to dues doesn't have one.  Starting a payment, saving a method, and confirming or
 capturing a payment are each rate-limited, per account for a signed-in caller and per
 address for the public donation page.  A payment that has settled or failed is answered
 from its row: confirming it again never asks the provider.  The docs pages are
@@ -130,7 +130,7 @@ PAYMENT_RATE_VARIABLES = [
 def test_an_unset_payment_rate_uses_the_shipped_default(
     monkeypatch: pytest.MonkeyPatch, variable: str, scope: str, default: str
 ) -> None:
-    """With no environment variable set, the shipped default rate is used."""
+    """Without the environment variable set, the shipped default rate is used."""
     monkeypatch.delenv(variable, raising=False)
 
     assert execute_base_settings().PAYMENT_THROTTLE_RATES[scope] == default
@@ -168,7 +168,7 @@ def test_the_minimum_defaults_to_five_dollars(monkeypatch: pytest.MonkeyPatch) -
     assert execute_base_settings().DONATION_MINIMUM_CENTS == 500
 
 
-def test_a_minimum_of_nothing_stops_start_up(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_a_minimum_of_zero_stops_start_up(monkeypatch: pytest.MonkeyPatch) -> None:
     """A minimum under one cent raises ``ImproperlyConfigured`` naming the variable."""
     monkeypatch.setenv("DONATION_MINIMUM_CENTS", "0")
 
@@ -202,7 +202,7 @@ def test_a_portal_donation_under_the_minimum_is_refused(
     assert (response.status_code, response.json()) == (400, {"contribution_cents": BELOW_MINIMUM})
 
 
-def test_a_refused_portal_donation_writes_no_payment(member_client: APIClient) -> None:
+def test_a_refused_portal_donation_does_not_write_a_payment(member_client: APIClient) -> None:
     """The refusal comes before any payment row is made."""
     member_client.post(
         CHECKOUT, {"plan": None, "contribution_cents": 499, "provider": "mock"}, format="json"
@@ -223,7 +223,7 @@ def test_a_portal_donation_of_the_minimum_is_started(member_client: APIClient) -
 def test_a_small_contribution_on_top_of_dues_is_accepted(
     member_client: APIClient, annual_plan: MembershipPlan
 ) -> None:
-    """A contribution added to a membership fee has no minimum."""
+    """A contribution added to a membership fee doesn't have a minimum."""
     response = member_client.post(
         CHECKOUT, {"plan": "annual", "contribution_cents": 100, "provider": "mock"}, format="json"
     )
@@ -270,7 +270,7 @@ def test_a_recurring_donation_setup_under_the_minimum_is_refused(
 def test_a_renewal_setup_takes_a_small_contribution(
     member_client: APIClient, annual_plan: MembershipPlan
 ) -> None:
-    """A renewal's contribution rides on its dues, so it has no minimum."""
+    """A renewal's contribution rides on its dues, so it doesn't have a minimum."""
     response = member_client.post(
         RENEWAL_SETUP,
         {"plan": "annual", "contribution_cents": 100, "provider": "mock"},
@@ -311,7 +311,7 @@ def test_a_public_gift_under_the_minimum_is_refused(api_client: APIClient) -> No
     assert (response.status_code, response.json()) == (400, {"contribution_cents": BELOW_MINIMUM})
 
 
-def test_a_refused_public_gift_makes_no_donor(api_client: APIClient) -> None:
+def test_a_refused_public_gift_does_not_make_a_donor(api_client: APIClient) -> None:
     """The refusal comes before any donor account is found or made."""
     api_client.post(DONATION_CHECKOUT, public_gift(contribution_cents=499), format="json")
 
@@ -409,7 +409,7 @@ def own_payment(user: User, provider: str) -> Payment:
 def confirm_body(payment: Payment, url: str) -> dict[str, Any]:
     """The body ``url`` takes for ``payment``, the token included for a public route.
 
-    A PayPal capture names no order: it captures the one the payment stored.
+    A PayPal capture doesn't name an order: it captures the one the payment stored.
     """
     body: dict[str, Any] = {"payment_id": payment.pk}
     if url in (STRIPE_CONFIRM, DONATION_STRIPE_CONFIRM):
@@ -476,7 +476,7 @@ def test_a_second_address_keeps_its_own_public_confirm_budget(
 def test_a_signed_in_session_is_counted_by_address_on_the_public_confirm(
     api_client: APIClient, member: User, settings: Settings
 ) -> None:
-    """Signing in buys no budget of its own on the public route: the address counts."""
+    """Signing in doesn't buy its own budget on the public route: the address counts."""
     settings.AUTH_THROTTLE_RATES = {"donate_confirm": "1/hour"}
     body = confirm_body(own_payment(UserFactory(), PaymentProvider.STRIPE), DONATION_STRIPE_CONFIRM)
     with freeze_time("2026-10-14 12:00:00"):
@@ -522,7 +522,7 @@ def test_saving_a_method_is_throttled_per_account(
 # --------------------------------------------------------------------------
 @pytest.fixture
 def free_plan(db: None) -> MembershipPlan:
-    """An active plan that costs nothing."""
+    """An active plan priced at zero."""
     return MembershipPlanFactory(slug="free", name="Free", price_cents=0)
 
 
@@ -679,7 +679,7 @@ def confirm_again(
 def test_a_settled_payment_is_answered_from_its_row(
     api_client: APIClient, member: User, url: str, provider: str, status: str
 ) -> None:
-    """Confirming a settled or failed payment answers its status, asking no provider."""
+    """Confirming a settled or failed payment again answers its status from the row."""
     payment = settled_payment(member, provider, status)
 
     assert confirm_again(api_client, member, url, payment)["status"] == status

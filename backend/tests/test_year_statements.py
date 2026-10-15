@@ -2,8 +2,8 @@
 
 ``send_year_statements`` reaches every active account -- member, friend or
 donor -- with a settled contribution in a calendar year, once each: a rerun
-for a year already sent reaches nobody again, and a year whose giving was all
-refunded reaches nobody at all.
+for a year already sent doesn't reach anyone again, and a year whose giving was all
+refunded doesn't reach anyone at all.
 """
 
 from __future__ import annotations
@@ -107,13 +107,13 @@ def test_givers_in_year_finds_a_manual_gift_dated_by_its_received_on() -> None:
     assert [user.pk for user in givers_in_year(YEAR)] == [giver.pk]
 
 
-def test_givers_in_year_excludes_a_contribution_with_no_completion_timestamp() -> None:
-    """A payment with no ``completed_at`` has no ledger date, so it is not a gift.
+def test_givers_in_year_excludes_a_contribution_without_a_completion_timestamp() -> None:
+    """A payment without a ``completed_at`` lacks a ledger date, so it is not a gift.
 
     ``apps.payments.reports.base_queryset``'s ``paid_date`` would fall back to
     ``created_at`` here, but
     :func:`apps.payments.receipts.contribution_payments` would not count the
-    payment for any year, leaving such a giver a statement of nothing;
+    payment for any year, leaving such a giver an empty statement;
     ``givers_in_year`` must agree with the latter.
     """
     giver = _giver()
@@ -219,7 +219,7 @@ def test_send_year_statements_writes_a_year_statement_row() -> None:
     assert YearStatement.objects.filter(user=giver, year=YEAR).exists()
 
 
-def test_send_year_statements_a_rerun_sends_nothing_twice(
+def test_send_year_statements_a_rerun_does_not_send_anything_twice(
     mailoutbox: list[EmailMultiAlternatives],
 ) -> None:
     """A giver already sent this year's statement is skipped, not emailed again."""
@@ -236,7 +236,7 @@ def test_send_year_statements_a_rerun_sends_nothing_twice(
 def test_send_year_statements_does_not_double_send_within_one_run(
     monkeypatch: pytest.MonkeyPatch, mailoutbox: list[EmailMultiAlternatives]
 ) -> None:
-    """Two claims on the same account in one pass raise no ``IntegrityError``.
+    """Two claims on the same account in one pass don't raise an ``IntegrityError``.
 
     A giver appearing twice -- the shape a race between the timer and a
     System-screen click leaves behind when both compute their own snapshot of
@@ -274,10 +274,10 @@ def test_send_year_statements_reports_the_net_total_as_the_actions_amount() -> N
     assert run.actions[0].amount_cents == 6_000
 
 
-def test_send_year_statements_sends_nothing_for_a_year_wholly_refunded(
+def test_send_year_statements_does_not_send_anything_for_a_year_wholly_refunded(
     mailoutbox: list[EmailMultiAlternatives],
 ) -> None:
-    """A giver whose only gift came back in full is sent no $0.00 statement."""
+    """A giver whose only gift came back in full isn't sent a $0.00 statement."""
     giver = _giver()
     payment = _settled_gift(giver, cents=5_000)
     RefundFactory(payment=payment, amount_cents=5_000)
@@ -287,7 +287,7 @@ def test_send_year_statements_sends_nothing_for_a_year_wholly_refunded(
     assert (run.sent, run.skipped, run.failed, mailoutbox) == (0, 0, 0, [])
 
 
-def test_a_practice_run_lists_no_one_whose_year_was_wholly_refunded() -> None:
+def test_a_practice_run_does_not_list_anyone_whose_year_was_wholly_refunded() -> None:
     """The dry run reports exactly what a live run would, so no $0.00 line appears."""
     giver = _giver()
     payment = _settled_gift(giver, cents=5_000)
@@ -301,10 +301,10 @@ def test_a_practice_run_lists_no_one_whose_year_was_wholly_refunded() -> None:
 # --------------------------------------------------------------------------
 # Dry run
 # --------------------------------------------------------------------------
-def test_send_year_statements_dry_run_sends_and_writes_nothing(
+def test_send_year_statements_dry_run_does_not_send_or_write_anything(
     mailoutbox: list[EmailMultiAlternatives],
 ) -> None:
-    """A rehearsal reports what a live run would do, and touches nothing."""
+    """A rehearsal reports what a live run would do, and doesn't touch anything."""
     giver = _giver()
     _settled_gift(giver, cents=1_000)
 
@@ -331,7 +331,7 @@ def test_send_year_statements_dry_run_counts_a_missing_address_as_failed() -> No
 def test_send_year_statements_counts_a_refused_send_as_failed(
     refusing_mail_server: None,
 ) -> None:
-    """The mail server's refusal is counted, and writes no record."""
+    """The mail server's refusal is counted, and doesn't write a record."""
     giver = _giver()
     _settled_gift(giver, cents=1_000)
 
@@ -403,7 +403,7 @@ def test_the_command_accepts_an_explicit_year(mailoutbox: list[EmailMultiAlterna
 
 
 def test_the_command_rehearses_with_dry_run(mailoutbox: list[EmailMultiAlternatives]) -> None:
-    """``--dry-run`` says what it would send and sends nothing."""
+    """``--dry-run`` says what it would send and doesn't send anything."""
     giver = _giver()
     _settled_gift(giver, cents=1_000, year=2025)
     out = StringIO()

@@ -102,7 +102,7 @@ def test_remove_role_drops_only_the_named_role(member: User) -> None:
 
 @pytest.mark.parametrize("slug", ROLE_SLUGS)
 def test_can_access_members_content_for_each_role(slug: str, today: date) -> None:
-    """Every role but a plain member can access members content with no membership."""
+    """Every role but a plain member can access members content without a membership."""
     user = UserFactory(email=f"{slug}@roles.test", roles=[slug])
     expected = slug != MEMBER
     assert user.can_access_members_content is expected
@@ -137,7 +137,7 @@ def test_a_user_is_named_by_their_full_name(member: User) -> None:
     assert member.display_name == "Ada Lovelace"
 
 
-def test_a_user_with_no_name_is_named_by_their_email(member: User) -> None:
+def test_a_user_without_a_name_is_named_by_their_email(member: User) -> None:
     """With neither name filled in, ``str(user)`` falls back to the email address."""
     member.first_name = ""
     member.last_name = ""
@@ -248,7 +248,7 @@ def test_permission_denies_anonymous() -> None:
 
 
 def test_has_any_role_requires_at_least_one_slug() -> None:
-    """Constructing ``HasAnyRole`` with no slugs raises ``ValueError``."""
+    """Constructing ``HasAnyRole`` without slugs raises ``ValueError``."""
     with pytest.raises(ValueError, match="at least one role"):
         HasAnyRole()
 
