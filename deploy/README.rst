@@ -557,34 +557,38 @@ sandbox (``ProtectSystem=strict``, no capabilities).
      - gunicorn on ``127.0.0.1:8001`` unless ``--gunicorn-port`` says otherwise
      - always; restarted on failure
    * - ``caldart-backup.timer``
-     - ``manage.py db_backup``, then deletes the dumps older than ``BACKUP_RETENTION_DAYS``
+     - ``manage.py run_job db_backup --prune-days``, which deletes the dumps more than
+       ``BACKUP_RETENTION_DAYS`` days old after the dump
      - daily at 03:30
    * - ``caldart-registry.timer``
-     - ``manage.py import_faa_registry``
+     - ``manage.py run_job import_faa_registry``
      - daily at 04:30
    * - ``caldart-reports.timer``
-     - ``manage.py send_scheduled_reports``
+     - ``manage.py run_job send_scheduled_reports``
      - daily at 06:00
    * - ``caldart-renewals.timer``
-     - ``manage.py run_auto_renewals``
+     - ``manage.py run_job run_auto_renewals``
      - daily at 06:30
    * - ``caldart-reminders.timer``
-     - ``manage.py send_renewal_reminders``
+     - ``manage.py run_job send_renewal_reminders``
      - daily at 07:00
    * - ``caldart-statements.timer``
-     - ``manage.py send_year_statements``
+     - ``manage.py run_job send_year_statements``
      - yearly, January 15 at 06:45
    * - ``caldart-bounces.timer``
-     - ``manage.py check_bounces``; says bounce checking is off while
+     - ``manage.py run_job check_bounces``; says bounce checking is off while
        ``BOUNCE_IMAP_URL`` or ``BOUNCE_ADDRESS`` is empty
      - hourly, at twenty past
    * - ``caldart-bulk-email.timer``
-     - ``manage.py send_bulk_emails``; sends each bulk email whose start time
+     - ``manage.py run_job send_bulk_emails``; sends each bulk email whose start time
        has come, and exits at once when none is due
      - every minute
 
 Each timer starts the service of the same name (``caldart-backup.service``
-and so on), which runs its command and exits.  Every timer but the bulk email
+and so on), which runs its command and exits.  ``run_job`` runs the command
+unchanged, its output still going to the journal and its exit status its own, and
+keeps a record of the run, with that output, which a system administrator reads
+from **View log** in the portal.  Every timer but the bulk email
 sender's has ``Persistent=true``, so a run missed while the machine was off
 happens when it comes back, and up to five minutes of random delay.  The bulk
 email sender runs on the minute instead, since a scheduled send is a promise to
@@ -843,6 +847,12 @@ Everything goes to the journal:
 
 Behind an existing site, the web server's requests are in that site's logs.
 
+The site keeps its own copy of each scheduled job's runs for 90 days, with their
+output, and a system administrator reads them in the portal: **View log** on each
+panel of **Scheduled tasks** and on the **Backups** and **FAA aircraft data**
+panels, and the **Scheduled jobs** health check names any job that failed or is
+late.  The journal still has everything.
+
 
 Upgrading
 =========
@@ -872,7 +882,10 @@ it:
 9. runs the checks (``steps/check.sh``), and prints the commit it upgraded to.
 
 Each step runs as the freshly checked-out script, so an upgrade that changes
-the installer runs the changed one.  It is safe to run again: an upgrade with
+the installer runs the changed one.  The job units call ``manage.py run_job``,
+whose record lives in a table step 6 creates, before step 8 reinstalls the units;
+the first upgrade onto such a release records every run from then on, and the
+runs before it stay in the journal alone.  It is safe to run again: an upgrade with
 nothing to pull still backs up, rebuilds, restarts, and passes the checks.
 It never touches the environment file, the install record, or the web
 server's configuration.
@@ -957,7 +970,8 @@ Backups
 ``/opt/caldart/backups/`` as ``caldart-YYYYMMDD-HHMMSS.sql.gz``, then deletes
 the generated dumps older than ``BACKUP_RETENTION_DAYS`` days (30 as
 installed).  Change the number in the environment file; the next run prunes by
-it.  A dump given its own name is never pruned.  The install takes one dump
+it.  A dump given its own name is never pruned, and when a dump fails no dump is
+pruned, so a failing backup never deletes the last good ones.  The install takes one dump
 straight away, and every upgrade takes one before it changes anything.
 
 Take one by hand, or check on the timer::

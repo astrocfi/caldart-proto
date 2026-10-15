@@ -382,9 +382,12 @@ report, a domain module, can read it.
     ``website_admin`` editor permissions.  Endpoint ``/site/config``; command
     ``seed_content``.
 ``sysadmin``
-    No models: backup, restore, reset, and health, as the commands
-    ``db_backup``, ``db_restore``, ``db_reset``, and ``health``, and the
-    endpoints ``/system/health`` and ``/system/backups``.
+    ``JobRun``, the record of every scheduled run, with the table of jobs
+    (``jobs.py``) and the wrapper that records a run (``recording.py``); and
+    backup, restore, reset, and health, as the commands ``db_backup``,
+    ``db_restore``, ``db_reset``, ``health``, and ``run_job``, and the endpoints
+    ``/system/health``, ``/system/backups``, and ``/system/jobs``
+    (:ref:`deploy-job-runs`).
 
 Code that several apps share lives in the project package:
 ``caldart/models.py`` (``TimestampedModel``, the abstract base that gives every

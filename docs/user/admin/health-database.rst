@@ -22,7 +22,7 @@ The page has four panels, top to bottom: **Health**, **Mail delivery**, **Backup
 Health
 ======
 
-Six checks, each with a value and its status, **Good**, **Warning**, or **Problem**. A check
+Seven checks, each with a value and its status, **Good**, **Warning**, or **Problem**. A check
 that needs attention says, under its value, what is wrong and who to ask. **Refresh** runs
 them again.
 
@@ -37,6 +37,15 @@ them again.
 - **Last backup**: when the newest backup was taken, or *No backup yet*. It warns after a
   week, and asks for attention after a month or when there has never been one. Take one
   from the next panel.
+- **Scheduled jobs**: *On schedule* when the last run of every job the server runs on a
+  schedule succeeded and none is late. A job whose last run failed, or stopped before it
+  finished, is a problem, and the value counts them, such as *1 failed*. A job that should
+  have run by now and has not is a warning (*1 late*), and so is a job that has never run
+  though the site has been running long enough for it to. Under the value, one line names
+  each job and what happened, such as *Automatic renewal charges failed at 6:30 AM: 2
+  renewal charges need checking*, with **View log** beside it, which opens the job's runs
+  (:doc:`job-log`). A late job usually means the server has stopped starting it; tell the
+  person who installed the site.
 - **Version**: which release is running. Quote it when you report a problem.
 - **Debug mode**: must read *Off*. If a live site reads *On*, ask the person who installed
   the site to turn it off at once, because it shows internal details to anyone who causes
@@ -130,6 +139,11 @@ The panel says so: *There is no restore button. To restore a backup, ask the per
 installed the site.* Restoring replaces everything in the database and is done on the
 server with the site stopped.
 
+A line under that note reads *Last nightly backup*, the date and time the server last took
+its own, and how that run ended, with **View log** beside it (:doc:`job-log`). The nightly
+run also deletes the server's older backups, after the number of days the person who
+installed the site chose.
+
 
 FAA aircraft data
 =================
@@ -143,13 +157,14 @@ load reads *Failed:* and the reason; before the first one, *No import has run ye
 no practice run, because the load changes nothing but the copy. **Run now** starts one at
 once;
 it reads *Running since* and the time, and the button waits, until the load ends a few
-minutes later. A press while one runs says *An import is already running.*
+minutes later. A press while one runs says *An import is already running.* Under it, *Last
+nightly load* gives the last load's time and outcome, with **View log** (:doc:`job-log`).
 
 
 Routine
 =======
 
-Once a week, open **Health and database**: six **Good** health checks and a recent backup are
+Once a week, open **Health and database**: seven **Good** health checks and a recent backup are
 the whole check. Before any upgrade, take a backup and download it. Once a month, keep a copy somewhere
 off the server. When someone reports a problem, read **Health** first and note the
 **Version**.

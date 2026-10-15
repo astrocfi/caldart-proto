@@ -239,6 +239,9 @@ role adds:
   year-end contribution statements, the bounce check, and the bulk email sender), with a
   way to run each now, and the reminder schedule, which only a system administrator
   changes.
+* **Job log** (:doc:`admin/job-log`), from **View log** on each scheduled job's panel and on
+  the **Scheduled jobs** health check: every recent run of a scheduled job, how it ended,
+  and everything it wrote.
 
 A system administrator grants and takes away every role on every account but their own,
 and cannot deactivate their own account or change their own roles.

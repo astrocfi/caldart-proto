@@ -25,3 +25,4 @@ administrator uses.
    health-database
    sent-emails
    scheduled
+   job-log

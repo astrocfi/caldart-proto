@@ -30,8 +30,8 @@ House rules that apply throughout:
   The registry's tables carry the dates the import needs instead:
   ``AircraftType.created_at``, ``Registration.imported_at``, and
   ``RegistryImport.started_at`` and ``finished_at``; ``AircraftTypeAlias``
-  carries none.  ``payments.RenewalScan`` carries its own ``started_at`` and
-  ``finished_at`` the same way.  ``aircraft.AircraftCoveragePolicy`` and
+  carries none.  ``payments.RenewalScan`` and ``sysadmin.JobRun`` carry their own
+  ``started_at`` and ``finished_at`` the same way.  ``aircraft.AircraftCoveragePolicy`` and
   ``reminders.ReminderSchedule`` are single rows and keep ``updated_at`` and
   ``updated_by`` alone.
 - **``DEFAULT_AUTO_FIELD`` is ``BigAutoField``**, so every ``id`` below is a
@@ -311,20 +311,20 @@ Payments and renewals
       payments.RenewalScan.started_by   -> accounts.User           FK, SET_NULL, nullable
       payments.YearStatement.user       -> accounts.User           FK, CASCADE
 
-Mail, reminders, reports, notifications, and the CMS pages
-----------------------------------------------------------
+Mail, reminders, reports, notifications, job runs, and the CMS pages
+--------------------------------------------------------------------
 
 .. only:: graphviz
 
    .. graphviz::
-      :caption: Mail, reminders, reports, notifications, bulk email, and the CMS
-                pages.  The records at the top point at the account and the
+      :caption: Mail, reminders, reports, notifications, bulk email, the scheduled
+                job runs, and the CMS pages.  The records at the top point at the account and the
                 term they concern.
                 Below them, every page type inherits the abstract
                 ``cms.BasePage``, and ``StandardPage`` and ``NewsPage`` also
                 inherit ``cms.MembersOnlyMixin``.  Which page may live under
                 which is in :doc:`cms`, not in this diagram.
-      :alt: Entity-relationship diagram of the mail, reminder, report, notification, bulk email, and CMS page models
+      :alt: Entity-relationship diagram of the mail, reminder, report, notification, bulk email, job run, and CMS page models
 
       digraph caldart_records_and_pages {
           rankdir=TB;
@@ -354,6 +354,7 @@ Mail, reminders, reports, notifications, and the CMS pages
           BulkGroupFilter [label="bulk_email.\nRecipientGroupFilter"];
           Callout [label="bulk_email.Callout"];
           CalloutAnswer [label="bulk_email.\nCalloutAnswer"];
+          JobRun [label="sysadmin.JobRun"];
       
           Email -> User [label="user\nSET_NULL"];
           OptOut -> User [label="user\nCASCADE"];
@@ -385,6 +386,7 @@ Mail, reminders, reports, notifications, and the CMS pages
           Callout -> User [label="closed_by\nSET_NULL"];
           CalloutAnswer -> Callout [label="callout\nCASCADE"];
           CalloutAnswer -> User [label="user\nCASCADE"];
+          JobRun -> User [label="started_by\nSET_NULL"];
       
           User -> Page [style=invis];
           Membership -> Page [style=invis];
@@ -464,6 +466,7 @@ Mail, reminders, reports, notifications, and the CMS pages
                                   one filter set of a live group
       bulk_email.Callout          a mission callout's answers side: when they close
       bulk_email.CalloutAnswer    one person's answer to a mission callout
+      sysadmin.JobRun             one run of a scheduled job, and what it wrote
       cms.HomePage, cms.StandardPage, cms.NewsIndexPage, cms.NewsPage,
       cms.EventIndexPage, cms.EventPage, cms.DartIndexPage, cms.DartPage,
       cms.ContactPage, cms.DonatePage
@@ -525,6 +528,7 @@ Mail, reminders, reports, notifications, and the CMS pages
       bulk_email.Callout.closed_by         -> accounts.User       FK, SET_NULL, nullable
       bulk_email.CalloutAnswer.callout     -> bulk_email.Callout  FK, CASCADE
       bulk_email.CalloutAnswer.user        -> accounts.User       FK, CASCADE
+      sysadmin.JobRun.started_by           -> accounts.User       FK, SET_NULL, nullable
       cms.BasePage                         inherits wagtailcore.Page
       cms.<every page type>                inherits cms.BasePage
       cms.StandardPage, cms.NewsPage       also inherit cms.MembersOnlyMixin
@@ -1647,7 +1651,7 @@ to the rows already stored (:doc:`setup`).
 
 - ``groups``: many-to-many to ``auth.Group``; the reverse accessor is ``user_set``.
 - ``user_permissions``: many-to-many to ``auth.Permission``; the reverse accessor is ``user_set``.
-- Referenced by ``accounts.AccountChange.changed_by``, ``accounts.AccountChange.user``, ``accounts.RecoveryCode.user``, ``accounts.TotpDevice.user``, ``aircraft.Aircraft.created_by``, ``aircraft.Aircraft.insurance_verified_by``, ``aircraft.Aircraft.updated_by``, ``aircraft.AircraftChange.changed_by``, ``aircraft.AircraftCoveragePolicy.updated_by``, ``aircraft.RegistryImport.started_by``, ``mail.EmailLog.user``, ``mail.EmailOptOut.user``, ``members.MemberProfile.certificate_verified_by``, ``members.MemberProfile.medical_verified_by``, ``members.MemberProfile.photo_id_verified_by``, ``members.MemberProfile.user``, ``members.Membership.granted_by``, ``members.Membership.user``, ``payments.Payment.reconciled_by``, ``payments.Payment.recorded_by``, ``payments.Payment.user``, ``payments.Refund.requested_by``, ``payments.RenewalMandate.canceled_by``, ``payments.RenewalMandate.user``, ``payments.YearStatement.user``, ``reminders.ReminderLog.user``, ``reminders.ReminderSchedule.updated_by``, ``reports.ReportSubscription.created_by``, ``reports.ReportSubscription.recipient_user``, ``reports.SavedColumnSet.user``.
+- Referenced by ``accounts.AccountChange.changed_by``, ``accounts.AccountChange.user``, ``accounts.RecoveryCode.user``, ``accounts.TotpDevice.user``, ``aircraft.Aircraft.created_by``, ``aircraft.Aircraft.insurance_verified_by``, ``aircraft.Aircraft.updated_by``, ``aircraft.AircraftChange.changed_by``, ``aircraft.AircraftCoveragePolicy.updated_by``, ``aircraft.RegistryImport.started_by``, ``mail.EmailLog.user``, ``mail.EmailOptOut.user``, ``members.MemberProfile.certificate_verified_by``, ``members.MemberProfile.medical_verified_by``, ``members.MemberProfile.photo_id_verified_by``, ``members.MemberProfile.user``, ``members.Membership.granted_by``, ``members.Membership.user``, ``payments.Payment.reconciled_by``, ``payments.Payment.recorded_by``, ``payments.Payment.user``, ``payments.Refund.requested_by``, ``payments.RenewalMandate.canceled_by``, ``payments.RenewalMandate.user``, ``payments.YearStatement.user``, ``reminders.ReminderLog.user``, ``reminders.ReminderSchedule.updated_by``, ``reports.ReportSubscription.created_by``, ``reports.ReportSubscription.recipient_user``, ``reports.SavedColumnSet.user``, ``sysadmin.JobRun.started_by``.
 
 **Invariants.**
 
@@ -6047,10 +6051,96 @@ so there is one row per Wagtail site, and editing it overwrites that row.
 sysadmin
 ========
 
-``apps.sysadmin`` has **no models**.  It is commands and an API over the file
-system and the database connection: ``db_backup``, ``db_restore``,
-``db_reset``, ``health``, and the ``/system/...`` endpoints.  See
-:doc:`backup-restore`.
+``apps.sysadmin`` holds one model, the record of the scheduled jobs' runs.  The rest
+of the app is commands and an API over the file system and the database connection:
+``db_backup``, ``db_restore``, ``db_reset``, ``health``, ``run_job``, and the
+``/system/...`` endpoints.  See :doc:`backup-restore` and :ref:`deploy-job-runs`.
+
+``JobRun``
+----------
+
+One run of a scheduled job through ``manage.py run_job``, whatever its outcome
+(:ref:`deploy-job-runs`): every run a timer starts, and the live renewal scan and
+the FAA registry import a **Run now** starts.  A practice run, and a run of any other
+job started with **Run now**, writes no row.  The rows are pruned to the last 90 days
+(``apps.sysadmin.recording.RETENTION``) whenever a run starts.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 26 18 34
+
+   * - Field
+     - Type
+     - Null, default
+     - Meaning
+   * - ``id``
+     - ``BigAutoField``
+     - not null; assigned by the database
+     - primary key
+   * - ``job``
+     - ``CharField(32)``
+     - not null; required
+     - the job's key in ``apps.sysadmin.jobs.JOBS``, the ``<key>`` of its
+       ``caldart-<key>.timer``, such as ``renewals``
+   * - ``arguments``
+     - ``CharField(500)``
+     - not null; default ``""``
+     - the options the command was given after its name, quoted as a shell would
+       quote them, cut to 500 characters
+   * - ``started_at``
+     - ``DateTimeField``
+     - not null; default now
+     - when the run began
+   * - ``finished_at``
+     - ``DateTimeField``
+     - null; default ``NULL``
+     - when the run ended; ``NULL`` while it runs, and for a run whose process died
+   * - ``outcome``
+     - ``CharField(12)``, choices ``JobRun.Outcome``
+     - not null; default ``"running"``
+     - ``running``, ``succeeded``, or ``failed``; the API reads a ``running`` row past
+       its job's stale limit as ``stopped``
+   * - ``exit_status``
+     - ``SmallIntegerField``
+     - null; default ``NULL``
+     - the status the process exits with: 0, a ``CommandError``'s ``returncode``, or
+       1 for an unexpected exception; ``NULL`` while it runs
+   * - ``started_by``
+     - ``ForeignKey`` to ``accounts.User``, ``SET_NULL``
+     - null; default ``NULL``
+     - the system administrator who pressed **Run now**; ``NULL`` for a run the
+       server started; related name ``job_runs``
+   * - ``output``
+     - ``TextField``
+     - not null; default ``""``
+     - standard output, standard error, and the console log lines, interleaved in the
+       order written: the last 65,536 characters
+       (``apps.sysadmin.recording.OUTPUT_LIMIT``)
+   * - ``output_truncated``
+     - ``BooleanField``
+     - not null; default ``False``
+     - whether the run wrote more than ``output`` keeps
+   * - ``error``
+     - ``TextField``
+     - not null; default ``""``
+     - a failed run's ``CommandError`` text, or ``<type>: <message>`` of an unexpected
+       exception
+   * - ``traceback``
+     - ``TextField``
+     - not null; default ``""``
+     - an unexpected exception's traceback
+
+**Constraints, indexes, and ordering.**
+
+- Ordering: ``-started_at``, ``-id``.
+- Index ``sysadmin_jobrun_job_started`` on (``job``, ``-started_at``), for a job's
+  latest runs.
+- Index ``sysadmin_jobrun_started`` on ``started_at``, for the prune.
+
+**Relationships.**
+
+- ``started_by``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; the
+  reverse accessor is ``job_runs``.
 
 Migrations
 ==========

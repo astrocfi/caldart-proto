@@ -716,8 +716,10 @@ A rehearsal calls no provider and answers inside the request.  A live run charge
 every renewal that is due, each charge waiting on the provider, so on a busy morning
 it would outlast the proxy and worker timeouts and be cut off mid-charge.  ``POST
 /system/renewals/run`` therefore writes a ``RenewalScan`` row, starts ``manage.py
-run_auto_renewals --scan-id <row>`` in its own session under the server's Python
-(the same mechanism as the FAA registry import), and answers 202 at once.  The
+run_job --started-by <caller> run_auto_renewals --scan-id <row>`` in its own session
+under the server's Python (the same mechanism as the FAA registry import), and
+answers 202 at once.  ``run_job`` records the run as one of the job's runs
+(:ref:`deploy-job-runs`), naming the caller.  The
 command fills the row in with the run's counts and actions when it ends, and its
 ``renewals.run`` audit record names the administrator who pressed **Run now**.  The
 page follows the row through ``GET /system/renewals/runs/{id}``.  The process is a

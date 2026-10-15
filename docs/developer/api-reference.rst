@@ -205,11 +205,11 @@ The envelope is DRF's standard::
 
     {"count": 137, "next": "…?page=3", "previous": "…?page=1", "results": [ … ]}
 
-Six endpoints are deliberately **unpaginated** and return a bare JSON array,
+Seven endpoints are deliberately **unpaginated** and return a bare JSON array,
 because the whole list is small and bounded: ``GET /darts``, ``GET /plans``,
 ``GET /roles``, ``GET /leader/search`` (hard-capped at 20 results),
-``GET /system/backups`` and ``GET /aircraft/{id}/changes`` (an aircraft has few
-changes).  ``GET /me/membership`` and ``GET /me/payments`` return whole objects
+``GET /system/backups``, ``GET /system/jobs`` (one entry per scheduled job), and
+``GET /aircraft/{id}/changes`` (an aircraft has few changes).  ``GET /me/membership`` and ``GET /me/payments`` return whole objects
 and arrays for the same reason, as does ``GET /admin/payments/summary``, and so
 does ``GET /reports``.  The report downloads carry every matching row and ignore
 ``page`` entirely.
@@ -2109,6 +2109,30 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ``system_admin`` only
    * - ``GET /system/backups/{name}/download``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``system_admin`` only
+   * - ``GET /system/jobs``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``system_admin`` only
+   * - ``GET /system/jobs/{job}/runs``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``system_admin`` only
+   * - ``GET /system/jobs/runs/{id}``
      - ·
      - ·
      - ·
