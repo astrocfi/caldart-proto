@@ -119,8 +119,8 @@ class Dart(TimestampedModel):  # type: ignore[django-manager-missing]
     def roster_recipients(self) -> list[DartContact]:
         """The people checked to receive the roster who have an address, in list order.
 
-        Reads ``contacts.all()``, so a queryset that prefetched the contacts costs no
-        further query.
+        Reads ``contacts.all()``, so a queryset that prefetched the contacts doesn't
+        cost a further query.
         """
         return [
             contact

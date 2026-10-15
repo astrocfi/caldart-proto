@@ -90,7 +90,7 @@ def backup_dir() -> Path:
 
 
 def database_password() -> str:
-    """The password of the default connection, empty when there is none.
+    """The password of the default connection, empty when it doesn't have one.
 
     It reaches ``pg_dump`` and ``psql`` through ``PGPASSWORD`` rather than through
     the connection URL, so it never appears in a command line that ``ps`` or a
@@ -120,7 +120,7 @@ def _pg_command(tool: str) -> list[str] | None:
     """The argv prefix that runs ``tool``, locally or inside docker compose.
 
     ``DB_BACKUP_VIA_DOCKER`` forces the compose container, which is what a
-    machine with no ``postgresql-client`` installed needs.  Otherwise prefer
+    machine without ``postgresql-client`` installed needs.  Otherwise prefer
     the local binary and fall back to the container.
 
     The compose form names ``PGPASSWORD`` without a value, so compose copies it
@@ -180,7 +180,7 @@ def _stream_pg(
     so peak memory does not grow with the size of the dump, and the tool's stderr
     goes to a temporary file rather than to a pipe that could fill and deadlock.
     Raises :class:`BackupError` carrying that stderr, or ``"<tool> failed"`` when
-    the tool printed nothing, as soon as the tool exits non-zero.  A tool that
+    the tool's stderr is blank, as soon as the tool exits non-zero.  A tool that
     exits before draining its standard input is reported the same way rather than
     as the broken pipe its early exit leaves behind; if it somehow exited cleanly
     without reading the whole dump, the error says so.
@@ -201,7 +201,7 @@ def _stream_pg(
                     shutil.copyfileobj(source, stdin, STREAM_CHUNK_BYTES)
             except BrokenPipeError:
                 # The tool is already gone; its exit status and stderr say why, and
-                # a broken pipe on its own would tell the operator nothing.
+                # a broken pipe on its own wouldn't tell the operator anything.
                 stopped_early = True
             except BaseException:
                 _kill_pg(process)
@@ -280,7 +280,7 @@ def create_backup(name: str | None = None) -> BackupFile:
     types, their aliases, and the import log included, is dumped whole.  The
     ``db_backup`` command, the backup timer, and ``POST /system/backups`` all dump
     through here.  Raises :class:`BackupError` when neither ``pg_dump`` nor docker is
-    available or the dump fails, and leaves no partial file behind.
+    available or the dump fails, and never leaves a partial file behind.
     """
     argv = _pg_command("pg_dump")
     if argv is None:
@@ -416,7 +416,7 @@ def app_version() -> str:
     The deployed tree always has the file next to it, so the version reported by
     ``/system/health`` is the one that was actually installed.  Falls back to
     ``settings.CALDART_VERSION`` when the file is missing, unreadable, or not valid
-    TOML, when it declares no ``[project] version``, and when that key holds
+    TOML, when it doesn't declare ``[project] version``, and when that key holds
     anything other than a string.  The result is computed once and cached.
     """
     path = Path(settings.REPO_ROOT) / "pyproject.toml"

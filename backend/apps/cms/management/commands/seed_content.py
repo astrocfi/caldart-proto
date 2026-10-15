@@ -86,7 +86,7 @@ def upsert_page[PageT: Page](
     """Create or update ``slug`` under ``parent`` and publish it.
 
     A page of ``model`` with that slug below ``parent`` is updated in place, and
-    one is created when there is none; either way ``title``, ``show_in_menus``, and
+    one is created when there isn't one; either way ``title``, ``show_in_menus``, and
     every keyword in ``fields`` are written, a revision is saved and published, and
     the page is returned freshly loaded from the database.  Fields the caller does
     not name keep whatever they held.
@@ -413,7 +413,7 @@ class Command(BaseCommand):
     def handle(self, *args: Any, **options: Any) -> None:
         """Build the whole example tree in one transaction, then report its size.
 
-        Takes no arguments.  Seeds the DARTs first, because the DART pages link to
+        Doesn't take any arguments.  Seeds the DARTs first, because the DART pages link to
         them, then every page from the home page down, then the site settings and
         the ``website_admin`` Wagtail permissions.  Writes one progress line per
         step and a final count of the pages below the home page.  Running it again
