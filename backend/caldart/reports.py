@@ -117,8 +117,8 @@ HEADER_CELL_STYLE = ParagraphStyle(
     leading=9,
     textColor=INK,
 )
-#: A section's title, above that section's own table: the subtitle's face, larger
-#: and heavier, in the house blue.  The built-in Helvetica has no semibold, so bold
+#: A section's title, above that section's own table: the subtitle's face, larger and
+#: heavier, in the house blue.  The built-in Helvetica doesn't have a semibold, so bold
 #: stands in for it.
 SECTION_STYLE = ParagraphStyle(
     "CalDartSection",
@@ -167,7 +167,7 @@ class ReportColumn[RowT]:
 
     ``key`` is the stable name a caller asks for and an endpoint answers with,
     ``label`` the header text both exports print, ``default`` whether the column
-    is in the report when the caller chooses none, and ``value`` a function from
+    is in the report when the caller doesn't choose any, and ``value`` a function from
     one row to that row's cell.  ``width`` is the share of the printable width
     the PDF gives the column, relative to the other columns of the same export,
     and defaults to an even share.  A report declares its columns once, in export
@@ -188,7 +188,7 @@ def select_columns[RowT](
 ) -> list[ReportColumn[RowT]]:
     """The columns to export, given what the caller asked for.
 
-    ``requested`` that is ``None`` or empty means the caller chose nothing, and
+    ``requested`` that is ``None`` or empty means the caller didn't choose any, and
     the answer is every column whose ``default`` is true, in registry order.
     Otherwise the answer is one column per requested key, in the order
     requested, so a caller decides both which columns appear and where.
@@ -233,7 +233,7 @@ def chosen_columns[RowT](
     """The columns a ``?columns=`` query parameter asks for, or the default ones.
 
     ``requested`` is the raw parameter: a comma-separated list of keys, or an
-    empty string when the caller chose nothing, which means the default columns.
+    empty string when the caller didn't choose any, which means the default columns.
     A key no column carries, or one asked for twice, raises DRF's
     ``ValidationError`` keyed by ``columns`` and carrying the message
     :func:`select_columns` raises, so every export refuses a bad column list the
@@ -481,11 +481,11 @@ def build_pdf_table(
     :data:`SECTION_STYLE` and then its own table, header repeated on every page it
     runs onto.  A section whose ``header`` is set draws its table under that header and
     its own ``widths``, held to the same rule, scaled to fill the page in the same way;
-    one whose ``header`` is ``None`` uses ``header`` and ``widths``.  A section with no
+    one whose ``header`` is ``None`` uses ``header`` and ``widths``.  A section without
     rows draws its title and then ``empty_section`` in italics, or its title alone when
-    ``empty_section`` is blank, and so does a section whose own header has no column.  A
-    title with less than :data:`SECTION_KEEP_HEIGHT` left under it on the page starts
-    the next page, so it is never left alone above a page break.
+    ``empty_section`` is blank, and so does a section whose own header doesn't have a
+    column.  A title with less than :data:`SECTION_KEEP_HEIGHT` left under it on the page
+    starts the next page, so it is never left alone above a page break.
     """
     _check_widths(header, widths)
     for section in sections or ():
@@ -559,7 +559,7 @@ def _column_widths(
 ) -> list[float]:
     """``header``'s column widths in points, ``widths``' shares scaled to fill ``total``.
 
-    Without ``widths``, or with no column to share them, every column is the same width.
+    Without ``widths``, or without a column to share them, every column is the same width.
     """
     if widths is None or len(widths) == 0:
         columns = len(header) or 1
@@ -805,7 +805,7 @@ class ReportSpec[RowT]:
     expand ``period`` (see :func:`resolve_period`), and every other report keeps
     :func:`keep_params`.  ``section`` names the section a row belongs to, which
     groups the table's rows under titled headings (see :meth:`table`), and
-    ``empty_section`` is the line the PDF draws under a section with no rows; blank,
+    ``empty_section`` is the line the PDF draws under a section without rows; blank,
     such a section is its title alone.  ``section_column`` is the key of a column that
     repeats each row's section title, which a flat CSV needs and a PDF drawn under
     section headings does not: the PDF leaves it out of the default columns, and prints
@@ -850,7 +850,7 @@ class ReportSpec[RowT]:
         titled ``""`` holding
         every row.  With one, the rows are grouped by the title it gives each, as
         :func:`group_sections` groups them over the query's ``sections``: a listed
-        section with no rows still appears, and a row in an unlisted section raises
+        section without rows still appears, and a row in an unlisted section raises
         ``ValueError``.  A section the spec's ``section_columns`` names holds only the
         chosen columns it lists, under its own labels; ``rows`` and ``header`` stay every
         chosen column, as the CSV prints them.
@@ -931,7 +931,7 @@ class Report(Protocol):
 
     @property
     def empty_section(self) -> str:
-        """The line the PDF draws under a section with no rows, or blank for none."""
+        """The line the PDF draws under an empty section, or blank for its title alone."""
 
     def column_choices(self) -> list[ColumnDict]:
         """The registry as the ``columns`` endpoint answers it."""

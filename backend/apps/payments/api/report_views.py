@@ -52,7 +52,7 @@ from apps.payments.services import backfill_fees, fees_are_known
 from caldart import audit
 
 #: What the fee refresh answers with when the provider still cannot price a payment.
-FEES_UNAVAILABLE = "The provider has no fee to report for this payment yet."
+FEES_UNAVAILABLE = "The provider doesn't have a fee to report for this payment yet."
 
 #: How many members the finance area's search answers with at most.
 MEMBER_SEARCH_LIMIT = 10
@@ -270,7 +270,7 @@ class AdminPaymentRecordView(APIView):
         The member is emailed the same receipt a card payment earns.  400 keyed
         by the field at fault for an unusable body -- an unknown method, a date
         in the future, a reference another recorded payment carries, an inactive
-        plan, or a plan and contribution that come to nothing -- and 404 for an
+        plan, or a plan and contribution that come to zero -- and 404 for an
         unknown member.
         """
         serializer = ManualPaymentSerializer(data=request.data)
@@ -312,7 +312,7 @@ class AdminMemberLedgerView(APIView):
         """200 with the member, their totals, every payment, the mandate and the years.
 
         The payments are newest money first, the totals cover their whole history,
-        ``mandate`` is ``null`` when the member has no standing renewal authority,
+        ``mandate`` is ``null`` when the member doesn't hold a standing renewal authority,
         and ``statement_years`` names the years they can download a contribution
         statement for.  404 for an unknown member.
         """
@@ -339,7 +339,7 @@ class AdminMemberLedgerView(APIView):
 def ledger_totals(payments: list[Payment]) -> dict[str, int]:
     """What a member has paid, given and been charged in fees, over every payment.
 
-    Only money that arrived counts, so a pending or failed attempt adds nothing.
+    Only money that arrived counts, so a pending or failed attempt doesn't add anything.
     """
     received = [p for p in payments if p.status in reports.RECEIVED_STATUSES]
     return {
@@ -367,7 +367,7 @@ def statement_years(payments: list[Payment]) -> list[int]:
 
 
 def mandate_of(member: User) -> RenewalMandate | None:
-    """The member's renewal mandate, or ``None`` when they have no standing authority."""
+    """The member's renewal mandate, or ``None`` without a standing authority."""
     return RenewalMandate.objects.filter(user=member).select_related("plan").first()
 
 
@@ -382,7 +382,7 @@ class AdminPaymentFeesView(APIView):
 
         A provider settles asynchronously, so a payment can arrive before anybody
         knows what it cost; this asks again and records the answer.  400 carrying
-        ``detail`` when the provider still has nothing to report -- a payment
+        ``detail`` when the provider still doesn't have a fee to report -- a payment
         recorded by hand, one that never succeeded, a charge the provider has not
         settled -- or when it cannot be reached.  404 for an unknown id, 403
         without a finance role.
@@ -413,8 +413,8 @@ class AdminFinanceMemberSearchView(APIView):
         """200 with the members whose name or address carries the term, by name.
 
         At most :data:`MEMBER_SEARCH_LIMIT` rows come back, so a short term does
-        not answer with the whole register, and a blank ``search`` answers none at
-        all.  403 without a finance role.
+        not answer with the whole register, and a blank ``search`` answers with an
+        empty list.  403 without a finance role.
         """
         query = MemberSearchQuerySerializer(data=request.query_params)
         query.is_valid(raise_exception=True)
@@ -437,10 +437,10 @@ def search_members(term: str) -> list[User]:
 
     The term is matched against the full name as well as each half of it, so a
     treasurer holding a check made out to "Marta Reyes" can type what is written
-    on it.  An empty term matches nobody: the search is a form control, and a
-    form nobody has typed in asks for no members rather than for all of them.  A
+    on it.  An empty term doesn't match anybody: the search is a form control, and a
+    form nobody has typed in asks for an empty list rather than for all the members.  A
     deactivated account, a deleted member's tombstone included, is never offered: money
-    recorded against it would buy nothing and reach nobody.
+    recorded against it wouldn't buy anything or reach anybody.
     """
     if term == "":
         return []

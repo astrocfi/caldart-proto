@@ -67,8 +67,8 @@ Each of these is **400**, keyed by the field it belongs to:
 * ``amount_cents`` — ``"Only $45.00 of this payment is left to refund."``, when
   the amount exceeds the payment's amount less its succeeded refunds.  A
   payment already given back in full is refused this way, with ``$0.00``.
-* ``amount_cents`` — ``"That payment was never paid, so there is nothing to
-  refund."``, for a payment that is ``pending`` or ``failed``.
+* ``amount_cents`` — ``"That payment was never paid, so there isn't anything
+  to refund."``, for a payment that is ``pending`` or ``failed``.
 * ``reason`` — a reason outside the five choices.
 * ``detail`` — the sentence the provider gave, when the provider refuses the
   refund or cannot be reached.  The refund row is kept as ``failed``, so the

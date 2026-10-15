@@ -45,8 +45,8 @@ class AdminPaymentRefundView(APIView):
         amount is zero, exceeds what the payment has left unrefunded, or the
         payment never succeeded, keyed by ``reason`` for a reason outside the
         choices, and carrying ``detail`` when the provider refuses or cannot be
-        reached.  ``payment`` is the row as it now stands, so the caller needs no
-        second request to redraw it.
+        reached.  ``payment`` is the row as it now stands, so the caller doesn't
+        need a second request to redraw it.
         """
         payment = get_object_or_404(Payment, pk=payment_id)
         serializer = RefundCreateSerializer(data=request.data)

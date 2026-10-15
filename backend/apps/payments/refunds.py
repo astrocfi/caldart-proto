@@ -10,7 +10,7 @@ in the database, because it is a rule about the running total and not about one
 row.
 
 Somebody can also refund in Stripe's or PayPal's own dashboard, where CalDART
-has no say.  :func:`record_dashboard_refund` is what the two webhooks call so
+doesn't have a say.  :func:`record_dashboard_refund` is what the two webhooks call so
 that the ledger is right anyway; it never cancels a term, because the treasurer
 decides that on the payment's own screen.
 """
@@ -45,7 +45,7 @@ from caldart.reports import money_label
 if TYPE_CHECKING:
     # Inline below as well: the two providers that can refund import this module,
     # so a top-level import here would close the cycle.  This one is read by the
-    # type checker alone and costs nothing at run time.
+    # type checker alone and doesn't cost anything at run time.
     from apps.payments.providers.base import ProviderRefund
 
 log = logging.getLogger(__name__)
@@ -87,7 +87,7 @@ def remaining_cents(payment: Payment) -> int:
 
     A payment nobody has refunded answers its whole ``amount_cents``, and one
     that has been given back in full answers ``0``.  Pending and failed refunds
-    count for nothing, so a refund the provider refused does not lock money away.
+    don't count, so a refund the provider refused does not lock money away.
     This is the figure a screen shows; :func:`issue_refund` holds itself to the
     stricter one below, which also counts the refunds still in flight.
     """
@@ -121,11 +121,11 @@ def issue_refund(
 
     The row is written ``pending``, the payment's provider is asked for the money
     -- except for a payment recorded by hand, where the check was written by hand
-    too and there is nobody to ask -- and the row is then ``succeeded``.  The
+    too and there isn't anybody to ask -- and the row is then ``succeeded``.  The
     payment becomes ``refunded`` when its succeeded refunds come to its whole
     amount and ``partially_refunded`` otherwise.  ``cancel_term`` cancels the
     membership term the payment bought, with a note naming this refund; a payment
-    that bought no term ignores it.  The member is emailed, the action is
+    that didn't buy a term ignores it.  The member is emailed, the action is
     recorded in the audit log under ``payment.refund``, and the ``payment_refunded``
     event is raised once the refund has succeeded (:func:`_raise_refunded`).
 
@@ -138,7 +138,7 @@ def issue_refund(
     payment -- so a refund still pending holds its own amount back -- and when
     the payment never succeeded, and keyed by ``reason`` for a reason outside the
     choices; nothing is written when it raises.  A provider that refuses or
-    cannot be reached leaves the row ``failed``, emails nobody and re-raises,
+    cannot be reached leaves the row ``failed``, doesn't email anybody, and re-raises,
     so the caller can show the sentence the error carries.
     """
     if reason not in RefundReason.values:
@@ -148,7 +148,7 @@ def issue_refund(
         locked = Payment.objects.select_for_update().get(pk=payment.pk)
         if locked.status not in SETTLED_STATUSES:
             raise DomainValidationError(
-                "amount_cents", "That payment was never paid, so there is nothing to refund."
+                "amount_cents", "That payment was never paid, so there isn't anything to refund."
             )
         if amount_cents <= 0:
             raise DomainValidationError("amount_cents", "A refund must be for more than zero.")
@@ -201,27 +201,27 @@ def record_dashboard_refund(
 ) -> Refund | None:
     """Record a refund somebody took in the provider's own dashboard.
 
-    Writes a ``succeeded`` refund with no ``requested_by``, the reason ``other``
+    Writes a ``succeeded`` refund without a ``requested_by``, the reason ``other``
     and :data:`DASHBOARD_NOTE`, updates the payment's status, emails the member,
     and raises ``payment_refunded`` with ``actor=None``.  No membership term is
     canceled: a webhook never decides that.
 
-    Returns ``None`` and writes nothing when a refund already carries
+    Returns ``None`` and doesn't write anything when a refund already carries
     ``provider_ref`` against this payment, which is what makes a second delivery
     of the same notification -- and the notification for a refund CalDART itself
     issued -- a no-op.  Returns ``None`` too for a blank ``provider_ref``, since
-    there would be nothing to recognize it by next time, and for an amount of
+    there wouldn't be anything to recognize it by next time, and for an amount of
     zero or less, which is what a notification CalDART cannot read an amount
-    from comes to: a refund of nothing is not a fact worth filing or emailing.
+    from comes to: a refund of zero is not a fact worth filing or emailing.
 
-    Returns ``None`` and writes nothing, too, for a payment that has not settled
+    Returns ``None`` and doesn't write anything, too, for a payment that has not settled
     -- still ``pending``, or ``failed`` -- logging it at ERROR: the provider says
     money went back that CalDART never recorded arriving, which a treasurer has to
     reconcile by hand, and a refund filed against such a payment would be lost the
     moment the payment settled.
     """
     if not provider_ref:
-        log.warning("Ignored a dashboard refund for payment %s with no reference", payment.pk)
+        log.warning("Ignored a dashboard refund for payment %s without a reference", payment.pk)
         return None
     if amount_cents <= 0:
         log.warning(
@@ -291,10 +291,10 @@ def apply_refund_totals(payment: Payment) -> Payment:
     """Move ``payment``'s status to match what its succeeded refunds come to.
 
     ``refunded`` once they total the whole amount, ``partially_refunded`` while
-    they total less, and ``succeeded`` again if they come to nothing, which is
+    they total less, and ``succeeded`` again if they come to zero, which is
     what happens when the only refund of a payment failed.  A payment that never
-    succeeded is left alone: a pending or failed attempt took no money and so
-    has none to give back.  Returns the row as saved.
+    succeeded is left alone: a pending or failed attempt didn't take any money and
+    so doesn't have any to give back.  Returns the row as saved.
     """
     if payment.status in (PaymentStatus.PENDING, PaymentStatus.FAILED):
         return payment
@@ -316,7 +316,7 @@ def send_refund_email(refund: Refund, *, term_canceled: bool) -> None:
     for, and whether the membership term ended with it, and records the send in
     the email log under the purpose ``refund``.  The money has already
     moved by the time this is called, so a mail server that refuses the message
-    is logged at ERROR and nothing else: the treasurer can say so by hand.
+    is only logged at ERROR: the treasurer can say so by hand.
     """
     payment = refund.payment
     user = payment.user
@@ -384,7 +384,7 @@ def _ask_the_provider(payment: Payment, refund: Refund) -> ProviderRefund:
 
 
 def _canceled_term(refund: Refund, *, actor: User | None) -> Membership | None:
-    """Cancel the term ``refund``'s payment bought, or ``None`` when it bought none.
+    """Cancel the term ``refund``'s payment bought, or ``None`` when it didn't buy one.
 
     The note names the refund, so an administrator reading the term later can
     find the money that ended it.

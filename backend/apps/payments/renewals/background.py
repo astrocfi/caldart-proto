@@ -6,8 +6,8 @@ proxy and worker timeouts and be cut off mid-charge.  ``POST /system/renewals/ru
 therefore writes a :class:`~apps.payments.models.RenewalScan` row, starts
 ``manage.py run_job run_auto_renewals --scan-id <row>`` in its own process, and answers at
 once; the command fills the row in when the scan ends, and the Scheduled tasks page
-reads it back with ``GET /system/renewals/runs/{id}``.  A dry run charges nobody and
-calls no provider, so it still runs inside the request.
+reads it back with ``GET /system/renewals/runs/{id}``.  A dry run never charges anyone
+or calls a provider, so it still runs inside the request.
 """
 
 from __future__ import annotations

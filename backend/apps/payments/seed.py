@@ -16,10 +16,10 @@ outstanding rows.
 
 A dozen members also have a standing automatic-renewal authority, one of them
 paused after a charge and its retries were all refused, so every state the
-renewals screens show is on screen with no clicking.  Two of the active ones
+renewals screens show is on screen without any clicking.  Two of the active ones
 are pinned to a term ending today, with the scheduled attempt the daily scan
 would already have noticed two weeks out, and one more is pinned to a term
-that lapsed ten days ago with no attempt yet, so the daily renewal job always
+that lapsed ten days ago without an attempt yet, so the daily renewal job always
 has an ordinary charge and a catch-up one waiting the day the seed runs.  Two
 more give on a schedule of their own: the account administrator a yearly
 recurring donation, and one generated member a monthly one.
@@ -33,9 +33,10 @@ money back.  With it off, as the production settings leave it, the card payments
 are dealt out between Stripe and PayPal (:data:`PROVIDER_MIX`) under made-up
 references, the pinned members and the two givers are seeded without their
 mandates, and the paused renewal holds a Stripe Visa card instead, so the daily
-renewal job on a demo server finds nothing to charge through the mock provider.
+renewal job on a demo server doesn't find anything to charge through the mock
+provider.
 
-Six donors -- people who gave through the public donation page and hold no
+Six donors -- people who gave through the public donation page and don't hold a
 portal account -- close the set, each with one to three settled contributions.
 """
 
@@ -157,7 +158,7 @@ CONTRIBUTION_MANDATE_DUE_DAYS = 30
 MONTHLY_DONATION_CENTS = 2_500
 
 #: How far out that donation's next charge falls: inside the month, but not today,
-#: so the scan run on the day of the seed takes nothing.
+#: so the scan run on the day of the seed doesn't take anything.
 MONTHLY_DONATION_DUE_DAYS = 9
 
 #: The line the seed writes when the mock payment provider is off, and so leaves out
@@ -167,7 +168,7 @@ MOCK_PROVIDER_OFF_NOTE = (
     "no catch-up renewal, and no recurring donation was seeded"
 )
 
-#: What the demo friend gave: one contribution by card, with no plan behind it.
+#: What the demo friend gave: one contribution by card, without a plan behind it.
 FRIEND_CONTRIBUTION_CENTS = 5_000
 
 #: How many days ago the demo friend gave it.
@@ -175,8 +176,8 @@ FRIEND_CONTRIBUTION_DAYS_AGO = 45
 
 #: The saved cards the seeded mandates carry, as a provider would describe them.
 #: The saved method each seeded mandate carries, cycled through by index.  A
-#: PayPal mandate vaults an account rather than a card, so it carries no card at
-#: all: ``(brand, last4, expiry month, expiry year)`` or ``None``.
+#: PayPal mandate vaults an account rather than a card, so it doesn't carry a card
+#: at all: ``(brand, last4, expiry month, expiry year)`` or ``None``.
 SEED_CARDS: tuple[tuple[str, tuple[str, str, int, int] | None], ...] = (
     (MandateProvider.STRIPE, ("visa", "4242", 3, 2028)),
     (MandateProvider.STRIPE, ("mastercard", "4444", 11, 2027)),
@@ -202,8 +203,8 @@ STRIPE_WALLETS: tuple[tuple[str, int], ...] = (
 #: What each provider charges, as the rate in ten-thousandths and the fixed part
 #: in cents: Stripe 2.9% + 30 cents, PayPal 3.49% + 49 cents.  PayPal's rate
 #: needs the finer granularity: 3.49% is not a whole number of thousandths.  A
-#: provider nobody lists here takes nothing, which is what a payment recorded by
-#: hand costs.
+#: provider nobody lists here doesn't take anything, which is what a payment
+#: recorded by hand costs.
 PROVIDER_FEES: dict[str, tuple[int, int]] = {
     PaymentProvider.STRIPE: (290, 30),
     PaymentProvider.PAYPAL: (349, 49),
@@ -214,7 +215,7 @@ def provider_fee_cents(provider: str, amount_cents: int) -> int:
     """The fee ``provider`` would have charged on ``amount_cents``.
 
     The percentage is rounded half up to the cent, as a processor rounds it.
-    A provider with no published rate -- a check, say -- costs nothing.
+    A provider without a published rate -- a check, say -- has a fee of zero.
     """
     if provider not in PROVIDER_FEES:
         return 0
@@ -293,7 +294,7 @@ def _contribution(rng: random.Random) -> int:
 def _term_starts(rng: random.Random, target: str, today: dt.date) -> list[dt.date]:
     """Start dates for a user's terms, oldest first, matching ``target``.
 
-    A ``friend`` holds no terms, and neither does an ``unpaid`` joiner.
+    A ``friend`` doesn't hold any terms, and neither does an ``unpaid`` joiner.
     """
     if target in ("unpaid", "friend"):
         return []
@@ -408,8 +409,8 @@ def _seed_refunds(today: dt.date, generated: list[User], pinned: set[int]) -> in
     four contributions are given back on their own, leaving the dues and the
     membership alone.  Both sets are chosen in id order from terms that have
     already ended and from payments that carry a contribution, so the choice
-    depends on nothing a refund changes: running this twice writes nothing
-    twice, and it never moves the shared random stream.
+    doesn't depend on anything a refund changes: running this twice never writes
+    anything twice, and it never moves the shared random stream.
 
     Only the generated members are touched.  The named demo accounts are the
     fixed cast the guides and the end-to-end specs drive, and a canceled term
@@ -501,7 +502,7 @@ def _reconcile_settled_payments(ctx: dict[str, Any]) -> int:
     """Match every payment older than :data:`RECONCILED_AFTER_DAYS` to a statement.
 
     Returns how many rows the demo treasurer has matched.  A payment that is
-    already matched is left alone, so a second seed run changes nothing.
+    already matched is left alone, so a second seed run doesn't change anything.
     """
     today = ctx["today"]
     treasurer = ctx["demo_users"]["treasurer"]
@@ -549,18 +550,18 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
     always due the day the seed runs.  Pinning shifts every one of that user's
     terms by the same amount, so a member with more than one seeded term keeps a
     contiguous history instead of an overlapping or gapped one.  One payment is
-    created per term, every term
-    is activated through the same service a real checkout uses, and lapsed terms
-    are then marked expired.  A ``friend`` target holds no terms; the demo friend's
-    one contribution is recorded (:func:`_seed_friend_contribution`) and one
-    expiring member is left waiting to become a friend (:func:`_seed_pending_friend`).
+    created per term, every term is activated through the same service a real checkout
+    uses, and lapsed terms are then marked expired.  A ``friend`` target doesn't hold
+    any terms; the demo friend's one contribution is recorded
+    (:func:`_seed_friend_contribution`) and one expiring member is left waiting to
+    become a friend (:func:`_seed_pending_friend`).
     Every card payment -- a term's, the friend's, a donor's -- goes through the mock
     payment provider while it is on (``PAYMENTS_MOCK_ENABLED``) and through Stripe or
     PayPal otherwise (:func:`_card_route`).  ``ctx["payment_count"]`` is set to the
     number of payments, and a one-line summary is written to ``stdout`` when one is
     given, followed by :data:`MOCK_PROVIDER_OFF_NOTE` when the mock payment provider
     is off, since :func:`_seed_mandates` then leaves out every mandate that would
-    charge it.  Running it twice over the same database changes nothing.
+    charge it.  Running it twice over the same database doesn't change anything.
     """
     rng = ctx["rng"]
     today = ctx["today"]
@@ -622,7 +623,7 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
 def _seed_friend_contribution(ctx: dict[str, Any], *, mock_on: bool) -> int:
     """Record the demo friend's one contribution, and return how many there are.
 
-    A settled card payment of :data:`FRIEND_CONTRIBUTION_CENTS` with no plan, made
+    A settled card payment of :data:`FRIEND_CONTRIBUTION_CENTS` without a plan, made
     :data:`FRIEND_CONTRIBUTION_DAYS_AGO` days ago, with its fee and its receipt
     recorded: a mock payment with ``mock_on``, a Stripe card payment otherwise.
     Keyed on the provider reference, so a second seed run finds the row it made
@@ -667,10 +668,10 @@ def _seed_friend_contribution(ctx: dict[str, Any], *, mock_on: bool) -> int:
 def _seed_pending_friend(ctx: dict[str, Any]) -> User | None:
     """Leave one generated member waiting to become a friend, and return them.
 
-    The first generated member targeted ``expiring`` who holds no renewal mandate and
-    is not pinned for the renewal scan gets ``friend_on`` set to the day after their
-    coverage ends, a date within the coming month: until then they stay a current
-    member.  ``None`` when the draw left nobody who fits.
+    The first generated member targeted ``expiring`` who doesn't hold a renewal mandate
+    and is not pinned for the renewal scan gets ``friend_on`` set to the day after
+    their coverage ends, a date within the coming month: until then they stay a current
+    member.  ``None`` when the draw didn't leave anybody who fits.
     """
     today: dt.date = ctx["today"]
     targets: dict[int, str] = ctx["membership_targets"]
@@ -855,7 +856,7 @@ def _seed_due_today_mandates(users: list[User], plan: MembershipPlan, today: dt.
     ago; the scan then finds it waiting rather than writing a fresh one.  The
     card is the mock provider's own, which always succeeds.  Returns how many
     mandates it left behind, whether created now or found from an earlier run
-    today; a user with no term ending today after all is skipped.
+    today; a user without a term ending today after all is skipped.
     """
     written = 0
     for user in users:
@@ -888,7 +889,7 @@ def _seed_catch_up_mandate(user: User, plan: MembershipPlan, today: dt.date) -> 
     """Give ``user`` an active mandate whose stored charge date is already past.
 
     The member's own term lapsed :data:`CATCH_UP_MANDATE_DAYS_AGO` days ago
-    (:func:`_forced_term_ends`) with no attempt against it yet, so the daily
+    (:func:`_forced_term_ends`) without an attempt against it yet, so the daily
     scan takes the catch-up path rather than the ordinary notice-then-charge
     one.  The card is the mock provider's own, which always succeeds.  Returns
     ``1``, whether the mandate was created now or found from an earlier run today.
@@ -913,7 +914,7 @@ def _seed_mandates(ctx: dict[str, Any], *, mock_on: bool) -> int:
     With ``mock_on``, ten members renew automatically.  Two of them
     (``ctx["renewal_due_today_users"]``) have a term ending today and a renewal
     already due; one more
-    (``ctx["catch_up_user"]``), if the seed named one, has no term left to renew
+    (``ctx["catch_up_user"]``), if the seed named one, doesn't have a term left to renew
     and a stored charge date :data:`CATCH_UP_MANDATE_DAYS_AGO` days back, so the
     scan takes the catch-up path instead (:func:`_seed_due_today_mandates`,
     :func:`_seed_catch_up_mandate`).  The remaining active mandates are spread
@@ -930,7 +931,7 @@ def _seed_mandates(ctx: dict[str, Any], *, mock_on: bool) -> int:
     are left out, so seven members renew automatically and nobody gives on a
     schedule, and the paused renewal holds the first card in :data:`SEED_CARDS`,
     a Stripe Visa ending 4242, instead.  Running it twice over the same database
-    changes nothing.
+    doesn't change anything.
     """
     rng: random.Random = ctx["rng"]
     today: dt.date = ctx["today"]
@@ -1012,7 +1013,7 @@ def _seed_donation_mandates(ctx: dict[str, Any]) -> int:
     The account administrator is a life member, so their membership never renews;
     theirs is a yearly donation of :data:`CONTRIBUTION_MANDATE_CENTS` whose next
     charge falls a month out, so the walkthrough always has a date to show.  The
-    first generated member with a current term and no mandate at all gives
+    first generated member with a current term and without any mandate gives
     :data:`MONTHLY_DONATION_CENTS` each month, next charged
     :data:`MONTHLY_DONATION_DUE_DAYS` days out, so no scan on the day of the seed
     takes it.  Answers how many it leaves behind, whether it created them or found
@@ -1053,7 +1054,7 @@ def _seed_donation_mandates(ctx: dict[str, Any]) -> int:
 def _monthly_donor(ctx: dict[str, Any]) -> User | None:
     """The generated member who gives each month, or ``None`` when nobody fits.
 
-    The first generated member, by id, with a current dated term and no mandate of
+    The first generated member, by id, with a current dated term and without a mandate of
     either kind, so their donation never shares a contribution with a renewal.  A
     second seed run finds the same member again through the donation they hold.
     """

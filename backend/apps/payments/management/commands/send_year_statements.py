@@ -3,10 +3,10 @@
 Run by ``deploy/systemd/caldart-statements.timer`` at 06:45 on January 15th in
 production, once every provider has settled the prior December's payments.
 Safe to repeat: a :class:`~apps.payments.models.YearStatement` row is written
-per address reached, so a second run for a year already sent reaches nobody
+per address reached, so a second run for a year already sent never reaches anybody
 again.  The command exits non-zero when any email could not be sent, so the
-systemd unit goes to ``failed`` instead of reporting a clean run that reached
-nobody.
+systemd unit goes to ``failed`` instead of reporting a clean run that didn't reach
+anybody.
 """
 
 from __future__ import annotations
@@ -59,7 +59,7 @@ class Command(BaseCommand):
         and :data:`LAST_REPORTABLE_YEAR` or ``CommandError`` is raised naming
         the value given.  After the run, if any statement failed to send,
         ``CommandError`` is raised naming how many did, so the command exits
-        non-zero; a run with no failures returns normally.
+        non-zero; a run without any failures returns normally.
         """
         run_date: date | None = None
         if options["today"]:

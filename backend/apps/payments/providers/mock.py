@@ -31,8 +31,8 @@ def fee_cents(amount_cents: int) -> int:
     """The mock provider's fee on ``amount_cents``: 2.9% plus 30 cents.
 
     The percentage is rounded half up to the cent, as a card processor rounds
-    it, so $45.00 costs 161 cents rather than 160.  A payment of nothing costs
-    nothing: the fixed part is only charged where there is money to charge it on.
+    it, so $45.00 costs 161 cents rather than 160.  A zero payment is free: the
+    fixed part is only charged where there is money to charge it on.
     """
     if amount_cents == 0:
         return 0
@@ -67,7 +67,7 @@ class MockPaymentsDisabledError(RuntimeError):
 
 @register
 class MockProvider(Provider):
-    """A provider that moves no money, for development, tests, and e2e runs.
+    """A provider that never moves money, for development, tests, and e2e runs.
 
     Every entry point raises :class:`MockPaymentsDisabledError` unless
     ``PAYMENTS_MOCK_ENABLED`` is on, so a production deployment cannot use it to
@@ -78,7 +78,7 @@ class MockProvider(Provider):
 
     @classmethod
     def is_configured(cls) -> bool:
-        """Whether ``PAYMENTS_MOCK_ENABLED`` is on.  The provider needs no keys."""
+        """Whether ``PAYMENTS_MOCK_ENABLED`` is on.  The provider doesn't need keys."""
         return bool(settings.PAYMENTS_MOCK_ENABLED)
 
     def _check_enabled(self) -> None:
@@ -98,8 +98,8 @@ class MockProvider(Provider):
 
         ``outcome`` is ``"succeed"`` or ``"fail"``.  Succeeding marks the payment
         succeeded with the ``mock`` wallet, gives it the reference ``mock_<id>`` if
-        it has none, records the fee :func:`fee_cents` works out, activates the term
-        and returns ``True``; anything else marks it failed and returns ``False``.
+        it doesn't have one, records the fee :func:`fee_cents` works out, activates the
+        term and returns ``True``; anything else marks it failed and returns ``False``.
         Either way ``raw`` records the outcome and the amount.  Raises
         :class:`MockPaymentsDisabledError` when ``PAYMENTS_MOCK_ENABLED`` is off.
         """
@@ -120,10 +120,10 @@ class MockProvider(Provider):
         return False
 
     def refund(self, payment: Payment, refund: Refund) -> ProviderRefund:
-        """Give the money back instantly, with no provider reference.
+        """Give the money back instantly, without a provider reference.
 
         Nothing moves, so nothing can fail: the answer records the amount and the
-        payment it came off.  There is no provider holding a refund id, so the
+        payment it came off.  A provider doesn't hold a refund id, so the
         reference is blank, as it is for a refund written by hand.  Raises
         :class:`MockPaymentsDisabledError` when ``PAYMENTS_MOCK_ENABLED`` is off.
         """
@@ -146,7 +146,7 @@ class MockProvider(Provider):
     def fetch_fees(self, payment: Payment) -> ProviderFees:
         """The fee the mock provider would have charged, worked out afresh.
 
-        It needs nothing from outside, so it always answers, whatever state the
+        It doesn't need anything from outside, so it always answers, whatever state the
         payment is in.
         """
         return fees_for(payment)

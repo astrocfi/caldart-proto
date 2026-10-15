@@ -75,9 +75,9 @@ def gift_minimum_message() -> str:
 
 
 def is_below_gift_minimum(cents: int) -> bool:
-    """Whether ``cents`` is more than nothing but under ``DONATION_MINIMUM_CENTS``.
+    """Whether ``cents`` is more than zero but under ``DONATION_MINIMUM_CENTS``.
 
-    A gift of nothing is not below the minimum here: each endpoint already refuses one
+    A gift of zero is not below the minimum here: each endpoint already refuses one
     with words of its own.
     """
     minimum: int = settings.DONATION_MINIMUM_CENTS
@@ -88,7 +88,7 @@ def refuse_gift_below_minimum(cents: int) -> None:
     """Refuse a gift :func:`is_below_gift_minimum` names, keyed by ``contribution_cents``.
 
     For a body's ``validate``: raises DRF's ``ValidationError`` carrying
-    :func:`gift_minimum_message` under ``contribution_cents``.  A gift of nothing and a
+    :func:`gift_minimum_message` under ``contribution_cents``.  A gift of zero and a
     gift of the minimum or more pass.
     """
     if is_below_gift_minimum(cents):
@@ -101,10 +101,10 @@ def refuse_charge_below_minimum(plan_slug: str, contribution_cents: int) -> None
     A plan priced under ``DONATION_MINIMUM_CENTS`` -- a free one among them -- would
     otherwise let a tiny charge through as dues plus a contribution.  When the active
     plan ``plan_slug`` names costs less than the minimum and its price plus
-    ``contribution_cents`` comes to more than nothing but less than the minimum, raises
+    ``contribution_cents`` comes to more than zero but less than the minimum, raises
     DRF's ``ValidationError`` keyed by ``contribution_cents`` with
     :data:`CHARGE_MINIMUM_MESSAGE`.  A plan priced at the minimum or more takes any
-    contribution, a charge of nothing passes (``create_checkout`` refuses it), and so
+    contribution, a charge of zero passes (``create_checkout`` refuses it), and so
     does a slug no active plan carries, which ``create_checkout`` refuses too.
     """
     price = (
@@ -182,7 +182,7 @@ def remove_renewal_contribution_field() -> serializers.BooleanField:
 
     Only a recurring donation reads it.  Without it, a donation asked for by a member
     whose renewal takes a contribution is refused with the code
-    ``renewal_contribution``; with it, the renewal's contribution becomes nothing
+    ``renewal_contribution``; with it, the renewal's contribution drops to zero
     first.
     """
     return serializers.BooleanField(required=False, default=False)
@@ -215,20 +215,20 @@ class MandateScopedSerializer(serializers.Serializer[dict[str, Any]]):
 class CheckoutSerializer(serializers.Serializer[dict[str, Any]]):
     """``POST /payments/checkout``.
 
-    There is deliberately no amount field: the server recomputes the total from
-    the plan price plus the contribution.  A contribution outside
+    The body deliberately doesn't take an amount field: the server recomputes the total
+    from the plan price plus the contribution.  A contribution outside
     ``0..MAX_CONTRIBUTION_CENTS`` is a 400 naming ``contribution_cents``, and so is a
-    donation -- a checkout with no plan, one-time or recurring -- of more than nothing
+    donation -- a checkout without a plan, one-time or recurring -- of more than zero
     but under ``DONATION_MINIMUM_CENTS``, with :func:`gift_minimum_message`.  A
-    contribution added to a plan's dues has no minimum of its own, but a plan priced
-    under the minimum must bring the whole charge to it
+    contribution added to a plan's dues doesn't have a minimum of its own, but a plan
+    priced under the minimum must bring the whole charge to it
     (:func:`refuse_charge_below_minimum`).
 
     ``auto_renew`` asks for the payment method to be saved and charged again on a
     schedule.  With a plan, that is an automatic renewal, which is always yearly:
     any other ``cadence`` is a 400 naming ``cadence``, and a plan that never expires
     or a provider that cannot charge a saved method is a 400 naming ``auto_renew``.
-    With no plan, it is a recurring donation of ``contribution_cents`` on
+    Without a plan, it is a recurring donation of ``contribution_cents`` on
     ``cadence`` (``monthly``, ``quarterly`` or ``yearly``, which is the default).
     ``remove_renewal_contribution`` agrees to move the renewal's contribution off it
     to make room for the donation.  ``next_charge_on`` is the day that authority
@@ -270,12 +270,12 @@ class PayPalCheckoutClientSerializer(serializers.Serializer[dict[str, str]]):
     order_id = serializers.CharField()
 
 
-# A serializer with no fields renders as nothing at all, which would drop `client`
+# A serializer without any fields doesn't render at all, which would drop `client`
 # from the mock response the view does send.  The explicit schema keeps the empty
 # object in the document.
 @extend_schema_field({"type": "object"})
 class MockCheckoutClientSerializer(serializers.Serializer[dict[str, Any]]):
-    """The mock provider needs nothing from the browser to proceed."""
+    """The mock provider doesn't need anything from the browser to proceed."""
 
 
 class StripeCheckoutResponseSerializer(serializers.Serializer[dict[str, Any]]):
@@ -382,7 +382,7 @@ class PaymentResultSerializer(serializers.Serializer[dict[str, Any]]):
 class ProviderTotalsSerializer(serializers.Serializer[dict[str, int]]):
     """One period's money split by payment provider, in cents.
 
-    A provider that took no money in the period is left out rather than sent as
+    A provider that didn't take any money in the period is left out rather than sent as
     zero, so every key is optional.  The keys are exactly the payment providers,
     whichever ones are configured.
     """
@@ -413,8 +413,8 @@ class StatementYearsSerializer(serializers.Serializer[dict[str, Any]]):
     """``GET /me/payments/statements`` -- the years a statement can be had for.
 
     Newest first, and a year appears only when the member made at least one
-    contribution in it that settled.  An empty list means there is nothing to
-    download.
+    contribution in it that settled.  An empty list means there isn't a
+    statement to download.
     """
 
     years = serializers.ListField(child=serializers.IntegerField())
@@ -458,9 +458,9 @@ class RefundSerializer(serializers.ModelSerializer[Refund]):
 class RefundCreateSerializer(serializers.Serializer[dict[str, Any]]):
     """``POST /admin/payments/{id}/refunds``.
 
-    There is no payment field: the payment is the one in the path.  ``amount_cents``
-    is what to give back, at most what the payment has left unrefunded, and
-    ``cancel_term`` ends the membership term the payment bought.
+    The body doesn't carry a payment field: the payment is the one in the path.
+    ``amount_cents`` is what to give back, at most what the payment has left
+    unrefunded, and ``cancel_term`` ends the membership term the payment bought.
     """
 
     amount_cents = serializers.IntegerField(min_value=1)
@@ -787,7 +787,7 @@ class RenewalSetupSerializer(MandateScopedSerializer):
     remove_renewal_contribution = remove_renewal_contribution_field()
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
-        """Drop a donation's plan, or refuse a renewal with no plan or not yearly.
+        """Drop a donation's plan, or refuse a renewal that lacks a plan or isn't yearly.
 
         A donation under the minimum is refused first, keyed by ``contribution_cents``.
         """
@@ -814,7 +814,7 @@ class PayPalRenewalSetupClientSerializer(serializers.Serializer[dict[str, str]])
 
 @extend_schema_field({"type": "object"})
 class MockRenewalSetupClientSerializer(serializers.Serializer[dict[str, Any]]):
-    """The mock provider needs nothing from the browser to save its test card."""
+    """The mock provider doesn't need anything from the browser to save its test card."""
 
 
 class StripeRenewalSetupResponseSerializer(serializers.Serializer[dict[str, Any]]):
@@ -1010,7 +1010,7 @@ class FinancePaymentSerializer(serializers.ModelSerializer[Payment]):
         read_only_fields = fields
 
     def get_user_name(self, obj: Payment) -> str:
-        """The member's full name, or their email address when they have no name."""
+        """The member's full name, or their email address when they don't have a name."""
         full = f"{obj.user.first_name} {obj.user.last_name}".strip()
         return full or obj.user.email
 
@@ -1019,7 +1019,7 @@ class FinancePaymentSerializer(serializers.ModelSerializer[Payment]):
         return is_tombstone(obj.user)
 
     def get_plan(self, obj: Payment) -> str | None:
-        """The plan's name, or ``None`` for a payment that bought no plan."""
+        """The plan's name, or ``None`` for a payment that didn't buy a plan."""
         return obj.plan.name if obj.plan is not None else None
 
     def get_reconciled_by(self, obj: Payment) -> str | None:
@@ -1058,7 +1058,7 @@ class PaymentPatchSerializer(serializers.Serializer[dict[str, Any]]):
 
     ``reconciled_on`` is the day the payment was matched to a statement, or
     ``null`` to un-match it; ``note`` is the treasurer's own line.  Sending
-    neither is a 400: the request would change nothing, and so is a
+    neither is a 400: the request wouldn't change anything, and so is a
     ``reconciled_on`` later than the day ``apps.payments.dates`` allows.
     """
 
@@ -1226,8 +1226,8 @@ class FinanceMemberSerializer(serializers.Serializer[dict[str, Any]]):
 class MemberSearchQuerySerializer(serializers.Serializer[dict[str, Any]]):
     """``?search=`` for the finance area's member search.
 
-    The parameter is optional, and an empty one asks for nobody rather than for
-    everybody: the form shows names only once somebody has typed.
+    The parameter is optional, and an empty one answers with an empty list rather than
+    with everybody: the form shows names only once somebody has typed.
     """
 
     search = serializers.CharField(required=False, allow_blank=True, default="")

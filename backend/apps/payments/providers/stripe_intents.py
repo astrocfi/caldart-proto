@@ -46,7 +46,7 @@ def jsonable(value: dict[str, Any]) -> dict[str, Any]:
 def succeeded_refunds(charge: dict[str, Any]) -> list[dict[str, Any]]:
     """Every refund in a charge's ``refunds.data`` that Stripe reports as succeeded.
 
-    A charge with no refund list, or one whose refunds are all pending or failed,
+    A charge without a refund list, or one whose refunds are all pending or failed,
     gives an empty list: only a succeeded refund has actually moved money.
     """
     data = (charge.get("refunds") or {}).get("data") or []
@@ -86,7 +86,7 @@ def fees_from_intent(intent: dict[str, Any]) -> ProviderFees | None:
     integer cents in the settlement currency.  Answers ``None`` when the intent
     was retrieved without the expansion, and when Stripe has not created the
     balance transaction yet -- some payment methods settle minutes after the
-    charge, and until they do there is no fee to report.
+    charge, and until they do there isn't a fee to report.
     """
     charge = intent.get("latest_charge")
     if not isinstance(charge, dict):
@@ -131,7 +131,7 @@ def payment_for_intent(intent: dict[str, Any]) -> Payment | None:
     payments: ``metadata.payment_id`` first -- a charge inherits the intent's
     metadata -- then ``provider_ref`` against the object's own id and, for a
     charge, against the ``payment_intent`` it names.  A ``payment_id`` that is not
-    a number matches nothing, and the search falls through to those ids.  Returns
+    a number doesn't match anything, and the search falls through to those ids.  Returns
     ``None`` when none of them finds a row.
     """
     metadata = intent.get("metadata") or {}

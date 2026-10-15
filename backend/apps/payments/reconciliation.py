@@ -2,9 +2,9 @@
 
 A treasurer picks a date range and asks what the books say arrived in it, in
 periods or by provider, and how much of it they have already matched to a
-statement line.  The rows here answer that question and nothing else: the
-payment list answers "which payments", and this answers "how much, and how much
-is still unmatched".
+statement line.  The rows here answer only that question: the payment list
+answers "which payments", and this answers "how much, and how much is still
+unmatched".
 
 Two dating rules make the rows add up against a statement.  A payment is dated
 by ``paid_date`` -- the day the money arrived, which for a check is the day it
@@ -195,8 +195,8 @@ def reconciliation_rows(
     first as the money overview runs, and ``provider`` one row per provider that took
     money, in the order the providers are declared.
 
-    A period in which money only went back -- a refund taken in a month with no
-    payments at all -- still gets a row, with a zero count and the refund in it,
+    A period in which money only went back -- a refund taken in a month without
+    any payments at all -- still gets a row, with a zero count and the refund in it,
     because the statement has that line too.  ``net_after_refunds_cents`` is
     ``net_cents`` less ``refunded_cents`` and can therefore be negative.
     """
@@ -221,7 +221,7 @@ class ReconciliationQuerySerializer(serializers.Serializer[dict[str, Any]]):
 
     ``from`` and ``to`` bound the range, ``provider`` narrows to one provider, and
     ``group`` is ``month``, ``year`` or ``provider``.  Every parameter is optional
-    and an empty one narrows nothing.
+    and an empty one doesn't narrow anything.
     """
 
     provider = serializers.CharField(required=False, allow_blank=True, default="")
@@ -238,7 +238,7 @@ class ReconciliationQuerySerializer(serializers.Serializer[dict[str, Any]]):
         """Return ``value``, or refuse a provider that is not one of the choices.
 
         The message is ``Unknown provider '<value>'.``; an empty string is
-        accepted and narrows nothing.
+        accepted and doesn't narrow anything.
         """
         if value and value not in PaymentProvider.values:
             raise serializers.ValidationError(f"Unknown provider '{value}'.")

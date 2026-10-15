@@ -19,7 +19,7 @@ LOCMEM_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 SMTP_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 
 #: The ``env.email_url`` keys each backend accepts, mapped to its option names.  Every
-#: backend django-environ's ``email_url`` can name has an entry, and one that takes no
+#: backend django-environ's ``email_url`` can name has an entry, and one that doesn't take
 #: options has an empty one: passing an option to a backend that does not know it is an
 #: error rather than a value it ignores.  A backend outside the table is a backend whose
 #: options nothing here has established, so it is rejected rather than configured blind.
@@ -45,9 +45,9 @@ def default_mailer(email_url: dict[str, Any], *, timeout: int | None = None) -> 
     ``email_url`` is what django-environ's ``email_url`` returns: an ``EMAIL_BACKEND``
     dotted path plus one key per connection detail the URL carried.  Only the keys the
     named backend accepts become ``OPTIONS``, and a key the URL left empty is dropped
-    so the backend's own default applies; a backend that takes no options gets no
-    ``OPTIONS`` entry.  ``timeout`` is the SMTP socket timeout in seconds and is
-    dropped for any other backend, which has no socket to time out.
+    so the backend's own default applies; a backend that doesn't take options doesn't get
+    an ``OPTIONS`` entry.  ``timeout`` is the SMTP socket timeout in seconds and is
+    dropped for any other backend, which doesn't have a socket to time out.
 
     For ``smtp://caldart%40example.org:hunter2@smtp.example.org:587`` the result is
     ``{"BACKEND": SMTP_BACKEND, "OPTIONS": {"host": "smtp.example.org", "port": 587,

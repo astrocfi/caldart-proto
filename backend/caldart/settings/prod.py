@@ -4,7 +4,7 @@ Everything host-specific comes from the environment -- in practice from
 ``/etc/caldart/caldart.env``, loaded by ``deploy/systemd/caldart-web.service``.
 Nothing in this chain reads a ``.env`` file: a variable the environment lacks
 is a start-up error, not an invitation to take a development value from a file
-beside the code.  Four variables have no default on purpose, so a
+beside the code.  Four variables don't have a default, on purpose, so a
 half-configured box fails at start-up rather than serving with a development
 secret: ``SECRET_KEY``, ``ALLOWED_HOSTS``, ``SITE_URL``, and ``EMAIL_URL``.
 ``docs/developer/configuration.rst`` lists every variable and its production
@@ -53,11 +53,11 @@ WAGTAILADMIN_BASE_URL = SITE_URL
 
 # Every link an email carries is built on SITE_URL, and every link a page carries on
 # URL_PREFIX, so the two must name the same path: a site under /caldart-proto has a
-# SITE_URL ending in /caldart-proto, and a site at the root of its host has none.
+# SITE_URL ending in /caldart-proto, and a site at the root of its host doesn't have one.
 if urlsplit(SITE_URL).path.rstrip("/") != URL_PREFIX:
     raise ImproperlyConfigured(
         f"SITE_URL {SITE_URL!r} must end in the URL_PREFIX {URL_PREFIX!r}: its path "
-        "is the prefix the site is served under, or empty when there is none."
+        "is the prefix the site is served under, or empty when there isn't one."
     )
 
 # --------------------------------------------------------------------------
@@ -72,7 +72,7 @@ SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=True)
 
 # HSTS: set SECURE_HSTS_SECONDS=0 for the first deploy of a new hostname, then
 # raise it once HTTPS is known good -- browsers remember the header for its full
-# duration and there is no way to take it back early.  Neither shipped vhost
+# duration and there isn't a way to take it back early.  Neither shipped vhost
 # sets the header, so this setting is what a browser actually receives.
 SECURE_HSTS_SECONDS = env.int("SECURE_HSTS_SECONDS", default=31536000)
 SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", default=True)
@@ -128,7 +128,7 @@ DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
 # The auth throttles count in the default cache.  Django's fallback cache is
 # per-process, so each of gunicorn's workers would keep a budget of its own and
 # reset it whenever the worker recycled.  The database cache is shared by every
-# worker and needs no service beyond Postgres -- only `manage.py
+# worker and doesn't need a service beyond Postgres -- only `manage.py
 # createcachetable`, which the deployment guide runs on install and upgrade.
 # --------------------------------------------------------------------------
 CACHE_TABLE = "caldart_cache"
@@ -208,7 +208,7 @@ PAYMENTS_MOCK_ENABLED = env.bool("PAYMENTS_MOCK_ENABLED_IN_PRODUCTION", default=
 # Logging
 #
 # Everything to stdout/stderr: systemd captures it into the journal
-# (``journalctl -u caldart-web``), so there are no log files to rotate.
+# (``journalctl -u caldart-web``), so there aren't any log files to rotate.
 # --------------------------------------------------------------------------
 LOG_LEVEL = env("LOG_LEVEL", default="INFO")
 LOGGING["root"]["level"] = LOG_LEVEL
@@ -236,7 +236,7 @@ LOGGING["loggers"]["django.security"] = {
 }
 
 # Unhandled-500 mail, and a refused send a request survived, go here.  Empty is fine:
-# AdminEmailHandler then does nothing, and the traceback is still in the journal.
+# AdminEmailHandler then doesn't send anything, and the traceback is still in the journal.
 # Django takes a plain list of address strings: it deprecates (name, address) pairs,
 # and warns of them only when it sends.
 ADMINS = env.list("ADMIN_EMAILS", default=[])

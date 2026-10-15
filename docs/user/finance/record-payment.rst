@@ -71,7 +71,7 @@ Mistakes the form catches
   entered twice.
 * No plan and no contribution, or a contribution of zero: *Nothing to charge.*
 * A plan for a life member, who doesn't have anything left to renew: *You are a life member, so
-  there is nothing to renew. Make a donation instead.*
+  you don't have anything to renew. Make a donation instead.*
 
 If something looks wrong
 ========================

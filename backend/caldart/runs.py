@@ -41,9 +41,9 @@ class RunAction:
     for a charge.  ``member`` is the member's display name and ``email`` the
     address the message went to.  ``on`` is the date the action concerns -- the
     day a charge falls, or the day a term expires -- and is ``None`` when there
-    is no such date.  ``amount_cents`` is what a charge comes to and is ``None``
-    for an action that moves no money.  ``detail`` carries anything else worth
-    printing, and is an empty string when there is nothing.
+    isn't such a date.  ``amount_cents`` is what a charge comes to and is ``None``
+    for an action that doesn't move money.  ``detail`` carries anything else worth
+    printing, and is an empty string when there isn't anything.
     """
 
     kind: str
@@ -90,8 +90,8 @@ class RunAction:
 def action_lines(actions: Sequence[RunAction], *, dry_run: bool) -> list[str]:
     """Every action as a printable line, in the order the scan recorded them.
 
-    An empty sequence gives an empty list, so a command that prints nothing
-    after its counts is a scan that had nothing to do.
+    An empty sequence gives an empty list, so a command that prints only its
+    counts is a scan that didn't have anything to do.
     """
     return [action.as_line(dry_run=dry_run) for action in actions]
 

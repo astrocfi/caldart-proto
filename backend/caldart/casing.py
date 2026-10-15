@@ -90,7 +90,7 @@ BUSINESS_MARKERS = frozenset(
     }
 )
 
-#: Short words with no vowel that are abbreviations read as words, title-cased as any
+#: Short words without a vowel that are abbreviations read as words, title-cased as any
 #: word: ``St``, ``Mt``, ``Mr``, ``Dr``, ``Ctr``, and the like.
 SHORT_WORD_ABBREVIATIONS = frozenset(
     {"ct", "ctr", "dr", "ft", "hwy", "jr", "ln", "mr", "mrs", "mt", "pl", "rd", "sr", "st", "tr"}
@@ -134,7 +134,7 @@ def person_name(value: str) -> str:
     after a one-letter prefix and an apostrophe, straight or typographic, capitalized
     (``o'brien`` -> ``O'Brien``), the letter after each period capitalized (``a.j.`` ->
     ``A.J.``), and the letter after a leading ``Mc`` capitalized (``MCDONALD`` ->
-    ``McDonald``; ``Mac`` is left alone).  A part with no vowel (``a``, ``e``, ``i``,
+    ``McDonald``; ``Mac`` is left alone).  A part without a vowel (``a``, ``e``, ``i``,
     ``o``, ``u``, ``y``) is a run of initials and is upper-cased whole (``tj`` ->
     ``TJ``, ``DJ`` stays ``DJ``).  Past the first word, the particles in
     ``NAME_PARTICLES`` stay lower case (``VAN DER BERG`` -> ``Van der Berg``) and the
@@ -183,7 +183,7 @@ def business_name(value: str) -> str:
     word by word by :func:`title_case_words`, except that some words stay upper case: the
     abbreviations in ``BUSINESS_ABBREVIATIONS``, a word holding a period (``L.L.C.``),
     and a word of at most ``SHORT_ABBREVIATION_LENGTH`` letters written in capitals that
-    reads as an abbreviation rather than a word: one with no vowel (``JB``, ``NTSB``)
+    reads as an abbreviation rather than a word: one without a vowel (``JB``, ``NTSB``)
     other than the word abbreviations in ``SHORT_WORD_ABBREVIATIONS`` (``ST``, ``MR``,
     ``CTR``), or, as the name's first word, an airport identifier, ``K`` and three
     letters (``KPAO``) that is not one of the ``K_WORDS`` (``KING``, ``KIDS``), in a name
@@ -229,7 +229,7 @@ def _is_short_abbreviation(registered: str, *, may_be_code: bool) -> bool:
     """True when the registry's word is a short abbreviation, kept in its capitals.
 
     That is a word of letters alone, at most ``SHORT_ABBREVIATION_LENGTH`` long, written
-    in capitals, and either with no vowel and not one of ``SHORT_WORD_ABBREVIATIONS``,
+    in capitals, and either without a vowel and not one of ``SHORT_WORD_ABBREVIATIONS``,
     or, when it ``may_be_code`` (the first word of a business's name), in the form of an
     airport identifier (``K`` and three letters) and not one of ``K_WORDS``.
     """

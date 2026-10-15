@@ -1,15 +1,15 @@
 """PayPal provider: Orders v2 REST, called directly with ``httpx``.
 
 No SDK -- the three calls we need (OAuth token, create order, capture order) are
-plain JSON over HTTPS, and the SDK would add a dependency for nothing.
+plain JSON over HTTPS, and the SDK would add a dependency without any gain.
 
 Every call goes through :func:`~apps.payments.providers.paypal_api.call`, which
 holds the client-credentials token and tells a call PayPal never answered from one
 it refused.
 
 Capture is authoritative: ``confirm`` only activates a membership when PayPal
-answers ``COMPLETED`` *and* the capture matches our own row.  The webhook reads
-nothing until PayPal has verified the notification's signature.
+answers ``COMPLETED`` *and* the capture matches our own row.  The webhook doesn't
+read anything until PayPal has verified the notification's signature.
 """
 
 from __future__ import annotations
@@ -104,8 +104,8 @@ UNANSWERED_MESSAGE = "PayPal never answered the renewal order, so it may hold a 
 #: Why a renewal charge is in doubt when PayPal calls its invoice a duplicate.
 DUPLICATE_INVOICE_MESSAGE = "PayPal says this renewal's invoice was already paid."
 
-#: What the member is told when the renewal has no vaulted account to charge.
-NO_METHOD_MESSAGE = "There is no saved PayPal account to charge."
+#: What the member is told when the renewal doesn't have a vaulted account to charge.
+NO_METHOD_MESSAGE = "There isn't a saved PayPal account to charge."
 
 #: The largest webhook body read, in bytes.  PayPal's notifications are a few
 #: kilobytes; anything near this size is not one of theirs.
@@ -149,9 +149,9 @@ def renewal_refusal(
 
     After an earlier try went unanswered PayPal may hold the order whatever it says
     now, so the charge is in doubt.  Otherwise a refusal of CalDART's own
-    credentials -- a 401 or a 403, or a token PayPal would not give -- says nothing
-    about the payer and is an outage: for a create, one that sent nothing
-    (:class:`RequestNotSentError`).  PayPal calling the order a duplicate of an
+    credentials -- a 401 or a 403, or a token PayPal would not give -- doesn't say
+    anything about the payer and is an outage: for a create, one that didn't send
+    anything (:class:`RequestNotSentError`).  PayPal calling the order a duplicate of an
     invoice it was already paid for is a charge in doubt too.  Anything else is
     the payer's method refused, a decline.
     """
@@ -269,8 +269,8 @@ class PayPalProvider(Provider):
         calling PayPal for a payment whose money already arrived -- succeeded,
         partly refunded, or refunded -- so a second click is harmless and a refund
         is never undone.
-        Raises :class:`PaymentVerificationError` when the payment holds no order of
-        its own, when ``order_id`` names another order, when PayPal reports
+        Raises :class:`PaymentVerificationError` when the payment doesn't hold an
+        order of its own, when ``order_id`` names another order, when PayPal reports
         anything but ``COMPLETED``, when it completes the order without a capture,
         and when :func:`verify_capture` finds the captured total, the currency, the
         capture's ``custom_id``, or the order id disagreeing with the payment, and
@@ -285,8 +285,8 @@ class PayPalProvider(Provider):
             # A second click, a webhook that beat the browser back, or a refund since.
             return True
 
-        # Only the order PayPal gave this payment is ever captured: a payment that
-        # has none, such as an abandoned checkout, has nothing to capture.
+        # Only the order PayPal gave this payment is ever captured: a payment without
+        # one, such as an abandoned checkout, doesn't have anything to capture.
         if not payment.provider_ref:
             raise PaymentVerificationError("No PayPal order to capture.")
         if order_id and order_id != payment.provider_ref:
@@ -347,7 +347,7 @@ class PayPalProvider(Provider):
         The call carries ``PayPal-Request-Id: caldart-refund-<refund id>``, so a
         repeat for the same refund row gives the money back once.  Returns PayPal's
         refund id and the body it answered with.  Raises
-        :class:`PaymentVerificationError` when the payment holds no completed
+        :class:`PaymentVerificationError` when the payment doesn't hold a completed
         capture, when PayPal rejects the refund, and when it answers without a
         refund id, and :class:`ProviderUnavailableError` when PayPal cannot be
         reached.
@@ -374,10 +374,10 @@ class PayPalProvider(Provider):
         """Verify the notification with PayPal, then file it and act on it.
 
         PayPal's signature check needs a ``PAYPAL_WEBHOOK_ID`` from the developer
-        dashboard, so without one the route answers 404 and reads nothing.  A body
-        over :data:`MAX_WEBHOOK_BYTES` is a 413 and one that is not a JSON object
-        a 400, both before PayPal is asked.  A notification PayPal does not vouch
-        for is a 400 that records nothing and touches no payment.
+        dashboard, so without one the route answers 404 and doesn't read anything.  A
+        body over :data:`MAX_WEBHOOK_BYTES` is a 413 and one that is not a JSON
+        object a 400, both before PayPal is asked.  A notification PayPal does not
+        vouch for is a 400 that doesn't record anything or touch a payment.
 
         A delivery missing any of :data:`TRANSMISSION_HEADERS`, or a body ``id`` or
         ``event_type``, is that same 400 without a call to PayPal.
@@ -391,9 +391,9 @@ class PayPalProvider(Provider):
         payment still waiting on its money and leaves a settled one as it is); and
         when a ``PAYMENT.CAPTURE.REFUNDED`` in the payment's currency was filed:
         the refund somebody took in PayPal's dashboard, so the ledger is right
-        whoever issued it.  A notification about no payment of ours, a denial or a
-        reversal of another order, a refund in another currency, and any other
-        event type, are received but not handled.
+        whoever issued it.  A notification that isn't about one of our payments, a
+        denial or a reversal of another order, a refund in another currency, and any
+        other event type, are received but not handled.
         """
         if request.method != "POST":
             return HttpResponseNotAllowed(["POST"])
@@ -463,7 +463,7 @@ class PayPalProvider(Provider):
     def fetch_fees(self, payment: Payment) -> ProviderFees | None:
         """Read the order again and take the fee off its capture's breakdown.
 
-        Answers ``None`` for a payment with no order id, and for an order PayPal
+        Answers ``None`` for a payment without an order id, and for an order PayPal
         has not settled.  Raises
         :class:`~apps.payments.providers.base.ProviderNotConfiguredError` without
         credentials and
@@ -586,7 +586,7 @@ class PayPalProvider(Provider):
         unit's ``invoice_id``, and settled by :meth:`settle_renewal_order`, which
         stores the order's id as ``provider_ref`` before any separate capture.
         Raises :class:`PaymentDeclinedError` when PayPal will not take the vaulted
-        method or there is none, :class:`PaymentPendingError` when PayPal holds the
+        method or there isn't one, :class:`PaymentPendingError` when PayPal holds the
         capture as ``PENDING``, :class:`PaymentInDoubtError` when the create never
         answered or PayPal refuses the invoice as a duplicate, and
         :class:`ProviderUnavailableError` when the capture cannot be asked for.
@@ -618,8 +618,9 @@ class PayPalProvider(Provider):
     def create_renewal_order(self, payment: Payment, body: dict[str, Any]) -> dict[str, Any]:
         """Create the renewal order, retrying a create that never answered.
 
-        PayPal keeps a ``PayPal-Request-Id`` for a few hours and offers no search of
-        orders by our reference, so a create that never answers is tried again at
+        PayPal keeps a ``PayPal-Request-Id`` for a few hours and doesn't offer a
+        search of orders by our reference, so a create that never answers is tried
+        again at
         once, under the same id, after each of :data:`CREATE_RETRY_SECONDS`, for no
         longer than :data:`CREATE_DEADLINE_SECONDS` in all: a repeat answers with
         the order the first call made, if it made one.
@@ -667,12 +668,12 @@ class PayPalProvider(Provider):
         raise PaymentUnansweredError(UNANSWERED_MESSAGE)
 
     def find_mandate_charge(self, mandate: RenewalMandate, payment: Payment) -> bool:
-        """Settle ``payment`` from the order an earlier charge made, or say there is none.
+        """Settle ``payment`` from the order an earlier charge made, if there is one.
 
         A payment that names its order has it read again and settled by
         :meth:`settle_renewal_order`, captured first when it never was, and the
-        answer is ``True``.  One that names no order and was never sent, or was sent
-        less than :data:`REQUEST_ID_RETENTION` ago, answers ``False``: charging again
+        answer is ``True``.  One that doesn't name an order and was never sent, or was
+        sent less than :data:`REQUEST_ID_RETENTION` ago, answers ``False``: charging again
         repeats the create under the same ``PayPal-Request-Id``, which PayPal answers
         with the order it already made.  One sent longer ago than that names an
         order PayPal may hold and no longer recognize the id of, and raises
@@ -748,7 +749,7 @@ class PayPalProvider(Provider):
         order as ``provider_ref`` and the capture filed under
         :data:`WEBHOOK_CAPTURE_KEY`, exactly as the capture notification files it, so
         a later refund finds it.  Raises :class:`PaymentVerificationError` naming the
-        first check that fails, a capture PayPal has no record of included, and
+        first check that fails, a capture PayPal doesn't have a record of included, and
         :class:`ProviderUnavailableError` when PayPal cannot be reached or refuses
         CalDART's credentials.
         """
@@ -757,7 +758,7 @@ class PayPalProvider(Provider):
         except PayPalRequestError as exc:
             if exc.is_authorization:
                 raise ProviderUnavailableError(UNAVAILABLE_MESSAGE) from exc
-            raise PaymentVerificationError(f"PayPal has no capture {reference}.") from exc
+            raise PaymentVerificationError(f"PayPal doesn't have a capture {reference}.") from exc
         if capture.get("status") != "COMPLETED":
             raise PaymentVerificationError("That PayPal capture has not completed.")
         ours = {str(payment.pk), renewal_request_id(payment)}
@@ -770,7 +771,7 @@ class PayPalProvider(Provider):
             raise PaymentVerificationError("That PayPal capture is in another currency.")
         order_id = related_order_id(capture)
         if not order_id:
-            raise PaymentVerificationError("PayPal names no order for that capture.")
+            raise PaymentVerificationError("PayPal doesn't name an order for that capture.")
         mark_succeeded(
             payment,
             wallet=PaymentWallet.PAYPAL,
@@ -779,7 +780,7 @@ class PayPalProvider(Provider):
         )
 
     def method_from_payment(self, payment: Payment) -> MandateMethod | None:
-        """The vaulted account a captured order saved, or ``None`` when it saved none."""
+        """The vaulted account a captured order saved, or ``None`` if it didn't."""
         return vault_from_capture(payment.raw or {})
 
 
@@ -813,7 +814,7 @@ def payment_for_resource(resource: dict[str, Any]) -> Payment | None:
     Matches only PayPal payments: ``custom_id`` as a payment id first, then
     ``provider_ref`` against the resource's own id, the related order id and the
     id at the end of the resource's ``up`` link.  A ``custom_id`` that is not a
-    number matches nothing, and the search falls through to those ids.  Returns
+    number doesn't match anything, and the search falls through to those ids.  Returns
     ``None`` when none of them finds a row.
     """
     custom_id = resource.get("custom_id")
@@ -874,7 +875,7 @@ def vault_from_capture(order: dict[str, Any]) -> MandateMethod | None:
 
     Reads ``payment_source.paypal.attributes.vault.id`` and the payer's email
     address, which is what the member sees: ``"PayPal (m***@example.org)"``.
-    ``None`` when the order saved nothing.
+    ``None`` when the order didn't save an account.
     """
     paypal = (order.get("payment_source") or {}).get("paypal") or {}
     vault = (paypal.get("attributes") or {}).get("vault") or {}
@@ -893,8 +894,8 @@ def paypal_label(email: str) -> str:
     """How a saved PayPal account reads to its owner.
 
     ``"PayPal (m***@example.org)"`` for a known address, with everything after the
-    first character of the local part hidden, and ``"PayPal"`` when PayPal gave no
-    address at all.
+    first character of the local part hidden, and ``"PayPal"`` when PayPal didn't
+    give an address at all.
     """
     if "@" not in email:
         return "PayPal"

@@ -78,7 +78,7 @@ from apps.payments.services import fees_are_known, mark_failed, mark_succeeded, 
 log = logging.getLogger(__name__)
 
 #: What a member is told when Stripe times out or answers with an error of its
-#: own.  It says nothing about the money: a call can fail after Stripe acted.
+#: own.  It doesn't say anything about the money: a call can fail after Stripe acted.
 UNAVAILABLE_MESSAGE = "Stripe didn't answer. Try again in a moment."
 
 #: The event Stripe sends when a charge's balance transaction becomes readable,
@@ -107,8 +107,8 @@ INTENT_EXPAND = ["latest_charge.balance_transaction"]
 #: What the renewal scan logs about a charge Stripe is still processing.
 PROCESSING_MESSAGE = "Stripe is still processing the charge."
 
-#: What the member is told when the renewal has no saved card to charge.
-NO_METHOD_MESSAGE = "There is no saved card to charge."
+#: What the member is told when the renewal doesn't have a saved card to charge.
+NO_METHOD_MESSAGE = "There isn't a saved card to charge."
 
 #: What the member is told when Stripe no longer has the saved customer or card.
 METHOD_GONE_MESSAGE = "The saved card is no longer on file."
@@ -206,8 +206,8 @@ def close_declined_intent(payment: Payment, intent: dict[str, Any]) -> None:
     """Cancel ``intent`` at Stripe once ``payment`` is marked failed after a decline.
 
     An intent left in ``requires_payment_method`` takes another card through the same
-    client secret, straight from a browser.  Canceling it leaves the client secret good
-    for nothing, so paying after a decline starts a payment of its own, one the
+    client secret, straight from a browser.  Canceling it leaves the client secret
+    useless, so paying after a decline starts a payment of its own, one the
     server starts and counts.  Nothing is asked
     of Stripe for an intent in any other status, or for a payment that is not failed
     (one that succeeded first).  A cancel Stripe refuses, or cannot be reached for, is
@@ -222,10 +222,10 @@ def close_declined_intent(payment: Payment, intent: dict[str, Any]) -> None:
 
 
 def cancel_setup_intent(setup_id: str) -> None:
-    """Cancel the SetupIntent ``setup_id``, so its client secret takes no card.
+    """Cancel the SetupIntent ``setup_id``, so its client secret can't take a card.
 
     Used after a decline and whenever a pending mandate's setup is replaced or thrown
-    away.  A cancel Stripe refuses, or cannot be reached for, and a Stripe with no
+    away.  A cancel Stripe refuses, or cannot be reached for, and a Stripe without a
     secret key configured, are logged at WARNING and otherwise ignored: the setup is
     finished with either way.
     """
@@ -306,9 +306,9 @@ class StripeProvider(Provider):
         money already arrived -- succeeded, partly refunded, or refunded -- which is
         left exactly as it is; returns ``False``, having marked the payment failed, when
         Stripe reports ``canceled`` or ``requires_payment_method``, and canceling a
-        ``requires_payment_method`` intent so it takes no other card
+        ``requires_payment_method`` intent so it can't take another card
         (:func:`close_declined_intent`).  Raises
-        :class:`PaymentVerificationError` when there is no intent to confirm, when
+        :class:`PaymentVerificationError` when there isn't an intent to confirm, when
         the intent belongs to another payment, when :meth:`verify` disagrees, and
         when Stripe reports any other status.  Raises
         :class:`ProviderUnavailableError` when Stripe cannot be reached.
@@ -351,7 +351,7 @@ class StripeProvider(Provider):
         return True
 
     def record_refunds(self, payment: Payment, charge: dict[str, Any]) -> int:
-        """File every succeeded refund on ``charge`` that we have no row for yet.
+        """File every succeeded refund on ``charge`` that we don't have a row for yet.
 
         Returns how many refunds were recorded, which is zero when they are all
         already on file -- the ordinary answer to a redelivered webhook, and to
@@ -392,13 +392,13 @@ class StripeProvider(Provider):
         Returns Stripe's refund id and the refund object it answered with.  The
         call carries an idempotency key built from the refund row, so a repeat
         after a timeout gives the money back once.  Raises
-        :class:`PaymentVerificationError` when the payment carries no intent to
-        refund, :class:`ProviderNotConfiguredError` without a secret key and
+        :class:`PaymentVerificationError` when the payment doesn't carry an intent
+        to refund, :class:`ProviderNotConfiguredError` without a secret key and
         :class:`ProviderUnavailableError` when Stripe cannot be reached or
         refuses the refund.
         """
         if not payment.provider_ref:
-            raise PaymentVerificationError("That payment has no PaymentIntent to refund.")
+            raise PaymentVerificationError("That payment doesn't have a PaymentIntent to refund.")
         client = stripe_client()
         try:
             created = client.v1.refunds.create(
@@ -484,13 +484,13 @@ class StripeProvider(Provider):
         """Cancel a SetupIntent Stripe declined, whatever became of its mandate.
 
         A SetupIntent left in ``requires_payment_method`` is canceled
-        (:func:`cancel_setup_intent`), so its client secret takes no other card, and
+        (:func:`cancel_setup_intent`), so its client secret can't take another card, and
         the event is answered ``handled``.  The event is signed, so the SetupIntent
         is canceled without looking for the mandate it was started for, which may
         have been discarded or set up again with another provider since.  No mandate
         is changed: a pending one is replaced by the member's next setup or thrown
-        away by a checkout that saves nothing.  A SetupIntent in any other status is
-        answered ``handled`` false.
+        away by a checkout that doesn't save a method.  A SetupIntent in any other
+        status is answered ``handled`` false.
         """
         if setup.get("status") != DECLINED_STATUS:
             return JsonResponse({"received": True, "handled": False})
@@ -503,12 +503,12 @@ class StripeProvider(Provider):
         ``charge.updated`` is the event that fires when the balance transaction
         finally exists.  The fee is taken from the event when it carries an
         expanded balance transaction, and asked for again otherwise.  A payment
-        whose fee is already recorded is left alone, so a re-delivery changes
-        nothing, and a payment Stripe cannot be asked about is acknowledged
+        whose fee is already recorded is left alone, so a re-delivery doesn't change
+        anything, and a payment Stripe cannot be asked about is acknowledged
         unhandled rather than failing the delivery.
 
-        The fee is recorded whatever state the payment is in: Stripe orders no
-        deliveries, so this event can arrive before the
+        The fee is recorded whatever state the payment is in: Stripe doesn't order
+        its deliveries, so this event can arrive before the
         ``payment_intent.succeeded`` that settles the row, and
         :func:`~apps.payments.services.settled_fees` keeps what is already
         there.
@@ -534,7 +534,7 @@ class StripeProvider(Provider):
     def fetch_fees(self, payment: Payment) -> ProviderFees | None:
         """Retrieve the intent again and read the fee off its balance transaction.
 
-        Answers ``None`` for a payment with no intent id, and for one whose
+        Answers ``None`` for a payment without an intent id, and for one whose
         balance transaction Stripe has still not created.  Raises
         :class:`ProviderNotConfiguredError` without a secret key and
         :class:`ProviderUnavailableError` when Stripe cannot be reached.
@@ -612,7 +612,7 @@ class StripeProvider(Provider):
         intent = created.to_dict()
         secret = intent.get("client_secret")
         if not secret:
-            raise PaymentVerificationError("Stripe returned no SetupIntent client secret.")
+            raise PaymentVerificationError("Stripe didn't return a SetupIntent client secret.")
         self.abandon_setup(mandate)
         mandate.raw = {**(mandate.raw or {}), SETUP_INTENT_KEY: str(intent.get("id") or "")}
         mandate.save(update_fields=["raw", "updated_at"])
@@ -621,7 +621,7 @@ class StripeProvider(Provider):
     def abandon_setup(self, mandate: RenewalMandate) -> None:
         """Cancel the SetupIntent ``mandate.raw`` names under :data:`SETUP_INTENT_KEY`.
 
-        Nothing is asked of Stripe for a mandate that names none.  The key itself is
+        Nothing is asked of Stripe for a mandate that doesn't name one.  The key itself is
         left for the caller, which is about to replace or delete the mandate's ``raw``.
         """
         setup_id = (mandate.raw or {}).get(SETUP_INTENT_KEY)
@@ -634,11 +634,11 @@ class StripeProvider(Provider):
         ``setup_intent_id`` names the SetupIntent the browser confirmed.  Raises
         :class:`PaymentVerificationError` when no id is given, when the intent
         belongs to another customer, when Stripe reports anything but
-        ``succeeded``, and when the intent carries no payment method; raises
+        ``succeeded``, and when the intent doesn't carry a payment method; raises
         :class:`ProviderUnavailableError` when Stripe cannot be reached.  A
         SetupIntent Stripe reports as ``requires_payment_method``, which is what a
         declined card leaves, is canceled before the refusal is raised, so its client
-        secret takes no other card.
+        secret can't take another card.
         """
         setup_intent_id = str(kwargs.get("setup_intent_id") or "")
         if not setup_intent_id:
@@ -664,7 +664,7 @@ class StripeProvider(Provider):
 
         method = intent.get("payment_method")
         if not isinstance(method, dict):
-            raise PaymentVerificationError("Stripe saved no payment method.")
+            raise PaymentVerificationError("Stripe didn't save a payment method.")
         return method_from_card(
             str(method.get("id") or ""),
             str(customer_id or ""),
@@ -682,7 +682,7 @@ class StripeProvider(Provider):
         cannot charge twice even after the member changed card, and settles the
         payment from what Stripe answers (:meth:`settle_renewal`).  Raises
         :class:`PaymentDeclinedError` carrying Stripe's own wording when the card is
-        refused or further authentication is required, and also when there is no
+        refused or further authentication is required, and also when there isn't a
         customer or method to charge or Stripe no longer has the one named
         (``resource_missing``); :class:`PaymentPendingError` when Stripe reports the
         charge ``processing``; and :class:`ProviderUnavailableError` when Stripe
@@ -732,7 +732,7 @@ class StripeProvider(Provider):
         ``metadata.payment_id`` is this payment's is taken: a succeeded one first,
         then a processing one.  Listing is strongly consistent, unlike Stripe's
         search.  An intent found is settled by :meth:`settle_renewal` and answers
-        ``True``; none answers ``False``.  A payment with no customer to list was
+        ``True``; none answers ``False``.  A payment without a customer to list was
         never charged, and answers ``False`` without asking Stripe.  Raises
         :class:`ProviderUnavailableError` when Stripe cannot be asked, and when the
         list runs past one page without finding the payment, since the intent could
@@ -805,8 +805,8 @@ class StripeProvider(Provider):
         bare id there -- so the payment method is retrieved from Stripe instead,
         and the mandate is activated whichever of the two arrives first.
 
-        ``None`` when the intent recorded no payment method at all, which is what
-        a payment that saved nothing looks like, and ``None`` when Stripe cannot
+        ``None`` when the intent didn't record a payment method at all, which is what
+        a payment that didn't save a method looks like, and ``None`` when Stripe cannot
         be asked for the card.
         """
         intent = payment.raw or {}

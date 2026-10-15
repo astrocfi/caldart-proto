@@ -97,7 +97,7 @@ def trimmed_search_index(index_file: Path, modified: int, hidden: frozenset[str]
     word in ``terms`` and ``titleterms`` keeps only the pages left, written as one
     number when one page is left, as Sphinx writes it, and is dropped when none is;
     every entry in ``alltitles``, ``indexentries`` and ``objects`` on a hidden page is
-    dropped, and a name with no entry left goes with it.  Every other field passes
+    dropped, and a name left without an entry goes with it.  Every other field passes
     through unchanged.  ``modified`` is the file's modification time in nanoseconds,
     part of the cache key only.  Raises ``SearchIndexError`` when the file is not a
     ``Search.setIndex(...)`` call holding the fields above in Sphinx's shapes.
@@ -199,9 +199,9 @@ def trimmed_page(page_file: Path, page_path: str, modified: int, hidden: frozens
     next or previous link at the bottom of the page, and every next, previous, index, or
     search link in its head, that leads to one;
     every other link to one, such as a link in the page's prose, which loses its
-    anchor and keeps its text; and then every list in the navigation left with no
-    entries, with the caption before it and a table of contents left with no list.
-    A page that loses nothing is returned byte for byte as built.  ``modified`` is the
+    anchor and keeps its text; and then every list in the navigation left empty, with
+    the caption before it, and a table of contents left without a list.  A page
+    that keeps everything is returned byte for byte as built.  ``modified`` is the
     file's modification time in nanoseconds, part of the cache key only.
     """
     raw = page_file.read_bytes()

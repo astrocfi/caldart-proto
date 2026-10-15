@@ -986,7 +986,7 @@ def test_a_closed_charge_is_never_created_again(
             "That PayPal capture is in another currency.",
         ),
         ({"status": "PENDING"}, "That PayPal capture has not completed."),
-        ({"supplementary_data": {}}, "PayPal names no order for that capture."),
+        ({"supplementary_data": {}}, "PayPal doesn't name an order for that capture."),
     ],
     ids=["amount", "currency", "not-completed", "no-order"],
 )
@@ -1029,7 +1029,7 @@ def test_a_capture_paypal_has_no_record_of_settles_nothing(
         settle_url(the_attempt().pk), {"outcome": "paid", "reference": CAPTURE_ID}, format="json"
     )
 
-    assert response.json() == {"detail": f"PayPal has no capture {CAPTURE_ID}."}
+    assert response.json() == {"detail": f"PayPal doesn't have a capture {CAPTURE_ID}."}
 
 
 @pytest.mark.parametrize("outcome", ["released", "failed"])

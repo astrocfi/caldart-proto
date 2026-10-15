@@ -3,7 +3,7 @@
 Money that never passes through Stripe or PayPal still buys a membership term
 and still earns a receipt, so a payment recorded here goes through exactly the
 same service a card checkout does.  It differs in only three ways: the provider
-is ``manual``, the fee is nothing so the net equals the amount, and the ledger
+is ``manual``, the fee is zero so the net equals the amount, and the ledger
 date is the day the money was received rather than the moment it was keyed in.
 """
 
@@ -67,7 +67,7 @@ def record_manual_payment(
     including one recorded between this call's check and its insert -- by
     ``plan`` for a plan that is not active, by ``contribution_cents`` for a
     negative contribution and by ``amount_cents`` when the plan and the
-    contribution come to nothing.  Nothing is written when it raises.
+    contribution come to zero.  Nothing is written when it raises.
     """
     if method not in MANUAL_METHODS:
         raise DomainValidationError("method", f"Unknown payment method '{method}'.")

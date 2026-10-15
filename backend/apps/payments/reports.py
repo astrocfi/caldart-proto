@@ -64,7 +64,7 @@ PERIOD_FORMAT = {"month": "%Y-%m", "year": "%Y"}
 #: The period :func:`summarize` groups by unless the caller asks for the other.
 DEFAULT_GROUP = "month"
 
-#: How the list and the exports sort when ``?ordering=`` names nothing: newest
+#: How the list and the exports sort when ``?ordering=`` is empty: newest
 #: ledger day first, and within a day the payment that settled last.
 DEFAULT_ORDERING = ("-paid_date", "-paid_at")
 
@@ -184,8 +184,8 @@ def _kind_filter(kind: str) -> Q:
 
     ``kind`` is a :class:`~apps.payments.models.PaymentKind` value, and the
     condition mirrors :attr:`apps.payments.models.Payment.kind`: a contribution
-    names no plan, a membership names one and gives nothing beyond it, and both
-    does the two at once.
+    doesn't name a plan, a membership names one and doesn't give anything beyond it,
+    and both does the two at once.
     """
     if kind == PaymentKind.CONTRIBUTION:
         return Q(plan__isnull=True)
@@ -275,7 +275,7 @@ def summarize(queryset: QuerySet[Payment], group: str = DEFAULT_GROUP) -> list[P
     back.  ``fee_cents`` and ``net_cents`` are what the provider reported,
     ``refunded_cents`` the succeeded refunds against those payments, and
     ``by_provider`` breaks the period's gross down by provider, omitting
-    providers with nothing in that period.
+    providers without any money in that period.
     """
     received = queryset.filter(status__in=RECEIVED_STATUSES)
     rows = (
@@ -372,20 +372,20 @@ def contribution_rows(year: int) -> list[ContributionRow]:
 
 
 def display_name(payment: Payment) -> str:
-    """The payer's full name, or their email address when they have no name."""
+    """The payer's full name, or their email address when their name is blank."""
     full = f"{payment.user.first_name} {payment.user.last_name}".strip()
     return full or payment.user.email
 
 
 def term_of(payment: Payment) -> Membership | None:
-    """The membership term ``payment`` bought, or ``None`` when it bought none.
+    """The membership term ``payment`` bought, or ``None`` when it didn't buy one.
 
     A payment carries at most one term, through ``Membership.payment``.  A pure
     contribution, a failed attempt and a term that has since been detached all
     report ``None``.
     """
-    # A reverse one-to-one raises rather than answering None when there is no
-    # related row, which is Django's way of saying "not set".
+    # A reverse one-to-one raises rather than answering None when the related row
+    # is missing, which is Django's way of saying "not set".
     try:
         return payment.membership
     except Membership.DoesNotExist:
@@ -393,7 +393,7 @@ def term_of(payment: Payment) -> Membership | None:
 
 
 def _iso(value: dt.date | None) -> str:
-    """The date as ``YYYY-MM-DD``, or a blank cell when there is none."""
+    """The date as ``YYYY-MM-DD``, or a blank cell when it is missing."""
     return value.isoformat() if value else ""
 
 
@@ -415,7 +415,7 @@ def _money(cents: int) -> str:
 #: Every column the payment exports can carry, in export order.  ``key`` is what
 #: ``?columns=`` names and what ``GET /reports/payments/columns`` answers with,
 #: ``label`` is the header both exports print, and ``default`` says whether the
-#: column appears when the caller chooses none.  The eight defaults -- the date,
+#: column appears when the caller doesn't choose any.  The eight defaults -- the date,
 #: who paid and their address, the plan, the total, the fee, what CalDART kept, and
 #: the status -- are what the everyday list is read for, and fit a screen without
 #: wrapping.  The rest are there for a reconciliation or an audit: the kind repeats
@@ -460,7 +460,7 @@ FIRST_REPORTABLE_YEAR = 1900
 
 
 class ReportDateField(serializers.DateField):
-    """One end of a report's date range, where an empty parameter is no bound at all.
+    """One end of a report's date range, where an empty parameter doesn't bound it at all.
 
     The report screen sends every parameter on every request, so ``?from=`` has to
     mean the same as leaving ``from`` out.  Anything else that is not a date the
@@ -491,7 +491,7 @@ class ReportDateField(serializers.DateField):
 class PaymentReportQuerySerializer(serializers.Serializer[dict[str, Any]]):
     """The query string the finance list, summary and exports share.
 
-    Every parameter is optional and an empty one narrows nothing.  ``from`` and
+    Every parameter is optional and an empty one doesn't narrow the results.  ``from`` and
     ``to`` bound the date the money arrived; ``provider``, ``status``, ``wallet``
     and ``kind`` must each name one of the payment choices; ``plan`` is a plan
     slug; ``member`` is a member's id; ``reconciled`` is ``yes`` or ``no``;
@@ -523,7 +523,7 @@ class PaymentReportQuerySerializer(serializers.Serializer[dict[str, Any]]):
     def validate_provider(self, value: str) -> str:
         """Return ``value``, or raise ``Unknown provider '<value>'.`` for an unknown one.
 
-        An empty string is accepted and narrows nothing.
+        An empty string is accepted and doesn't narrow the results.
         """
         if value and value not in PaymentProvider.values:
             raise serializers.ValidationError(f"Unknown provider '{value}'.")
@@ -532,7 +532,7 @@ class PaymentReportQuerySerializer(serializers.Serializer[dict[str, Any]]):
     def validate_status(self, value: str) -> str:
         """Return ``value``, or raise ``Unknown status '<value>'.`` for an unknown one.
 
-        An empty string is accepted and narrows nothing.
+        An empty string is accepted and doesn't narrow the results.
         """
         if value and value not in PaymentStatus.values:
             raise serializers.ValidationError(f"Unknown status '{value}'.")
@@ -541,7 +541,7 @@ class PaymentReportQuerySerializer(serializers.Serializer[dict[str, Any]]):
     def validate_wallet(self, value: str) -> str:
         """Return ``value``, or raise ``Unknown wallet '<value>'.`` for an unknown one.
 
-        An empty string is accepted and narrows nothing.
+        An empty string is accepted and doesn't narrow the results.
         """
         if value and value not in PaymentWallet.values:
             raise serializers.ValidationError(f"Unknown wallet '{value}'.")
@@ -550,7 +550,7 @@ class PaymentReportQuerySerializer(serializers.Serializer[dict[str, Any]]):
     def validate_kind(self, value: str) -> str:
         """Return ``value``, or raise ``Unknown kind '<value>'.`` for an unknown one.
 
-        An empty string is accepted and narrows nothing.
+        An empty string is accepted and doesn't narrow the results.
         """
         if value and value not in PaymentKind.values:
             raise serializers.ValidationError(f"Unknown kind '{value}'.")
@@ -559,7 +559,7 @@ class PaymentReportQuerySerializer(serializers.Serializer[dict[str, Any]]):
     def validate_reconciled(self, value: str) -> str:
         """Return ``value``, or raise :data:`RECONCILED_MESSAGE` for anything else.
 
-        An empty string is accepted and narrows nothing.
+        An empty string is accepted and doesn't narrow the results.
         """
         if value and value not in {"yes", "no"}:
             raise serializers.ValidationError(RECONCILED_MESSAGE)
@@ -611,7 +611,7 @@ class ContributionQuerySerializer(serializers.Serializer[dict[str, Any]]):
     )
 
     def chosen_year(self) -> int:
-        """The year to report on, which is this year when the caller named none."""
+        """The year to report on, which is this year when the caller didn't name one."""
         year = self.validated_data["year"]
         return year if year is not None else timezone.localdate().year
 
@@ -639,9 +639,10 @@ def requested_ordering(ordering: str) -> list[str]:
 def validated_query(params: Params) -> PaymentReportQuerySerializer:
     """``params`` checked by :class:`PaymentReportQuerySerializer`.
 
-    A blank param is left out first, so it narrows nothing whether ``params`` is a
-    query string or a stored mapping.  Raises DRF's ``ValidationError`` -- a 400 keyed
-    by the parameter at fault -- for anything the finance endpoints will not act on.
+    A blank param is left out first, so it never narrows the results, whether
+    ``params`` is a query string or a stored mapping.  Raises DRF's ``ValidationError``
+    -- a 400 keyed by the parameter at fault -- for anything the finance endpoints will
+    not act on.
     """
     query = PaymentReportQuerySerializer(data=given_params(params))
     query.is_valid(raise_exception=True)
@@ -796,7 +797,7 @@ class DonorFilters:
     """The narrowing the donor report and its screen share.
 
     ``county`` is every county named, already split on commas and stripped; an
-    empty tuple narrows nothing.  ``min_cents`` and ``max_cents`` bound a
+    empty tuple doesn't narrow the results.  ``min_cents`` and ``max_cents`` bound a
     donor's total ``given_cents`` over the whole range, not any one gift.
     """
 
@@ -855,7 +856,7 @@ def apply_donor_filters(queryset: QuerySet[Payment], filters: DonorFilters) -> Q
 
 
 def _donor_profile(payment: Payment) -> MemberProfile | None:
-    """``payment``'s payer's profile, or ``None`` for the one that has none yet.
+    """``payment``'s payer's profile, or ``None`` for a payer who doesn't have one yet.
 
     Every donor gets a profile at registration, so this is defensive rather
     than an expected case, the same way :func:`term_of` reads a reverse
@@ -933,7 +934,7 @@ def donor_rows(filters: DonorFilters) -> list[DonorRow]:
 class DonorReportQuerySerializer(serializers.Serializer[dict[str, Any]]):
     """The query string the Donors screen and its exports share.
 
-    Every parameter is optional and an empty one narrows nothing.  ``county``
+    Every parameter is optional and an empty one doesn't narrow the results.  ``county``
     is one or more California counties, comma-separated; ``dart`` matches a
     DART by id or by a fragment of its name, as the member list's own DART
     filter does; ``min_cents`` and ``max_cents`` bound a donor's total giving
@@ -956,7 +957,7 @@ class DonorReportQuerySerializer(serializers.Serializer[dict[str, Any]]):
     def validate_county(self, value: str) -> str:
         """Return ``value``, or raise for a county California does not have.
 
-        An empty string is accepted and narrows nothing.
+        An empty string is accepted and doesn't narrow the results.
         """
         for county in _split_counties(value):
             if county not in DONOR_COUNTIES:

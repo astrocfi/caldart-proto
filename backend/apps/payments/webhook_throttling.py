@@ -1,15 +1,15 @@
 """The rate limit on the PayPal webhook, counted per client address.
 
-``POST /payments/paypal/webhook`` takes no session and no CSRF token: PayPal's
+``POST /payments/paypal/webhook`` doesn't take a session or a CSRF token: PayPal's
 signature is the only gate, and checking it costs a call to PayPal.  PayPal delivers
 a handful of notifications per payment, so a caller sending more than
 ``PAYPAL_WEBHOOK_THROTTLE_RATE`` from one address is answered 429 before the handler
 runs, and PayPal, when it is turned away, sends the delivery again later.  The
-Stripe webhook is not throttled: its signature is checked locally, at no cost, and a
+Stripe webhook is not throttled: its signature is checked locally, for free, and a
 429 would only delay a real delivery.
 
 An IPv6 caller is counted by its ``/64``, the block one subscriber is usually given,
-so stepping through addresses inside it buys no fresh budget.  The rate comes from
+so stepping through addresses inside it doesn't buy a fresh budget.  The rate comes from
 the setting rather than DRF's ``DEFAULT_THROTTLE_RATES``, so the test settings can
 switch it off and a single test can switch it back on with the ``settings`` fixture.
 """

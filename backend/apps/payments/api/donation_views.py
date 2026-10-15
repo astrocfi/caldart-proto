@@ -66,8 +66,9 @@ PAYMENT_FIELDS = ("contribution_cents", "provider")
 def gift_result(payment: Payment) -> Response:
     """200 with ``{status, membership}`` for a gift, ``membership`` always a donor's.
 
-    The giver may not be the account's owner, so the answer says nothing about the
-    account the gift went to: ``membership`` reads ``donor`` whoever holds the address.
+    The giver may not be the account's owner, so the answer doesn't say anything
+    about the account the gift went to: ``membership`` reads ``donor`` whoever holds
+    the address.
     """
     result = {"status": payment.status, "membership": donor_membership()}
     return Response(PaymentResultSerializer(result).data)
@@ -142,9 +143,9 @@ class DonationCheckoutView(APIView):
         The answer is the same whoever holds the address: one that belongs to a member's
         or a friend's account gives to that account, and the details sent are never
         written onto it.  400 by field for a detail the profile's rules refuse, for a
-        gift of nothing or of less than ``DONATION_MINIMUM_CENTS``, and for a provider
+        gift of zero or of less than ``DONATION_MINIMUM_CENTS``, and for a provider
         that is not configured; 400 with ``detail``
-        when the provider refuses to start.  Any refusal writes nothing.
+        when the provider refuses to start.  A refusal doesn't write anything.
         """
         serializer = DonationCheckoutSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

@@ -114,7 +114,7 @@ payment and starts it with the chosen provider.
 membership term is created when it succeeds.  A life member -- somebody who
 already holds a term that never expires -- doesn't have anything left to buy, so a
 ``plan`` from one is refused with a 400 naming ``plan``: ``You are a life member, so
-there is nothing to renew. Make a donation instead.``  The body doesn't take an
+you don't have anything to renew. Make a donation instead.``  The body doesn't take an
 amount field; one sent anyway is ignored.  ``contribution_cents`` runs from ``0`` to
 ``9999900`` ($99,999.00) inclusive -- inside every provider's per-charge
 ceiling, so an amount the API accepts is one the provider will take.  A checkout

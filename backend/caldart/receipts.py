@@ -186,7 +186,7 @@ class StatementData:
     """A member's contributions for one calendar year.
 
     ``contributions`` are in the order they are printed, which is the order
-    they were paid.  A year with none renders a page whose total is zero rather
+    they were paid.  A year without any renders a page whose total is zero rather
     than an empty document.  ``public_gifts`` are gifts made on the public donation
     page with the member's address, perhaps by somebody else: they are listed apart
     and are not in the total.
@@ -376,7 +376,7 @@ def _paid_with(receipt: ReceiptData) -> str:
 def _letterhead(org: OrgDetails) -> list[Flowable]:
     """The organization's name, address, EIN and contact address, then a gap.
 
-    A field nobody has filled in draws no line at all, so an unconfigured site
+    A field nobody has filled in doesn't draw a line at all, so an unconfigured site
     still yields a tidy page.
     """
     story: list[Flowable] = [Paragraph(escape_markup(org.name), TITLE_STYLE)]

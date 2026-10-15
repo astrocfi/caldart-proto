@@ -3,7 +3,7 @@
 Every email CalDART sends -- a reminder, a receipt, a refund, a renewal notice
 -- is a pair of templates under ``backend/templates/emails/``: the ``.txt`` body
 is the message proper, and the ``.html`` one an alternative, so a client that
-renders no markup still reads the whole thing.  :func:`send_templated` renders
+doesn't render markup still reads the whole thing.  :func:`send_templated` renders
 both and sends them, and :func:`org_name` and :func:`contact_email` answer the
 two pieces of the letterhead almost every template asks for.
 
@@ -229,7 +229,7 @@ def send_templated(
     Every send is recorded in the email log: ``purpose`` names what the message
     was for and defaults to ``template``, which is the right answer wherever one
     template is one kind of message; ``user_id`` is the primary key of the account
-    the email concerned, and is left null for an address with no account behind it.
+    the email concerned, and is left null for an address without an account behind it.
     ``to_name`` is the recipient's name at send time, such as a DART contact's
     name; a caller that leaves it blank while naming ``user_id`` has the account's
     own ``display_name`` recorded instead, so an account-linked row always carries
@@ -364,8 +364,8 @@ def send_on_commit(send: Callable[[], object], *, what: str) -> None:
 
     The send runs through :func:`send_logging_refusal`, so a mail server that refuses
     the message cannot fail the request or job whose change has already committed;
-    outside a transaction the send runs at once.  A transaction that rolls back sends
-    nothing.
+    outside a transaction the send runs at once.  A transaction that rolls back never
+    sends it.
     """
     transaction.on_commit(lambda: send_logging_refusal(send, what=what))
 
@@ -378,14 +378,13 @@ def send_after_response(
     The WSGI server closes a response after it has written the body, and Django runs
     the response's closers then; ``send`` is added to them.  An answer that must not
     depend on whether a message goes out, nor on how long rendering and sending it
-    takes, can therefore be sent first: a client timing the request learns nothing from
-    the mail.  The send runs through :func:`send_logging_refusal`, so a refusal is logged
-    rather than raised; anything else it raises, a template that does not render
-    included, is logged at ERROR on this module's logger with its traceback, since
-    Django discards what a closer raises and no answer is left to carry it.  The
-    request's transaction has ended by then, so ``send`` sees what it committed.  A
-    response that is never closed, such as one a test builds by calling a view
-    directly, sends nothing.
+    takes, can therefore be sent first: a client timing the request can't learn anything
+    from the mail.  The send runs through :func:`send_logging_refusal`, so a refusal is
+    logged rather than raised; anything else it raises, a template that does not render
+    included, is logged at ERROR on this module's logger with its traceback, since Django
+    discards what a closer raises and no answer is left to carry it.  The request's
+    transaction has ended by then, so ``send`` sees what it committed.  A response that is
+    never closed, such as one a test builds by calling a view directly, never sends it.
     """
 
     def closer() -> None:
@@ -403,7 +402,7 @@ def send_after_response(
 def new_message_id() -> str:
     """A fresh ``Message-ID``, in angle brackets, on ``DEFAULT_FROM_EMAIL``'s domain.
 
-    It is what :func:`send_templated` gives a message when the caller names none.
+    It is what :func:`send_templated` gives a message when the caller doesn't name one.
     """
     return make_msgid(domain=_message_id_domain())
 
@@ -498,7 +497,7 @@ def _reserve_log_id() -> int:
         )
         row = cursor.fetchone()
     if row is None:
-        raise DatabaseError("nextval answered no row")
+        raise DatabaseError("nextval answered an empty result")
     return int(row[0])
 
 
@@ -529,7 +528,7 @@ def _record(
     A blank ``to_name`` with a ``user_id`` is filled in from that account's current
     ``display_name`` before the row is written, so the log keeps the name the
     recipient had at send time even after the account is later renamed.  A ``user_id``
-    whose account no longer exists is recorded as no account at all.  Whatever
+    whose account no longer exists is recorded without an account at all.  Whatever
     name results is cut to fit ``EmailLog.to_name``: a first and last name can
     together run past that limit, and the row must still be written rather than
     raise past a mail server that already took the message.
@@ -543,7 +542,7 @@ def _record(
         account = get_user_model().objects.filter(pk=user_id).first()
         if account is None:
             # The account was deleted before the message went, as a deleted member's
-            # "automatic renewal is off" email is: keep the row, naming no account.
+            # "automatic renewal is off" email is: keep the row, without an account.
             user_id = None
         elif not name:
             name = account.display_name

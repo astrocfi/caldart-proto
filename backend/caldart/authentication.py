@@ -2,7 +2,7 @@
 
 Session authentication is the only credential the API accepts; the portal and
 the API are same-origin, so the browser's session cookie is enough.  What this
-module adds is the CSRF check for callers who have no session yet.
+module adds is the CSRF check for callers who don't have a session yet.
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ class CsrfEnforcingSessionAuthentication(SessionAuthentication):
     only after it has found a signed-in user, so without this class an
     anonymous unsafe method -- login, registration, logout, the two
     password-reset endpoints, and any future ``AllowAny`` endpoint -- would be
-    accepted from a cross-site form with no token at all.  That is login CSRF:
+    accepted from a cross-site form without any token at all.  That is login CSRF:
     a visitor silently signed into an attacker's account, or an account created
     from a victim's browser.
 
