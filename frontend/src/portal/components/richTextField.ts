@@ -9,8 +9,8 @@
  * any other way, a draft loading, a template applied, a paste, or typing, becomes a
  * chip as soon as it is complete; typed text waits until the cursor has left it, so
  * a sender can still finish writing `{first_name|friend}` or turn it into `{{x}}`.
- * A chip a brace typed beside it turns into no token, `{{first_name}`, goes back to
- * text, so a chip always stands for a token the server will fill in.
+ * A chip that a brace typed beside it stops being a token, `{{first_name}`, goes back
+ * to text, so a chip always stands for a token the server will fill in.
  */
 import { DOMSerializer } from '@tiptap/pm/model';
 import type { Fragment, Mark, Node as ProseMirrorNode, NodeType, Schema } from '@tiptap/pm/model';
@@ -66,7 +66,7 @@ interface TokenRange {
   marks: readonly Mark[];
 }
 
-/** A chip whose neighbors make its token text no token, at `pos`. */
+/** A chip whose neighbors make its token text stop being a token, at `pos`. */
 interface BrokenChip {
   pos: number;
   node: ProseMirrorNode;
@@ -95,8 +95,8 @@ interface Segment {
  * with the same styles: one split by bold or a link is left as text, which the server
  * refuses, and so is one whose fallback holds whitespace other than single plain
  * spaces.  A chip becomes text again when a brace written beside it doubles one of
- * its own, `{` before it or `}` after it, since the server then reads no token there
- * either.
+ * its own, `{` before it or `}` after it, since the server then doesn't read a token
+ * there either.
  */
 function scanTokens(doc: ProseMirrorNode): TokenScan {
   const scan: TokenScan = { toChip: [], toText: [] };

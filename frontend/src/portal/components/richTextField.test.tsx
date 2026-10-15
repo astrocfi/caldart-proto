@@ -64,7 +64,7 @@ function area(): HTMLElement {
 /** The TipTap editor behind the editing area, to place the cursor and read its HTML. */
 function editor(): Editor {
   const { editor: instance } = area() as TiptapEditorHTMLElement;
-  if (instance === undefined) throw new Error('The editing area has no editor.');
+  if (instance === undefined) throw new Error('The editing area does not hold an editor.');
   return instance;
 }
 
@@ -95,7 +95,7 @@ async function placeCursor(pos: number, isNode = false): Promise<void> {
 
 /**
  * Types `text` at the cursor a character at a time, each its own transaction, as
- * ProseMirror reads keystrokes.  jsdom has no text input of its own to read.
+ * ProseMirror reads keystrokes.  jsdom doesn't have a text input of its own to read.
  */
 function typeText(text: string): void {
   for (const character of text) {
@@ -146,7 +146,7 @@ describe('RichTextEditor field chips', () => {
     expect(lastChange(handleChange)).toBe('<p>Dear {first_name}!,</p>');
   });
 
-  it('removes the chip before the cursor whole on Backspace, and nothing else', async () => {
+  it('removes only the chip before the cursor, whole, on Backspace', async () => {
     const handleChange = vi.fn();
     renderWithProviders(
       <Harness initial="<p>Dear {first_name} pilots</p>" onChange={handleChange} />,
@@ -476,7 +476,7 @@ describe('RichTextEditor field panel', () => {
   });
 
   it.each(['a{b', 'a|b', 'a<b', 'a>b', 'a}b'])(
-    'refuses a fallback holding %s, and changes nothing',
+    'refuses a fallback holding %s, and does not change anything',
     async (fallback) => {
       const handleChange = vi.fn();
       renderWithProviders(<Harness initial="<p>{first_name}</p>" onChange={handleChange} />);
@@ -510,7 +510,7 @@ describe('RichTextEditor field panel', () => {
     expect(lastChange(handleChange)).toBe(`<p>${token}</p>`);
   });
 
-  it('refuses a fallback of only spaces, and changes nothing', async () => {
+  it('refuses a fallback of only spaces, and does not change anything', async () => {
     const handleChange = vi.fn();
     renderWithProviders(<Harness initial="<p>{first_name}</p>" onChange={handleChange} />);
 
@@ -626,7 +626,7 @@ describe('RichTextEditor field panel', () => {
     ]).toEqual([null, true, 7]);
   });
 
-  it('opens no panel on a chip in a message that cannot change', async () => {
+  it('does not open a panel on a chip in a message that cannot change', async () => {
     renderWithProviders(<Harness initial="<p>{first_name}</p>" readOnly />);
 
     await userEvent.click(await chip());

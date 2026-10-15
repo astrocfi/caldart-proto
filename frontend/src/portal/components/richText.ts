@@ -15,7 +15,7 @@ const SCHEME = /^([a-z][a-z\d+.-]*):/i;
 /** The schemes a link may use; the server refuses any other. */
 const LINK_SCHEMES = new Set(['http', 'https', 'mailto']);
 
-/** Something shaped like an email address, with nothing around it. */
+/** A whole string shaped like an email address. */
 const EMAIL_ADDRESS = /^[^\s@/]+@[^\s@/]+\.[^\s@/]+$/;
 
 /**

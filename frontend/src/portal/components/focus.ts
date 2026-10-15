@@ -23,7 +23,7 @@ import type { RefObject } from 'react';
 /** The fields the focus moves to as a panel opens, the first of them in the page's order. */
 const FIRST_FIELD = 'input, select, textarea, [contenteditable="true"]';
 
-/** A button the focus may land on in a panel that holds no field, such as a confirmation. */
+/** A button the focus may land on in a panel that doesn't hold a field, such as a confirmation. */
 const FIRST_BUTTON = 'button:not([disabled]), a[href]';
 
 /** What counts as the control that opened a panel. */
@@ -56,7 +56,7 @@ const SUBMIT_BUTTON = 'button[type="submit"]';
  */
 export function focusIntoView(element: HTMLElement): void {
   element.focus({ preventScroll: true });
-  // jsdom has no layout, and so no `scrollIntoView`.
+  // jsdom doesn't lay pages out, so it doesn't have `scrollIntoView`.
   if (typeof element.scrollIntoView === 'function') {
     element.scrollIntoView({ block: 'center' });
   }
@@ -66,7 +66,7 @@ export function focusIntoView(element: HTMLElement): void {
  * Focus the first field in `root`; failing a field, its first enabled button or link;
  * failing that, `root` itself, made focusable for the purpose.
  *
- * Does nothing when `root` is null.
+ * Returns at once when `root` is null.
  */
 export function focusFirstField(root: HTMLElement | null): void {
   if (root === null) return;
@@ -90,7 +90,7 @@ export function countInvalidFields(root: HTMLElement | null): number {
  *
  * That is the first field in `root` marked `aria-invalid="true"`; when no field is
  * marked, it is the first `role="alert"` message in `root`, made focusable for the
- * purpose; when there is neither, the focus stays where it is.  Either way the target
+ * purpose; when there isn't either, the focus stays where it is.  Either way the target
  * is scrolled to the middle of the screen, so a person who pressed a button at the
  * foot of a long form sees what went wrong.
  *
@@ -111,7 +111,10 @@ export function focusRefusal(root: HTMLElement | null): number {
   return 0;
 }
 
-/** Whether the focus has been lost: it sits on the page itself, or on nothing. */
+/**
+ * Whether the focus has been lost: it sits on the page itself or on an element that
+ * has left the page, or `document.activeElement` is null.
+ */
 function isFocusLost(): boolean {
   const active = document.activeElement;
   return active === null || active === document.body || !active.isConnected;
@@ -216,10 +219,10 @@ const RESULT_TARGET = 'h3, h4, [role="alert"], [role="status"]';
  * Move the focus to a run's result as the run ends.
  *
  * @returns a ref for the element the result is drawn in. When `isRunning` turns false,
- *   or a result appears where there was none (a run so quick it never drew as running),
+ *   or a result appears where there wasn't one (a run so quick it never drew as running),
  *   the focus moves to the result's heading or, failing that, its alert or status line,
  *   made focusable (`tabindex="-1"`) for the purpose and brought into view.  Nothing
- *   moves when the result holds none of them.
+ *   moves when the result doesn't hold any of them.
  */
 export function useFocusRunResult<Result extends HTMLElement = HTMLDivElement>(
   isRunning: boolean,

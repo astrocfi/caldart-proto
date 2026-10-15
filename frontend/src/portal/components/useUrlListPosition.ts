@@ -72,7 +72,7 @@ export function pageFrom(value: string): number {
 /**
  * The list's order and page, read from and written to the query string.
  *
- * @param defaultOrdering the order used while the address names none.
+ * @param defaultOrdering the order used while the address doesn't name one.
  * @returns the order, the page and their setters.
  */
 export function useUrlListPosition(defaultOrdering: string): UrlListPosition {

@@ -41,13 +41,13 @@ interface RunActionsTableProps {
   detailHeader?: string;
   /**
    * The counts sentence, the skip breakdown and the failed line, rendered
-   * between the heading and the table.  Left out when the caller has nothing
-   * to report yet.
+   * between the heading and the table.  Left out when the caller doesn't have
+   * anything to report yet.
    */
   summary?: ReactNode;
   /**
    * Whether the actions carry a date and an amount.  A run that only sends
-   * emails about no particular day, such as the bulk email sender, passes false to
+   * emails that aren't about a particular day, such as the bulk email sender, passes false to
    * leave the When and Amount columns out.
    */
   hasWhenAndAmount?: boolean;
@@ -81,7 +81,7 @@ export function runActionColumns({
   detailHeader,
   hasWhenAndAmount = true,
 }: RunActionColumnsOptions): Column<RunAction>[] {
-  // A column no row fills is left out; an empty table draws no headings at all.
+  // A column no row fills is left out; an empty table doesn't draw any headings.
   const hasDetail = actions.some((row) => row.detail !== '');
   const hasWhen = actions.some((row) => row.on !== null);
   const hasAmount = actions.some((row) => row.amount_cents !== null);
@@ -139,8 +139,8 @@ export function runActionColumns({
       header: 'Who',
       minWidth: '12rem',
       isIdentity: true,
-      // An action about an address nobody is named for, such as a bounce no sent
-      // email matched, shows the address alone.
+      // An action about an address nobody is named for, such as a bounce that
+      // didn't match a sent email, shows the address alone.
       render: (row) =>
         row.member === '' ? (
           row.email

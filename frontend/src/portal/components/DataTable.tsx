@@ -39,8 +39,8 @@ export interface Column<Row> {
   sortValue?: (row: Row) => string | number | null;
   /**
    * Set false to keep a column unsortable under server-side sorting, where
-   * every column is sortable by default. Use it for a column the API has no
-   * `ordering` value for.
+   * every column is sortable by default. Use it for a column the API doesn't have
+   * an `ordering` value for.
    */
   sortable?: boolean;
   /** Right-align and use tabular figures. */
@@ -52,7 +52,7 @@ export interface Column<Row> {
    * shares out the room the fixed widths leave, such as a name or an email
    * address. The table never grows narrower than its fixed widths and these
    * minimums together, so on a narrow screen it scrolls inside its card instead
-   * of squeezing these columns to nothing. Its cells start at the left edge.
+   * of squeezing these columns out of sight. Its cells start at the left edge.
    */
   minWidth?: string;
   /**
@@ -103,7 +103,7 @@ export interface Column<Row> {
 
 /**
  * The least width a single-line table takes: every fixed width and every minimum
- * added up, a column naming neither reckoned at the default width; `undefined`
+ * added up, a column that doesn't name either reckoned at the default width; `undefined`
  * when no column names a width or a minimum.
  */
 export function tableMinWidth<Row>(columns: readonly Column<Row>[]): string | undefined {
@@ -208,8 +208,8 @@ export interface DataTableProps<Row> {
   pagination?: PaginationSettings;
   /**
    * A totals row under the rows, keyed by column: each shown column draws its entry, or
-   * nothing, and the row stays put whichever way the table is sorted.  A column the
-   * table leaves out at this width leaves its total out with it.
+   * an empty cell without one, and the row stays put whichever way the table is
+   * sorted.  A column the table leaves out at this width leaves its total out with it.
    */
   footer?: Partial<Record<string, ReactNode>>;
 }
@@ -222,7 +222,7 @@ function compare(a: string | number | null, b: string | number | null): number {
   return String(a).localeCompare(String(b), 'en', { numeric: true, sensitivity: 'base' });
 }
 
-/** Sorts `rows` by `column`'s `sortValue`, or returns them unchanged when it has none. */
+/** Sorts `rows` by `column`'s `sortValue`, or returns them unchanged when it doesn't have one. */
 export function sortRows<Row>(
   rows: Row[],
   column: Column<Row> | undefined,
@@ -237,7 +237,7 @@ export function sortRows<Row>(
   );
 }
 
-/** One export: a link to the download, or a disabled button saying why there is none. */
+/** One export: a link to the download, or a disabled button saying why there isn't one. */
 function ExportLink({
   href,
   disabledReason,
@@ -280,7 +280,7 @@ function caretOf(sorted: SortDirection | null): string {
 /**
  * One column heading.  A sortable one is a button with an arrow, on the left of a
  * right-aligned heading so the words end over the figures; an unsortable one is
- * plain words with no arrow.  Only the sorted column carries `aria-sort`.
+ * plain words without an arrow.  Only the sorted column carries `aria-sort`.
  */
 function HeaderCell<Row>({
   column,

@@ -36,7 +36,7 @@ describe('daysUntil', () => {
     expect(daysUntil('2026-06-01', TODAY)).toBe(-14);
   });
 
-  it('returns null for no date or a bad date', () => {
+  it('returns null for a missing or a bad date', () => {
     expect(daysUntil(null, TODAY)).toBeNull();
     expect(daysUntil('not-a-date', TODAY)).toBeNull();
   });
@@ -48,7 +48,7 @@ describe('membershipTone', () => {
     ['expired', 'expired'],
     ['friend', 'none'],
     ['donor', 'none'],
-  ] as const)('gives a `%s` membership with no end date the `%s` tone', (status, tone) => {
+  ] as const)('gives a `%s` membership without an end date the `%s` tone', (status, tone) => {
     expect(membershipTone(membership({ status, expires_on: null }), TODAY)).toBe(tone);
   });
 

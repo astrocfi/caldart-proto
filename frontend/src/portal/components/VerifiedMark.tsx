@@ -24,8 +24,9 @@ export interface VerifiedMarkProps {
  *
  * Shared by the member check, the aircraft check, both records, and the member's own
  * profile and aircraft, so a pilot certificate reads the same wherever it is shown.
- * The name or the date is left out when the stamp does not carry it.  A caller draws no
- * mark at all for an item the person does not hold, since there is nothing to verify.
+ * The name or the date is left out when the stamp does not carry it.  A caller leaves
+ * the mark out for an item the person does not hold, since there isn't anything to
+ * verify.
  */
 export function VerifiedMark({
   verification,

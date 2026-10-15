@@ -88,14 +88,15 @@ export function choiceText(choiceLabel: string, triggerLabel: string): string {
  * Every button in the panel is disabled while a choice is in flight. **Cancel** closes
  * the panel without calling anything. Opening the panel moves the focus to its first
  * choice or, when that choice is `danger` or held back with `disabled` or the caller
- * asks with `startOnCancel`, to **Cancel**, so a stray second Enter does nothing it cannot take back.  A choice whose label is the
- * button's own reads *Yes,* before it, so the open panel never shows two buttons of one
- * name. **Cancel** and the Escape key close it and put the
- * focus back on the button that opened it, and an Escape pressed in the panel goes no
- * further, so a panel the button sits in stays open. After a choice goes through the focus also returns to
- * the button or, when the change took the button away, to the nearest place still on
- * the page: the table cell or list item it sat in, or the heading of its card; with
- * `keepFocusAfterChoice` it stays wherever the result of the choice put it.
+ * asks with `startOnCancel`, to **Cancel**, so a stray second Enter never does anything
+ * it cannot take back.  A choice whose label is the button's own reads *Yes,* before
+ * it, so the open panel never shows two buttons of one name. **Cancel** and the Escape
+ * key close it and put the focus back on the button that opened it, and an Escape
+ * pressed in the panel stops there, so a panel the button sits in stays open. After a
+ * choice goes through the focus also returns to the button or, when the change took
+ * the button away, to the nearest place still on the page: the table cell or list item
+ * it sat in, or the heading of its card; with `keepFocusAfterChoice` it stays wherever
+ * the result of the choice put it.
  */
 export function ConfirmButton({
   label,

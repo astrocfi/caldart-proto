@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
  *
  * The guards show it while `GET /auth/me` settles, and the router shows it as
  * the root route's hydrate fallback while it resolves the first page a visitor
- * asks for.  A move between screens after that shows it no further: the router
+ * asks for.  A move between screens after that never shows it: the router
  * holds the current screen until the next page's chunk arrives.
  */
 export function Loading(): ReactNode {

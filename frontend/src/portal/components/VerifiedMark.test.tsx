@@ -25,7 +25,7 @@ describe('VerifiedMark', () => {
     );
   });
 
-  it('reads Not verified and nothing more', () => {
+  it('reads only Not verified', () => {
     const { container } = render(<VerifiedMark verification={UNVERIFIED} />);
     expect(container).toHaveTextContent(/^Not verified$/);
   });

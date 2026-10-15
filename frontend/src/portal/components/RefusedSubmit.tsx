@@ -73,7 +73,7 @@ export function useRefusedSubmit(
 /**
  * The line beside a form's submit button after a refused submit: "Check the
  * highlighted field." for one, "Check the 3 highlighted fields." for more, and
- * nothing at all when `count` is 0.
+ * null when `count` is 0.
  */
 export function RefusedSubmitNote({ count }: { count: number }): JSX.Element | null {
   if (count === 0) return null;

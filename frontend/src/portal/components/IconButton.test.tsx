@@ -36,7 +36,7 @@ describe('IconButton', () => {
     expect(button).toHaveClass('icon-button');
   });
 
-  it('carries none of the portal button classes', () => {
+  it('does not carry any of the portal button classes', () => {
     render(<IconButton icon="trashcan" label="Remove N12345" />);
 
     expect(screen.getByRole('button', { name: 'Remove N12345' })).not.toHaveClass('button');
@@ -54,7 +54,7 @@ describe('IconButton', () => {
     expect(container.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
   });
 
-  it('shows one icon and no words', () => {
+  it('shows one icon without any words', () => {
     render(<IconButton icon="trashcan" label="Remove N12345" />);
 
     expect(screen.getByRole('button', { name: 'Remove N12345' }).textContent).toBe('');

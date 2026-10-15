@@ -28,7 +28,7 @@ describe('useUrlFilters', () => {
     expect(result.current.values).toEqual({ search: 'dana', status: '', dart: '4' });
   });
 
-  it('reads nothing but the keys it was given', () => {
+  it('reads only the keys it was given', () => {
     const { result } = renderFilters('/admin/members?tab=history&page=3');
 
     expect(Object.keys(result.current.values)).toEqual(['search', 'status', 'dart']);

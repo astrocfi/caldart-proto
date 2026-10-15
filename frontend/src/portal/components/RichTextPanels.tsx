@@ -40,7 +40,7 @@ export function Panel({ label, onCancel, children }: PanelProps): JSX.Element {
     cancelRef.current = onCancel;
   }, [onCancel]);
 
-  // A native listener: the section is not itself a control, so it carries no
+  // A native listener: the section is not itself a control, so it doesn't carry a
   // React key handler, but a key pressed on any control inside bubbles to it.
   useEffect(() => {
     const section = sectionRef.current;

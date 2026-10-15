@@ -2,7 +2,7 @@
  * Dismiss a popover the way a person expects: click away, or press Escape.
  *
  * The listeners sit on the document and only while the popover is open, so a
- * shut popover costs nothing and two open ones cannot fight over an event.
+ * shut popover doesn't cost anything and two open ones cannot fight over an event.
  * `pointerdown` rather than `click`, so the popover is gone before whatever was
  * clicked underneath reacts.
  */

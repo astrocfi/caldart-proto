@@ -160,7 +160,7 @@ describe('FilterBar', () => {
     expect(handleChange).toHaveBeenLastCalledWith(expect.objectContaining({ is_active: 'true' }));
   });
 
-  it('sends nothing for a toggle checked off again', async () => {
+  it('sends a blank value for a toggle checked off again', async () => {
     const handleChange = vi.fn();
     render(<Harness initial={{ is_active: 'true' }} onChange={handleChange} />);
 
@@ -272,7 +272,7 @@ describe('FilterBar', () => {
     expect(screen.getByLabelText('Make')).toHaveAttribute('title', 'Cessna, Piper, …');
   });
 
-  it('draws no hint line under a field, so no control stands taller than its neighbors', () => {
+  it('leaves out the hint line, so no control stands taller than its neighbors', () => {
     const { container } = render(
       <FilterBar
         fields={[{ key: 'make', label: 'Make', kind: 'search', hint: 'Cessna, Piper, …' }]}
@@ -350,7 +350,7 @@ describe('FilterBar multiselect', () => {
     expect([box.textContent, screen.queryByRole('checkbox')]).toEqual(['Any', null]);
   });
 
-  it('opens a checkbox per county, with no blank choice: checking none means any', async () => {
+  it('opens a checkbox per county, without a blank one: none checked means any', async () => {
     render(<Harness fields={COUNTY_FIELDS} onChange={handleNothing} />);
 
     await userEvent.click(screen.getByLabelText('County'));

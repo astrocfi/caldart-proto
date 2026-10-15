@@ -10,7 +10,7 @@ export interface CardProps {
   children?: ReactNode;
 }
 
-/** A flat panel with a hairline border — no shadow, near-square corners. */
+/** A flat panel with a hairline border and near-square corners, without a shadow. */
 export function Card({ title, eyebrow, footer, className, id, children }: CardProps): JSX.Element {
   return (
     <section id={id} className={className ? `card ${className}` : 'card'}>

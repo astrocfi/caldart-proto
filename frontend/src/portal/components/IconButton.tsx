@@ -1,11 +1,11 @@
 /**
- * A bare icon control: one icon, no border, no background, and no words.
+ * A bare icon control: one icon, without a border, a background, or words.
  *
  * Where a row already says what it is about -- an attached aircraft, a person on
  * a DART -- a control with a border and a label repeats the row.  `IconButton`
  * draws the icon alone in the muted text color and comes forward on hover and on
  * keyboard focus, so a list of rows reads as a list rather than as a wall of
- * buttons.  It is never a `Button`: the two look nothing alike on purpose.
+ * buttons.  It is never a `Button`: the two look entirely different on purpose.
  */
 import type { ComponentPropsWithRef, JSX } from 'react';
 
@@ -29,7 +29,7 @@ export interface IconButtonProps extends ComponentPropsWithRef<'button'> {
 }
 
 /**
- * A button that shows one icon and nothing else.
+ * A button that shows only one icon.
  *
  * `label` is the whole of the accessible name, and it is the tooltip too unless
  * the caller passes its own `title` -- the reason the button is disabled, say --

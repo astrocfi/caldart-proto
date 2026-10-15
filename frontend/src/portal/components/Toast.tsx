@@ -3,7 +3,8 @@
  * `useToast().show(...)` from anywhere.
  *
  * The toast is the portal's one way of confirming that a save, a send, or a delete went
- * through, and of saying that one did not when the screen has no field to show it beside.
+ * through, and of saying that one did not when the screen doesn't have a field to show
+ * it beside.
  */
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import type { JSX, ReactNode } from 'react';
@@ -62,7 +63,7 @@ export function useToast(): ToastApi {
 }
 
 /**
- * Renders the queued toasts, or nothing when the queue is empty: a polite `status`
+ * Renders the queued toasts, or null when the queue is empty: a polite `status`
  * region, inside which an `error` toast is an `alert` of its own.
  */
 export function ToastViewport({

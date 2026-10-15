@@ -242,7 +242,7 @@ describe('RichTextEditor links', () => {
     );
   });
 
-  it('refuses an address that cannot be a link, and changes nothing', async () => {
+  it('refuses an address that cannot be a link, and does not change anything', async () => {
     const handleChange = vi.fn();
     render(<Harness initial="<p>Hello</p>" onChange={handleChange} />);
 

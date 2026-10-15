@@ -17,7 +17,7 @@ export interface BouncedDotProps {
 
 /**
  * `Bounced MM/DD/YYYY` after a red dot, followed by the report's detail; nothing at all
- * when the address has no bounce recorded.
+ * when no bounce is recorded for the address.
  */
 export function BouncedDot({ bouncedAt, detail }: BouncedDotProps): JSX.Element | null {
   if (bouncedAt === null) return null;

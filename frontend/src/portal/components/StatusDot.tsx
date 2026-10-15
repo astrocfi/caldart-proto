@@ -17,7 +17,7 @@ export type StatusTone = 'current' | 'expiring' | 'new' | 'expired' | 'none';
 // The `current`, `expired` and `none` tones read the same words as the member
 // report and the member list's status filter: `none` is the quiet tone of a
 // friend, never current and never expired.  `expiring` is a tone of its own,
-// with no membership-state code behind it, and `new` is a palette tone other
+// without a membership-state code behind it, and `new` is a palette tone other
 // features give their own label; no membership takes it.
 const TONE_LABEL: Record<StatusTone, string> = {
   current: MEMBERSHIP_STATUS_LABELS.current,
@@ -30,7 +30,7 @@ const TONE_LABEL: Record<StatusTone, string> = {
 /** Days before expiry at which a membership counts as "expiring soon". */
 export const EXPIRING_WINDOW_DAYS = 30;
 
-/** Days between `today` and `iso`, or null when there is no date. */
+/** Days between `today` and `iso`, or null when there isn't a date. */
 export function daysUntil(iso: string | null, today: Date = new Date()): number | null {
   if (!iso) return null;
   const target = new Date(`${iso}T00:00:00`);
@@ -139,7 +139,7 @@ function membershipLabel(
 
 /**
  * Whether this member may fly for CalDART today: a check when the medical is in
- * date, a cross when it has lapsed, and a dash for somebody who holds none.
+ * date, a cross when it has lapsed, and a dash for somebody who doesn't hold one.
  */
 export function PilotMark({
   isPilot,

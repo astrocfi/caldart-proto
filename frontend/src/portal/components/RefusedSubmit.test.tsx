@@ -99,7 +99,7 @@ describe('useRefusedSubmit', () => {
     expect(screen.getByRole('textbox', { name: 'Email' })).toHaveFocus();
   });
 
-  it('says nothing before any submit is refused', () => {
+  it('stays silent before any submit is refused', () => {
     render(<ServerRefusedForm error={null} />);
 
     expect(screen.queryByRole('status')).toBeNull();
@@ -113,7 +113,7 @@ describe('RefusedSubmitNote', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Check the highlighted field.');
   });
 
-  it('draws nothing for no fields', () => {
+  it('is empty when no field is refused', () => {
     const { container } = render(<RefusedSubmitNote count={0} />);
 
     expect(container).toBeEmptyDOMElement();

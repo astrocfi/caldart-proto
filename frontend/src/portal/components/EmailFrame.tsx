@@ -1,8 +1,8 @@
 /**
  * An email drawn in a sandboxed frame, as a reader sees it in a mail program.
  *
- * Nothing in the email can run or reach the portal: the frame allows no scripts, no
- * forms, and no same-origin access.  It allows only popups that leave the sandbox, and
+ * Nothing in the email can run or reach the portal: the frame doesn't allow scripts,
+ * forms, or same-origin access.  It allows only popups that leave the sandbox, and
  * every link in the email opens in a new tab (a `<base target="_blank">` put at the
  * head of the email), so a reader can follow a newsletter's links without the page
  * they are reading being replaced. A small style at the head keeps every picture
@@ -11,7 +11,7 @@
  */
 import type { JSX } from 'react';
 
-/** The sandbox: popups only, which may leave it, and nothing else. */
+/** The sandbox: it allows only popups, which may leave it. */
 export const EMAIL_FRAME_SANDBOX = 'allow-popups allow-popups-to-escape-sandbox';
 
 /** What is put at the head of every email, so its links open in a new tab. */

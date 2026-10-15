@@ -13,7 +13,7 @@ export const FIELD_TOKEN = 'fieldToken';
 
 /**
  * A token: a lower-case name of letters, digits, and underscores in braces,
- * optionally followed by `|` and a fallback with no brace, bar, angle bracket, or
+ * optionally followed by `|` and a fallback without a brace, bar, angle bracket, or
  * line break.  A brace doubled on either side is not a token.  This mirrors
  * `TOKEN_RE` in `backend/apps/bulk_email/fields.py`; the two must read alike.
  */
@@ -37,8 +37,9 @@ const WHITESPACE_RUN = /\s+/g;
 export const FALLBACK_ERROR =
   'What to show must be plain text: no brace, bar, angle bracket, or line break.';
 
-/** Why a fallback of nothing but spaces cannot be used. */
-export const FALLBACK_BLANK_ERROR = 'Write a word to show, or leave the box empty to show nothing.';
+/** Why a fallback of spaces alone cannot be used. */
+export const FALLBACK_BLANK_ERROR =
+  'Write a word to show, or leave the box empty so nothing shows.';
 
 /** What a chip whose name the catalog does not have says when pointed at. */
 export const UNKNOWN_FIELD_TITLE = 'Not one of the fields';
@@ -46,10 +47,10 @@ export const UNKNOWN_FIELD_TITLE = 'Not one of the fields';
 /** The words an unknown chip carries after its token, so it shows without a pointer. */
 export const UNKNOWN_FIELD_FLAG = 'not a field';
 
-/** A whole token and nothing else, for reading a chip's own element back. */
+/** A string that is exactly one token, for reading a chip's own element back. */
 export const WHOLE_TOKEN = new RegExp(`^${TOKEN_PATTERN.source}$`);
 
-/** A token's parts: the field's name and the fallback, `''` when there is none. */
+/** A token's parts: the field's name and the fallback, `''` when there isn't one. */
 export interface FieldTokenAttrs {
   name: string;
   fallback: string;
@@ -66,16 +67,16 @@ export function isFallbackAllowed(fallback: string): boolean {
 }
 
 /**
- * Whether the server fills in a token with `fallback` as written: no whitespace but
- * single plain spaces.
+ * Whether the server fills in a token with `fallback` as written: its only whitespace
+ * is single plain spaces.
  */
 export function isFallbackEven(fallback: string): boolean {
   return !UNEVEN_WHITESPACE.test(fallback);
 }
 
 /**
- * `fallback` as a token can hold it: each run of whitespace one plain space, and none
- * at either end.  A fallback of nothing but whitespace comes back `''`.
+ * `fallback` as a token can hold it: each run of whitespace one plain space, and both
+ * ends trimmed.  A fallback of whitespace alone comes back `''`.
  */
 export function evenFallback(fallback: string): string {
   return fallback.replace(WHITESPACE_RUN, ' ').trim();
