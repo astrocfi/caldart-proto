@@ -3,7 +3,7 @@
 # CalDART install step - the service user and its directories.
 #
 # Creates the "caldart" system user when it is missing, with /home/caldart as
-# its home (created with it) and no login shell, and moves an existing user's
+# its home (created with it) and without a login shell, and moves an existing user's
 # home there when it is somewhere else, the checkout for one; /etc/caldart,
 # root-owned and readable by the caldart group; and the three directories the
 # web unit may write, owned by the user: backups and media in the deploy root
@@ -30,7 +30,8 @@ source "$CHECKOUT/deploy/lib.sh"
 # The home directory the service user gets: its own, never the checkout.
 readonly SERVICE_HOME=/home/$SERVICE_USER
 
-# The home directory the service user has now, or nothing when there is no user.
+# The home directory the service user has now, or an empty string when there
+# isn't a user.
 current_home() {
     getent passwd "$SERVICE_USER" | cut -d: -f6
 }

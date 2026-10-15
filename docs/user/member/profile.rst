@@ -32,7 +32,7 @@ Contact
 * A name typed all in capitals or all in lower case is saved in title case:
   ``SMITH`` is saved as **Smith**, ``mcdonald`` as **McDonald**, ``o'brien`` as
   **O'Brien** (with a curly apostrophe too), ``a.j.`` as **A.J.**, and
-  ``smith-jones`` as **Smith-Jones**. A part with no vowel is taken for initials and
+  ``smith-jones`` as **Smith-Jones**. A part without a vowel is taken for initials and
   saved in capitals, so ``tj`` and ``TJ`` are both saved as **TJ**. After the first word,
   *van*, *von*, *der*, *den*, *de*, *del*, *della*, *da*, *di*, *du*, *la*, and
   *le* stay lower case, so ``JAN VAN DER BERG`` is saved as **Jan van der Berg**, and
@@ -87,8 +87,8 @@ Alliance number**, **Pilot certificate**, **Certificate number**, **Medical**,
 
 * **Pilot certificate** offers *Not a pilot*, Student, Sport, Recreational,
   Private, Commercial, and Airline transport pilot.
-* **Certificate number** takes the seven digits of your pilot certificate and nothing
-  else, and says *7 digits* under the label. It and **Medical expires** are optional,
+* **Certificate number** takes only the seven digits of your pilot certificate, and
+  says *7 digits* under the label. It and **Medical expires** are optional,
   even once you choose a certificate or a medical.
 * **Medical** offers *None*, BasicMed, First class, Second class, and Third class.
 * **Photo ID** offers *Not provided*, Driver's license, Passport, State ID card,
@@ -98,13 +98,13 @@ Alliance number**, **Pilot certificate**, **Certificate number**, **Medical**,
   mark: **Verified** with who verified it and on which day, or **Not yet verified** in
   amber, which is the usual state until you show the documents. An item you have marked
   as not held (**Not a pilot**, a medical of **None**, or a photo ID of **Not provided**)
-  has nothing to verify and shows no mark. The medical's mark sits with its expiration
+  doesn't have anything to verify and doesn't show a mark. The medical's mark sits with its expiration
   date, the date a verifier checks against the certificate, and reads **Expired** first
   once that date has passed, verified or not. Under the first
   is *A DART leader or verifier checks these against the documents.* You cannot
   verify them yourself here. Show the documents to a DART leader or a verifier.
-* **Aircraft**: check **I fly rented or borrowed aircraft** if you have no airframe
-  of your own to list, so a DART leader knows why your list is empty.
+* **Aircraft**: check **I fly rented or borrowed aircraft** if you don't have an
+  airframe of your own to list, so a DART leader knows why your list is empty.
 * **Ratings**: ASEL, AMEL, ASES, AMES, Helicopter, and Instrument on one row; CFI,
   CFII, and MEI on the next. Check **Instrument** if you hold an instrument rating:
   it is the one place the profile records it.
@@ -163,7 +163,7 @@ Your kind of account
 The card says which you are: *You are a member of CalDART.*, *You are a life member
 of CalDART.*, *Your membership is not yet paid. Pay your dues to become a member of
 CalDART.* (with **Pay dues**) when your account was made for you and nothing is paid yet,
-or *You are a friend of CalDART: no dues, no expiry. Become a member any time.* A friend of CalDART has the same portal as a member but pays no dues, so
+or *You are a friend of CalDART: no dues, no expiry. Become a member any time.* A friend of CalDART has the same portal as a member but doesn't pay dues, so
 nothing expires, no renewal reminder is sent, and members-only pages stay closed.
 **Make me a friend** is offered here alone; your :doc:`dashboard` shows a change
 that is waiting, with its **Undo**, and a friend's **Make me a member**. A life member
@@ -173,7 +173,7 @@ stays a member and is offered neither.
   Opens a short confirmation below the card's buttons. While your membership is current it reads *Your
   membership stays current through 03/01/2027. On 03/02/2027 you become a friend of
   CalDART: no dues, no expiry, and no renewal reminders.* You keep what you paid
-  for. With nothing current, you become a friend today.
+  for. When nothing is current, you become a friend today.
 
   Automatic renewal is turned off either way, and CalDART emails you that it is off
   (subject *CalDART: automatic renewal is off*). If your renewal also gives a
@@ -184,7 +184,7 @@ stays a member and is offered neither.
   a friend and stop the $100** ends it with the renewal. Both name your own amount.
   If you already have a recurring donation, keeping the gift is refused and you are
   asked to change that donation on :doc:`donate`. Otherwise the confirmation has one **Yes, make me a friend** button.
-  **Cancel**, or Escape, changes nothing.
+  **Cancel**, or Escape, doesn't change anything.
 
 **Undo**
   While the change waits for its day, the card reads *You become a friend on

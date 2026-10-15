@@ -52,7 +52,7 @@ Wagtail web application, not a published library. **Minimum Python version: 3.12
 
 ### Types
 
-- ALWAYS annotate all function/method parameters and return values, including `-> None` for functions (and `__init__`) that return nothing.
+- ALWAYS annotate all function/method parameters and return values, including `-> None` for functions (and `__init__`) that don't return anything.
 - Use modern generic syntax (`list[str]`, `dict[str, int]`, `X | None`) for Python 3.12+.
 
 ### Mypy
@@ -64,8 +64,8 @@ Wagtail web application, not a published library. **Minimum Python version: 3.12
   scripts/check_wording.py scripts/wording_words.py`, and CI calls that target.
 - It is configured under `[tool.mypy]` in `pyproject.toml` with `strict = true` and the
   django-stubs and djangorestframework-stubs plugins. Only `disallow_subclassing_any` is
-  relaxed, because Wagtail's base classes carry no types.
-- Apart from migrations, mypy excludes nothing: no `[[tool.mypy.overrides]]` entry carries
+  relaxed, because Wagtail's base classes don't carry types.
+- Apart from migrations, mypy doesn't exclude anything: no `[[tool.mypy.overrides]]` entry carries
   `ignore_errors = true`, and none may be added. `backend/tests/test_lint_config.py` fails
   if one appears.
 - Silence a single line with `# type: ignore[<code>]  # <reason>` ONLY where no fix is
@@ -130,7 +130,7 @@ Wagtail web application, not a published library. **Minimum Python version: 3.12
 Two exceptions, each carried in `pyproject.toml` with a comment: `RUF012` is ignored,
 because Django's `Meta` options, admin `list_display` lists and serializer `fields` are
 class-level configuration the framework reads and nothing mutates, so `ClassVar` on them
-would document nothing; and `S101` is ignored for `backend/tests/**` only, because
+wouldn't document anything; and `S101` is ignored for `backend/tests/**` only, because
 `assert` is pytest's assertion mechanism. Every other `S`, `RUF`, `PT`, `PERF`, `N`, `ERA`,
 `SIM` and `RET` diagnostic is fixed at the call site rather than ignored; where the
 framework genuinely imposes the shape (a `subprocess` call with a resolved executable
@@ -146,6 +146,6 @@ dictates the parameter list.
 `Meta` class) are ignored; every other diagnostic in every enabled category is fixed.
 
 **ANN** and **D** apply to the whole backend, tests included. Other than the `S101`
-exception above, there is no further `[tool.ruff.lint.per-file-ignores]` entry: every
+exception above, there isn't any further `[tool.ruff.lint.per-file-ignores]` entry: every
 module satisfies `ANN` and `D`, no file may be exempted from either, and
 `backend/tests/test_lint_config.py` fails if an exemption appears.

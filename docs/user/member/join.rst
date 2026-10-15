@@ -7,7 +7,7 @@ Join CalDART
 The **Join CalDART** wizard creates your account and, for a member, takes your first
 year's dues. *Joining takes about three minutes.* Membership is yearly or for life,
 and the pay step shows the prices. You can also join as a friend of CalDART, a
-supporter who pays no dues.
+supporter who doesn't pay dues.
 
 You open it from **Join CalDART** in the public site's top menu, from the **Join
 CalDART** buttons on the home page, or from *Not a member yet?* on the sign-in
@@ -22,7 +22,7 @@ finish: **Account**, **Verify**, **Profile**, **Pay**, and **Done**. Every step'
 card is the same width as the title and the progress rail above it. Finishing a step
 moves the cursor to the next step's heading.
 
-Until you finish, the wizard is the whole portal. There is no menu down the left,
+Until you finish, the wizard is the whole portal. There isn't a menu down the left,
 and any other portal screen you open brings you back to the step you still have to
 finish. The header keeps **Help**, your address, and **Sign out**. The user guide
 stays open to you from **Help**.
@@ -43,11 +43,11 @@ A friend has finished once they leave the pay step, by giving or by pressing
 **Continue without a gift**; giving is optional. Until then a friend joining for the
 first time stays in the wizard, and reloading the pay step keeps them on it. A friend
 who closes the tab at the pay step and signs in again later has finished, since a
-friend owes nothing.
+friend doesn't owe anything.
 
 An account an administrator created for you has joined already. Until you verify its
 address, signing in shows **Verify your email address** with the **Check your email**
-card alone. Once it is verified, your first sign-in opens the dashboard, with no profile
+card alone. Once it is verified, your first sign-in opens the dashboard, without a profile
 or pay step, and you fill in the rest of your profile when you like.
 
 Once you have joined, the **Profile** and **Pay** steps send you to your
@@ -150,8 +150,8 @@ friend without giving. You can change your mind on this step as often as you
 like.
 
 A member's step is headed **Pay your dues**. Membership starts the moment the
-payment clears; there is nobody to wait for. There is no way past this step except
-paying or choosing to be a friend instead.
+payment clears; you don't wait for anybody. The only way past this step is paying
+or choosing to be a friend instead.
 
 #. **Membership.** Choose **Annual** ($45.00, *One year*) or **Life** ($650.00,
    *One payment, membership for life*). The first plan on the list, Annual, is
@@ -173,7 +173,7 @@ paying or choosing to be a friend instead.
    below.
 
 A friend's step is headed **Donate to CalDART** instead: *Friends pay no dues. A
-donation of any size helps.* It offers a donation alone, with no amount chosen,
+donation of any size helps.* It offers a donation alone, without an amount chosen,
 paid the same ways, with the option **Make this a recurring donation** (see
 :doc:`donate`). While no amount is chosen, **Continue without a gift** is the
 button that moves on, and you finish as a friend without paying anything; once you
@@ -204,7 +204,7 @@ The payment tabs
   charged.
 
 **Test payment**
-  Appears only on a practice copy of the site, which takes no real money. Its
+  Appears only on a practice copy of the site, which doesn't take real money. Its
   **Succeed** and **Fail** buttons pretend to pay.
 
 The tabs you see are the ones this site accepts. If none is set up, the step says
@@ -242,7 +242,7 @@ If something looks wrong
 seconds after your browser does. It is safe to close the page: CalDART emails you
 when the payment clears, and the membership turns on by itself.
 
-A declined card leaves nothing charged; try another card or the PayPal tab. If you
+A declined card isn't charged; try another card or the PayPal tab. If you
 were charged but the wizard still asks you to pay, go back to the wizard from the
 **Join CalDART** menu entry. If that does not settle it, contact the office with
 the date and the amount. A payment is never counted twice, so asking is safe.

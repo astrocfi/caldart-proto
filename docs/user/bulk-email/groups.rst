@@ -33,7 +33,7 @@ One line per group, by name:
   group was added to keep their people, and their recipient lists still name the group that brought
   each person in. **Download list** saves the group's people as a spreadsheet file (CSV)
   named after the group, such as *caldart-group-board.csv*, with each person's name, email
-  address, kind, and DART; a group with nobody in it offers none.
+  address, kind, and DART; an empty group doesn't offer one.
 
 On a screen too narrow for every column, **Kind**, then **Last edited** are left out; on a
 phone the table scrolls sideways, says so above it, and keeps **Name** pinned at the left.
@@ -63,11 +63,11 @@ row takes that person out of the group after you press **Remove**.
 
 A live group's **Filters** card lists its filters in words, each with a trashcan that takes it
 out after you press **Remove**. To add more, choose them in the filter bar, the same filters
-:doc:`compose` uses, and press **Add these filters**; with nothing chosen, that adds every
+:doc:`compose` uses, and press **Add these filters**; when nothing is chosen, that adds every
 member and friend. A line such as *Added the filters County: Napa.* says so, and the bar
 empties for the next. Filters the group has already are refused with *This group has these
-filters already.* The group holds everybody any of its filters find. A live group with no
-filters holds nobody. The **Who it finds now** card lists them as of now.
+filters already.* The group holds everybody any of its filters find. A live group without
+any filters is empty. The **Who it finds now** card lists them as of now.
 
 A filter can stop working after it was saved, such as a DART that was later deleted. The
 group's line on the list then reads *This group's filters need fixing*, linking to its page,
@@ -76,7 +76,7 @@ group's people cannot be listed or downloaded, and **Add a saved group** refuses
 with the same sentence. Every other group works as usual.
 
 **Download list**, under the people, saves them as a spreadsheet file named after the group;
-a group with nobody in it, such as a live group whose filters find nobody, offers none.
+an empty group, such as a live group whose filters don't find anybody, doesn't offer one.
 
 
 Using a group

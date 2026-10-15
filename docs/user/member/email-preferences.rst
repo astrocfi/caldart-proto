@@ -40,15 +40,16 @@ email from CalDART because you have not turned it off. To stop it, unsubscribe h
 link. Your mail program may also show its own **Unsubscribe** button beside the sender's
 name, which does the same thing.
 
-The link opens a page on the CalDART site, with no need to sign in, titled **Unsubscribe
-from Mission email** (with the type's own name), the email address it is for, and one
-**Unsubscribe** button. Opening the page changes nothing; pressing the button turns that one
+The link opens a page on the CalDART site, without asking you to sign in, titled
+**Unsubscribe from Mission email** (with the type's own name), the email address it is for,
+and one **Unsubscribe** button. Opening the page doesn't change anything; pressing the
+button turns that one
 type off, and the page then reads **You are unsubscribed** and *You will no longer receive
 Mission email from CalDART for* your address. Other types keep arriving. To turn it back
 on, sign in and use the switch on this screen.
 
-An email of a type that cannot be turned off has no link. Its last line says *CalDART sends
-Operational email to everyone it writes to, so it cannot be turned off.*
+An email of a type that cannot be turned off doesn't carry the link. Its last line says
+*CalDART sends Operational email to everyone it writes to, so it cannot be turned off.*
 
 
 If something looks wrong

@@ -12,9 +12,10 @@ copy. Open the screen from **My aircraft** in the menu, from the **My aircraft**
 the top of :doc:`profile`, or from **Add the planes I fly** at the end of :doc:`join`.
 **Back to My profile**, a link at the top right, returns to :doc:`profile`.
 
-My aircraft is for members whose membership is current. A friend of CalDART has no
-**My aircraft** in the menu and no aircraft on their profile, and a new member has
-none until their first dues are paid. If your membership expires, the airplanes stay on your profile, but
+My aircraft is for members whose membership is current. A friend of CalDART doesn't
+have **My aircraft** in the menu or any aircraft on their profile, and a new member
+doesn't have any until their first dues are paid. If your membership expires, the
+airplanes stay on your profile, but
 the screen says *Aircraft are for members with a current membership.* in their
 place until you renew; then they are back.
 
@@ -36,12 +37,12 @@ aircraft list:
 * **Insured to 03/01/2027**: a policy is on file and runs more than 30 days yet;
 * **Expiring 10/31/2026**: it runs out within 30 days;
 * **Expired 03/02/2026**: the expiry date on file has passed;
-* **No insurance on file**: the record has no insurance expiry date at all.
+* **No insurance on file**: the record doesn't have an insurance expiry date at all.
 
 After the status comes the insurance's mark: **Verified** once a DART leader or a
 verifier has checked the policy against its documents, or **Not yet verified**. An
-airplane whose status reads **No insurance on file** carries no mark, since there is no policy to
-verify yet; a DART leader still treats it as a no-go, and a verifier still sees its
+airplane whose status reads **No insurance on file** doesn't carry a mark, since there isn't
+a policy to verify yet; a DART leader still treats it as a no-go, and a verifier still sees its
 insurance as not verified. A DART leader treats an airplane whose insurance is not
 verified as a no-go.
 
@@ -49,10 +50,10 @@ An airplane the coverage policy leaves out reads **Not covered** beside a red do
 reason follows the limits, such as *Not covered: helicopters are excluded by CalDART's
 policy*.
 
-With nothing attached, the card says **No aircraft yet**.
+When no airplane is attached, the card says **No aircraft yet**.
 
 Beside each airplane you added yourself are **Edit** and a trashcan, **Remove**. An
-airplane somebody else added has no **Edit**; in its place the line reads *Added by
+airplane somebody else added doesn't have **Edit**; in its place the line reads *Added by
 someone else. To correct it, write to* and the site's contact address, which opens
 your email program (see *Editing an airplane* below).
 
@@ -80,7 +81,7 @@ N-12345 all find N12345, and one airplane can be in CalDART's aircraft list only
 
 Airplanes already on your list are left out of the results and named under them,
 such as *N12345 is already on your list.* or *N12345 and N9021K are already on your
-list.* A search that finds nothing says **No aircraft matches that**. An airplane
+list.* A search that doesn't find anything says **No aircraft matches that**. An airplane
 taken out of service is left out of the results, unless you type its exact
 registration, so you do not add it twice.
 
@@ -102,11 +103,11 @@ The form is the whole record, with every box the record has when you edit it lat
   cessna 172, c172, or skyhawk, and pick the type from the list under the box. Each
   entry reads as its make and model, with its seats after it. Picking from the list
   is the only way to set the type, so one type always reads the same way, however it
-  was typed. A search that finds nothing says *No aircraft type matches that.*
+  was typed. A search that doesn't find anything says *No aircraft type matches that.*
 * **Seats**. Picking a type with **Seats** empty fills in its seats.
 * **Category**, such as Airplane, Helicopter, Gyroplane, Glider, or Balloon, and
   **Airworthiness**, the category on the airworthiness certificate, such as Standard,
-  Experimental, or Light sport. Either may stay **Not recorded**, but with no **Category**
+  Experimental, or Light sport. Either may stay **Not recorded**, but without a **Category**
   recorded a DART leader's aircraft check says *Category not recorded*, whatever the
   airworthiness. Picking a type the registry knows the
   category of fills in **Category**.
@@ -172,7 +173,7 @@ picking one fills the form from it (:ref:`registry-list`). Press **Save changes*
 insurance's verification, and the mark reads **Not yet verified** until a DART
 leader or a verifier checks the new policy.
 
-An airplane somebody else added offers no **Edit**, and its line says to write to
+An airplane somebody else added doesn't offer **Edit**, and its line says to write to
 the site's contact address instead. The list is shared, so flying an airplane does
 not make its record yours to change. An account administrator is the exception: for
 them **Edit** opens any airplane on the list.
@@ -194,12 +195,12 @@ If something looks wrong
 ========================
 
 *Pick the aircraft type from the list.* means the **Aircraft type** box holds typing
-that was never picked from the list. If the list has no entry for your airplane, ask
+that was never picked from the list. If the list doesn't have an entry for your airplane, ask
 an account administrator to add its type. *An aircraft with this N-number is already
 on file.* means CalDART's aircraft list has it already: press **Add it to my list**
 under the N-number, or search for it and attach that record.
 *Use a US registration like N172SP: N, then digits, then at most two letters.* means
 the N-number cannot be a US registration. *Enter an amount of $0 or more.* means a
 money box holds something that is not an amount. If the insurance status says **No
-insurance on file** and the airplane is insured, the record has no expiry date: add
+insurance on file** and the airplane is insured, the record doesn't have an expiry date: add
 it if you added the airplane, or write to the contact address on its line.

@@ -14,7 +14,7 @@ description: Security best practices for the CalDART web application — secrets
 ## 2. Dependency Security
 
 - Specify minimum compatible versions for direct dependencies (e.g., `wagtail>=6.3`) in `pyproject.toml`; exact versions are locked in `uv.lock` and `frontend/package-lock.json`.
-- Add dependencies only from reputable sources with no known CVEs.
+- Add dependencies only from reputable sources without known CVEs.
 - `make audit` (`uv audit` and `npm audit`) checks every locked package for known
   vulnerabilities, and CI runs it on every push and pull request. Fix a finding by upgrading
   the affected package, not by ignoring it.
@@ -45,6 +45,6 @@ When reviewing PRs, verify:
 - [ ] No secrets or credentials in code, config, or comments.
 - [ ] Request inputs are validated at the serializer/form boundary with clear error messages.
 - [ ] Every new endpoint enforces the permission matrix in `docs/developer/api-reference.rst`.
-- [ ] New dependencies are from reputable sources and have no known CVEs.
+- [ ] New dependencies are from reputable sources and don't have known CVEs.
 - [ ] File operations guard against path traversal.
 - [ ] Error messages do not leak internal file paths or sensitive data.

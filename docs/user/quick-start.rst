@@ -24,7 +24,7 @@ Create an account
    CalDART**, or press **Continue without a gift**.
 #. On **Welcome to CalDART**, press **Go to my dashboard**.
 
-Until the last step, the wizard is the whole portal: there is no menu, and signing
+Until the last step, the wizard is the whole portal: there isn't a menu, and signing
 in again brings you back to the step you still have to finish. A member who would
 rather not pay after all chooses **Join as a friend instead (no dues)** on **Pay
 your dues**, then **Continue without a gift**.
@@ -75,8 +75,8 @@ Pay, renew, and give
 To renew your membership:
 
 #. Choose **Renew** in the menu, or the **Renew** button on your **Dashboard**.
-#. Check **Your membership**. The first plan listed is chosen for you. A site with
-   no membership plan set up shows *No membership plan is set up yet. Ask an
+#. Check **Your membership**. The first plan listed is chosen for you. A site
+   without a membership plan set up shows *No membership plan is set up yet. Ask an
    administrator.* instead of the plans.
 #. Check **Renew automatically each year** if you want CalDART to renew you from
    now on.
@@ -153,7 +153,7 @@ that field.
 (or **Remove**) and **Cancel**; any other such action, such as turning off an automatic
 renewal or deactivating an account, opens a short panel below its row of buttons that
 says what will happen, with a red button that names the act and **Cancel**. Only the
-red button acts. **Cancel** or the Escape key closes the question and changes nothing,
+red button acts. **Cancel** or the Escape key closes the question and doesn't change anything,
 and so does a click anywhere else while a trashcan is asking.
 
 **A form that opens in place**, such as **Edit** on a row, takes you to its first box.

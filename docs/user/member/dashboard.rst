@@ -18,7 +18,7 @@ What you see
 
 The cards read down the page in this order. Each appears only when it applies.
 
-A DART leader whose profile names no DART sees, above the cards, a box saying *Bulk
+A DART leader whose profile doesn't name a DART sees, above the cards, a box saying *Bulk
 email needs a DART. Set yours on My profile.*, with **Open My profile**, where the DART
 is set (see :doc:`../bulk-email/dart-leaders`).
 
@@ -41,7 +41,7 @@ is set (see :doc:`../bulk-email/dart-leaders`).
 
   A life member's card is headed **Lifetime member**, carries the **Never
   expires** state, and reads *Nothing to renew* with thanks for joining for life.
-  It offers no button.
+  It doesn't offer a button.
 
   A friend's card is labeled **Friend of CalDART** and headed **You are a friend of
   CalDART**. It reads *No dues and no expiry. Become a member any time.* and offers
@@ -62,14 +62,14 @@ is set (see :doc:`../bulk-email/dart-leaders`).
 **Recent payments**
   One line saying whether automatic renewal is on, and if so what the next charge
   comes to and when: *Automatic renewal is on: $145.00 will be charged on
-  04/27/2027.* A life member's line is about their recurring donation. A friend has
-  nothing to renew, so a friend's line appears only for a recurring donation they
+  04/27/2027.* A life member's line is about their recurring donation. A friend doesn't
+  have anything to renew, so a friend's line appears only for a recurring donation they
   hold. Then your last five payments, with the **Date** each was paid, what it was
   **For** in the words :doc:`payments` uses (such as **Annual**, **Annual and
   contribution**, or **Donation**), the **Amount**, and the **Status** as a colored
   dot and its word. **All payments, receipts, and renewals** opens :doc:`payments`;
-  for anybody with nothing to renew (a friend, a life member, or a member who has not
-  paid yet) it reads **All payments and receipts**.
+  for anybody without anything to renew (a friend, a life member, or a member who has
+  not paid yet) it reads **All payments and receipts**.
 
 **Quick links**
   A few next steps; the menu has everything else. Everybody gets **Renew** (or **Donate**, for
@@ -91,7 +91,7 @@ the group it sits under.
 Every signed-in person has **My account**: **Dashboard**, **My profile**, **My
 aircraft**, **My payments**, **Donate**, **Renew**, **Change password**, **Change
 email**, **Email to me** (:doc:`messages`), and **Email preferences**
-(:doc:`email-preferences`). A friend and a life member have no **Renew** entry, since
+(:doc:`email-preferences`). A friend and a life member don't have a **Renew** entry, since
 neither has a term to renew; a life member gives through **Donate**.
 
 The other groups belong to DART leaders, CalDART management, and administrators (see
@@ -118,7 +118,7 @@ When a screen will not open
 **Not allowed**
   *You do not have access to this page.* The screen belongs to a role you do not
   hold, and the message names it, for example *It is open to the Account
-  administrator or Treasurer role.* You have done nothing wrong. Ask a CalDART
+  administrator or Treasurer role.* You haven't done anything wrong. Ask a CalDART
   administrator if you should have the role. **Go to the dashboard** takes you
   home.
 
@@ -137,8 +137,8 @@ If something looks wrong
 
 If you paid and the card still says **Expired**, **Not yet paid**, or **Friend**,
 reload the page
-first. Then look at **Recent payments**: a payment marked **Failed** moved no
-money, so try again from :doc:`renew`. A payment marked **Paid** with no
+first. Then look at **Recent payments**: a payment marked **Failed** didn't move any
+money, so try again from :doc:`renew`. A payment marked **Paid** without a
 membership behind it is a fault; tell the office the date and the amount. If a menu
 entry you expect is missing, you lack the role; a user administrator can grant it, or for a
 two-factor role a system administrator or a user administrator who holds it (see

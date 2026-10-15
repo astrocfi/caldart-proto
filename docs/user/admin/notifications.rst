@@ -8,7 +8,7 @@ Notification emails
 or a refund, and which events each address hears about. A notification is a short email sent the moment
 something happens: somebody signs up, a friend becomes a member, a donation arrives, an
 account is deactivated, or an aircraft changes. Each email address you subscribe hears
-about the events you pick for it, and nothing else.
+only about the events you pick for it.
 
 An account administrator finds it under **Administration** in the menu. A system
 administrator can open it too.
@@ -35,15 +35,15 @@ pinned at the left.
    below describes.
 
 **Pause** and **Resume**
-   A paused subscription keeps its events and sends nothing until you resume it. Resuming
-   one whose account no longer holds a role that may receive one of its events is refused,
-   and the message says why.
+   A paused subscription keeps its events and doesn't send anything until you resume it.
+   Resuming one whose account no longer holds a role that may receive one of its events is
+   refused, and the message says why.
 
 **The trashcan**
    Asks first: press it and it turns into **Delete** and **Cancel**. Press **Delete** and
    the address is gone; **Cancel**, Escape, or a click elsewhere leaves it as it is.
 
-With none set up the table reads *No address gets notifications yet*.
+Until one is set up, the table reads *No address gets notifications yet*.
 
 
 Setting one up
@@ -59,9 +59,9 @@ Setting one up
 
 Press **Add address**, or **Cancel** or Escape. *Address added.* confirms a save. An address
 that already has a subscription is refused with *This address already has a subscription.*
-Edit that one instead. An address that belongs
-to a CalDART account is refused when the account holds no role that may receive a checked
-event, with a line under the events naming the first such event. An address no account
+Edit that one instead. An address that belongs to a CalDART account is refused when the
+account doesn't hold a role that may receive a checked event, with a line under the events
+naming the first such event. An address no account
 holds is refused until you check **This address is outside CalDART and may receive these
 notifications**, which appears once CalDART asks for it.
 
@@ -69,12 +69,13 @@ notifications**, which appears once CalDART asks for it.
 Changing one
 ~~~~~~~~~~~~
 
-**Edit** on a row opens the same form, headed **Edit notifications**, with the subscription's
-events checked. The **Recipient** is shown as plain text, since it cannot change: to send the
-notifications somewhere else, delete the subscription and set up another. Change the checked events
-and press **Save changes**; the form closes, *Address saved.* confirms it, and the row shows the
-change. **Cancel**, or Escape, closes the form and changes nothing, and you are back on the
-row's **Edit**. One form is open at a time.
+**Edit** on a row opens the same form, headed **Edit notifications**, with the
+subscription's events checked. The **Recipient** is shown as plain text, since it cannot
+change: to send the notifications somewhere else, delete the subscription and set up
+another. Change the checked events and press **Save changes**; the form closes, *Address
+saved.* confirms it, and the row shows the change. **Cancel**, or Escape, closes the form
+without changing anything, and you are back on the row's **Edit**. One form is open at a
+time.
 
 
 Who may receive what
@@ -91,10 +92,10 @@ every one:
   of the callouts they sent or that went to their own DART.
 
 CalDART checks each time it sends. When an account has lost the role, or has been
-deactivated, it is skipped for that event and hears nothing; its subscription stays as it
-is and needs no attention. An address no account holds receives every event it is
-subscribed to. When somebody later makes an account with that address, the account's roles
-decide from then on.
+deactivated, it is skipped for that event and doesn't hear anything; its subscription
+stays as it is and doesn't need your attention. An address no account holds receives every
+event it is subscribed to. When somebody later makes an account with that address, the
+account's roles decide from then on.
 
 
 The events
@@ -138,7 +139,7 @@ Money
 *Notification: Automatic renewal or recurring donation turned off*
    An automatic renewal or recurring donation stops, and says whether the person, an
    administrator, a lapse, a deactivation, or the account's deletion stopped it. When
-   the account was deleted, the email has no link, because the record is gone.
+   the account was deleted, the email doesn't have a link, because the record is gone.
 *Notification: Automatic renewal or recurring donation charge failed*
    An automatic charge is declined. It gives the reason and when it is tried again.
 *Notification: Automatic charge needs checking*
@@ -175,7 +176,7 @@ Accounts
    Somebody confirms a changed email address. It gives the old and the new address.
 *Notification: Profile changed*
    A profile is edited, by its holder or by an administrator. It names the fields that
-   changed. An edit that changes nothing sends nothing.
+   changed. An edit that doesn't change anything doesn't send an email.
 *Notification: Verification recorded*
    A verifier verifies or clears a member's pilot certificate, medical, or photo ID, or an
    aircraft's insurance. One email covers everything verified or cleared in one save. It
@@ -192,7 +193,7 @@ Aircraft
 *Notification: Aircraft changed*
    An aircraft's details change. It names the fields that changed.
 *Notification: Aircraft removed*
-   An aircraft is taken off a member's list. This email carries no link.
+   An aircraft is taken off a member's list. This email doesn't carry a link.
 
 Callouts
 ~~~~~~~~

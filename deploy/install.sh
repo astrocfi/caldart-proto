@@ -12,7 +12,7 @@
 # sudo deploy/steps/<step>.sh, reading what it needs from the install record.
 #
 # The values that describe the box are kept in /etc/caldart/install.conf, so a
-# later run needs no flags and a flag given later updates the record.
+# later run doesn't need any flags and a flag given later updates the record.
 # --gunicorn-port given to a later run moves gunicorn: the run writes the port
 # into the environment file, rewrites the vhost or snippet, restarts gunicorn,
 # and reloads the web server, in that order.

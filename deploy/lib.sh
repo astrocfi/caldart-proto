@@ -49,8 +49,8 @@ readonly SHIPPED_CHECKOUT=$SHIPPED_ROOT/caldart
 readonly CHECKOUT_MARK=__CALDART_CHECKOUT__
 # The hostname every shipped vhost names, replaced by the real one.
 readonly SHIPPED_HOSTNAME=caldart.example.org
-# The URL prefix every shipped snippet names, replaced by the real one (or by
-# nothing, for a site at the root of its host).
+# The URL prefix every shipped snippet names, replaced by the real one (or
+# removed, for a site at the root of its host).
 readonly SHIPPED_PREFIX=__PREFIX__
 # The port on 127.0.0.1 every shipped vhost, snippet, and upstream proxies to,
 # replaced by the recorded one; also the port gunicorn listens on by default.
@@ -94,7 +94,7 @@ readonly DEFAULT_DB_PORT=5432
 # TCP's range.
 readonly MIN_PORT=1024
 readonly MAX_PORT=65535
-# A decimal port with no leading zero, which bash arithmetic would read as octal.
+# A decimal port without a leading zero, which bash arithmetic would read as octal.
 readonly PORT_PATTERN='^[1-9][0-9]{0,4}$'
 # The mail relay --email local stands for: the postfix on this machine.
 readonly LOCAL_EMAIL_URL=smtp://localhost:25
@@ -201,7 +201,7 @@ enable_dry_run() {
     export CALDART_DRY_RUN=1
 }
 
-# Parse the flags a step with no options of its own takes: --dry-run and
+# Parse the flags a step without options of its own takes: --dry-run and
 # --help, the latter printing the header of the script at $1.
 parse_step_flags() {
     local script=$1
@@ -220,7 +220,7 @@ parse_step_flags() {
 }
 
 # Print the value $2 given to the option $1, or stop with a usage error when
-# the option came last with no value.
+# the option came last without a value.
 option_value() {
     [[ -n "${2:-}" ]] || usage_error "$1 needs a value"
     printf '%s\n' "$2"
@@ -287,7 +287,7 @@ write_file() {
     "${command[@]}"
 }
 
-# Stop unless running as root; a dry run changes nothing and needs no root.
+# Stop unless running as root; a dry run doesn't change anything or need root.
 require_root() {
     is_dry_run && return 0
     [[ "$(id -u)" == 0 ]] || die "run this as root (sudo $0)"
@@ -388,8 +388,8 @@ validate_gunicorn_port() {
 }
 
 # The port DATABASE_URL in the environment file connects to: the port it names,
-# 5432 when it names none, and nothing when the file or the line is missing or
-# unreadable.
+# 5432 when it doesn't name one, and an empty string when the file or the line
+# is missing or unreadable.
 env_file_db_port() {
     [[ -r "$ENV_FILE" ]] || return 0
     local url
@@ -413,9 +413,10 @@ validate_db_port_matches_env_file() {
     usage_error "--db-port $CALDART_DB_PORT differs from the port in DATABASE_URL in $ENV_FILE ($current); edit DATABASE_URL to use port $CALDART_DB_PORT first, then run install.sh again"
 }
 
-# Print the URL prefix $1 as /segment[/segment...], or nothing for none: one
-# leading and one trailing slash are optional, as they are to the settings.
-# Fails, printing nothing, for an empty segment, a . or .. segment, or any
+# Print the URL prefix $1 as /segment[/segment...], or an empty string for an
+# empty prefix: one leading and one trailing slash are optional, as they are to
+# the settings.
+# Fails without printing anything for an empty segment, a . or .. segment, or any
 # character a segment may not carry.
 normalize_url_prefix() {
     local value=${1#/} segment segments=()
@@ -441,7 +442,7 @@ validate_url_prefix() {
 }
 
 # Print the URL prefix the environment file serves under, normalized, when the
-# file is readable: the value of URL_PREFIX, or nothing when that line is
+# file is readable: the value of URL_PREFIX, or an empty string when that line is
 # missing or commented out.  Fails when the file is missing or unreadable.
 env_file_url_prefix() {
     [[ -r "$ENV_FILE" ]] || return 1
@@ -479,20 +480,20 @@ gunicorn_probe() {
     "$1" curl -sI -H "Host: $CALDART_HOSTNAME" -H 'X-Forwarded-Proto: https' "$(gunicorn_url)"
 }
 
-# The HTTP status gunicorn answers the probe with, or nothing when it answers
-# nothing.
+# The HTTP status gunicorn answers the probe with, or an empty string when it
+# doesn't answer.
 gunicorn_status() {
     gunicorn_probe command | awk 'NR == 1 { print $2 }'
 }
 
 # True when something on this machine listens on TCP port $1.  Without ss
-# there is no telling, and the answer is no.
+# there isn't a way to tell, and the answer is no.
 port_in_use() {
     command -v ss >/dev/null 2>&1 || return 1
     [[ -n "$(ss -ltnH "sport = :$1")" ]]
 }
 
-# The hostname, or a placeholder in a dry run that has none.
+# The hostname, or a placeholder in a dry run that doesn't have one.
 require_hostname() {
     if [[ -n "$CALDART_HOSTNAME" ]]; then
         return 0
@@ -578,8 +579,8 @@ render_snippet() {
         -e "s/${shipped}/${CALDART_HOSTNAME}/g"
 }
 
-# The deploy root the install record names, or nothing when there is no record
-# or it names none.
+# The deploy root the install record names, or an empty string when there isn't
+# a record or it doesn't name one.
 recorded_root() {
     [[ -f "$RECORD_FILE" ]] || return 0
     sed -n 's/^CALDART_ROOT=//p' "$RECORD_FILE" | tail -n 1

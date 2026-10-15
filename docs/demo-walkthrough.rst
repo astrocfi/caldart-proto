@@ -9,9 +9,9 @@ edit in flow B is the record the DART leader reads in flow C, and the payment
 you make in flow A is the one that shows up in the account administrator's
 month column in flow D.
 
-Nothing here charges money.  With no Stripe or PayPal keys configured the
+Nothing here charges money.  Without Stripe or PayPal keys configured, the
 checkout offers only the **mock** provider, which has a *Succeed* button and a
-*Fail* button and talks to nothing outside your machine.
+*Fail* button and doesn't talk to anything outside your machine.
 
 Prerequisites
 =============
@@ -133,8 +133,8 @@ clears.*
    *Platinum* at $10,000, with an *Other amount* box and a *No thank you*.
    The total updates as you choose.
 
-   Below the plan is one tab per configured payment provider.  With no keys
-   set the only tab is **Test payment**.  Press **Succeed**.
+   Below the plan is one tab per configured payment provider.  When no keys
+   are set, the only tab is **Test payment**.  Press **Succeed**.
 
    .. tip::
 
@@ -150,7 +150,7 @@ clears.*
 
 **What success looks like.**  Go to ``/portal/`` and the membership card reads
 **Current** with an expiry date 364 days after today for the Annual plan
-(``starts_on + duration_days - 1``), or **Lifetime** with no date for Life.
+(``starts_on + duration_days - 1``), or **Lifetime** without a date for Life.
 The public page ``/members/`` now opens instead of showing the wall.
 
 .. _walkthrough-flow-b:
@@ -166,8 +166,8 @@ membership buys.*
    with the expiry date, a renewal call to action, quick links filtered to
    your roles, the members-only pages, and your recent payments.
 
-   Marta's seeded profile has no certificate and no medical on file, which is
-   what makes her interesting for flow C.  We are about to fix that.
+   Marta's seeded profile doesn't have a certificate or a medical on file, which
+   is what makes her interesting for flow C.  We are about to fix that.
 
 2. Go to **My profile**.  The form is in three sections — Contact, Aviation,
    Volunteer interests — one column on a phone and two from about 40rem wide.
@@ -285,7 +285,7 @@ airplane for us today?" in one screen.*
    insurance card and a list of the members who fly it, each with their own
    membership and medical currency.  The verdict is **INSURED** for a current
    policy somebody has verified, **NOT VERIFIED** for a current one nobody
-   has, and **NOT INSURED** for no current policy; the seed leaves about three
+   has, and **NOT INSURED** without a current policy; the seed leaves about three
    in ten airplanes unverified, ``N206KM`` among them.  Press **Verify**, check
    **Insurance verified**, and save to turn **NOT VERIFIED** into
    **INSURED**.
@@ -376,8 +376,8 @@ Flow E — a website administrator adds, edits, and deletes a page
 **What success looks like.**  You are deliberately *not* a Django superuser.
 You can edit pages, images, documents, redirects, and site settings.
 ``website_admin`` also sets the Django ``is_staff`` flag, so you can sign in to
-``/django-admin/`` too — its index comes up empty, because you hold no Django
-model permissions there.  The portal's own system screens stay out of reach:
+``/django-admin/`` too — its index comes up empty, because you don't hold any
+Django model permissions there.  The portal's own system screens stay out of reach:
 those need the ``system_admin`` role.
 
 After the walkthrough
@@ -481,14 +481,14 @@ Troubleshooting
   at the same airplane is silently fine; a genuinely unknown id is a 404.
 - *You cannot see a members-only page you expect to see.*  Membership status
   is not the only gate: any role beyond plain ``member`` also gets through.  A
-  DART leader with no membership of their own can read members-only pages.
+  DART leader without a membership of their own can read members-only pages.
 
 .. rubric:: Flow C — a DART leader checks a member before a flight
 
 - *"Nobody matches that."*  Search is over name, email, phone number, and
   N-number.  A certificate number will not find anybody here — that is the
   account administrator's search field.
-- *A member with no profile at all.*  You get a well-formed NO-GO card rather
+- *A member without a profile at all.*  You get a well-formed NO-GO card rather
   than an error.
 - *An airplane marked out of service* is labeled as such on the card, and is
   dropped from the picker's fuzzy search — though an exact registration still

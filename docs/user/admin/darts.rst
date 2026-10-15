@@ -33,7 +33,7 @@ heading shows the order, and **Website** and **Actions** do not sort:
 On a narrower screen the table leaves out **Website**, then **People**, **Airport**,
 **Roster**, and **Members**, so the name, the status, and **Edit** stay in sight on a phone.
 
-With no teams yet the table says *No DARTs yet*.
+Until a team is added, the table says *No DARTs yet*.
 
 
 Adding a DART
@@ -48,8 +48,8 @@ Adding a DART
    The fields the team flies from, as three-character identifiers separated by commas: PAO,
    or CCR, C83 for a team with two fields. Leave off the leading K, so CRQ for KCRQ; a
    pasted KCRQ loses its K. At least
-   one is required and twelve at most. A DART is known by its fields, so there is no town to
-   fill in.
+   one is required and twelve at most. A DART is known by its fields, so there isn't a town
+   to fill in.
 
 **Website**
    The team's own site, if it has one.
@@ -66,11 +66,11 @@ The people who run it
 all in lower case is saved in title case, *SMITH* as **Smith**; one typed with both is
 kept as typed.
 
-- **Add a person** adds a row. It is grayed out while the last row has no name, so give the
-  person above a name first.
+- **Add a person** adds a row. It is grayed out while the last row is missing a name, so give
+  the person above a name first.
 - Check **Roster** on the row of each person who should receive the team's roster by email.
 - The arrows at the head of a row move that person up or down. The order is the order the
-  team's page on the public website lists them in, so put the leader first. A row with no
+  team's page on the public website lists them in, so put the leader first. A row without a
   name cannot be moved, and neither can its neighbors past it.
 - The trashcan at the end of a row asks first: press it and it turns into **Remove** and
   **Cancel**. Press **Remove** and that person comes off the list; **Cancel**, Escape, or a
@@ -100,7 +100,7 @@ Deleting a DART
 **Delete** and **Cancel**. When the team has members or a page on the public website, a
 line above them says what the delete leaves behind, for example *Deleting Napa makes its 12
 members unaffiliated and unlinks 1 website page. This cannot be undone.* The members come
-off the team and stay members, with nothing else on their record touched. A website page
+off the team and stay members, and nothing else on their record is touched. A website page
 for the team keeps its own words and loses only its link to the team. Press **Delete**, or
 **Cancel**, Escape, or a click elsewhere to keep the team.
 
@@ -128,7 +128,7 @@ If something looks wrong
 *Give the DART a name.* and *Give the DART at least one airport.* mean a required box is
 empty. *Use three-character identifiers, separated by commas, like CCR, C83.* means an
 airport is written some other way, and *That list names the same airport twice.* means what
-it says. A **Roster** count lower than the people you checked means some of them have no
-email address. After a team is deleted, an unpublished draft of its website page still names
+it says. A **Roster** count lower than the people you checked means some of them don't have
+an email address. After a team is deleted, an unpublished draft of its website page still names
 it, and publishing that draft fails: ask the website administrator to open the page, clear
 its **DART** field, and publish again.

@@ -18,7 +18,7 @@ The cards come in the order they matter.
 
 **Automatic renewal**
   Whether CalDART will renew your membership for you, and the buttons that change
-  that. A life member and a friend have nothing to renew, so they do not see it,
+  that. A life member and a friend don't have anything to renew, so they do not see it,
   unless they still hold a renewal that is switched on, which the card then shows
   so they can turn it off.
 
@@ -36,7 +36,7 @@ The cards come in the order they matter.
   something has come back), **Status**, and **Receipt**. The status reads
   **Paid**, **Pending**, **Failed**, **Partly refunded**, or **Refunded**. The
   **Receipt** link downloads the same PDF the receipt email carried. A payment that
-  failed, or one still pending, has no receipt, because no money arrived. On a phone
+  failed, or one still pending, doesn't have a receipt, because no money arrived. On a phone
   what you paid for, then **Refunded**, give way; the **Date** stays pinned at the left,
   and the table scrolls sideways to the **Amount**, the **Status**, and the **Receipt**.
 
@@ -58,15 +58,15 @@ Check **Renew automatically each year** when you pay for a membership, or press
 **Turn on** on the card here, which saves a method without charging it. **Turn on**
 opens the same choices the checkout offers: the plan that will renew, the
 contribution to renew beside it, **First charge on**, and a tab per payment method.
-The first plan listed that renews is chosen for you. A site with no membership plan
+The first plan listed that renews is chosen for you. A site without a membership plan
 set up shows *No membership plan is set up yet. Ask an administrator.* instead, and
-offers no way to save a method.
+doesn't offer a way to save a method.
 The line above the tabs says what will happen, for example *CalDART will charge
 $145.00 on 03/01/2027, and each year after that. We will email you 14 days
 before every charge.*
 
 **First charge on** is yours to choose. It opens on the day your membership runs
-out, which is the day most people want, or on today when you hold no current term.
+out, which is the day most people want, or on today when you don't hold a current term.
 An earlier day renews you before your term has run out, so you pay for months you
 already had. A later day leaves you lapsed from the day your membership runs out
 until the charge. A day that has gone by is refused with *The next charge cannot be
@@ -95,7 +95,7 @@ moves to the end of the term that charge bought.
 **Turn off** asks *Turn automatic renewal off?* in a panel under the card's buttons.
 **Turn it off** stops it at once: nothing further is charged, the saved method is
 dropped, and your membership still runs to the end of the term you paid for.
-**Cancel**, or Escape, changes nothing.
+**Cancel**, or Escape, doesn't change anything.
 CalDART emails *CalDART: automatic renewal is off*, and the ordinary reminders
 resume.
 
@@ -154,7 +154,7 @@ Every receipt can be downloaded again from the **Receipt** link on its row.
 Refunds
 =======
 
-There is no refund button for members. Ask the office: a treasurer or an account
+Members don't have a refund button. Ask the office: a treasurer or an account
 administrator can refund a payment in full or in part. You are emailed *CalDART: a
 refund of $45.00*, with the payment it came from, the reason, and whether your
 membership ended with it. The money goes back to the card or account you paid with,
@@ -172,10 +172,10 @@ Each January, CalDART emails every member, friend, and donor who gave in the yea
 before their statement, subject *CalDART: your 2026 contribution statement*, with
 the PDF attached. The buttons here download the same statement at any time.
 
-A year in which you paid dues and gave nothing has no statement, because dues are
-not a gift: the card says **No statements yet**. A refund comes off the contribution
-first, even one that covered dues, so check a statement for a year with a refund
-against your receipts before you file it.
+A year in which you paid dues and didn't give anything doesn't have a statement, because
+dues are not a gift: the card says **No statements yet**. A refund comes off the
+contribution first, even one that covered dues, so check a statement for a year with a
+refund against your receipts before you file it.
 
 
 If something looks wrong

@@ -33,15 +33,15 @@ One line per email, the most recently changed first:
 On a screen too narrow for every column, **Type**, then **DART**, then **Last edited**, then
 **From** are left out, one at a time until the rest fit, so the actions stay in sight; on a
 phone the table scrolls sideways, says so above it, and keeps the subject pinned at the left.
-**New email** at the top opens :doc:`compose`. Before the first draft the table reads
-*No drafts*, with its own **New email** button. A DART leader whose profile names no DART
+**New email** at the top opens :doc:`compose`. Before the first draft the table reads *No
+drafts*, with its own **New email** button. A DART leader whose profile doesn't name a DART
 sees, in place of **New email**, the line saying to set their DART on My profile, with **Open My profile**
 (:doc:`dart-leaders`).
 
 An email that came due but was not sent is named above the table with the reason, such as
 *This email was not sent: you can no longer send Mission email. Choose another type and send
 again.* This happens when the person who pressed **Send** has since lost the role that sends
-that type of email, or their account was deleted. The email is a draft again with nothing
+that type of email, or their account was deleted. The email is a draft again and nothing is
 lost; open it, choose a type you may send, and send it again. The same line shows at the top
 of its compose screen until you do.
 

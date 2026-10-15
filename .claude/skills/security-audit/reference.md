@@ -50,7 +50,7 @@ Example findings and common false positives. Paths and names are illustrative.
   administrator's machine when the export is opened.
 - **Fix:** Prefix cells starting with `=`, `+`, `-`, `@`, tab, or carriage return with `'`.
 
-#### SEC-006: Login endpoint has no throttling
+#### SEC-006: Login endpoint doesn't throttle attempts
 **P1** · Confirmed · Effort S
 - **Where:** `accounts/api/views.py:30`; no throttle classes in settings.
 - **Issue:** Unlimited password attempts per account and per address.

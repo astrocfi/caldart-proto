@@ -45,7 +45,7 @@ open_html() {
 
     case "$(uname -s)" in
         Linux)
-            # A headless shell has no handler to hand the page to; say where it
+            # A headless shell doesn't have a handler to hand the page to; say where it
             # is rather than failing on a missing xdg-open or a missing DISPLAY.
             if [ -z "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ] || ! command -v xdg-open >/dev/null 2>&1; then
                 echo "No browser to open here.  The documentation is at:"

@@ -26,7 +26,7 @@ screen reads *The old password no longer works and every session is ended. A pas
 email went to* and the address. Roles, membership, and status stay as they were.
 
 A deactivated account stays deactivated until its owner chooses a password from the link,
-which reactivates it as any reset does. A blocked account is sent no email, since the block
+which reactivates it as any reset does. A blocked account isn't sent the email, since the block
 refuses the link; once you allow reactivation, the owner uses **Forgot password** on the
 sign-in page. If the owner's mailbox itself was taken over, a new password does not help:
 block reactivation and reach the owner another way.

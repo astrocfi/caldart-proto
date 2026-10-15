@@ -61,8 +61,8 @@ backlog = 2048
 
 # The usual (2 x cores) + 1 heuristic, computed at start-up so the same file
 # suits a 2-core VM and a 16-core box -- but capped.  Every worker preloads
-# Django and Wagtail, so on a large host the heuristic buys nothing and costs
-# a few hundred MB: CalDART's load is a few hundred members, not a few
+# Django and Wagtail, so on a large host the heuristic doesn't buy anything and
+# costs a few hundred MB: CalDART's load is a few hundred members, not a few
 # thousand requests a second.  WEB_CONCURRENCY in /etc/caldart/caldart.env
 # overrides both if a particular box needs something else.
 MAX_WORKERS = 12

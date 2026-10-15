@@ -10,8 +10,8 @@ blank page. Every member of CalDART management shares the same templates. CalDAR
 opens it as **Templates** under **Bulk email** in the menu. A system administrator can open it
 too.
 
-A template holds a message and nobody to send it to: who gets an email is chosen on
-:doc:`compose`, or kept as a recipient group on :doc:`groups`.
+A template holds a message but doesn't hold anybody to send it to: who gets an email is
+chosen on :doc:`compose`, or kept as a recipient group on :doc:`groups`.
 
 
 The list
@@ -22,7 +22,8 @@ One line per template, by name:
 - **Name**: what the template is called when you choose it. Press it to open the template
   in the form below the heading.
 - **Subject**: the subject it starts an email with, a field in it shown as a chip.
-- **Type**: the type of email it starts as, such as *Operational*, or a dash for none.
+- **Type**: the type of email it starts as, such as *Operational*, or a dash when it
+  doesn't have one.
 - **Last edited**: the day it last changed.
 - **Actions**, last: the trashcan, which deletes the template after you press **Delete**.
   Emails already started from it keep their words.

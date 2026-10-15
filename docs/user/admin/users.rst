@@ -34,17 +34,17 @@ though the download leads with **Role**:
   or *No role*. Rest the pointer on it to read every role.
 - **Email**: the address, which is also how they sign in.
 - **Phone**: the phone number on their profile.
-- **DART**: their team, blank for none.
+- **DART**: their team, blank when they don't have one.
 - **Kind**: **Member**, **Friend**, or **Donor**, as the account's record shows it.
 - **Membership**: a colored dot and the membership's state: **Current**, **Expiring soon**,
-  **Expired**, **Never expires**, or **Friend**. A donor holds none, and reads *No
+  **Expired**, **Never expires**, or **Friend**. A donor doesn't hold one, and reads *No
   membership*.
 
 **Name** and **Email** sort: click one to sort by it, and again to reverse the order. The
-other headings have no arrow and do not sort. On a narrower screen the table leaves out
-**Kind**, **Phone**, **DART**, **Role**, and **Email** in turn, while **Name**, **Membership**,
-and any column you checked beyond the defaults stay; on a phone a line over the table says when it scrolls sideways,
-and the names stay pinned at the left.
+other headings don't carry an arrow and don't sort. On a narrower screen the table leaves
+out **Kind**, **Phone**, **DART**, **Role**, and **Email** in turn, while **Name**,
+**Membership**, and any column you checked beyond the defaults stay; on a phone a line
+over the table says when it scrolls sideways, and the names stay pinned at the left.
 
 Every screen names a role the way a person says it: Member, Verifier, DART leader, User
 administrator, Treasurer, Account administrator, CalDART management, Website administrator,
@@ -81,7 +81,7 @@ at the end of the bar, empties them and puts **Account status** back on **Active
    you can find each one and ask the person for an address that works
    (:doc:`user-record`).
 
-Changing a filter takes you back to the first page. With nothing to show, the table names
+Changing a filter takes you back to the first page. When nothing matches, the table names
 the filters in force, such as *No accounts match the Role and Kind filters*. Under that it
 reads *Try a shorter search, or reset the filters.* when something is typed in **Search**,
 and *Reset the filters to see more accounts.* when nothing is, with a **Reset filters**
@@ -108,8 +108,8 @@ It starts on Role, Name, Email, Phone, DART, Kind, and Membership, and adds City
 and Home airport when you check them. **Load columns** and **Save columns** keep a set of
 columns under a name, as :ref:`saved-column-sets` describes.
 
-With **Donor** chosen under **Kind**, or **Member** under **Role**, the report has
-nobody to list, so the two export buttons and **Columns** are grayed out, and **Load
+With **Donor** chosen under **Kind**, or **Member** under **Role**, the report doesn't
+have anybody to list, so the two export buttons and **Columns** are grayed out, and **Load
 columns** and **Save columns** are put away until you choose another kind or role. A line
 of its own under the filters says why.
 
@@ -122,7 +122,7 @@ Donor accounts
 
 A donor gave through the public site without joining. Each gift from a new email address
 makes a donor account, and a later gift from the same address goes on the same one. A donor
-account keeps the gifts and receipts, holds no password and no role, and cannot sign in.
+account keeps the gifts and receipts, doesn't hold a password or a role, and cannot sign in.
 Donors appear nowhere else outside the treasurer's screens, so this list is where you find
 one: choose **Donor** under **Kind**. A receipt sent to a mistyped address is corrected
 by an account administrator, on the donor's member record.
@@ -138,14 +138,14 @@ What each role opens
   A DART leader verifies too, and can make a member a verifier.
 - **User administrator**: this screen, and the member check and the aircraft check, where a
   user administrator verifies and makes members verifiers.
-- **Treasurer**: the payment screens and the money reports, and nothing that shows a
+- **Treasurer**: only the payment screens and the money reports, which never show a
   member's medical or certificate.
 - **Account administrator**: the member list and records, the aircraft register, the DARTs,
   the payments, the reminders, and the reports, and verifying from the checks and the
   records.
-- **CalDART management**: the Bulk email screens, starting with
-  :doc:`../bulk-email/compose`, to email members and friends, and nothing that
-  shows a member's record.
+- **CalDART management**: only the Bulk email screens, starting with
+  :doc:`../bulk-email/compose`, to email members and friends; none of them shows a member's
+  record.
 - **Website administrator**: the website's editor, for pages, images, documents, redirects,
   and site settings.
 - **System administrator**: everything above, plus the :doc:`health-database`,

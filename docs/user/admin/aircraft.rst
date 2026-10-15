@@ -50,7 +50,8 @@ The table shows the same columns as the register you download, and **Columns** c
 
 **Carrier**, **Liability / occurrence**, and **Hull**
    The insurance carrier, and the policy's limits in dollars, right-aligned. An airplane
-   with no policy on file, no carrier and no expiry date, leaves all three blank.
+   without a policy on file, meaning without a carrier or an expiry date, leaves all three
+   blank.
 
 **Expires**
    A colored dot and the cover's state with its date: *Insured to 04/29/2027* (green),
@@ -60,8 +61,8 @@ The table shows the same columns as the register you download, and **Columns** c
 **Covered**
    Whether CalDART's insurance policy covers an airplane of its category and airworthiness
    at all, as the :ref:`coverage-policy` states it: **Yes**, or **No** for an excluded
-   kind, such as a helicopter, however current its own insurance. An airplane with no
-   category recorded reads **Yes**. Whether its own insurance is in force is the
+   kind, such as a helicopter, however current its own insurance. An airplane without
+   a recorded category reads **Yes**. Whether its own insurance is in force is the
    **Expires** dot.
 
 Each row stays on one line, and anything too long for its column ends in an ellipsis. On a
@@ -72,9 +73,9 @@ so, and the N-numbers stay pinned at the left while you scroll.
 
 **N-number**, **Make**, **Model**, **Owner**, and **Expires** sort: their headings carry an
 arrow, and the register opens sorted by N-number. Click one to sort the whole register by
-it; click again to reverse. An airplane with no insurance on file always sorts to the bottom
+it; click again to reverse. An airplane without insurance on file always sorts to the bottom
 of **Expires**, whichever way you sort, so it never crowds out the ones about to lapse. The
-other headings have no arrow and do not sort.
+other headings don't carry an arrow and don't sort.
 
 When no airplane matches, the table says *No aircraft match these filters* and offers
 **Reset filters**.
@@ -108,8 +109,8 @@ as it was. The note takes at most 1,000 characters.
 The policy takes effect at once. The aircraft check shows an airplane it leaves out as
 **NOT COVERED**, a no-go, with the reason, such as *helicopters are excluded by CalDART's
 policy*, whatever its insurance; the member check marks the airplane **Not covered** on the
-pilot's card; and **My aircraft** marks it for its pilot. An airplane with no **Category**
-recorded is never left out by its category, whatever its airworthiness says: the aircraft
+pilot's card; and **My aircraft** marks it for its pilot. An airplane without a recorded
+**Category** is never left out by its category, whatever its airworthiness says: the aircraft
 check says *Category not recorded* instead, so record the category on the
 :doc:`aircraft-record`.
 
@@ -166,11 +167,11 @@ Adding an aircraft type
 =======================
 
 The aircraft types are the FAA's list of every type ever registered in the United States,
-foreign-built ones such as the Aeropro Eurofox included, so the type of almost any airplane
-is already there. When a search in **Aircraft type** finds nothing, the box says *No
-aircraft type matches that.*, and you, unlike a member, also see **New aircraft type**. Try
-the make alone, or a designator such as c172, first. **New aircraft type** is for a type the
-FAA has never registered:
+foreign-built ones such as the Aeropro Eurofox included, so the type of almost any
+airplane is already there. When a search in **Aircraft type** doesn't find anything, the
+box says *No aircraft type matches that.*, and you, unlike a member, also see **New
+aircraft type**. Try the make alone, or a designator such as c172, first. **New aircraft
+type** is for a type the FAA has never registered:
 
 #. Press **New aircraft type**. A small form opens under the box.
 #. Fill in **Make** and **Model** (both required), and **Seats** and **Engines** if you know

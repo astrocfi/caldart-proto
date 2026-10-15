@@ -57,7 +57,7 @@ says *Another account already uses that email address.*, somebody took the addre
 after you asked for it, and your account keeps the address it had.
 
 Until the address is verified, that **Check your email** screen is all of the
-portal you can use: every other screen brings you back to it, and there is no menu
+portal you can use: every other screen brings you back to it, and there isn't a menu
 down the left. A change of address does not hold you there: you keep signing in with
 the address you had until the new one is confirmed (see :doc:`change-email`).
 

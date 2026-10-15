@@ -98,7 +98,7 @@ You need:
   ``caldart.example.org``: an ``A`` record (and ``AAAA`` for IPv6).  With the
   default ``--www``, ``www.caldart.example.org`` must resolve to the server as
   well, since the certificate covers both names; give ``--no-www`` otherwise.
-  A self-signed install (``--tls self-signed``) needs no public DNS.
+  A self-signed install (``--tls self-signed``) doesn't need public DNS.
 - **Ports 80 and 443 open** to the internet.  Let's Encrypt checks port 80
   before it issues a certificate, and certbot renews through it.  Behind an
   existing site (``--tls existing``) the site's own web server already holds
@@ -203,11 +203,11 @@ These are every option ``install.sh`` accepts (``sudo deploy/install.sh
       remembers HSTS for a name the box does not own.
    ``existing``
       A web server on this machine already serves the hostname over HTTPS.
-      The installer obtains no certificate, installs no certbot, and writes no
+      The installer doesn't obtain a certificate, install certbot, or write a
       vhost of its own: it writes a snippet that the existing site's vhost
       includes.  Usually paired with ``--url-prefix`` and ``--attach-to``.
 
-   There is no plain-HTTP mode: the production settings insist on secure
+   There isn't a plain-HTTP mode: the production settings insist on secure
    cookies and redirect HTTP to HTTPS.
 ``--certbot-email ADDRESS``
    The Let's Encrypt account address, which receives expiry warnings.
@@ -271,8 +271,8 @@ These are every option ``install.sh`` accepts (``sudo deploy/install.sh
    ``DEMO_ACCOUNTS_SKIP_TWO_FACTOR=true`` (`Seeding`_).  Independent of
    ``--seed-content``.
 ``--seed-content``
-   Load the example website: the public pages and the members-only area, with
-   no accounts.  Give it alone to see the website by itself.  Independent of
+   Load the example website: the public pages and the members-only area, without
+   any accounts.  Give it alone to see the website by itself.  Independent of
    ``--seed-demo``.
 ``--dry-run``
    Print every state-changing command instead of running it.
@@ -282,7 +282,7 @@ These are every option ``install.sh`` accepts (``sudo deploy/install.sh
 The hostname, ``www``, the web server, the TLS mode, the certbot address and
 staging switch, the database port, the gunicorn port, the URL prefix, and the
 attached vhost file are kept in the install record (see `What the installer
-writes`_), so a later run needs no flags, and a flag given later updates the
+writes`_), so a later run doesn't need any flags, and a flag given later updates the
 record.  The mail flags, ``--from-email``, the two bounce flags, ``--admin-email``,
 ``--seed-demo``, and ``--seed-content`` are used by the run that writes the environment file or
 creates the administrator, and are not recorded.
@@ -291,7 +291,7 @@ Step 3: try it with a dry run
 -----------------------------
 
 ``--dry-run``, or ``CALDART_DRY_RUN=1`` in the environment, prints what a run
-would do without doing it, and needs no root.  It reads the machine as it is,
+would do without doing it, and doesn't need root.  It reads the machine as it is,
 so on a fresh box it prints the whole sequence in order; the generated
 secrets appear as ``<generated>``, and a file the dry run never wrote (the
 environment file, the install record) is treated as absent, with a note on
@@ -336,8 +336,8 @@ The summary at the end looks like this::
   Still empty in the settings: STRIPE_PUBLISHABLE_KEY STRIPE_SECRET_KEY ...
 
 ``--admin-email`` runs ``create_admin``, which makes the account a superuser
-with the ``member``, ``system_admin``, and ``website_admin`` roles and no
-usable password, and prints one line: a one-time password-reset link.  Open it,
+with the ``member``, ``system_admin``, and ``website_admin`` roles but without
+a usable password, and prints one line: a one-time password-reset link.  Open it,
 signed out, to set the administrator's password.  It expires with any
 password-reset link, after ``PASSWORD_RESET_TIMEOUT`` (three days by default).
 When an account with that address already exists, because somebody registered
@@ -431,7 +431,7 @@ cookies use the path ``/``.  HSTS stays with the existing site.
 
 Without ``--url-prefix``, ``--tls existing`` gives CalDART the whole of the
 existing host.  On nginx that snippet holds ``location ^~ /``, so the existing
-``server`` block must have no ``location /`` of its own.
+``server`` block mustn't have a ``location /`` of its own.
 
 With ``--email local`` the installer prints a note, not an error, when
 nothing listens on port 25: mail fails until postfix is installed and
@@ -471,8 +471,8 @@ What the installer writes
 The install record: ``/etc/caldart/install.conf``
 -------------------------------------------------
 
-``root:root``, mode ``0644``, one ``KEY=value`` per line, and no secret.
-Every script reads it; it is never executed.
+``root:root``, mode ``0644``, one ``KEY=value`` per line.  It never holds a
+secret.  Every script reads it; it is never executed.
 
 ``CALDART_ROOT``
    The deploy root, the parent of the checkout the installer ran from.
@@ -528,7 +528,7 @@ secret key, and the payment keys.  The first run writes it from
 - ``SECURE_HSTS_SECONDS=0`` with a self-signed certificate.
 
 Everything else, comments included, stays as the template has it, so the file
-explains itself.  Once it exists no script rewrites it: a later
+explains itself.  Once it exists, no script rewrites it: a later
 ``--email-url``, ``--email local``, ``--from-email``, ``--bounce-imap-url``, or
 ``--bounce-address`` is reported as ignored.
 Change it by hand, then restart the web service::
@@ -536,7 +536,7 @@ Change it by hand, then restart the web service::
   sudoedit /etc/caldart/caldart.env
   sudo systemctl restart caldart-web
 
-The job services read the file afresh on every run, so they need no restart.
+The job services read the file afresh on every run, so they don't need a restart.
 
 The systemd units
 -----------------
@@ -643,7 +643,7 @@ Directories in the deploy root
 ------------------------------
 
 ``/opt/caldart``
-   The deploy root, root-owned.  It holds the three below and nothing else.
+   The deploy root, root-owned.  It holds only the three below.
 ``/opt/caldart/caldart``
    The checkout, root-owned and world-readable.  The only things the install
    writes in it are build output, all ignored by git: ``.venv/`` (the Python
@@ -667,9 +667,9 @@ After the install
 Fill in the remaining settings
 ------------------------------
 
-The site runs without payment or address keys: checkout offers no payment
-provider, and the profile form offers no address suggestions, until they are
-set.  The summary lists the ones still empty.  Add them with
+The site runs without payment or address keys: checkout doesn't offer a payment
+provider, and the profile form doesn't offer address suggestions, until they
+are set.  The summary lists the ones still empty.  Add them with
 ``sudoedit /etc/caldart/caldart.env``, then
 ``sudo systemctl restart caldart-web``:
 
@@ -735,7 +735,7 @@ It checks that ``caldart-web`` and the six timers are active, that the
 database container is healthy, that ``https://HOST/`` (under the prefix, when
 there is one), the sign-in page, and the portal script the sign-in page names
 all answer ``200`` from this machine, and that ``manage.py health`` reports
-``DEBUG`` off and no pending migration.  It prints an ``error: check failed:``
+``DEBUG`` off and every migration applied.  It prints an ``error: check failed:``
 line for every miss and exits non-zero; when every check passes it prints the
 summary.
 
@@ -781,7 +781,7 @@ name, in that order, while the site keeps running::
   sudo /opt/caldart/caldart/deploy/seed.sh --all              # roles, plans, demo, website
 
 Its flags are ``--roles``, ``--plans``, ``--demo``, ``--content``, and
-``--all``; with none it stops and lists them.
+``--all``; without one it stops and lists them.
 
 Seeding twice is safe: every seed finds the rows it made before and updates
 them rather than adding a second copy, so a second run leaves one of
@@ -822,7 +822,7 @@ says so in one line of its output::
 
   payments: the mock payment provider is off, so no renewal due today, no catch-up renewal, and no recurring donation was seeded
 
-The seed's other renewals carry made-up Stripe and PayPal references.  With no
+The seed's other renewals carry made-up Stripe and PayPal references.  Without
 payment keys configured, ``caldart-renewals`` puts their charges off and runs
 cleanly on the seeded server; with real or sandbox keys, the provider can refuse
 a seeded charge, and the job then exits with an error counting the refusals.  A
@@ -830,7 +830,7 @@ mock-provider renewal left from a seed run while that provider was on is put off
 too, never refused.  Leave the mock provider off: turning it on with
 ``PAYMENTS_MOCK_ENABLED_IN_PRODUCTION`` shows every visitor a **Test payment**
 tab with *Succeed* and *Fail* buttons, a way for anyone to grant themselves a
-membership with no money changing hands (``docs/developer/payments-setup.rst``).
+membership without any money changing hands (``docs/developer/payments-setup.rst``).
 
 Logs
 ----
@@ -887,8 +887,8 @@ Each step runs as the freshly checked-out script, so an upgrade that changes
 the installer runs the changed one.  The job units call ``manage.py run_job``,
 whose record lives in a table step 6 creates, before step 8 reinstalls the units;
 the first upgrade onto such a release records every run from then on, and the
-runs before it stay in the journal alone.  It is safe to run again: an upgrade with
-nothing to pull still backs up, rebuilds, restarts, and passes the checks.
+runs before it stay in the journal alone.  It is safe to run again: an upgrade on an
+up-to-date checkout still backs up, rebuilds, restarts, and passes the checks.
 It never touches the environment file, the install record, or the web
 server's configuration.
 
@@ -898,7 +898,7 @@ the database container stays where it is.  ``install.sh --gunicorn-port`` and
 ``install.sh --db-port`` are the way to move them (`Sharing the machine`_);
 ``upgrade.sh`` refuses both flags.
 
-``install.sh`` with no flags is safe to run at any time too: it reads
+``install.sh`` without flags is safe to run at any time too: it reads
 everything from the install record, re-applies every step, and leaves the
 environment file and the install record byte for byte as they were.  Run it to
 repair an install; run ``install.sh`` with a flag to change what the record
@@ -936,7 +936,7 @@ install and point here, while ``uninstall.sh``, ``manage.sh``, and
      sudo cp -a /opt/caldart/backend/media /root/caldart-media
 
 3. Remove the install whose checkout is ``/opt/caldart``, database
-   included; the purge removes that checkout, and nothing else under
+   included; the purge removes only that checkout from
    ``/opt``::
 
      sudo /opt/caldart/deploy/uninstall.sh --yes --purge
@@ -1023,8 +1023,8 @@ it drops anything, so a damaged dump leaves the database as it was.  The
 ``migrate`` brings a dump from an older release up to the running code.
 
 Before starting anything again, check that the restore is the site you meant
-to bring back: ``sudo /opt/caldart/caldart/deploy/manage.sh health`` reports no
-pending migrations, and the member list and payments look as expected.  A
+to bring back: ``sudo /opt/caldart/caldart/deploy/manage.sh health`` doesn't report
+any pending migrations, and the member list and payments look as expected.  A
 dump older than the last automatic renewal makes that renewal look due again,
 so check what the renewal job would charge before restarting the timers::
 
@@ -1072,8 +1072,8 @@ script says so; create an administrator then with::
   sudo /opt/caldart/caldart/deploy/manage.sh create_admin --email you@example.org
 
 The environment file, the install record, the web server, the backups, and the
-uploads in ``/opt/caldart/media`` are left alone.  The uploads stay on disk
-with nothing in the database naming them; to clear them too, empty the
+uploads in ``/opt/caldart/media`` are left alone.  The uploads stay on disk,
+though nothing in the database names them; to clear them too, empty the
 directory once the reset is done::
 
   sudo find /opt/caldart/media -mindepth 1 -delete
@@ -1114,7 +1114,7 @@ first instead.
 
 **An existing web server.**  With ``--tls certbot`` or ``self-signed``,
 CalDART adds its own vhost for its hostname beside the others.  With
-``--tls existing`` it adds a snippet to one existing vhost and nothing else.
+``--tls existing`` it only adds a snippet to one existing vhost.
 Only one of Apache and nginx may be running.
 
 **Gunicorn's port.**  Gunicorn binds ``127.0.0.1:8001`` unless ``--gunicorn-port``
@@ -1199,12 +1199,12 @@ smtp://localhost:25``), every other job service started once,
 the administrator's account may exist, the health check must pass, and the
 example About Us page must answer 404), ``seed.sh --content`` twice (the page
 count must not change between the runs, and About Us must answer 200),
-``upgrade.sh`` with nothing to pull, ``install.sh`` with no flags (which must leave the
+``upgrade.sh`` on an up-to-date checkout, ``install.sh`` without flags (which must leave the
 environment file and the install record byte-identical), and ``uninstall.sh
 --yes --purge``.  After the install it checks the layout: the checkout at
 ``/opt/caldart/caldart``, the first dump in ``/opt/caldart/backups``,
-``/opt/caldart/media`` owned by the service user, and nothing the site writes
-inside the checkout.  Any failure stops the run and the target exits non-zero.
+``/opt/caldart/media`` owned by the service user, and the checkout free of
+anything the site writes.  Any failure stops the run and the target exits non-zero.
 
 ``REHEARSE_WEB_SERVER``
    ``apache`` (the default) or ``nginx``.
@@ -1228,8 +1228,8 @@ inside the checkout.  Any failure stops the run and the target exits non-zero.
 ``REHEARSE_SEED``
    ``content``, ``demo``, or ``all``: passes ``--seed-content``, ``--seed-demo``,
    or both to the install.  With the website seeded it checks that a seeded
-   page answers, and that a website-only install holds no account but the
-   administrator's; with the demo accounts seeded it checks that ``manage.sh
+   page answers, and that a website-only install holds only the administrator's
+   account; with the demo accounts seeded it checks that ``manage.sh
    health --json`` still passes and that the sign-in page still answers.
 ``REHEARSE_KEEP``
    A switch (``1``, ``yes``, or ``true``): keep the container and its volumes
@@ -1277,8 +1277,8 @@ the message says, then run the same command again.
    in the environment file to the prefix you want, then run the installer with
    ``--url-prefix`` again.
 
-``error: FILE holds no <VirtualHost> block to include the snippet in`` (``server block`` on nginx)
-   ``--attach-to`` names a file with no vhost in it at all, such as a file of
+``error: FILE doesn't hold a <VirtualHost> block to include the snippet in`` (``server block`` on nginx)
+   ``--attach-to`` names a file without any vhost in it at all, such as a file of
    global settings.  Point it at the file holding the site's HTTPS block.  A
    file whose blocks all serve plain HTTP gets the line in every block, which
    is not what you want: behind certbot's Apache plugin, name
@@ -1292,7 +1292,7 @@ the message says, then run the same command again.
    The existing site's configuration does not accept the snippet; the
    installer took its line out again.  Run ``apachectl configtest`` or
    ``nginx -t`` with the line added by hand to see why.  On nginx without a
-   prefix, the existing ``server`` block must have no ``location /``.
+   prefix, the existing ``server`` block mustn't have a ``location /``.
 
 ``error: --attach-to is used only with --tls existing``, ``error: --attach-to must be an absolute path, not ...``
    Give ``--tls existing`` with it, and a full path.
@@ -1318,7 +1318,7 @@ the message says, then run the same command again.
    stash`` sets them aside.
 
 ``error: upgrade.sh keeps the recorded ports; run install.sh --gunicorn-port PORT to move one``
-   ``upgrade.sh`` takes no port flag (nor ``--db-port``, which it names the
+   ``upgrade.sh`` doesn't take a port flag (nor ``--db-port``, which it names the
    same way).  Move a port with ``install.sh``, then upgrade.
 
 ``error: the checkout is on a detached HEAD; run upgrade.sh --ref <branch>``
@@ -1361,7 +1361,7 @@ record::
 
 ``steps/database.sh`` also takes ``--admin-email``, ``--seed-demo``, and
 ``--seed-content``, and ``steps/configure.sh`` the environment file's flags
-(it does nothing once the file exists).
+(it doesn't do anything once the file exists).
 
 
 For the design behind these scripts, and every command each step runs, read

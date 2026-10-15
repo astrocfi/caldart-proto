@@ -78,10 +78,11 @@ beyond it, and the names stay pinned at the left while you scroll. With a keyboa
 the arrow keys.
 
 For an account administrator a name opens the :doc:`member-record`. For a DART leader it
-opens the :doc:`member-check` card for that person, and a deactivated account's name opens
-nothing, since the member check never shows one. Only an account administrator sees the
-**New member** button (see :doc:`new-member`). A DART leader whose profile names a DART sees
-**Show my DART** there instead: it sets the **DART** filter to theirs, which is their roster.
+opens the :doc:`member-check` card for that person, and a deactivated account's name
+doesn't open anything, since the member check never shows one. Only an account
+administrator sees the **New member** button (see :doc:`new-member`). A DART leader whose
+profile names a DART sees **Show my DART** there instead: it sets the **DART** filter to
+theirs, which is their roster.
 
 
 Sorting
@@ -91,16 +92,18 @@ The list opens sorted by name, and the arrow beside **Name** says so. **Name**, 
 **DART**, **Expires**, **Joined**, and **Profile updated** sort: their headings carry an
 arrow, faint until you use it. Click one to sort by it, and click again to reverse the
 order. The whole list is sorted, every page of it. People who tie fall into name order, so
-a sorted list reads the same every time. The other headings have no arrow and do not sort.
+a sorted list reads the same every time. The other headings don't carry an arrow and don't
+sort.
 
 
 Filtering
 =========
 
-The filter bar sits above the table. A list or a checkbox applies the moment you change it,
-and a box you type in applies after a short pause. There is no Apply button. **Reset
-filters**, at the end of the bar, empties it and leaves the sort alone. The filters and the sort are part of
-the page's address, so a filtered list is a link you can bookmark or send to a colleague.
+The filter bar sits above the table. A list or a checkbox applies the moment you change
+it, and a box you type in applies after a short pause. There isn't an Apply button.
+**Reset filters**, at the end of the bar, empties it and leaves the sort alone. The
+filters and the sort are part of the page's address, so a filtered list is a link you can
+bookmark or send to a colleague.
 
 **Kind**
    **Any kind**, the first choice, lists members and friends together. **Members only** and
@@ -132,7 +135,7 @@ the page's address, so a filtered list is a link you can bookmark or send to a c
    The California counties on people's profiles. Click the box to open the list of
    counties and check as many as you like; the list shows the people of any county you
    checked. Uncheck a county to take it back, or press **Clear** to take them all back at
-   once. With no county checked the filter narrows nothing.
+   once. While no county is checked, the filter doesn't narrow the list.
 
 **Role**
    People who hold one role, such as DART leader or Treasurer. A system administrator is

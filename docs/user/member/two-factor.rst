@@ -83,7 +83,7 @@ A backup code is for the day your phone is lost, broken, or flat. Type one into 
 in, when you make new backup codes, and when you turn two-factor sign-in off.
 
 * Each backup code works **once**. Cross it off when you use it.
-* Capital letters, the hyphen, and spaces make no difference.
+* Capital letters, the hyphen, and spaces don't make a difference.
 * Each time one is used, CalDART emails you, with the subject *CalDART: a backup code
   was used*, saying how many you have left. The email log lists it as *Backup code
   used*. If you did not use it, somebody knows your password: change it at once (see
@@ -106,7 +106,7 @@ working, and you sign in with your password alone from then on. CalDART emails y
 with the subject *CalDART: two-factor sign-in is off*; the email log lists it as
 *Two-factor sign-in turned off*.
 
-If a role you hold requires it, the card offers no **Turn off** and says *Your role
+If a role you hold requires it, the card doesn't offer **Turn off** and says *Your role
 requires two-factor sign-in, so it cannot be turned off. If you lose your phone, sign
 in with a backup code, or ask a user administrator to reset it.*
 

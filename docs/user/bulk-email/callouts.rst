@@ -47,9 +47,9 @@ On a screen too narrow for every column, **DART**, then **From**, are left out, 
 sideways, says so above it, and keeps **Subject** pinned at the left. Before
 the first callout the table reads *No callout has been sent*, with a **New email**
 button that opens Compose, where **This is a mission callout** makes the email a callout.
-A DART leader whose profile names no DART sees, above the table, the box saying to set
+A DART leader whose profile doesn't name a DART sees, above the table, the box saying to set
 their DART on My profile (:doc:`dart-leaders`); the empty table under it says only *No
-callout has been sent*, and offers no **New email** button.
+callout has been sent*, and doesn't offer a **New email** button.
 
 
 One callout's page
@@ -111,7 +111,7 @@ If something looks wrong
 
 A person who never received the callout, because they were skipped or their copy failed,
 is not listed and is not reminded; :doc:`sent` shows why. Nor is a person whose account has
-since been deactivated: their link no longer works. A person who says the buttons did nothing
+since been deactivated: their link no longer works. A person who says the buttons didn't do anything
 may have tried after the callout closed: the page they reach says so. A reminder skips the same
 people a send would, such as somebody who has turned Mission email off. **Retry failed** on
 :doc:`sent` sends a fresh copy to anybody whose reminder the mail server refused.

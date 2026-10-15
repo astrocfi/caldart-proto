@@ -20,7 +20,7 @@ these is true:
   administrator. They read these pages whatever their own membership is doing.
 
 Nobody else can: a visitor who is not signed in, a member whose membership has
-expired, a friend of CalDART (a supporter who pays no dues), and somebody who joined as
+expired, a friend of CalDART (a supporter who doesn't pay dues), and somebody who joined as
 a member and has not paid yet, who is offered **Pay dues** instead (below).
 
 
@@ -35,7 +35,7 @@ to a reader who may open it.
 
 Signed in with a current membership, you also find them listed on the **Member
 content** card of your :doc:`dashboard`, and under **What you can read now** at the
-end of :doc:`join`. Both say **Nothing published yet** when there are none.
+end of :doc:`join`. Both say **Nothing published yet** when there aren't any.
 
 
 The wall

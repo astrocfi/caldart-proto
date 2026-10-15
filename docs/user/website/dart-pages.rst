@@ -19,7 +19,7 @@ write. The table lists every published DART page, alphabetically by title, with 
 team's **DART** name, its **Airport**, and its **Leader**. The caption counts the teams.
 
 The home page's **Find your DART** box lists every active team; choosing one and pressing
-**Go** opens that team's page, or the directory when the team has no published page.
+**Go** opens that team's page, or the directory when the team doesn't have a published page.
 
 One team's page
 ~~~~~~~~~~~~~~~
@@ -61,8 +61,8 @@ Open the team's page, change **Leader name** and **Leader contact**, and publish
 If something looks wrong
 ========================
 
-If a page shows the wrong airport, or none, the airport comes from the team's record in
-the portal, which an account administrator corrects; every page that names the team
-follows. Check too that **Dart** names the right team. If **Find your DART** opens the
-directory for a team, that team has no published page, or its page names a different
-team under **Dart**.
+If a page shows the wrong airport, or doesn't show one, the airport comes from the team's
+record in the portal, which an account administrator corrects; every page that names the
+team follows. Check too that **Dart** names the right team. If **Find your DART** opens
+the directory for a team, that team doesn't have a published page, or its page names a
+different team under **Dart**.

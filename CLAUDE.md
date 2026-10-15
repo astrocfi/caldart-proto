@@ -3,7 +3,7 @@
 ## GitHub credentials: this repo is always `astrocfi`
 
 The machine's default GitHub account is `rfrenchseti`. This repo overrides that.
-It is wired up already — **run `git` and `gh` normally, with no prefix.**
+It is wired up already — **run `git` and `gh` normally, without a prefix.**
 
 - `git` — repo-local credential helper reads `~/.git-credentials.astrocfi`
   (the inherited global `credential.helper=store` is cleared by an empty entry
@@ -138,7 +138,7 @@ so in the PR description.
 
 This is a prototype. Change the schema freely: edit the model and regenerate
 the migration rather than stacking fix-up migrations, and delete code that a
-change makes dead. There is no data to migrate and no external API to keep
+change makes dead. Nothing needs migrating, and no external API needs to stay
 stable.
 
 ### Commits

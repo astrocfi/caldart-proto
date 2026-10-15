@@ -22,7 +22,7 @@ OnCalendar=*-*-* *:20:00 America/Los_Angeles
 # back rather than waiting for the next hour.
 Persistent=true
 
-# A bounce marked a few minutes later changes nothing; letting systemd
+# A bounce marked a few minutes later doesn't change anything; letting systemd
 # coalesce the wakeup is cheaper.
 AccuracySec=1min
 

@@ -14,8 +14,8 @@
 #
 # The demo accounts share the password README.rst documents: a server seeded
 # with them is a demonstration server, never one holding real member data.
-# With the mock payment provider off, as production leaves it, --demo seeds no
-# automatic renewal or recurring donation on that provider's test card.  Its
+# With the mock payment provider off, as production leaves it, --demo doesn't seed
+# an automatic renewal or recurring donation on that provider's test card.  Its
 # other renewals carry made-up Stripe and PayPal references, which the renewals
 # job puts off while no payment keys are configured; with real or sandbox keys
 # the provider can refuse them.

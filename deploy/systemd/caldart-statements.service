@@ -5,7 +5,7 @@
 # it once a year on January 15th; it is a oneshot, so it is not enabled
 # directly. deploy/steps/timers.sh installs it and enables the timer.
 #
-# Run it by hand (safe to repeat -- a year already sent reaches nobody again):
+# Run it by hand (safe to repeat -- a year already sent doesn't reach anybody again):
 #   sudo systemctl start caldart-statements.service
 #   journalctl -u caldart-statements -n 50
 

@@ -20,14 +20,14 @@ Each row is one email. The table shows the columns checked under **Columns** (se
 `Downloading the log`_), which are these unless you choose others, **To** first:
 
 - **To**: the address it went to, a link that opens the email (see `Opening an email`_).
-- **Sent**: the date and time. The arrow on the heading shows the order, newest first; click
-  the heading to turn it round. The other headings carry no arrow: the log sorts by **Sent**
-  alone.
+- **Sent**: the date and time. The arrow on the heading shows the order, newest first;
+  click the heading to turn it round. The other headings don't carry an arrow: the log
+  sorts by **Sent** alone.
 - **Purpose**: what the email was for. For a copy of a bulk email, *Bulk email* is a link
   to that email's page on :doc:`../bulk-email/sent`, where its delivery report shows every
   copy.
 - **Name**: the recipient's name, when CalDART knows it. A DART contact on a roster has a
-  name and no account.
+  name but doesn't have an account.
 - **Subject**: the email's subject line.
 - **Status**: *Sent* beside a green dot; *Failed:* and the reason in words, such as *The mail
   server refused the address.*, beside a red one; or *Bounced*, beside a red one, for an
@@ -110,7 +110,7 @@ The filters narrow the whole log, every page of it:
 **From** and **To**
    A range of days, both included.
 **Search**
-   A name or an address, including somebody with no account.
+   A name or an address, including somebody without an account.
 
 **Reset filters** clears the filters; when nothing matches them, the empty table offers its
 own **Reset filters** button. The filters, the order, and the page are kept in
@@ -133,7 +133,7 @@ If something looks wrong
 The log does not prove delivery: a mail server that accepts an email and bounces it an hour
 later leaves a row marked *Sent* until the hourly bounce check reads the bounce, when the row
 turns *Bounced* and the address is flagged on the person's records (:doc:`scheduled`). On a
-server with no bounce mailbox set up, bounces are never read and every such row stays
+server without a bounce mailbox set up, bounces are never read and every such row stays
 *Sent*. If the log shows many *Failed:* rows, the site cannot reach
 its mail server; tell whoever runs the server, and once it is fixed, a password reset to your
 own address is a quick test. Somebody who asks for a password reset or a fresh verification

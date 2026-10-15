@@ -8,7 +8,7 @@
 # port, that the site answers 200 over HTTPS on this machine for
 # / and /portal/login under the URL prefix, that the portal script the sign-in
 # page names answers 200 too (so the static files resolve under the prefix),
-# and that manage.py health reports DEBUG off and no pending migration.  Every miss is an error naming the check, and any miss
+# and that manage.py health reports DEBUG off and every migration applied.  Every miss is an error naming the check, and any miss
 # fails the step.  Then prints the summary: the site's address, the
 # environment file, the administrator's one-time link when one was created,
 # the Stripe, PayPal, and Geoapify settings the environment file still leaves
@@ -69,7 +69,7 @@ site_status() {
 }
 
 # The path of the first script under the static URL that the sign-in page names,
-# or nothing when the page names none.  The static URL carries the prefix, as
+# or an empty string when the page doesn't name one.  The static URL carries the prefix, as
 # Django writes it.
 portal_bundle() {
     curl -sk --resolve "$CALDART_HOSTNAME:443:127.0.0.1" \
@@ -125,7 +125,7 @@ run_checks() {
     done
     bundle="$(portal_bundle || true)"
     if [[ -z "$bundle" ]]; then
-        fail_check "the sign-in page names no script under $CALDART_URL_PREFIX/static/"
+        fail_check "the sign-in page doesn't name a script under $CALDART_URL_PREFIX/static/"
     else
         status="$(site_status "$bundle" raw || true)"
         [[ "$status" == 200 ]] ||

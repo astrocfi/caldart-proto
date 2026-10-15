@@ -23,15 +23,15 @@
 # --email local, a note (not an error) says so when nothing listens on port 25:
 # mail fails until postfix is installed and listening on localhost.  With
 # --bounce-address, another note says so when this machine's postfix delivers that
-# address's domain without plus addresses (recipient_delimiter has no +): every
+# address's domain without plus addresses (recipient_delimiter doesn't include +): every
 # message goes out from the bounce address with a signed +tag, so the bounce
 # mailbox must accept bounces+tag@.
 #
 # When the file exists this step leaves it alone but for one line: it sets
 # CALDART_GUNICORN_PORT to the recorded port, replacing the line or adding it,
-# and rewrites nothing when the line already names that port.  For anything
+# and doesn't rewrite anything when the line already names that port.  For anything
 # else, edit the file with sudoedit, then run systemctl restart caldart-web.  Run alone rather than from install.sh, the
-# step has no database password handed to it and writes a generated one the
+# step isn't handed a database password and writes a generated one the
 # database does not have.
 #
 # Usage:
@@ -43,7 +43,7 @@
 #   --tls MODE             certbot, self-signed, or existing (default: the record's, or
 #                          certbot)
 #   --url-prefix PREFIX    the path the site is served under (default: the record's, or
-#                          none)
+#                          the root of the host)
 #   --email-url URL        EMAIL_URL; this or --email local is required when the
 #                          file does not exist
 #   --email local          send mail through the postfix on this machine
@@ -114,7 +114,7 @@ fill_template() (
         END {
             for (i = 1; i <= count; i++) {
                 if (!(names[i] in done)) {
-                    print "error: the template has no line for " names[i] > "/dev/stderr"
+                    print "error: the template does not have a line for " names[i] > "/dev/stderr"
                     exit 1
                 }
             }
@@ -131,8 +131,8 @@ validate_email_flags() {
     EMAIL_URL="$LOCAL_EMAIL_URL"
 }
 
-# Say so when --email local finds nothing to relay through.  The installer
-# installs no mail server: the machine's own postfix is the operator's.
+# Say so when --email local doesn't find anything to relay through.  The
+# installer doesn't install a mail server: the machine's own postfix is the operator's.
 note_local_mail() {
     [[ "$EMAIL_MODE" == local ]] || return 0
     port_in_use "$SMTP_PORT" && return 0
@@ -167,7 +167,7 @@ env_file_owner() {
 }
 
 # Print the environment file with every CALDART_GUNICORN_PORT line set to the
-# recorded port, or the line added at the end when the file has none.  awk
+# recorded port, or the line added at the end when the file doesn't have one.  awk
 # reads the port from its environment, as fill_template does.
 env_file_with_gunicorn_port() {
     # The $ signs below are awk's, not the shell's.

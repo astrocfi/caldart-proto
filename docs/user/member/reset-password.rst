@@ -42,7 +42,7 @@ new password (see :doc:`sign-in`).
 CalDART emails your address *CalDART: your password was changed*, so you hear of a
 reset you did not ask for. Setting the first password of an account, from *CalDART:
 set your password* or after you took your account back (see
-:doc:`undo-email-change`), sends no such message.
+:doc:`undo-email-change`), doesn't send that message.
 
 Setting the password also confirms your email address, since the link could only
 have reached you there. If the account was deactivated, it is active again,

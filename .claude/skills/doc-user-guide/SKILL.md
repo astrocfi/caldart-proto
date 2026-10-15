@@ -23,8 +23,8 @@ accomplish a documented task.
   membership means, and the roles in one paragraph each), `roles` (what each role can see and
   do, naming every screen it reaches in bold, each linked to its page), and `faq` (short
   answers, each linking to the page that covers it in full).
-- Four screen groups, each its own directory with an `index.rst` (a title, one or two
-  sentences, and a toctree, and no other prose):
+- Four screen groups, each its own directory with an `index.rst` (only a title, one or two
+  sentences, and a toctree):
     - `member/` — the screens every signed-in person has, and the public site as a visitor
       sees it.
     - `admin/` — a DART leader, a user administrator, an account administrator, and a system
@@ -44,7 +44,7 @@ accomplish a documented task.
 
 ## 2. What Each Page Covers
 
-A screen's page is self-contained: a reader who lands on it from the **Help** button, with no
+A screen's page is self-contained: a reader who lands on it from the **Help** button, without any
 other context, can act on it.
 
 - Open with what the screen is for, in one or two sentences.
@@ -102,7 +102,7 @@ other context, can act on it.
 - A user page links only to another page under `docs/user/`: never to the developer guide,
   `docs/demo-walkthrough.rst`, or `docs/index.rst`, and never by bare title or file path.
   `backend/tests/test_docs_user.py` fails the build on a reference that leaves the guide or a
-  page that names "the developer guide," so Sphinx's build needs no special case for it either.
+  page that names "the developer guide," so Sphinx's build doesn't need a special case for it either.
 
 ## 5. Keeping the Guide Complete
 

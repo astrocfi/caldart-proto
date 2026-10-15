@@ -42,13 +42,13 @@ Every member and every friend of CalDART holds the member role. It opens the
 * **My profile** (:doc:`member/profile`): your contact and aviation details,
   whether you are a member or a friend, and deactivating your account.
 * **My aircraft** (:doc:`member/my-aircraft`): the airplanes you fly, from the
-  shared register, while your membership is current. A friend has no **My
+  shared register, while your membership is current. A friend doesn't have **My
   aircraft**.
 * **My payments** (:doc:`member/payments`): automatic renewal, recurring donations,
   every payment with its receipt, and contribution statements.
 * **Donate** (:doc:`member/donate`): a gift, once or on a schedule.
-* **Renew** (:doc:`member/renew`): your next term. A friend and a life member have no
-  **Renew** entry; a life member gives through **Donate**.
+* **Renew** (:doc:`member/renew`): your next term. A friend and a life member don't
+  have a **Renew** entry; a life member gives through **Donate**.
 * **Change password** (:doc:`member/change-password`) and **Change email**
   (:doc:`member/change-email`).
 * **Email to me** (:doc:`member/messages`) and **Email preferences**
@@ -57,8 +57,8 @@ Every member and every friend of CalDART holds the member role. It opens the
 
 A friend also reaches **Become a member** (:doc:`member/become-a-member`). While
 your membership is current, the members-only pages of the public site open to you
-(:doc:`member/members-only-content`). A donor holds no role and has no portal at
-all.
+(:doc:`member/members-only-content`). A donor doesn't hold a role and doesn't have a
+portal at all.
 
 
 Verifier
@@ -203,7 +203,7 @@ group of the menu:
   fly and who has not answered, to remind the rest or close the answers.
 
 CalDART management writes to anybody, and sees every bulk email, its sender, and, for a DART
-leader's email, its DART. The role opens no member record and no payment. A system
+leader's email, its DART. The role doesn't open a member record or a payment. A system
 administrator, or a user administrator who is also CalDART management, grants it.
 
 
@@ -215,7 +215,7 @@ from the site itself: :doc:`pages and their blocks <website/pages-and-blocks>`,
 :doc:`news and events <website/news-and-events>`, the :doc:`DART pages
 <website/dart-pages>`, the :doc:`members-only pages <website/members-only>`, the
 :doc:`site settings and theme <website/settings-and-themes>`, and :doc:`redirects
-and documents <website/redirects-and-documents>`. The role adds nothing to the
+and documents <website/redirects-and-documents>`. The role doesn't add anything to the
 portal's menu beyond the member's screens.
 
 

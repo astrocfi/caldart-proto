@@ -74,7 +74,7 @@ RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 CapabilityBoundingSet=
 AmbientCapabilities=
 
-# ReadWritePaths expands no variables: it has to name whatever BACKUP_DIR
+# ReadWritePaths doesn't expand variables: it has to name whatever BACKUP_DIR
 # points at, or ProtectSystem=strict fails the dump with a permission error.
 ReadWritePaths=/opt/caldart/backups
 

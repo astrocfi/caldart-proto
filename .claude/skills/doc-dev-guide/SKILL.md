@@ -48,7 +48,7 @@ contracts over restating what the code already says.
       `make format`, `make check`, `make audit`, `make docs`), plus the full tables of make
       targets and management commands.
     - The CI pipeline (what runs on which trigger) and how a server is upgraded
-      (`deployment.rst`). There are no releases.
+      (`deployment.rst`). The project doesn't cut releases.
     - The contribution workflow ("Before you open a pull request" in `setup.rst`).
 - **Architecture and data model** — see Section 3.
 - **Per-subsystem chapters** — see Section 4.

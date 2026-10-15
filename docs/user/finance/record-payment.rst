@@ -18,8 +18,8 @@ One form, with these fields:
 * **Member**, a search box. Type at least two letters of a name or an email address and
   up to ten matching people appear beneath it, each with their address and membership
   status. A friend (someone with an account who supports CalDART without being a member)
-  or a donor can be found the same way; a deactivated account is never offered. With
-  nobody to offer, the search says *No member matches that.* Click the right person, or
+  or a donor can be found the same way; a deactivated account is never offered. When
+  nobody matches, the search says *No member matches that.* Click the right person, or
   move to them with the arrow keys and press Enter, to choose them, and you move on to
   **Plan**. Enter in the
   search box never records the payment. **Choose somebody else** clears the choice and
@@ -27,7 +27,7 @@ One form, with these fields:
 * **Plan**, the membership plan the money pays for. Choose **No membership** for a
   contribution on its own.
 * **Contribution**, the gift in dollars, after a **$**, on top of any dues. It starts at
-  nothing.
+  0.00.
 * **Method**: **Check**, **Cash**, **Bank transfer**, or **Other**.
 * **Reference**, the check number or the bank transfer's reference.
 * **Received on**, the day the money arrived. It starts at today.
@@ -42,13 +42,13 @@ What you can do
 
 Fill in the form and press **Record the payment**. The site confirms with *Recorded* and
 the new receipt number, and opens the payment's own screen (see :doc:`payment-record`),
-starting at its heading. A form with nobody chosen, or one the site refuses, takes you to
+starting at its heading. A form without anybody chosen, or one the site refuses, takes you to
 the first field to fix instead.
 
 What happens next
 ~~~~~~~~~~~~~~~~~
 
-* The payment is recorded as already paid, with **By hand** as its provider and no fee,
+* The payment is recorded as already paid, with **By hand** as its provider and without a fee,
   so its net is the whole amount.
 * If it paid for a plan, the membership term starts at once.
 * The member is emailed their receipt, with the subject *CalDART: your receipt for* and
@@ -70,7 +70,7 @@ Mistakes the form catches
   already carries the reference* followed by the number. This stops the same check being
   entered twice.
 * No plan and no contribution, or a contribution of zero: *Nothing to charge.*
-* A plan for a life member, who has nothing left to renew: *You are a life member, so
+* A plan for a life member, who doesn't have anything left to renew: *You are a life member, so
   there is nothing to renew. Make a donation instead.*
 
 If something looks wrong
@@ -79,5 +79,5 @@ If something looks wrong
 If the member you want does not appear, try their email address, or part of their last
 name. If a check was recorded against the wrong person or for the wrong amount, refund it
 from the payment's own screen (see :doc:`payment-record`) and record it again correctly:
-a refund of a payment recorded by hand moves no money, so the books simply show the
+a refund of a payment recorded by hand doesn't move any money, so the books simply show the
 correction.

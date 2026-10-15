@@ -8,8 +8,8 @@
  * closes the overlay and returns focus to the Zoom button.  While the overlay is
  * open, Tab and Shift+Tab move focus between Close and the panel only.
  *
- * Loaded by docs/conf.py through html_js_files, for both builds.  It uses no
- * inline handlers, so it runs under a script-src of 'self', and it needs no
+ * Loaded by docs/conf.py through html_js_files, for both builds.  It doesn't use
+ * inline handlers, so it runs under a script-src of 'self', and it doesn't need a
  * library.
  */
 (() => {

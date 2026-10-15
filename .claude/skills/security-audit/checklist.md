@@ -42,8 +42,9 @@ practice. A gap in either direction is a finding.
 - **[B]** OAuth/OIDC/SAML: `state` and PKCE checked, `redirect_uri` exactly matched, ID
   token signature, `aud`, `iss`, `exp`, and `nonce` validated, account linking by verified
   email only.
-- **[B][I]** API tokens and JWTs: strong signing keys, an explicit algorithm allowlist (no
-  `none`, no key confusion), expiry, revocation, scoped permissions, and no token in a URL.
+- **[B][I]** API tokens and JWTs: strong signing keys, an explicit algorithm allowlist (one
+  that rejects `none` and prevents key confusion), expiry, revocation, scoped permissions, and
+  tokens kept out of URLs.
 - **[B]** Default, demo, or seed accounts and passwords cannot exist in production, or are
   forced to change.
 
@@ -192,7 +193,7 @@ government ids, location, free-text notes) and of who is meant to see each item.
   of what remains is intentional.
 - **[B][O]** Data at rest: database and backups encrypted or access-controlled; backups are
   not written into web-served or world-readable locations; database dumps and fixtures in
-  the repository contain no real personal data.
+  the repository don't contain real personal data.
 - **[B]** Payment card data never touches the server unless the system is meant to be in
   PCI scope; tokens from the payment provider are used instead.
 - **[I]** Responses with personal data are not cacheable by shared caches
@@ -249,7 +250,7 @@ government ids, location, free-text notes) and of who is meant to see each item.
   bounded.
 - **[B]** Expensive work (PDF and CSV generation, image processing, bulk email, imports)
   runs with limits or in a background queue, not unbounded in the request.
-- **[B]** Regular expressions applied to input have no catastrophic backtracking (ReDoS);
+- **[B]** Regular expressions applied to input can't backtrack catastrophically (ReDoS);
   decompression and image parsing have size limits (zip and pixel bombs).
 - **[B]** Outbound HTTP calls have connect and read timeouts; retries are bounded with
   backoff.
@@ -318,8 +319,8 @@ government ids, location, free-text notes) and of who is meant to see each item.
   "forbidden" where that leaks existence.
 - **[I]** Identifiers: sequential ids in URLs for sensitive objects make IDOR and
   enumeration cheap; consider them alongside the object-level checks.
-- **[I]** HTTP methods: unexpected methods are rejected; `OPTIONS` and `TRACE` reveal
-  nothing; method override headers are not honored.
+- **[I]** HTTP methods: unexpected methods are rejected; `OPTIONS` and `TRACE` don't
+  reveal anything; method override headers are not honored.
 - **[I]** API schema, GraphQL introspection, and interactive docs are not public unless
   intended; GraphQL has depth and cost limits.
 - **[I]** The API sets `Content-Type: application/json` and the frontend never evaluates a
@@ -368,7 +369,7 @@ government ids, location, free-text notes) and of who is meant to see each item.
 - **[B][F]** Tests exist for the controls above: permission denial per role and endpoint,
   object-level access, CSRF enforcement, rate limiting, webhook signature rejection, input
   validation, and the absence of sensitive fields in responses. A missing test for a
-  control that has no finding is P3; a missing test for a control that is broken belongs
+  control that doesn't have a finding is P3; a missing test for a control that is broken belongs
   with that finding.
 - **[B]** Test settings or fixtures do not weaken production code paths (a test-only flag
   that disables a check and could be set in production).

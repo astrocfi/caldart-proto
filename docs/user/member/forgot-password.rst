@@ -46,7 +46,7 @@ Following the link also confirms that the address is yours, so an unverified
 address becomes verified when you set the new password.
 
 A deactivated account is sent the link like any other, and setting the new
-password reactivates it. An account an administrator has closed is sent nothing,
+password reactivates it. An account an administrator has closed isn't sent anything,
 though the screen reads the same.
 
 
@@ -59,7 +59,7 @@ In order of likelihood:
 #. You typed a different address from the one on your account. The **Check your
    email** screen offers *try another address*: follow it and try the other
    addresses you use.
-#. You have no account yet. You want :doc:`join`.
+#. You don't have an account yet. You want :doc:`join`.
 
 *Request was throttled. Expected available in ... seconds.* means too many reset
 requests have come from your network in the last hour. Wait the time it gives and

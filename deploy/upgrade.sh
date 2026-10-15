@@ -10,7 +10,7 @@
 # cache table, the roles, and the static files), gunicorn under systemd (which
 # reinstalls the unit and restarts it), the scheduled jobs (which reinstalls
 # their units), and the checks.  It never touches the environment file or the
-# web server's configuration, and it takes no --gunicorn-port or --db-port:
+# web server's configuration, and it doesn't take --gunicorn-port or --db-port:
 # each step reads the install record, so gunicorn stays on the recorded port and
 # every docker compose command runs with the recorded CALDART_DB_PORT exported.
 # install.sh --gunicorn-port and --db-port are what move them.
@@ -84,8 +84,8 @@ main() {
     parse_flags "$@"
     require_root
     git -C "$CHECKOUT" rev-parse --git-dir >/dev/null 2>&1 || die "$CHECKOUT is not a git checkout"
-    # A rollback with --ref leaves HEAD detached, where git pull has no branch
-    # to pull; say so before the backup rather than failing inside git.
+    # A rollback with --ref leaves HEAD detached, where git pull doesn't have a
+    # branch to pull; say so before the backup rather than failing inside git.
     if [[ -z "$REF" ]] && ! git -C "$CHECKOUT" symbolic-ref -q HEAD >/dev/null; then
         die "the checkout is on a detached HEAD; run upgrade.sh --ref <branch>"
     fi

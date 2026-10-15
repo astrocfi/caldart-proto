@@ -16,7 +16,7 @@ News
 
 The **News** page is a news index: it lists the posts beneath it, newest first, eight to
 a page. The home page lists the three most recent public posts by itself, with a link to
-**All news**, so there is nothing to update by hand when you publish one.
+**All news**, so you don't update anything by hand when you publish one.
 
 A news post has a **Post date**, an **Intro** shown in the listings, an optional
 **Image**, and a **Body** built from the same blocks as any other page (see

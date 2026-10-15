@@ -27,7 +27,7 @@ Claude-Session: ...
 | `fix` | Bug fix. |
 | `docs` | Documentation-only change. |
 | `style` | Formatting, whitespace — no logic change. |
-| `refactor` | Code restructure with no behavior change. |
+| `refactor` | Code restructure that doesn't change behavior. |
 | `perf` | Performance improvement. |
 | `test` | Adding or updating tests only. |
 | `build` | Build system or dependency change. |

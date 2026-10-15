@@ -23,21 +23,21 @@ field that shapes a run (the **Year**, the **Practice run** box), **Run now**, a
 the last press did, so **Run now** stays where it is however long the result.
 Every panel but the bulk email sender's works the same way:
 
-#. Leave the **Practice run** box checked the first time. A practice run sends, charges, and
-   records nothing.
+#. Leave the **Practice run** box checked the first time. A practice run doesn't send,
+   charge, or record anything.
 #. Press **Run now**. It reads *Running…* while the job runs. Below it a heading reads
    **What this run would do**, or **What this run did** after a real run, above a line of
    counts and a table naming each email or charge, and the focus moves to that heading.
-   A run that found nothing at all to do says only *Nothing is due.* (*Nothing was due.*
-   after a real run). A column no row fills, such as **Amount** for emails that charge
-   nothing, is left out. **Who** comes first. On a narrow screen the table leaves out
+   A run that didn't find anything at all to do says only *Nothing is due.* (*Nothing was
+   due.* after a real run). A column no row fills, such as **Amount** for emails that don't
+   charge anything, is left out. **Who** comes first. On a narrow screen the table leaves out
    **When**, then **Amount**, and keeps **Who**, **What**, and any **Report or DART** column
    in sight, so a phone still shows which email goes to whom; if that is still too wide it
    scrolls sideways, says so above it, and keeps **Who** pinned at the left.
 #. If the numbers look right and you have a reason not to wait for the schedule, clear the
    box and press **Run now** again.
 
-Running any of them twice does nothing twice: each job records what it has already done.
+Running any of them twice never does anything twice: each job records what it has already done.
 
 
 Renewal reminder emails
@@ -57,7 +57,7 @@ deactivated*, and *no address on file*, such as *Skipped: already sent 10, auto-
 When the mail server refused a send, a further line reads, for example, *Failed 2.* A
 refused reminder stays due and goes out on a later run. The table names every email: **Who**
 it went to with their address, **What** reminder, and **When** their membership ends; a
-reminder charges nothing, so the table has no **Amount** column.
+reminder doesn't charge anything, so the table doesn't have an **Amount** column.
 
 Each member gets each reminder once per membership. At the foot of the panel, under its
 own heading **Reminders sent**, sits the same record of recent reminders an account
@@ -75,14 +75,14 @@ number fields:
   ends. The defaults are 60, 30, and 7.
 - **Lapsed reminder**: days after a membership ends. The default is 30.
 
-The expired reminder has no number: it goes from the day a membership ends through the six
-days after. Change a number and press **Save changes**; *Reminder schedule saved.* confirms it, and
-the line under the card reads **Last saved** with the date and your name. The next morning's
-run uses the new days, and the reminder record, the **Purpose** filter on
-:doc:`sent-emails`, and the stage names on :doc:`reminders` all read with them. A member
-already sent a reminder is never sent the same one again for the same membership. The first
-reminder goes at most 180 days ahead, so a member who has just paid for a year is never told
-their membership is running out.
+The expired reminder doesn't have a number: it goes from the day a membership ends through
+the six days after. Change a number and press **Save changes**; *Reminder schedule saved.*
+confirms it, and the line under the card reads **Last saved** with the date and your name.
+The next morning's run uses the new days, and the reminder record, the **Purpose** filter
+on :doc:`sent-emails`, and the stage names on :doc:`reminders` all read with them. A
+member already sent a reminder is never sent the same one again for the same membership.
+The first reminder goes at most 180 days ahead, so a member who has just paid for a year
+is never told their membership is running out.
 
 The numbers have to keep their order. A field left empty reads *Enter a number of days.*,
 and a refused number shows the rule under its field:
@@ -112,25 +112,25 @@ speak of the donation.
    0, pause 0, and skip 3.* *Notice* counts the two-week notices, *warn* the members whose
    card runs out first, *charge* the renewals taken, *fail* the charges the provider
    refused, *pause* the members whose last try was refused or whose membership lapsed too
-   long ago, and *skip* those that needed nothing.
+   long ago, and *skip* those that didn't need anything.
 #. Clear the box and press **Run now** again for a real run. It asks first, because it
    charges everybody who is due: press **Charge what is due**, or **Cancel**, which is
-   where the confirmation starts you, so a second Enter charges nobody. Escape cancels
+   where the confirmation starts you, so a second Enter doesn't charge anyone. Escape cancels
    too. The server takes the charges on its own, so the panel reads *Running since* and
    the time until they are done, then shows what the run did; leaving the page does not
    stop it. After a real run the focus moves to the result's heading, as after a practice
    run. A run that the server could not finish reads *The renewal run stopped:* and the
    reason, such as *Did not finish.* While one real run is still going, **Run now** for
    another answers *An automatic renewal run is already under way.*, and the 6:30 AM run
-   does nothing if it finds one under way.
+   doesn't do anything if it finds one under way.
 
 The table names each email and each charge: **Who**, **What** (*Notice*, *Card expiring
 warning*, *Charge taken notice*, *Charge failed notice*, or *Charge*), **When**, and
-**Amount**. Every scheduled charge records what has already gone out, so a second run charges
-nobody twice. A charge the payment provider has not answered, or is still processing,
+**Amount**. Every scheduled charge records what has already gone out, so a second run never
+charges anyone twice. A charge the payment provider has not answered, or is still processing,
 is neither taken nor refused: the next run asks about that same charge rather
-than making another, and counts it as skipped until then. The member hears nothing until
-there is an answer. A charge PayPal may have taken without saying so is not charged again
+than making another, and counts it as skipped until then. The member doesn't hear anything
+until there is an answer. A charge PayPal may have taken without saying so is not charged again
 at all: it waits, counted as skipped, until the treasurer settles it on the finance
 **Renewals** tab.
 
@@ -151,12 +151,13 @@ Every morning at 6:00 AM CalDART sends the emailed reports set up on :doc:`subsc
 and early each month it sends each DART's roster. The box reads **Practice run: show what
 would happen, send nothing**.
 
-The result reads, for example, *Would send 5 emails, skipped 1.* When something was skipped,
-a line gives the reasons: *no longer permitted* (the recipient has lost the role that reads
-the report, and a real run pauses the emailed report), *nobody to send to* (a DART with nobody to
-receive its roster), and *no address on file*. A line such as *Failed 1.* counts a refused
-send or a report that could not be built; it stays due for the next run. The table names each
-email: *Report* or *Roster*, who it goes to, and **Report or DART**.
+The result reads, for example, *Would send 5 emails, skipped 1.* When something was
+skipped, a line gives the reasons: *no longer permitted* (the recipient has lost the role
+that reads the report, and a real run pauses the emailed report), *nobody to send to* (a
+DART that doesn't have anyone to receive its roster), and *no address on file*. A line
+such as *Failed 1.* counts a refused send or a report that could not be built; it stays
+due for the next run. The table names each email: *Report* or *Roster*, who it goes to,
+and **Report or DART**.
 
 
 Year-end statements
@@ -164,8 +165,8 @@ Year-end statements
 
 Each January 15th at 6:45 AM CalDART emails every active member, friend, and donor who gave in
 the year before a statement of their gifts for their tax return, with the statement attached.
-Somebody whose every gift that year was refunded is sent nothing, since there is nothing to
-state.
+Somebody whose every gift that year was refunded isn't sent a statement, since there isn't
+anything to state.
 The subject reads *CalDART: your 2025 contribution statement*, with the year and your
 organization's name.
 
@@ -173,7 +174,7 @@ organization's name.
 #. Leave **Practice run: show what would happen, send nothing** checked the first time.
 #. Press **Run now**. The result reads, for example, *Would send 6, skip 0, and fail 0.*
    *Skip* counts accounts already sent that year's statement, and *fail* an address the mail
-   server refused or an account with no address.
+   server refused or an account without an address.
 #. Clear the box and press **Run now** again to send for real.
 
 The table names each *Statement*, the account and its address, and the year's total.
@@ -197,7 +198,7 @@ sent to it, or until a user administrator clears it on :doc:`user-record`.
 #. Press **Run now**. The result reads, for example, *Would mark 1 bounced, leave 1
    unmatched, ignore 2, and skip 0.* *Bounced* counts the emails matched to a bounce,
    *unmatched* the bounces that did not come back to the return address of an email
-   CalDART sent, which change nothing,
+   CalDART sent, which don't change anything,
    *ignored* the messages that were not a refusal for good, and *skip* the messages left
    unread because the mail server would not hand them over or they were too large to be a
    bounce.
@@ -206,8 +207,8 @@ sent to it, or until a user administrator clears it on :doc:`user-record`.
 The table names each one: **Who** the email went to, **What** (*Bounced*, or *No matching
 email*), the **Report** the other mail server gave, and **When** the email was sent.
 
-If the server has no bounce mailbox set up, the panel says so as it opens, above the box:
-*Bounce checking is off. Ask the person who installed the site to set up a bounce
+If the server doesn't have a bounce mailbox set up, the panel says so as it opens, above
+the box: *Bounce checking is off. Ask the person who installed the site to set up a bounce
 mailbox.* **Run now** is held back until one is set up, and, as the page opens, until the
 server has said whether one is.
 
@@ -220,15 +221,16 @@ minutes to cancel or at the time it was scheduled for, and sends its copies a fe
 so the mail provider never turns them away. CalDART management writes and sends those emails
 on the Bulk email screens (:doc:`../bulk-email/compose`).
 
-The panel has no practice run, because the sender only sends what CalDART management has
-already pressed **Send** on. Press **Run now** to run it at once. The page waits up to 45
-seconds; a larger email carries on in the background after that. The result reads, for
-example, *Worked on 1 bulk email: sent 37, failed 1, and skipped 4.*, and when the time ran
-out it adds how many copies are still to go and that the server's sender carries on with
-them within a minute. A table names each copy: **Who** it went to, **What** (*Sent* or
-*Failed*), and the **Subject or reason**. When no bulk email was waiting the panel says only
-*Nothing was due.* If the sender was already running, the panel says *The sender is
-already running, so this run did nothing. Try again in a minute.*
+The panel doesn't have a practice run, because the sender only sends what CalDART
+management has already pressed **Send** on. Press **Run now** to run it at once. The page
+waits up to 45 seconds; a larger email carries on in the background after that. The result
+reads, for example, *Worked on 1 bulk email: sent 37, failed 1, and skipped 4.*, and when
+the time ran out it adds how many copies are still to go and that the server's sender
+carries on with them within a minute. A table names each copy: **Who** it went to,
+**What** (*Sent* or *Failed*), and the **Subject or reason**. When no bulk email was
+waiting the panel says only *Nothing was due.* If the sender was already running, the
+panel says *The sender is already running, so this run did nothing. Try again in a
+minute.*
 
 
 If something looks wrong
