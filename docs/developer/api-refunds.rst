@@ -5,8 +5,8 @@ API: refunds
 Giving money back.  A refund is a record in its own right: it carries its own
 amount, the reason the treasurer chose, an optional note, and the provider's
 own reference for the refund once the provider has taken it.  A payment is
-never edited to say "refunded" and nothing else — the refunds beneath it are
-what the ledger is built from.
+never edited to say only "refunded" — the refunds beneath it are what the
+ledger is built from.
 
 General API conventions — session authentication, the CSRF header, error
 shapes — are in :doc:`api-reference`; the two worth repeating here are that an
@@ -51,8 +51,8 @@ Field                Meaning
     "payment": {"id": 412, "amount_cents": 6500, "refunded_cents": 2000,
                 "status": "partially_refunded"}}
 
-``payment`` is the row as it now stands, so the screen that asked needs no
-second request to redraw it.
+``payment`` is the row as it now stands, so the screen that asked doesn't
+need a second request to redraw it.
 
 Statuses: **201**; **400** for a body the refund will not act on (below);
 **401** when anonymous; **403** for a signed-in caller holding neither finance
@@ -89,7 +89,7 @@ What a succeeded refund does
    ``refunded`` once they come to its whole amount, ``partially_refunded``
    while they come to less.
 #. With ``cancel_term``, the membership term the payment bought is canceled,
-   with a note naming the refund.  A payment that bought no term — a
+   with a note naming the refund.  A payment that didn't buy a term — a
    contribution on its own — ignores the flag.
 #. The member is emailed, with the amount, what the payment was for, and
    whether their membership ended with it.  A mail server that refuses the
@@ -99,7 +99,8 @@ What a succeeded refund does
    writes its own ``membership.correct`` line.
 #. The ``payment_refunded`` event is raised with the amount, the caller, and
    whether a term was canceled (:doc:`notification-events`).  A refund taken in
-   the provider's dashboard raises it too, with no actor; a refused one does not.
+   the provider's dashboard raises it too, without an actor; a refused one does
+   not.
 
 Per provider
 ------------
@@ -114,11 +115,12 @@ Provider        The call
                 capture id is read from the capture response stored on the
                 payment, with ``PayPal-Request-Id: caldart-refund-<refund
                 id>``, so a call repeated for the same row gives the money
-                back once.  A payment with no completed capture is a **400**.
-``mock``        Succeeds at once, with no provider reference: no provider is
-                holding a refund id.
+                back once.  A payment without a completed capture is a
+                **400**.
+``mock``        Succeeds at once, without a provider reference: no provider
+                is holding a refund id.
 ``manual``      Nothing is called: a check or cash goes back the way it came,
-                and the row is written with no provider reference.
+                and the row is written without a provider reference.
 ==============  ===========================================================
 
 
@@ -127,8 +129,8 @@ Provider        The call
 Refunds taken in the provider's dashboard
 =========================================
 
-Somebody can refund in Stripe's or PayPal's own dashboard, where CalDART has
-no say.  Both webhooks (:doc:`api-payments`) record such a refund, so the
+Somebody can refund in Stripe's or PayPal's own dashboard, where CalDART
+doesn't have a say.  Both webhooks (:doc:`api-payments`) record such a refund, so the
 ledger is right whoever issued it.
 
 ============================  ================================
@@ -145,21 +147,21 @@ payment's status exactly as an issued refund does.
 Four rules keep the ledger honest:
 
 * **The provider's refund id is the key.**  A refund whose reference is
-  already on file against that payment writes nothing, so a redelivered
+  already on file against that payment isn't written again, so a redelivered
   notification — and the notification for a refund CalDART itself issued —
   is a no-op.
 * **Only a completed refund counts.**  Stripe's ``refunds.data`` entries are
   taken only where ``status`` is ``succeeded``; PayPal's resource only where
   its ``status`` is ``COMPLETED``.
-* **No term is canceled by a webhook.**  A refund taken outside CalDART says
-  nothing about whether the membership should end; a treasurer decides that
-  on the payment's own screen.
+* **No term is canceled by a webhook.**  A refund taken outside CalDART doesn't
+  say whether the membership should end; a treasurer decides that on the
+  payment's own screen.
 * **Only a settled payment takes a refund.**  A refund reported against a
   payment that is still ``pending`` or ``failed`` is not filed, and is logged at
   ``ERROR``: the provider says money went back that CalDART never recorded
   arriving, which a treasurer reconciles by hand.
 
 PayPal acts on a notification only once its signature has been verified, which
-needs ``PAYPAL_WEBHOOK_ID``; an unverified notification is refused and recorded
-nowhere.  Stripe's signature is checked on every delivery, so
+needs ``PAYPAL_WEBHOOK_ID``; an unverified notification is refused and isn't
+recorded anywhere.  Stripe's signature is checked on every delivery, so
 a ``charge.refunded`` that verifies is always acted on.

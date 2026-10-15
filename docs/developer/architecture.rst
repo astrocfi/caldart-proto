@@ -74,7 +74,7 @@ Assets          Vite 6 builds them; django-vite writes the bundles, or the
 Payments        Stripe: the ``stripe`` library on the server, Stripe.js, and
                 the Payment Element in the browser (card, Apple Pay, Google
                 Pay, Link).  PayPal: the Orders v2 REST API through httpx,
-                with no SDK, and ``@paypal/react-paypal-js`` in the browser.
+                without an SDK, and ``@paypal/react-paypal-js`` in the browser.
                 A mock provider for development and tests
 Reports, email  reportlab for PDF and the standard library's ``csv`` for CSV;
                 Django's email framework, with Mailpit in development (SMTP
@@ -212,8 +212,8 @@ is true (:doc:`cms`).
 
 **The portal shell.**  Every URL under ``/portal/`` returns the same HTML:
 ``portal_shell`` renders ``portal.html``, which sets ``<html data-theme>``
-from the site's theme and loads the portal bundle.  The server knows nothing
-of the SPA's routes and makes no access decision here; React Router picks
+from the site's theme and loads the portal bundle.  The server doesn't know
+the SPA's routes or make an access decision here; React Router picks
 the screen in the browser, so a reload or a shared link lands in the right
 place.  Django's ``LOGIN_URL`` is ``/portal/login``, or that path under the
 site's ``URL_PREFIX`` (:doc:`configuration`) when it has one.
@@ -232,13 +232,13 @@ portal's top bar carries a **Help** link, shown whether or not anyone is
 signed in, that opens the guide page for the screen the visitor is on:
 ``help.ts`` maps every route pattern to a guide slug in ``HELP_PAGES``, in
 match order, and ``helpPath`` returns the first match's page, or the guide's
-front page for a route with none.  The rail's **User guide** link and the
+front page for a route without one.  The rail's **User guide** link and the
 public site's footer link both open that front page.  The developer guide is
 not published, and no user page links into it (:doc:`documentation`).
 
 **The API.**  ``caldart/api_urls.py`` includes every app's ``api/urls.py``
 under ``/api/v1/``, and each app spells out its own paths, so adding an
-endpoint touches no shared file.  The DRF defaults in ``settings/base.py``
+endpoint doesn't touch a shared file.  The DRF defaults in ``settings/base.py``
 hold unless a view says otherwise: session authentication only;
 ``IsAuthenticated``, so a public endpoint opts out explicitly; JSON only;
 ``?page=`` and ``?page_size=`` pagination; django-filter, ``?search=`` and
@@ -249,11 +249,12 @@ sign-in, registration, and password reset are rate-limited
 (:doc:`api-reference`).
 
 **Sessions and CSRF.**  The portal shares the API's origin, so it signs in
-with Django's session cookie and stores no token: ``POST /api/v1/auth/login``
-starts a session, and ``GET /api/v1/auth/me`` says who is signed in (401 for
-nobody).  Before any unsafe request, the API client calls
-``GET /api/v1/auth/csrf`` if it has no ``csrftoken`` cookie, then echoes that
-cookie in ``X-CSRFToken`` on every ``POST``, ``PUT``, ``PATCH``, and
+with Django's session cookie and doesn't store a token:
+``POST /api/v1/auth/login`` starts a session, and ``GET /api/v1/auth/me`` says
+who is signed in (401 when nobody is).  Before any unsafe request, the API
+client calls ``GET /api/v1/auth/csrf`` if it doesn't have a ``csrftoken``
+cookie, then echoes that cookie in ``X-CSRFToken`` on every ``POST``, ``PUT``,
+``PATCH``, and
 ``DELETE``.  The cookie is the cache, so a bootstrap that fails is simply
 tried again by the next write rather than leaving the page unable to save.
 That is why production keeps the CSRF cookie readable from JavaScript while
@@ -304,7 +305,7 @@ report, a domain module, can read it.
     team's own website and the people who run it.  Endpoints: the public
     ``/darts`` catalog and the account administrator's ``/admin/darts``.  The
     app sits below ``members``, because a profile names a DART and a DART
-    knows nothing about any member.
+    doesn't know about any member.
 ``mail``
     ``EmailLog``: one row per email the installation tried to send, written by
     ``caldart.mail.send_templated`` after every send, successful or refused.
@@ -313,7 +314,7 @@ report, a domain module, can read it.
     link, its headers, and its public page (``unsubscribe.py``, ``views.py``).
     Endpoints ``GET /system/emails``, ``/email-types``, ``/me/email-preferences``
     and ``/admin/members/{id}/email-preferences``; the page
-    ``/mail/unsubscribe/<token>``.  The app holds no sender of its own, so it
+    ``/mail/unsubscribe/<token>``.  The app doesn't hold a sender of its own, so it
     sits below everything that mails anybody; it reads the account roles and
     models from ``accounts``.  An app above it registers what it adds to the log:
     labels for its purposes (``purposes.py``) and links from its messages to its
@@ -423,7 +424,7 @@ Layer                                       Apps
                                             ``caldart.reports``,
                                             ``caldart.exceptions``, and
                                             ``caldart.pagination``, which
-                                            import no app at all
+                                            don't import any app
 1                                           ``accounts``
 2                                           ``darts`` and ``mail``, siblings
                                             that never import each other
@@ -463,8 +464,8 @@ existing.
 The services layer
 ------------------
 
-Views and serializers validate input and shape output; they hold no domain
-rules.  Anything that changes state or answers a domain question lives in
+Views and serializers validate input and shape output; they don't hold
+domain rules.  Anything that changes state or answers a domain question lives in
 the app's ``services.py`` as plain functions, so the API, the management
 commands, the seeders and the tests all run the same code:
 
@@ -520,8 +521,8 @@ mounts the React donation form from ``frontend/src/donate/`` on the page's
 ``#donate-app``: the one place the public site runs React.  The form lives beside
 ``site/`` and ``portal/`` rather than inside the portal, and reaches the portal's
 components, its API client, and the checkout's provider tabs and payment panels
-through the ``@/`` alias; it gets a query client and a toast queue of its own and
-no router.  :ref:`cms-donate-page` has the details.
+through the ``@/`` alias; it gets a query client and a toast queue of its own,
+but not a router.  :ref:`cms-donate-page` has the details.
 
 
 The portal SPA
@@ -545,11 +546,11 @@ API client and the export links read, and ``PORTAL_BASENAME``
 writes itself goes through ``sitePath`` or one of the bases: the user guide
 and its **Help** links, the link back to the public site, and the addresses
 Stripe returns the browser to.  A React Router path, such as a ``Link`` target
-or a ``navigate`` call, is relative to the basename and carries no prefix.  The
-public site's ``site/main.ts`` imports the same module and compares its
-navigation links with the address bar with the prefix taken off.  The bundle
-itself needs no prefix: Vite builds with a relative base, so each chunk,
-stylesheet, and font is fetched relative to the file that names it, and
+or a ``navigate`` call, is relative to the basename and doesn't carry the
+prefix.  The public site's ``site/main.ts`` imports the same module and compares
+its navigation links with the address bar with the prefix taken off.  The bundle
+itself doesn't need the prefix: Vite builds with a relative base, so each
+chunk, stylesheet, and font is fetched relative to the file that names it, and
 django-vite writes the entry scripts' URLs from Django's static URL, which
 carries the prefix.  The Vite dev server keeps ``/static/`` as its base, the
 path django-vite asks it for in dev mode.
@@ -565,8 +566,8 @@ File                      Routes, and who may open them
 ``auth.tsx``              ``/login``, ``/forgot-password``,
                           ``/reset-password``, ``/verify-email``: anyone;
                           ``/change-password``, ``/change-email``: signed in.
-                          There is no sign-out address: the **Sign
-                          out** button in the portal bar posts to
+                          Signing out doesn't have an address: the
+                          **Sign out** button in the portal bar posts to
                           ``POST /auth/logout`` and then goes to ``/login``
 ``join.tsx``              ``/join``, ``/join/:step``: anyone; ``/renew``: signed
                           in
@@ -607,11 +608,11 @@ page's link to join.  Inside the card, an ``auth__actions`` block stacks the
 submit button at the card's full width above a centered secondary link.  Change
 password and Change email are portal pages, drawn with ``Page`` like every other
 signed-in screen.  A
-visitor who is not signed in gets no rail, so ``PortalLayout`` adds the
+visitor who is not signed in doesn't get a rail, so ``PortalLayout`` adds the
 ``portal__frame--no-rail`` class to the frame, which makes it a single column
 at every width; the page therefore has the whole window to center in.  A
 signed-in reader who has not finished joining (``isOnboarded`` is false) gets the
-same frame and no **Menu** toggle, since the join wizard is the only screen open
+same frame without a **Menu** toggle, since the join wizard is the only screen open
 to them; the header keeps **Help**, the reader's name, and **Sign out**.  The
 join wizard's cards center themselves in it, and a ``.join-shell`` wrapper
 around ``JoinWizard`` (``features/join/join.css``) caps the page header and
@@ -643,9 +644,9 @@ data in it comes from an API call the server refuses.  The root route's
 ``hydrateFallbackElement`` shows ``components/Loading``, the same indicator
 the guards use, while the router resolves the first page a visitor asks for.
 That fallback covers that first load alone.  A move from one screen to
-another inside the portal shows nothing new: the router holds the screen the
-visitor is on until the next page's chunk arrives, and the portal adds no
-progress bar over it.
+another inside the portal doesn't show anything new: the router holds the screen
+the visitor is on until the next page's chunk arrives, and the portal doesn't add
+a progress bar over it.
 
 **Guards.**  ``RequireAuth``, in ``auth/guards.tsx``, wraps every route that
 needs a session and sends an anonymous visitor to
@@ -675,7 +676,7 @@ courtesy: the API enforces every permission itself.
 ``auth/useAuth.ts`` wraps ``GET /auth/me`` under the key ``['auth', 'me']``,
 the portal's single notion of who is signed in.  Signing in and signing out
 clear the whole cache and write the result into that key, so nothing cached for
-one person is shown to the next; registering signs nobody in and leaves it alone.
+one person is shown to the next; registering doesn't sign anyone in and leaves it alone.
 
 **The API client.**  ``api/client.ts`` is the only code that calls
 ``fetch``.  It prefixes ``API_BASE``, sends the session cookie, performs the
@@ -685,13 +686,13 @@ by field for forms.  A 403 whose ``detail`` starts ``CSRF Failed`` is the one
 response it retries: it fetches a token again and resends the request once,
 which recovers a cookie that has gone stale mid-session.
 
-A successful response has to be JSON or nothing: a 204, or an empty body,
+A successful response has to be JSON or empty: a 204, or an empty body,
 becomes ``null``, and anything else that will not parse as JSON raises
 ``UnexpectedResponseError`` carrying the status and the content type.  A
 truncated body or an HTML page from a proxy therefore reaches the screen as
 its error state, rather than as a ``null`` or a string the caller's declared
 type says is an object.  The error deliberately does **not** extend
-``ApiError``, because it carries no server message for a screen to show.
+``ApiError``, because it doesn't carry a server message for a screen to show.
 ``api/types.ts`` types every API object by hand, in step with the
 serializers.
 
@@ -741,7 +742,7 @@ rating, photo ID, and role codes, and the list of California counties.
 ``ArrowUpIcon``, ``ArrowDownIcon``, and the rich text toolbar's seven, from
 ``BoldIcon`` to ``ImageIcon`` -- each ``aria-hidden``, drawn in
 ``currentColor``, square, and ``1.25em`` on a side unless the caller asks for
-another size, so the portal ships no icon dependency.
+another size, so the portal doesn't ship an icon dependency.
 A ``DataTable`` column names its width in rem, fixed (``width``) or as a least
 width it may grow from (``minWidth``), so no column is ever drawn narrower than
 that.  A single-line ``DataTable`` fits its container (``components/tableFit.ts``):
@@ -773,7 +774,7 @@ under the filters.  The ``pagination`` prop draws ``components/Pagination.tsx``
 under the table, the portal's one pagination control: *Showing 26–50 of 51*
 between **Previous** and **Next**, a disabled button drawn with a dashed frame,
 and a page change that brings the top of the table back into view.  An empty
-table draws its ``EmptyState`` with no rule above it, and ``emptyAction`` puts
+table draws its ``EmptyState`` without a rule above it, and ``emptyAction`` puts
 the next thing to do under it as a button, such as **Reset filters**.
 ``components/reportTable.tsx`` serves a list whose table follows its report's
 column chooser: ``useColumnChoice`` holds the chosen keys (the registry's
@@ -784,10 +785,10 @@ server), and ``ColumnTools`` draws the chooser, or says the columns could not
 be loaded.  A ``PanelButton``
 whose panel holds a form passes ``isForm``, so the panel grows to the form rather
 than scrolling at a fixed height.
-``IconButton`` is a control that shows one of those icons and nothing else: a
-``<button>`` with the ``icon-button`` class rather than a ``Button``, with no
-border, no background, and the muted text color until hover or keyboard focus
-brings it forward.  Its required ``label`` is the whole of the accessible name
+``IconButton`` is a control that shows only one of those icons: a ``<button>``
+with the ``icon-button`` class rather than a ``Button``, without a border or a
+background, and in the muted text color until hover or keyboard focus brings it
+forward.  Its required ``label`` is the whole of the accessible name
 and the tooltip, unless the caller passes a ``title`` of its own.  Use it where
 the row already says what the control acts on -- an attached aircraft, a person
 on a DART -- so a list of records reads as a list rather than as a wall of
@@ -843,7 +844,8 @@ The sets come from ``/reports/{slug}/column-sets``, read only once **Load
 columns** first opens.
 ``components/Loading.tsx`` sits beside them:
 the guards and the route table are its only callers, and both import it by
-name, as every file in the directory is imported -- there is no barrel.
+name, as every file in the directory is imported -- the directory doesn't have a
+barrel.
 ``components/useClickOutside.ts`` is the hook behind that dismissal, for any
 popover that wants it.  ``components/focus.ts`` says where the keyboard focus
 goes as things open, close, and fail, so it never falls to the page body:
@@ -887,11 +889,11 @@ it sends as its ``key``,
 and its ``kind`` says how it is drawn: ``search`` (a text box), ``select`` (a
 drop-down whose blank first option reads *Any*, or the field's
 ``placeholder``), ``multiselect`` (a one-line drop-down that opens a checkbox
-per choice with no blank one, whose checked values travel joined with commas, in
+per choice without a blank one, whose checked values travel joined with commas, in
 the order the panel lists them, both in the address and in a subscription's
-``filters``; checking none sends nothing), ``number`` (digits only; with ``isDollars`` the box takes
+``filters``; an empty selection doesn't send anything), ``number`` (digits only; with ``isDollars`` the box takes
 whole dollars and sends cents), ``date``, or ``toggle`` (a checkbox that sends
-``true`` or nothing).  A field marked ``subscriptionOnly``, the period of the
+``true`` when checked and doesn't send anything otherwise).  A field marked ``subscriptionOnly``, the period of the
 payments and contributions reports, belongs to the form that subscribes
 somebody to a report; ``listFilters`` leaves it out for a list page.
 
@@ -899,13 +901,13 @@ somebody to a report; ``listFilters`` leaves it out for a list page.
 fields, with choices only the server knows, such as the DARTs or the plans,
 passed in through its ``options`` prop, and applies every change itself: a
 select, a multiselect, a date, or a toggle at once, a text or number box once the typing has
-held still for ``SEARCH_DEBOUNCE_MS``.  There is no Apply button, and
+held still for ``SEARCH_DEBOUNCE_MS``.  The bar doesn't have an Apply button, and
 **Reset filters**, as tall as the fields, empties every field;
 ``clearedValues`` gives the same values for an empty table's own **Reset
 filters** button.  Every control in the bar is one height and they align to
 their bottom edge, and a field's ``hint`` is its control's ``title`` rather
 than a line under it, so the controls of a row line up.  A select's blank
-first option, the choice that filters nothing, always reads *Any* or *Any*
+first option, the choice that doesn't filter anything, always reads *Any* or *Any*
 followed by what it filters (*Any role*), never *All* or *Every*.  The county filter of
 the member list and the donors report is the one ``multiselect``, so a DART
 that covers two counties can ask for both; ``components/MultiSelect.tsx`` draws
@@ -951,7 +953,7 @@ the ``RequireRole`` on its route.
 optional lede, and a rule.  The eyebrow is never passed in: ``navEyebrow`` in
 ``nav.ts`` reads it from the menu group of the entry the route sits under (the deepest
 matching entry, whatever the reader's roles; *Finance* across ``/admin/payments``); a
-screen outside the menu has none, and an error page asks for none with ``noEyebrow``.  ``Page`` also sets the
+screen outside the menu doesn't have one, and an error page turns it off with ``noEyebrow``.  ``Page`` also sets the
 document title to the page's title and the organization's name (``Member check ·
 CalDART``, through ``documentTitle.ts``, which reads the name Django stamps on
 ``<html>`` as ``data-org-name``).  A page whose heading is not the screen's name passes
@@ -1012,13 +1014,13 @@ text editor, written for a bulk email's message.  It is built on TipTap 3
 maintained React editor considered, because it keeps the document in
 ProseMirror's schema and writes HTML directly: its output is always the
 handful of tags its extensions define, which is close to what an email can
-carry, and ``getHTML()`` is the value the form stores, with no conversion
+carry, and ``getHTML()`` is the value the form stores, without a conversion
 layer.  It is headless, so its toolbar is the portal's own buttons and
 styles, and its extensions are plain configuration.  Lexical keeps its own
 JSON model and needs an HTML serializer on top, which is more code for the
 same result.  The editor is never trusted: the server sanitizes whatever HTML
 it receives against its own allow-list (:doc:`api-bulk-email`), and the
-toolbar offers no more than that list allows.
+toolbar offers only what that list allows.
 
 The compose screen's **What it says** card (``features/bulk-email/MessageCard.tsx``)
 writes the message in it, and the **Check and send** card's preview
@@ -1054,9 +1056,9 @@ labels from the ``fields`` prop, and writes it back out as the same text
 Background work
 ===============
 
-There is no task queue, worker process or scheduler daemon.  Work runs
-inside a request or a management command, and mail is sent synchronously by
-whichever one causes it.
+CalDART doesn't run a task queue, a worker process, or a scheduler daemon.
+Work runs inside a request or a management command, and mail is sent
+synchronously by whichever one causes it.
 
 **Renewal reminders.**  ``send_renewal_reminders`` emails members at five
 stages around expiry — two months before, a month before, in the last week,
@@ -1064,7 +1066,7 @@ once the term has run out, and once a month later — each stage a span of expir
 dates rather than one date, so every term passes through it (:ref:`the spans
 <reminders-stages>`).  It
 records every message in ``ReminderLog``, one row per user, term, and kind,
-so a second run sends nothing twice, and it marks lapsed terms expired;
+so a second run never sends a message twice, and it marks lapsed terms expired;
 lifetime members are skipped.  ``deploy/systemd/caldart-reminders.timer``
 runs it daily at 07:00 in production, ``make reminders`` in development
 (``TODAY=YYYY-MM-DD`` scans as of another date, ``DRY_RUN=1`` rehearses),

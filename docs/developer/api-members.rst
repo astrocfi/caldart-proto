@@ -11,11 +11,11 @@ Every route below requires the ``account_admin`` role but one: ``GET
 /admin/members``, the list, also admits ``dart_leader``, so a DART leader reads
 the whole membership and downloads its report.  Creating a member, one member's
 record, and the membership terms stay with the account administrator; a
-treasurer reads none of them.  ``system_admin`` passes every role check, so a
+treasurer doesn't read any of them.  ``system_admin`` passes every role check, so a
 system administrator has them too.  An
 unauthenticated request gets **401** (``caldart.exceptions`` overrides DRF's
 403 for session auth); an authenticated request without the role gets **403**.
-An unsafe method with no ``X-CSRFToken`` gets **403** before either check,
+An unsafe method without an ``X-CSRFToken`` gets **403** before either check,
 signed in or not.  Those two answers are the same on every endpoint here and
 are not repeated in the status lists below.
 
@@ -74,8 +74,8 @@ member and every friend: a donor is never listed, and a deactivated account
 only on request (``include_inactive``).  The single record,
 ``GET /admin/members/{user_id}``, answers for any account, a donor's and a
 deactivated one's included, so an administrator can reactivate an account and
-an edit to a donor is refused with its reason rather than a 404.  A donor is on
-no member list, so the portal opens a donor's record from the donors report, and
+an edit to a donor is refused with its reason rather than a 404.  A donor isn't
+on any member list, so the portal opens a donor's record from the donors report, and
 any account's from the **Member record** link on a payment, a member's ledger
 (:doc:`api-finance`), and the user record, each shown to a reader holding
 ``account_admin``.  The record's ``DELETE`` removes a donor as it removes any
@@ -135,14 +135,14 @@ The row is ``MemberRow`` in ``frontend/src/portal/api/types.ts``.  ``kind`` is
 ``member`` or ``friend``, the listed kind (``listed_kind``, :ref:`kinds of account
 <account-kinds>`) that the **Kind** column, the ``?kind=`` filter, and the member
 report all use: a donor is never a row.  An effective friend's ``membership.status``
-is ``friend``, except for a row whose stored ``kind`` is ``member`` and who holds no
-started term that is active, expired, or suspended, which reads ``none`` (*Not
+is ``friend``, except for a row whose stored ``kind`` is ``member`` and who doesn't
+hold a started term that is active, expired, or suspended, which reads ``none`` (*Not
 yet paid*): nobody is a member until a paid or granted term has started, and
 such a row's ``kind`` is ``member``, the kind it chose.  A member whose only started
 terms are suspended reads ``friend`` with ``kind`` ``member``.  ``joined_on`` is the start of the earliest membership term, or ``null`` for
 somebody who has never had one.  ``profile_updated_at`` is when profile
 information was last written -- see :doc:`data-model` -- and ``null`` for a
-profile nobody has edited, or for an account with none.  An account with no
+profile nobody has edited, or for an account without one.  An account without a
 ``MemberProfile`` row still appears: ``phone`` is blank, ``dart``, and
 ``medical_expiration`` are ``null``, ``pilot_certificate_type``, and
 ``medical_type`` read ``none``, ``medical_is_current`` is false and
@@ -151,7 +151,7 @@ profile nobody has edited, or for an account with none.  An account with no
 The row also carries every profile value the members report can add as a column,
 so the list's table can show whatever its column chooser picks:
 ``certificate_number``, ``instrument`` (true or false for a pilot, by whether the
-ratings hold an instrument rating, and ``null`` for somebody who holds no
+ratings hold an instrument rating, and ``null`` for somebody who doesn't hold a
 certificate), ``home_airport`` and ``secondary_airport`` (identifiers), ``city``,
 ``state``, ``county``, ``ham_callsign``, and ``member_since`` (the day the member
 says they joined, or ``null``).  Without a profile the text fields are blank and
@@ -182,7 +182,7 @@ Filters
    one string, so ``Ana Bracco`` works.
 ``status``
    ``current`` | ``expired`` | ``none`` | ``friend`` | ``donor``.  The first four
-   partition the table; ``donor`` is accepted and lists nobody, since a donor
+   partition the table; ``donor`` is accepted and never lists anyone, since a donor
    is never a row.  ``none`` is every member awaiting a first term (the
    ``awaits_first_term`` annotation); ``friend`` is every other account whose
    effective kind is friend, whatever its terms, and also any member whose only
@@ -195,8 +195,8 @@ Filters
 ``medical``
    A ``medical_type`` value: ``none``, ``basicmed``, ``first``, ``second``,
    ``third``; or ``any``, which is every account holding a medical of any
-   class.  An account with no profile row holds none, so ``any`` leaves it
-   out.
+   class.  An account without a profile row doesn't hold one, so ``any`` leaves
+   it out.
 ``dart``
    One or more DART ids separated by commas (``dart=3`` or ``dart=3,7``), which
    holds the members of any DART named, or a case-insensitive substring of one
@@ -206,8 +206,8 @@ Filters
    (``county=Alameda,Marin``), each spelled as the profile stores it
    (``San Mateo``) and matched exactly: ``Santa Clara`` never lists Santa
    Barbara's members.  The list holds the members of any county named.  A blank
-   value narrows nothing; a list naming any county outside California is a 400
-   naming that county.
+   value doesn't narrow the list; a list naming any county outside California is
+   a 400 naming that county.
 ``role``
    A role slug.  This matches the group actually assigned, so ``role=member``
    does not include a system administrator who lacks the ``member`` group.
@@ -249,7 +249,7 @@ updated      ``profile_updated_at``, surname, forename
 
 ``pilot_rank`` ranks a current medical ahead of a lapsed one ahead of a
 non-pilot, which is the order the list's Pilot column reads in.  The two date
-sorts, ``updated``, and ``dart``, keep rows with no value at the end in both
+sorts, ``updated``, and ``dart``, keep rows without a value at the end in both
 directions, so lifetime members do not crowd out the answer to "who expires
 next", and a profile nobody has ever edited does not crowd out "who was
 touched most recently" — that question is ``-updated``, since ``updated``
@@ -276,12 +276,12 @@ states the same rules as correlated subqueries on the user queryset:
 ``has_started_term``
    ``EXISTS`` a term with ``starts_on <= today`` that is neither canceled nor
    suspended.  Paired with ``covers_today`` it separates the other statuses: a
-   member not covering but started is ``expired``.  A member row with nothing
-   covering today and no started term that is neither canceled nor suspended
-   (only suspended terms) reads ``friend``.
+   member not covering but started is ``expired``.  A member row without a term
+   covering today, and without a started term that is neither canceled nor
+   suspended (only suspended terms), reads ``friend``.
 ``awaits_first_term``
-   True for a stored member whose ``friend_on`` has not come and who holds no
-   started term that is active, expired, or suspended.  Such a row reads ``none``
+   True for a stored member whose ``friend_on`` has not come and who doesn't hold
+   a started term that is active, expired, or suspended.  Such a row reads ``none``
    and is what ``?status=none`` filters on.
 ``coverage_end`` / ``coverage_plan``
    The earliest active term ending on or after today that **no** other active
@@ -292,9 +292,9 @@ states the same rules as correlated subqueries on the user queryset:
    walk stops.  ``NULL`` means the chain reaches a lifetime term, or that
    nothing covers today.
 ``lifetime_plan``
-   The plan name of an active term with no end date, read instead of
+   The plan name of an active term without an end date, read instead of
    ``coverage_plan`` when ``coverage_end`` is ``NULL`` — because a lifetime
-   member has no boundary row to take a name from.
+   member doesn't have a boundary row to take a name from.
 ``past_end`` / ``past_plan``
    The most recent term that has started and is neither canceled nor
    suspended, reported when nothing covers today.
@@ -315,10 +315,10 @@ own, in ``filters.derived_annotations()``:
    ``first_name`` and ``last_name`` concatenated, so ``?search=`` can match a
    full name in one ``icontains``.
 ``effective_expiry``
-   ``NULL`` for a friend (whose row shows no date), else ``coverage_end`` when
+   ``NULL`` for a friend (whose row doesn't show a date), else ``coverage_end`` when
    ``covers_today``, else ``past_end``.  This is the column
    ``?ordering=expires_on`` actually sorts on, with ``NULL`` — friends, lifetime
-   members, and people with no started term — forced to the end in both
+   members, and people without a started term — forced to the end in both
    directions.
 
 ``members.services.membership_payload(user)`` reads those annotations back into
@@ -360,13 +360,13 @@ member record ``GET /admin/members/{user_id}`` returns.
    }
 
 Only ``email``, ``first_name``, and ``last_name`` are required — an administrator
-records what they were told, which on the day somebody joins at an airshow may be no
-more than a name and an address.  A missing or blank address is refused with "Enter
+records what they were told, which on the day somebody joins at an airshow may be only
+a name and an address.  A missing or blank address is refused with "Enter
 their email address.", a missing or blank name with "Enter a first name." or "Enter a
 last name.", and every phone number in ``profile`` is optional.
 ``kind`` is ``member`` (the default) or ``friend``; an administrator never
-creates a donor, and ``donor`` is a 400 on ``kind``.  There is no ``password``
-field: an administrator never chooses a member's password, and a ``password`` key in
+creates a donor, and ``donor`` is a 400 on ``kind``.  The body doesn't take a
+``password`` field: an administrator never chooses a member's password, and a ``password`` key in
 the body is ignored like any other unknown key.
 
 ``profile`` is ``AdminProfileSerializer``, which extends the ``/me/profile``
@@ -374,7 +374,7 @@ serializer: the same fields except ``first_name`` and ``last_name``, which the
 member record takes as account fields beside ``email`` (``dart`` reads nested
 and is written as ``dart_id``), the same rules — a two-letter state, a well-formed ZIP code, an
 expiry date whenever a medical class is given, a number whenever a certificate
-is — plus ``notes`` and ``how_heard``, and nothing mandatory.
+is — plus ``notes`` and ``how_heard``, with every field optional.
 
 The user, of the kind posted, is granted the ``member`` role, marked
 ``admin_created`` (the person has joined already, so once the address is verified the
@@ -538,9 +538,9 @@ a requested change waits to move the account to, or ``""`` (:ref:`api-email-chan
    }
 
 ``is_tombstone`` is true for a **Deleted member <id>** account
-(:ref:`api-members-tombstone`), whose record the portal shows with no form, no
-grant, and no delete.
-``profile`` is ``null`` for an account that has no ``MemberProfile`` row.
+(:ref:`api-members-tombstone`), whose record the portal shows without the form, the
+grant, or the delete.
+``profile`` is ``null`` for an account that doesn't have a ``MemberProfile`` row.
 Its ``photo_id_type`` and read-only ``verification`` are the ones
 ``GET /me/profile`` describes (:doc:`api-profile`).
 Datetimes are rendered in the server's configured ``TIME_ZONE``, so they carry
@@ -572,7 +572,7 @@ however few fields the request carried.
 The body takes ``email``, ``first_name``, ``last_name``, ``kind``, and a partial
 ``profile`` object; an ``is_active`` in it is ignored, since the account's status
 changes only through ``/deactivate`` and ``/reactivate`` below.  A profile is created if the account
-somehow has none.  ``PUT`` is not offered.
+somehow doesn't have one.  ``PUT`` is not offered.
 
 ``first_name`` and ``last_name`` are stored as every write stores a name
 (``caldart.casing.person_name``, :doc:`data-model`), so ``SMITH`` is saved, and
@@ -583,8 +583,8 @@ only, is a **400** ``{"first_name": ["Enter a first name."]}`` or
 ``kind`` is ``member`` or ``friend``.  A kind other than the stored one makes
 the account that kind at once through ``accounts.services.set_kind``: any
 pending ``friend_on`` is cleared, and the change is audited as ``account.kind``
-with ``to=<kind>`` under the administrator.  The stored kind sent again is no
-change, so a pending ``friend_on`` survives a save that only corrects a phone
+with ``to=<kind>`` under the administrator.  Sending the stored kind again doesn't
+change anything, so a pending ``friend_on`` survives a save that only corrects a phone
 number; the portal sends ``kind`` only when the administrator changed it.  A donor's kind is never changed by hand — a donor
 becomes a member or a friend only by registering — so ``kind`` on a donor's
 record is a **400** ``{"kind": ["A donor becomes a member or a friend only by
@@ -602,7 +602,7 @@ read-only here too, and an item is verified only through the member check.
 ``profile_updated_at`` is stamped when the body carries ``profile``, or an
 ``email``, ``first_name`` or ``last_name`` -- the fields a member record shows
 alongside the rest of the profile.  A request that only changes ``kind`` leaves
-the stamp alone, and so does one for a target with no profile row to stamp.
+the stamp alone, and so does one for a target without a profile row to stamp.
 
 An ``email`` that really differs from the stored one — compared stripped and
 case-insensitively — does not change the address: it asks for the change
@@ -613,7 +613,7 @@ it.  Until the link is followed the member signs in as before.  An administrator
 own record does not change its address here, where no password is asked for: that is a
 **400** ``{"email": ["Change your own address from Change email, which asks for your
 password."]}``.  A donor's address,
-which signs nothing in, changes at once and nothing is mailed.  A refused message
+which isn't used to sign in, changes at once, and nothing is mailed.  A refused message
 leaves the request standing and the answer unchanged
 (:ref:`refused sends <api-refused-send>`).
 
@@ -645,8 +645,8 @@ Statuses:
 ===================================
 
 Hard-deletes the account: the cascade takes the profile, the membership terms,
-the automatic payments, and the contribution statements with it.  There is no
-response body.
+the automatic payments, and the contribution statements with it.  The response
+body is empty.
 
 The delete is refused when
 
@@ -664,7 +664,7 @@ The delete is refused when
 
 The role tests read *effective* roles, so a Django superuser without the role group
 counts as a system administrator on either side, and a system administrator holds
-every role.  A refusal writes nothing and is audited at WARNING as ``member.delete``
+every role.  A refusal doesn't write anything and is audited at WARNING as ``member.delete``
 with ``reason=self_delete``, ``system_admin_target``, ``roles_not_held``, or
 ``tombstone``.
 
@@ -675,12 +675,12 @@ Before the account goes, in the same transaction, the view:
 #. cancels every ``active`` or ``paused`` automatic payment of the member, as an
    administrator's cancellation (the ``renewal.cancel`` audit line ends in
    ``reason=member.delete``), so nothing is charged again and the member is
-   emailed that it is off, and throws away a ``pending`` one, which has saved no
-   payment method and told nobody.  The *Automatic renewal or recurring donation turned off*
+   emailed that it is off, and throws away a ``pending`` one, which hasn't saved a
+   payment method or told anybody.  The *Automatic renewal or recurring donation turned off*
    notification for an active one says the account was deleted
-   (``how="deleted"``) and links to no member record;
+   (``how="deleted"``) and doesn't link to a member record;
 #. when the member has any payment, whatever its status, creates a *tombstone*
-   account — a deactivated ``donor`` with no password, no role, and a blank
+   account — a deactivated ``donor`` without a password or a role, with a blank
    profile, named ``Deleted member <id>`` after the deleted account's id, with
    the address ``deleted-<id>@deleted.invalid``, or
    ``deleted-<id>-<8 hex digits>@deleted.invalid`` when another account already
@@ -688,14 +688,14 @@ Before the account goes, in the same transaction, the view:
    clearing each one's ``donor_fields``.  Refunds stay on their payments.
 
 A payment still ``pending`` when it moves can settle later, when the provider or
-the giver's browser confirms it.  It is then marked ``succeeded`` and nothing
-more: a payment the tombstone holds applies no giver's details, grants no term,
-raises no notification, and sends no receipt, so the tombstone keeps its name and
-blank profile and never becomes a member.
+the giver's browser confirms it.  It is then only marked ``succeeded``: a payment
+the tombstone holds doesn't apply a giver's details, grant a term, raise a
+notification, or send a receipt, so the tombstone keeps its name and blank profile
+and never becomes a member.
 
 The payment list, the ledger, and the donors report name the tombstone as the
 payer; the member list and **Roles**, which show active accounts, do
-not list it.  A member who never paid leaves no tombstone.
+not list it.  A member who never paid doesn't leave a tombstone.
 
 The delete is recorded as ``member.delete``, with ``payments=<n>
 owner=<tombstone id>`` when payments moved.  This endpoint is the only way to
@@ -734,8 +734,8 @@ books and cannot be changed."}`` and nothing written:
 Each refusal is audited at WARNING with ``reason=tombstone``.  The deactivation,
 reactivation, and make-a-friend actions refuse a tombstone already, as a donor.
 The record (``is_tombstone``), the donors report, the payment list, and the
-ledger flag a tombstone, so the portal links to its record from none of them and
-shows the record without its controls.
+ledger flag a tombstone, so the portal doesn't link to its record from any of them,
+and shows the record without its controls.
 
 
 The Delete or deactivate tab's account actions
@@ -744,7 +744,7 @@ The Delete or deactivate tab's account actions
 Three endpoints behind ``account_admin`` do for a member what the member does for
 themselves.  Each answers 200 with the whole record, in the detail shape above;
 ``friend_on`` and ``reactivation_blocked`` there tell the portal what to offer.
-An unknown ``user_id`` is a **404**.  A refusal changes nothing.
+An unknown ``user_id`` is a **404**.  A refusal doesn't change anything.
 
 ``POST /admin/members/{user_id}/friend``
 ----------------------------------------
@@ -825,18 +825,18 @@ A grant to a friend makes them a member, audited as ``account.kind`` under the
 caller.  The grant raises the ``membership_granted`` event, and a friend's the
 ``became_member`` event too (:doc:`notification-events`).
 
-With no ``starts_on``, that rule reads the largest ``ends_on`` across the
+Without a ``starts_on``, that rule reads the largest ``ends_on`` across the
 member's **active or suspended** terms — terms whose stored status is
 ``expired`` or ``canceled`` are ignored:
 
-* if one of those terms is a lifetime term, and so has no end date, the grant
+* if one of those terms is a lifetime term, and so doesn't have an end date, the grant
   starts **today**;
 * otherwise, if the largest end date is today or later, the grant starts the
   **day after** it.  A term dated in the future therefore moves the start even
   though it is not covering the member today: granting an annual term to
   somebody whose term runs from next month to next spring starts the new one
   the day after next spring;
-* otherwise — every term has run out, or there are none — the grant starts
+* otherwise — every term has run out, or there aren't any — the grant starts
   **today**.
 
 ``ends_on`` is then ``starts_on + duration_days - 1``, or ``null`` for a
@@ -867,7 +867,7 @@ reactivated.
      "created_at": "2026-09-21T19:40:02.750311-07:00"
    }
 
-A donor holds no membership and becomes a member only by registering, so a
+A donor doesn't hold a membership and becomes a member only by registering, so a
 grant to a donor is refused before anything is written or raised: **400**
 ``{"detail": "A donor holds no membership, and becomes a member only by
 registering."}``, audited as ``membership.grant`` with ``reason=donor_account``.

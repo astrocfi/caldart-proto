@@ -95,7 +95,7 @@ added later lands in a file of its own rather than growing one:
     **Close now**, who sees a callout, and its answers as rows and as a CSV.
 ``callout_links.py``
     A callout copy's answer links: the signed token, the three buttons, and the answer
-    page's address.  It reads nothing of the app but its models, so ``render.py`` and
+    page's address.  It reads only the app's models, so ``render.py`` and
     ``callouts.py`` both use it.
 ``views.py``, ``urls.py``
     The answer page the buttons open, ``/mail/callout/<token>``, outside the API.
@@ -158,7 +158,7 @@ States
     ``stopped``, with *Stopped by* and the name of whoever pressed it.  **Send the
     rest** (``drafts.resume``) checks each of those rows again
     (``delivery.recheck_rows``, as **Retry failed** does), turns the rest back to
-    ``pending``, and queues the email to start at once, with no undo window.  **Stop** on that queued email stops it again at once,
+    ``pending``, and queues the email to start at once, without an undo window.  **Stop** on that queued email stops it again at once,
     without waiting for the sender.
 
 .. _bulk-email-edit-rule:
@@ -196,8 +196,8 @@ without an address, with an address no mail server would take, or with an addres
 that bounced, whether the person has turned the email's type off (*Opted out of
 <type>*), and then whether ``seen`` already holds the address, trimmed and
 case-folded.  ``batch.type_opt_outs`` reads the type's opt-outs once for the whole
-batch (``apps.mail.types.opted_out_user_ids``), and is ``None`` while the email has
-no type, which skips nobody for that reason; an opt-out of a type that no longer
+batch (``apps.mail.types.opted_out_user_ids``), and is ``None`` while the email doesn't
+have a type, which doesn't skip anybody for that reason; an opt-out of a type that no longer
 allows one does not apply.  So an address that bounced, or an opt-out made, after
 somebody was added shows as skipped at once, and two accounts sharing one address
 get one copy, the first in surname order.
@@ -219,7 +219,7 @@ deleted.
 
 Every email has a type before it is sent (``BulkEmail.email_type``, see
 :doc:`api-email-types`): ``PATCH`` takes one the caller may send
-(``apps.mail.types.sendable_types``), and ``drafts.queue`` refuses an email with none,
+(``apps.mail.types.sendable_types``), and ``drafts.queue`` refuses an email without one,
 or with one whose senders no longer include the caller's roles.
 
 
@@ -232,24 +232,25 @@ A DART leader's email goes to one DART: the one on the sender's member profile, 
 as it is at that moment, never stored as the rule.  ``senders.dart_limit(bulk)`` is
 ``None`` for CalDART management's email (and for one whose sender's account is
 gone, which the sender refuses anyway) and a ``DartLimit`` for anybody else's, whose
-``dart`` is ``None`` when the sender's profile names no DART or the sender holds
-neither bulk email role any more.  The limit is the email's, not the caller's, so
+``dart`` is ``None`` when the sender's profile doesn't name a DART or the sender
+holds neither bulk email role any more.  The limit is the email's, not the caller's, so
 CalDART management changing a leader's email stays inside the leader's DART.
 
 It applies in three places, each reading the same function.  ``batch.add_filters``
 forces the add's ``dart`` filter to the DART's id and refuses any other value, a list
-of DARTs included; an email limited to no DART refuses every add.  The search before
-an add (``batch.searched_filters``) and a group saved from it are held the same way.  ``batch.skip_reason`` takes the limit
-and skips anybody whose profile is not in the DART with *Not in your DART*, right
-after a deleted account, so the batch screen shows it at once and the freeze stores
-it.  And ``drafts.queue`` refuses an email limited to no DART, as the background
-sender's claim does; the claim also returns unsent an email whose batch the limit
-leaves nobody in, and the send loop checks the limit again before every copy (both
-under `The sender`_, below).  ``senders.sender_notice`` names the sender of an email
-limited to no DART, for the compose screen and the refusals.  ``BulkEmail.dart``
-records the DART the email goes to when the draft is made, at each add and **Send**,
-and when the send starts; the lists show it, and once the email has started it is
-the DART it went to.
+of DARTs included; an email whose limit doesn't name a DART refuses every add.  The
+search before an add (``batch.searched_filters``) and a group saved from it are held
+the same way.  ``batch.skip_reason`` takes the limit and skips anybody whose profile
+is not in the DART with *Not in your DART*, right after a deleted account, so the
+batch screen shows it at once and the freeze stores it.  And ``drafts.queue`` refuses
+an email whose limit doesn't name a DART, as the background sender's claim does; the
+claim also returns unsent an email whose batch the limit leaves empty, and the send
+loop checks the limit again before every copy (both under `The sender`_,
+below).  ``senders.sender_notice`` names the sender of an email whose limit doesn't
+name a DART, for the compose screen and the refusals.  ``BulkEmail.dart`` records the
+DART the email goes to when the draft is made, at each add and **Send**, and when the
+send starts; the lists show it, and once the email has started it is the DART it went
+to.
 
 
 .. _bulk-email-sender:
@@ -263,11 +264,11 @@ and ``POST /system/bulk-email/run`` calls it from the Scheduled tasks page's **R
 
 A run may be given a time budget.  **Run now** gives it
 ``REQUEST_BUDGET_SECONDS`` (45), inside the web server's and the proxy's 60-second
-limit on a request: once the budget is spent the run claims nothing more and
-stops before its next copy, leaving that email ``sending`` for the next timer run
+limit on a request: once the budget is spent the run doesn't claim anything more
+and stops before its next copy, leaving that email ``sending`` for the next timer run
 to finish, and a retry wait that would take it past the budget leaves the copy
 ``pending`` rather than failing it.  The result says how many copies are left.
-The timer's runs have no budget.
+The timer's runs don't have a budget.
 
 Only one run works at a time.  A run takes a PostgreSQL advisory lock for as long
 as it works, and a run that cannot take it returns at once with ``busy`` set; the
@@ -291,12 +292,12 @@ type, with the sender's roles as they are now against the type's ``sender_roles`
 (``apps.mail.types.sendable_types``): **Send** checked them, but a role can be taken
 away, or the type's senders changed, while a send is scheduled.  An email whose
 sender's account has been deleted, or who may no longer send the type, is not sent.
-So is the email of a DART leader whose profile names no DART any more
+So is the email of a DART leader whose profile doesn't name a DART any more
 (:ref:`bulk-email-dart-limit`), with *This email was not sent: your profile names no
 DART, so there is nobody to send to. Set your DART on My profile and send again.*, and
 one that has never started whose leader's DART changed so that nobody in the batch is
 in it, with *Your DART changed, so this email was not sent. Add the people again and
-send when it is ready.*, rather than a send that ends with no copy and no word why.
+send when it is ready.*, rather than a send that ends without a copy or a word why.
 One that never started goes back to a draft, its batch and content intact and its
 schedule cleared; one **Send the rest** queued again goes back to ``stopped``, its
 queued copies with it.  Either way ``not_sent_reason`` keeps the sentence the Drafts
@@ -337,7 +338,7 @@ send`_) stays moved.
 The run reads ``stop_requested`` afresh before each copy's pause and again after it.
 A **Stop** takes effect there: every copy not yet sent becomes ``stopped``, and one
 ``bulk_email.stop`` audit line names who pressed it. A stop that arrives after the
-last copy has nothing to keep back: the email is ``sent``, its ``stopped_by`` is
+last copy doesn't have anything to keep back: the email is ``sent``, its ``stopped_by`` is
 cleared, and no stop is recorded.  When no row is pending, the email is ``sent`` and
 ``sent_at`` set.
 
@@ -373,7 +374,7 @@ stored on the row as well as on the log row.  A refusal is a
   5, 15, and 45 seconds, over a fresh connection each time.  After the third
   retry the copy is ``failed`` with *Temporarily refused, gave up after 3
   retries*.
-* Any **other** refusal, a 5xx reply or a transport error with no code, fails the
+* Any **other** refusal, a 5xx reply or a transport error without a code, fails the
   copy at once with *Refused by the mail server*.
 
 Either way the rest still go.  A refusal is logged on the ``apps.bulk_email.job``
@@ -432,7 +433,7 @@ headers included: ``render_copy`` builds a row's copy through it with the row's
 stored values, the preview builds each person's with their values as they are now,
 and a test copy the sender's own, so all three read alike.  The preview's is inert
 (``inert=True``): its footer reads as the copy's, but its unsubscribe link carries
-``render.PREVIEW_STAND_IN`` where a signed token goes and it has no headers, so
+``render.PREVIEW_STAND_IN`` where a signed token goes and it doesn't carry any headers, so
 showing a person's copy to a sender never hands over a link that would turn that
 person's email off.  The test copy carries the sender's own real link.  Above the
 footer every copy but a test copy carries *View this email in your browser*, a link
@@ -443,8 +444,8 @@ a type recipients may turn off, both bodies end with ``unsubscribe.footer_for``'
 line and the recipient's own unsubscribe link, and the copy carries
 ``unsubscribe.headers_for``'s ``List-Unsubscribe`` and ``List-Unsubscribe-Post``
 headers.  For a type they may not, the footer says why the recipient receives it and
-there is no header.  A row whose account is gone gets neither, nor does an email
-with no type, which cannot be sent; both fall back to the general line *You receive
+the copy doesn't carry a header.  A row whose account is gone gets neither, nor does
+an email without a type, which cannot be sent; both fall back to the general line *You receive
 this email as a member or a friend of <organization>.*
 
 
@@ -482,7 +483,7 @@ send** card runs them when it opens, again on **Check again**, and again just
 before it opens the confirmation, and keeps **Send** off while one is an error.
 The codes and their wording are in :ref:`api-bulk-email-checks`.
 
-An **error** stops the send: a blank subject, a message that reads as no text, a
+An **error** stops the send: a blank subject, a message whose text is empty, a
 token that cannot be filled in (``render.check_message``), and a ``Reply-To`` that
 is blank or not valid.  ``checks.error_findings`` gives those alone, and
 ``checks.refuse_on_errors`` raises ``ChecksFailedError`` with them, which
@@ -537,8 +538,8 @@ own name resolution and connects only where it checked:
   connection cannot lead the request inside.
 * Redirects are followed by hand, at most 5, and each hop is resolved and checked
   the same way, its port included, before anything connects to it.
-* The client reads no proxy from the environment (``trust_env=False``), which would
-  otherwise carry the request past the pinned address.
+* The client doesn't read a proxy from the environment (``trust_env=False``), which
+  would otherwise carry the request past the pinned address.
 
 What a check reports is coarse on purpose, so it cannot serve to probe a host: a
 link *does not load*, *timed out*, or was answered with a 4xx or a 5xx error, never
@@ -559,8 +560,8 @@ is saved, built with ``render.render_for`` from the actor's own field values, so
 carries the actor's footer and unsubscribe link, the type's headers, and the
 email's ``Reply-To``, exactly as a copy to the actor would; only the subject
 differs, starting ``[Test]``.  The copy goes through ``send_templated`` under the
-purpose ``bulk_email_test`` (:doc:`email`), so Sent emails lists it, and touches
-nothing of the send: no row joins the batch, and no count moves.  Every call sends
+purpose ``bulk_email_test`` (:doc:`email`), so Sent emails lists it, and doesn't
+touch the send: no row joins the batch, and no count moves.  Every call sends
 one more copy.  A mail server that refuses it raises ``MailRefusedError``, which the
 endpoint answers with a 503.
 
@@ -599,7 +600,7 @@ first; its failed copies can be retried once it has finished.
 
 **A copy as it went.**  ``delivery.recipient_copy`` rebuilds one tried copy with
 ``render.render_copy`` from the row's stored ``values``, with ``inert=True``: the
-sender reads it, so its unsubscribe link and any answer buttons carry no token.
+sender reads it, so its unsubscribe link and any answer buttons don't carry a token.
 The archive rebuilds the reader's own row the same way, with their live link.
 Neither ever reads the account's values as they are now.  The Sent page's table and
 its download list the batch, round 0; a callout's reminder rounds are in the counts
@@ -617,7 +618,7 @@ Reusing what was written
 ========================
 
 CalDART management keeps two things to use again, both shared by every manager and
-both outside any one email, so deleting one changes no email.
+both outside any one email, so deleting one doesn't change any email.
 
 **Templates.**  ``EmailTemplate`` holds a message: a subject, a message (sanitized as
 a draft's is, by the same ``checked_subject`` and ``checked_body`` checks the
@@ -674,7 +675,7 @@ with ``closes_at`` two days ahead rounded up to the half hour
 email when the caller may send that type (``callouts.mission_type``), or clears another
 type when the caller may not.  A callout goes as Mission only (``EmailType.is_mission``,
 the ``mission`` slug): ``drafts.update`` refuses any other type for one, and the compose
-screen offers it alone.  False deletes the row again; a draft holds no answer.  **Send** refuses a callout whose answers would
+screen offers it alone.  False deletes the row again; a draft doesn't hold an answer.  **Send** refuses a callout whose answers would
 close by the time it starts (``callouts.check_for_send``), and so does a change to a
 queued one.
 
@@ -683,37 +684,37 @@ above the footer (``render.callout_answers``), and points the copy's *View this 
 in your browser* line at the answer page instead of **Email to me**.  Each link is
 ``<SITE_URL>/mail/callout/<token>?answer=<kind>``, the token
 ``django.core.signing`` with the salt ``bulk_email.callout`` over the callout's id and
-the account's id, with no age limit of its own: the close time decides whether it
+the account's id, without an age limit of its own: the close time decides whether it
 still records anything (``callout_links``).  Only a recipient's own copy carries a
 signed token: ``render_copy`` asks for live links unless it is ``inert``, so the copy
 the sender sends and the copy on the reader's **Email to me** page carry the reader's
 token, and the preview, a test copy (which goes to the sender, who is not answering),
 the copy on the delivery report, and ``message_html`` all carry
-``callout_links.STAND_IN`` and answer for nobody.  The reader's **Email to me** entry for a
+``callout_links.STAND_IN`` and don't answer for anyone.  The reader's **Email to me** entry for a
 callout links their own answer page (``archive.Message.answer_url``).
 
 **The answer page.**  ``views.callout_answer`` reads the token
 (``callout_links.read_token``) and renders ``bulk_email/callout.html`` in the public
 site's shell: the subject and the message filled in from the values stored on the
 person's latest copy, the three answers with the button's own chosen (or the person's
-current answer), a note, and **Send answer**.  The ``GET`` records nothing, so a mail
-scanner that follows every link answers for nobody; the ``POST`` calls
+current answer), a note, and **Send answer**.  The ``GET`` doesn't record anything, so a
+mail scanner that follows every link doesn't answer for anyone; the ``POST`` calls
 ``callouts.record_answer``.  The view is CSRF-exempt: it is opened from an email, often
-in a mail program's own browser with no session, and the signed token is the
+in a mail program's own browser without a session, and the signed token is the
 authorization, as the unsubscribe page's is (:ref:`email-unsubscribe`).  Once the
 callout has closed, at ``closes_at`` or sooner by **Close now**, both methods say *This
-callout has closed* and record nothing; a token that does not read is a 400 page.
+callout has closed* and don't record anything; a token that does not read is a 400 page.
 
 **An answer.**  ``record_answer`` takes the callout's row lock, refuses a closed
 callout and a deactivated account, and creates or replaces the person's
 ``CalloutAnswer`` (one per person, its
-note trimmed to 500 characters).  An answer that changes nothing, the same answer and
-note sent again, records and raises nothing, a change to the note alone is saved
+note trimmed to 500 characters).  An answer that doesn't change anything, the same answer
+and note sent again, doesn't record or raise anything, a change to the note alone is saved
 quietly, and a new answer or a change of answer raises the ``callout_answer``
 event (:doc:`notification-events`) inside the transaction and writes one
 ``callout.answer`` audit line naming the person and the answer, never the note.  The
 event carries plain values and an ``audience`` function (``callouts.can_see``), since
-the notifications app sits beside this one and imports none of it; the notifications
+the notifications app sits beside this one and doesn't import any of it; the notifications
 app sends the event to subscribed CalDART management, and to a subscribed DART leader
 only for a callout that leader may open.
 
@@ -729,7 +730,7 @@ the list.
 
 **Remind non-responders.**  ``callouts.remind`` takes a callout that has finished
 sending and still takes answers, and adds a round of rows, ``round`` one higher than
-any so far, for everybody the callout reached with an active account and no answer,
+any so far, for everybody the callout reached who has an active account and hasn't answered,
 exactly the people the Callouts screen lists without one, so its confirmation's
 count is the round's.  Each row is refreshed and asked ``batch.skip_reason`` as
 **Retry failed** asks it: the account's name and address as they are now, the DART
@@ -751,14 +752,14 @@ now** (``callouts.close``) sets ``closed_at`` and ``closed_by``, and calls off a
 round queued and not yet started, its copies ``skipped`` with *Callout closed*.  The
 background sender asks ``callouts.closed_reason`` when it claims an email and before
 every copy, so a late timer, a long paced send, or **Send the rest** after the close
-sends nobody a callout that has closed.
+never sends anyone a callout that has closed.
 
 The Callouts screens show the subject as written, each token drawn as the compose
 editor's chip; the notification fills it in with the sender's own values
 (``callouts.display_subject``), so no token shows in braces there.
 The answer page's ``POST`` is limited per link by
 ``throttling.CalloutAnswerThrottle`` (``CALLOUT_ANSWER_THROTTLE_RATE``), and a
-deactivated account's link records nothing and reads *This link no longer works*;
+deactivated account's link doesn't record anything and reads *This link no longer works*;
 its answer leaves the screen and the counts.  A DART leader reads another leader's
 email to their own DART through ``senders.readable_by``, and may act on it only through
 the callout's actions and **Stop**.

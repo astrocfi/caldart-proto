@@ -88,7 +88,7 @@ before any role is checked; a caller the report's roles do not admit answers
 ================
 
 The reports the caller may read, in the order of the table above.  Any
-signed-in user may ask; a member who may read no report gets an empty list.
+signed-in user may ask; a member who can't read any report gets an empty list.
 Unpaginated::
 
   [
@@ -114,8 +114,8 @@ chooser is data-driven.  One entry per column::
   [{"key": "name", "label": "Name", "default": true}, ...]
 
 ``key`` is what ``?columns=`` names, ``label`` is the header both formats print,
-and ``default`` says whether the column is in the report when the caller chooses
-none.  Every column of a report whose columns are fixed is a default.  The full
+and ``default`` says whether the column is in the report when the caller doesn't
+choose any.  Every column of a report whose columns are fixed is a default.  The full
 registries are in :doc:`reports`.
 
 Statuses: **200**; **401** when anonymous; **403** for a caller the report does
@@ -198,7 +198,7 @@ next time they download that report.  The sets are the caller's own: nobody
 else sees or changes them.  Any caller the report admits may keep sets of its
 columns, and the checks on the slug are those above: **404** for an unknown
 report, **403** for a caller it does not admit.  A report whose columns are
-fixed keeps no sets.
+fixed doesn't keep any sets.
 
 ``GET /reports/{slug}/column-sets``
 -----------------------------------
@@ -311,8 +311,8 @@ who set it up, and it is first due on its schedule's next day after today.
 
 The recipient is named by address.  When an account holds that address,
 compared without regard to case, the subscription is bound to the account and
-keeps the account's own address; an account that holds no role that may read
-the report, or that has been deactivated, is refused.  When no account holds it,
+keeps the account's own address; an account that doesn't hold a role that may
+read the report, or that has been deactivated, is refused.  When no account holds it,
 the caller must confirm the address with ``confirmed: true``.
 
 Refusals:
@@ -404,7 +404,7 @@ email address; ``roster_sent_at`` is when the last roster went out, or ``null``.
 
 Send every active DART's roster now, whatever the date, and answer **200** with
 the run result (:ref:`api-reports-run`).  The body is optional:
-``{"dry_run": true}`` sends nothing and answers who would be sent one.  A DART
+``{"dry_run": true}`` doesn't send anything and answers who would be sent one.  A DART
 whose roster went to everyone checked is stamped, which counts as its roster for
 the month.  A live send writes one ``report.send`` audit line per DART.
 **400** when ``dry_run`` is not a boolean.

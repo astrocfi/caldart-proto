@@ -3,7 +3,7 @@ Backup and restore
 ==================
 
 Four commands look after the data: ``db_backup`` writes a dump, ``db_restore``
-puts one back, ``db_reset`` rebuilds a development database from nothing, and
+puts one back, ``db_reset`` rebuilds a development database from scratch, and
 ``health`` says whether any of that has been happening.  They live in
 ``backend/apps/sysadmin/``; the portal's Health and database page reaches the same code
 through the endpoints listed under :ref:`api-reminders-system`.
@@ -44,13 +44,13 @@ What a dump leaves out
 
 A dump leaves the FAA registry's registrations out.  ``pg_dump`` runs with
 ``--exclude-table-data=aircraft_registration`` (the name read from the
-``Registration`` model, never typed), so the dump creates the table and copies
-none of its rows.  Those rows are the FAA's, some 317,000 of them, and are
+``Registration`` model, never typed), so the dump creates the table but doesn't
+copy any of its rows.  Those rows are the FAA's, some 317,000 of them, and are
 nearly three quarters of a compressed dump; the nightly import brings them back
 from the FAA's own file (:doc:`aircraft-registry`).  Everything else is dumped
 whole, the aircraft types, their aliases, and the import log included, because
 every member's aircraft points at a type and a dump without them would not
-restore.  There is no option for a full dump.  The ``db_backup`` command, the
+restore.  A full dump isn't an option.  The ``db_backup`` command, the
 ``caldart-backup`` timer, and the Health and database page's **Create backup** button all
 go through the same ``create_backup()``, so all three leave the registrations
 out.
@@ -61,7 +61,7 @@ How the credentials reach the tool
 ----------------------------------
 
 ``pg_dump`` and ``psql`` are given a connection URL through ``--dbname``, and
-that URL carries no password: an argument list is readable by every other user
+that URL doesn't carry a password: an argument list is readable by every other user
 on the machine through ``ps``, and it lands in shell history.  The password
 travels in the ``PGPASSWORD`` environment variable of the child process
 instead, and the compose form names the variable without a value so Docker
@@ -100,7 +100,7 @@ on a pipe nobody is moving.
 A restore reads the dump through once, a block at a time, before it drops
 anything.  A corrupt, truncated, or non-gzip file therefore fails with
 ``BackupError`` naming the file and leaves the database that is already there
-untouched, and the extra pass costs no memory.
+untouched, and the extra pass doesn't cost any memory.
 
 ``BACKUP_DIR`` defaults to ``backups/`` at the repository root, which is
 gitignored.  A relative value is resolved against the repository root; an
@@ -136,7 +136,7 @@ endpoints back that panel, all ``system_admin`` only:
 and cannot be downloaded.  ``POST`` runs the same code path as the command,
 synchronously, so on a large database the request takes as long as ``pg_dump``
 does; a ``BackupError`` comes back as a **400** with the message in ``detail``.
-There is deliberately no restore endpoint.
+The API deliberately doesn't offer a restore endpoint.
 
 Scheduling
 ----------
@@ -174,7 +174,7 @@ of the run, with that output, for the portal (:ref:`deploy-job-runs`).
 Three details to keep in step with the rest of the deployment.  ``BACKUP_DIR``
 is resolved against the repository root when it is relative, for the dump and the
 prune alike; the installer writes the deploy root's ``backups`` as an absolute path.
-``ReadWritePaths`` expands no variables, so it is the one line that spells the
+``ReadWritePaths`` doesn't expand variables, so it is the one line that spells the
 directory out by hand: it has to name whatever ``BACKUP_DIR`` points at, or
 ``ProtectSystem=strict`` fails the dump with a permission error.  And the unit
 expects a local ``pg_dump`` with ``DB_BACKUP_VIA_DOCKER=false``, which is what the
@@ -201,7 +201,7 @@ prefer an encrypted destination.
 Backing up the media files
 ==========================
 
-A database dump carries every row and none of the uploaded files.  Those live
+A database dump carries every row but not the uploaded files.  Those live
 in ``MEDIA_ROOT``: ``backend/media/`` in development, and ``/opt/caldart/media``
 in production, in the deploy root beside the checkout.  Wagtail writes three
 directories there, and bulk email a fourth:
@@ -303,11 +303,11 @@ before the site takes traffic.
 
 A restored database has an empty registrations table (:ref:`backup-registry`).
 Until the next import fills it, the register reads *Registry not imported yet*
-and an N-number lookup finds nothing.  The ``caldart-registry`` timer, which the
+and an N-number lookup doesn't find anything.  The ``caldart-registry`` timer, which the
 restore above leaves running, imports at 04:30; **Run now** on the Health &
 Database page imports at once.
 
-There is no restore button in the portal, and there will not be one.  Wiping
+The portal doesn't have a restore button, and will not get one.  Wiping
 the database is not a thing to do from a browser tab.
 
 
@@ -320,7 +320,7 @@ A backup nobody has restored is a hope.  Restore one into a scratch database
 now and then, check that it holds what the live database holds, and throw the
 scratch copy away.  None of it touches the live database.
 
-**Check the file.**  ``gzip -t`` reads the whole archive and says nothing when
+**Check the file.**  ``gzip -t`` reads the whole archive and is silent when
 it is sound.  The dump inside is plain SQL, so ``pg_restore --list``, which
 reads only pg_dump's archive formats, refuses it with *input file appears to
 be a text format dump*; list the tables and data blocks with ``zcat``
@@ -391,7 +391,7 @@ bring back:
    is ``0``.  A number above zero means the ``migrate`` step was skipped.
 2. The row counts above match what you expected of a dump from that moment.
 3. ``systemctl start caldart-web``, then ``journalctl -u caldart-web -n 50``
-   shows the workers booting with no traceback.
+   shows the workers booting without a traceback.
 4. Signed in as an administrator: the member list shows the members you
    expect, a member record opens with its memberships and payments, the
    payment list shows the latest payments you expect, and ``/admin/`` opens.
@@ -421,9 +421,9 @@ them.  Run it again to confirm, then start the timers::
       caldart-reports.timer caldart-statements.timer caldart-bounces.timer \
       caldart-bulk-email.timer caldart-backup.timer
 
-A payment recorded by hand carries no link to the provider's charge, so a
-refund issued from the portal against it sends nothing to Stripe or PayPal.  To
-give that money back, refund the charge in the provider's dashboard, then
+A payment recorded by hand doesn't carry a link to the provider's charge, so a
+refund issued from the portal against it doesn't send anything to Stripe or
+PayPal.  To give that money back, refund the charge in the provider's dashboard, then
 record the refund in the portal against the recorded payment.
 
 

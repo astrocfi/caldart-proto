@@ -54,10 +54,10 @@ Every endpoint that answers with a mandate answers with this shape.
      "created_at": "2025-03-14T18:21:58Z"
    }
 
-``kind`` is ``renewal`` when the mandate names a plan and no contribution,
+``kind`` is ``renewal`` when the mandate names a plan without a contribution,
 ``both`` when it names a plan and a contribution, and ``contribution`` when it
-names no plan at all -- a recurring donation, which renews nothing and gives the
-contribution on its own cadence.  ``plan`` and ``plan_name`` are ``null`` for
+doesn't name a plan at all -- a recurring donation, which doesn't renew anything
+and gives the contribution on its own cadence.  ``plan`` and ``plan_name`` are ``null`` for
 that kind.  ``cadence`` is ``monthly``, ``quarterly`` or ``yearly``; an automatic
 renewal's is always ``yearly``.
 
@@ -96,8 +96,8 @@ Any authenticated member or friend, their own mandate of that kind only.
    {"mandate": null}
 
 The envelope is what carries the null: a member who has never turned automatic
-renewal on has no mandate, and a bare ``null`` body cannot be told from an empty
-one.  ``mandate`` is otherwise the object above, whatever its status, so the
+renewal on doesn't have a mandate, and a bare ``null`` body cannot be told from an
+empty one.  ``mandate`` is otherwise the object above, whatever its status, so the
 portal can show a paused mandate's reason and offer to turn a canceled one back
 on.
 
@@ -154,13 +154,14 @@ naming ``next_charge_on`` for a day that has already gone by, naming ``cadence``
 for a renewal on any cadence but ``yearly``, naming ``contribution_cents`` for a
 renewal that takes a contribution while the caller holds a recurring donation and
 for a donation under the minimum (``A donation must be at least $5.00.``),
-naming ``auto_renew`` for a renewal with no plan or with one that never expires,
-for a life member who names a plan, for a donation of nothing, and for a provider
-that cannot charge a saved method, and naming ``detail`` when the provider refuses
-to start; **400** ``{"detail": ..., "code": "renewal_contribution"}`` for a
-donation while the caller's renewal takes a contribution and the body does not
-carry ``remove_renewal_contribution: true``; **401** when anonymous; **429**
-past the caller's ``payment_start`` rate.  A 400 writes nothing: the caller's
+naming ``auto_renew`` for a renewal without a plan or with one that never expires,
+for a life member who names a plan, for a donation that doesn't give anything, and
+for a provider that cannot charge a saved method, and naming ``detail`` when the
+provider refuses to start; **400**
+``{"detail": ..., "code": "renewal_contribution"}`` for a donation while the
+caller's renewal takes a contribution and the body does not carry
+``remove_renewal_contribution: true``; **401** when anonymous; **429** past the
+caller's ``payment_start`` rate.  A 400 doesn't write anything: the caller's
 mandates, and a renewal's contribution, stay as they were.
 
 ``POST /me/renewal/confirm`` and ``POST /me/donation/confirm``
@@ -182,7 +183,7 @@ the query string for a donation, and that card confirms it.
 
 A Stripe SetupIntent that comes back ``requires_payment_method``, which is what a
 declined card leaves, is canceled at Stripe as the confirm is refused, so its client
-secret takes no further card; the portal calls this endpoint after every decline the
+secret doesn't take another card; the portal calls this endpoint after every decline the
 browser sees, then starts a fresh setup.  The ``setup_intent.setup_failed`` webhook
 cancels a declined SetupIntent as well, and leaves the mandate as it is
 (:doc:`payments-setup`).  Beginning a mandate again, at setup or at a checkout, and a
@@ -190,7 +191,7 @@ checkout that discards a pending mandate both cancel the SetupIntent the mandate
 had open, so no SetupIntent CalDART has stopped tracking stays usable.
 
 Statuses: **200**; **400** naming ``detail`` when the provider will not confirm
-what it is given; **404** when the caller started no setup of that kind; **401**
+what it is given; **404** when the caller didn't start a setup of that kind; **401**
 when anonymous; **429** past the caller's ``payment_confirm`` rate.
 
 ``PATCH /me/renewal`` and ``PATCH /me/donation``
@@ -220,7 +221,7 @@ settable: they are the plan's price at the time of each charge.  The answer is t
 mandate envelope.
 
 What the authority may become is the rule the setup endpoint applies, so a patch
-that would leave a mandate nothing to charge again is refused.
+that would leave a mandate without anything to charge again is refused.
 
 Statuses: **200**; **400** naming ``contribution_cents`` for an amount outside
 what a checkout would accept, for a donation under the minimum, and for a
@@ -229,9 +230,9 @@ caller holds a recurring donation (``You already have a recurring donation.
 Change it on the Donate screen.``), naming ``next_charge_on`` for a day that has
 already gone by, naming ``plan`` for a slug no active plan carries, naming
 ``cadence`` for a renewal on any cadence but ``yearly``, and naming
-``auto_renew`` when a life member names a plan, when a donation gives nothing,
-and when the plan named never expires; **404** when the caller has no mandate of
-that kind; **401** when anonymous.
+``auto_renew`` when a life member names a plan, when a donation doesn't give
+anything, and when the plan named never expires; **404** when the caller doesn't
+have a mandate of that kind; **401** when anonymous.
 
 ``DELETE /me/renewal`` and ``DELETE /me/donation``
 --------------------------------------------------
@@ -241,8 +242,8 @@ becomes ``canceled`` rather than being deleted, every charge still scheduled is
 dropped, and the caller is emailed.  The other authority, if they hold one, is
 untouched, and so is the membership, which runs to the end of its term.
 
-Statuses: **204** with an empty body; **404** when the caller has no mandate of
-that kind; **401** when anonymous.
+Statuses: **204** with an empty body; **404** when the caller doesn't have a
+mandate of that kind; **401** when anonymous.
 
 
 The finance screens
@@ -332,8 +333,8 @@ the scan doesn't charge anything more for it until a treasurer settles it, and
 ``payment_amount_cents`` is what the attempt's payment comes to and
 ``payment_sent_at`` when its charge was first sent to the provider; both are ``null``
 before there is a payment.
-``membership_id`` is ``null`` for a recurring donation's charge, which renews no
-term.  ``payment_id`` is ``null`` until the charge is made.  The three timestamps say
+``membership_id`` is ``null`` for a recurring donation's charge, which doesn't renew
+a term.  ``payment_id`` is ``null`` until the charge is made.  The three timestamps say
 which emails have gone out; ``error`` carries the provider's message, written for the
 member for a card decline (the finance screen names it by kind: *Card declined*, *PayPal
 refused the saved payment method*, *Payment could not be verified*, or *Charge
@@ -422,9 +423,9 @@ for the daily timer.
 
    {"dry_run": true}
 
-``dry_run`` defaults to ``false``.  A dry run changes no mandate, emails nobody
-and charges nobody, runs inside the request, and answers 200 with the counts the
-same scan would produce; the rehearsal itself is recorded in the audit log.
+``dry_run`` defaults to ``false``.  A dry run never changes a mandate, emails
+anybody, or charges anybody; it runs inside the request and answers 200 with the
+counts the same scan would produce; the rehearsal itself is recorded in the audit log.
 
 .. code-block:: json
 
@@ -433,7 +434,7 @@ same scan would produce; the rehearsal itself is recorded in the audit log.
 ``noticed`` counts the advance warnings, ``warned`` the card-expiry warnings,
 ``charged`` the renewals and donations taken, ``failed`` the charges refused, ``paused`` the
 mandates whose retries ran out on this run, and ``skipped`` the mandates and
-attempts that needed nothing doing, or whose charge was put off.  Every run writes
+attempts that didn't need anything doing, or whose charge was put off.  Every run writes
 one ``renewals.run`` audit record naming the caller.
 
 A live run charges cards, and each charge waits on the provider, so it does not

@@ -37,13 +37,13 @@ Conventions
 Authentication
 --------------
 
-**Session authentication, same origin, and nothing else.**
+**Session authentication from the same origin, and only that.**
 ``DEFAULT_AUTHENTICATION_CLASSES`` is exactly
 ``caldart.authentication.CsrfEnforcingSessionAuthentication``, DRF's
 ``SessionAuthentication`` with the CSRF check widened as
-:ref:`below <api-csrf-bootstrap>`.  There is no token, no API key and no JWT
-anywhere in the project, and no plan to add one — the only client is a SPA
-served from the same origin as the API.
+:ref:`below <api-csrf-bootstrap>`.  The project doesn't use a token, an API key,
+or a JWT anywhere, and doesn't plan to add one — the only client is a SPA served
+from the same origin as the API.
 
 Signing in with ``POST /auth/login`` sets the session cookie; the browser sends
 it automatically thereafter.  The portal's fetch wrapper
@@ -71,17 +71,17 @@ found a session, which would leave ``POST /auth/login``,
 form — enough to sign a visitor into an attacker's account, or to create
 accounts from a victim's browser.
 ``caldart.authentication.CsrfEnforcingSessionAuthentication`` runs the same
-check when authentication finds no session, so every endpoint is covered, this
-one included.
+check when authentication doesn't find a session, so every endpoint is covered,
+this one included.
 
-A client that has not yet made a request has no ``csrftoken`` cookie, so the
-API offers one endpoint whose only job is to issue it:
+A client that has not yet made a request doesn't have a ``csrftoken`` cookie, so
+the API offers one endpoint whose only job is to issue it:
 
 .. code-block:: text
 
    GET /api/v1/auth/csrf   →  204 No Content, Set-Cookie: csrftoken=…
 
-Call it whenever you hold no ``csrftoken`` cookie, then send the cookie's value
+Call it whenever you don't hold a ``csrftoken`` cookie, then send the cookie's value
 back in the ``X-CSRFToken`` header on every ``POST``, ``PUT``, ``PATCH``, and
 ``DELETE``.  The cookie is the only thing worth caching: a client that treats
 one successful call as permission to stop asking locks itself out of every
@@ -128,11 +128,11 @@ request with one 404s.  Public site pages, in contrast, do end in a slash
 (``WAGTAIL_APPEND_SLASH``).
 
 JSON is the only representation: ``DEFAULT_RENDERER_CLASSES`` is
-``JSONRenderer`` alone, so there is no browsable API and no ``?format=``.
+``JSONRenderer`` alone, so DRF's browsable API and ``?format=`` are both off.
 Dates are ISO-8601 (``2027-03-01``); datetimes are ISO-8601 with an offset.
 
-Every successful response is therefore either a JSON body or nothing at all:
-an endpoint with nothing to say answers **204** with no body and no
+Every successful response is therefore either a JSON body or empty: an endpoint
+that doesn't have anything to say answers **204** without a body or a
 ``Content-Type``.  A client may treat any other 2xx body as a fault — an HTML
 maintenance or proxy page served with status 200, say — rather than as data.
 The exceptions are the routes that answer with a file — the report downloads
@@ -144,7 +144,7 @@ links, so their bodies never reach the API client.
 --------------
 
 DRF's default turns an unauthenticated request into **403** under session
-authentication, because there is no ``WWW-Authenticate`` challenge to send.
+authentication, because it doesn't have a ``WWW-Authenticate`` challenge to send.
 The contract promises 401, and the portal keys "your session ended, sign in
 again" off it, so ``caldart/exceptions.py`` installs an exception handler that
 rewrites ``NotAuthenticated`` to 401.  The rule is therefore:
@@ -169,7 +169,7 @@ Four deliberate departures are worth knowing:
   repeating.  It comes from CSRF enforcement, before authentication settles
   and before any permission class runs, so neither the caller's roles nor the
   absence of a session is what was refused — an anonymous unsafe method that
-  carries no token is answered this way rather than with 401.  Fetch a token
+  doesn't carry a token is answered this way rather than with 401.  Fetch a token
   again and resend the request once (see :ref:`api-csrf-bootstrap`).
 - ``POST /auth/login`` answers **400** for wrong credentials (``{"detail":
   "Incorrect email address or password."}``) and **403** for a deactivated
@@ -223,7 +223,7 @@ exactly those three with a ``filterset_class``.  Three list endpoints replace
 them, for reasons worth knowing:
 
 - ``GET /aircraft`` uses ``DjangoFilterBackend`` with a
-  ``NullsLastOrderingFilter``, and no ``SearchFilter``: ``?search=``
+  ``NullsLastOrderingFilter``, without a ``SearchFilter``: ``?search=``
   is a method on ``AircraftFilter`` instead, so that it can match the
   normalized N-number as well as the stored one (see :doc:`api-aircraft`).
 - ``GET /admin/members`` uses a custom ``MemberOrderingFilter`` because its
@@ -239,8 +239,8 @@ Each report download reads its list's filter and ordering code rather than a
 filter backend of its own, so a download always holds the rows its list shows,
 in the same order; see :doc:`reports`.
 
-Detail views carry no backends at all, since there is nothing to filter: the
-member record at ``/admin/members/{user_id}`` sets the list to empty for that
+Detail views don't carry any backends, since they don't have anything to filter:
+the member record at ``/admin/members/{user_id}`` sets the list to empty for that
 reason.
 
 ``?ordering=`` takes a field name, optionally ``-`` prefixed for descending.
@@ -303,7 +303,7 @@ under the field they concern rather than a list of one:
      - ``{"payment_id": "That payment is not a stripe payment."}`` when the
        payment was started with another provider
    * - ``GET /admin/payments``, ``GET /reports/payments/export.{csv,pdf}``
-     - ``{"ordering": "Cannot order by 'x'."}``.  The summary takes no
+     - ``{"ordering": "Cannot order by 'x'."}``.  The summary doesn't take
        ``?ordering=`` at all, so it never raises it
 
 A client that renders field errors should therefore accept either a string or
@@ -312,8 +312,8 @@ view builds as a plain 400 response rather than raising; the rest are DRF
 ``ValidationError`` instances and reach the same handler as everything else.
 Two views outside the table build a plain response too, but with a ``detail``
 string rather than a field key: ``POST /auth/login`` for a wrong password and
-``POST /admin/users/{id}/send-password-reset`` when there is nobody to mail.  That
-endpoint, ``POST /admin/users/{id}/require-new-password``, and
+``POST /admin/users/{id}/send-password-reset`` when there isn't anybody to mail.
+That endpoint, ``POST /admin/users/{id}/require-new-password``, and
 ``POST /admin/users/{id}/send-email-verification`` also build a 503
 ``{"detail": ...}`` when the mail server refuses the message
 (:ref:`refused sends <api-refused-send>`).
@@ -349,7 +349,7 @@ is not a bug: each endpoint that sends mail catches the refusal, and
 Throttling
 ----------
 
-There is no project-wide throttle.  The anonymous auth endpoints, every
+Throttling isn't project-wide.  The anonymous auth endpoints, every
 endpoint that takes a two-factor code, and the start of a gift on the public
 donation page are rate limited by client IP address, and address suggestions by
 signed-in account, with the rates read from the environment.  Both
@@ -438,8 +438,8 @@ portal's TypeScript types are held to the same contract the prose describes:
 
    $ make check-backend     # writes backend/openapi.json
 
-The file is build output and is not committed, and no route serves it — there
-is no schema endpoint to call.  ``SPECTACULAR_SETTINGS`` in
+The file is build output and is not committed, and no route serves it — the API
+doesn't offer a schema endpoint to call.  ``SPECTACULAR_SETTINGS`` in
 ``caldart/settings/base.py`` configures the generator, and
 ``caldart/api_urls.py`` carries the hook that narrows the description to
 ``/api/v1/`` together with the description of the session authentication above.
@@ -452,9 +452,9 @@ pair in ``frontend/src/portal/api/types.ts``.
 
 Every endpoint under ``/api/v1/`` names its request and its response, through
 the serializer a generic view already carries or through an ``@extend_schema``
-annotation on a plain ``APIView``.  What has no component is what has no object
-to describe: a **204** answer, a webhook acknowledgment, and an export, whose
-body is a file.  :ref:`testing-api-contract` covers the two tests that compare
+annotation on a plain ``APIView``.  Only what doesn't have an object to describe
+goes without a component: a **204** answer, a webhook acknowledgment, and an
+export, whose body is a file.  :ref:`testing-api-contract` covers the two tests that compare
 the schema with the committed snapshot and with the portal's types, and lists
 the residual in full.
 
@@ -493,7 +493,7 @@ always fails and the two rules above always hold.  Object-level rules, such
 as who may edit an aircraft record, are separate classes in the owning app
 (``apps/aircraft/api/permissions.py``).
 
-``treasurer`` grants the finance area and nothing else.  It is deliberately
+``treasurer`` grants the finance area alone.  It is deliberately
 kept away from ``/admin/members/*``, which carries medical and certificate
 data, so a volunteer who keeps the books reads the money without reading
 anybody's medical currency.  A member's contact details reach the finance roles
@@ -503,7 +503,7 @@ phone number in the answer to closing a renewal charge as failed,
 ``POST /admin/renewals/attempts/{id}/settle`` with ``failed``, so the treasurer who
 closes one can get in touch with that member.  An ``account_admin`` holds both, except the
 donors report, ``GET /admin/payments/donors``, which is the treasurer's alone.
-A donor appears on no member list, so the portal reaches a donor's record
+A donor doesn't appear on a member list, so the portal reaches a donor's record
 from the donors report for a reader holding both roles, and from the
 **Member record** link on a payment, a ledger, or a user record for any
 reader holding ``account_admin``; no role reaches anything more for it.  Like every slug
@@ -512,24 +512,24 @@ reads the website's members-only pages whatever their own membership says.
 
 ``verifier`` is the least privileged staff role, between ``member`` and
 ``dart_leader``.  It verifies a member's pilot certificate, medical, and photo
-ID, and an aircraft's insurance, and reaches no member list or member record.
+ID, and an aircraft's insurance, and doesn't reach a member list or a member
+record.
 Like every staff slug it opens the website's members-only pages.
 
-``management``, labeled *CalDART management*, grants the bulk email endpoints
-under ``/bulk-email`` (:doc:`api-bulk-email`) and nothing else: no member list, no
-member record, no payment, and not the mail delivery check, which is
-``system_admin``'s (:ref:`api-mail-delivery`).  It sits after ``account_admin`` in privilege
-order.  Like every staff slug it opens the website's members-only pages.
+``management``, labeled *CalDART management*, grants only the bulk email endpoints
+under ``/bulk-email`` (:doc:`api-bulk-email`): it doesn't reach a member list, a
+member record, a payment, or the mail delivery check, which is ``system_admin``'s
+(:ref:`api-mail-delivery`).  It sits after ``account_admin`` in privilege order.  Like every staff slug it opens the website's members-only pages.
 ``IsBulkSender``, ``HasAnyRole(MANAGEMENT, DART_LEADER)``, guards every
 ``/bulk-email`` endpoint: a ``dart_leader`` sends bulk email too, but only to the DART
 on their own profile, and reaches only the emails they are the sender of
 (``apps.bulk_email.senders``), and the mission callouts they sent or that went to that
 DART (``apps.bulk_email.callouts``).
 
-``website_admin`` grants **no API endpoint at all**.  It exists to give its
+``website_admin`` doesn't grant **any API endpoint at all**.  It exists to give its
 holder Wagtail admin permissions, which are enforced by Wagtail, not by DRF.
 
-A signed-in account with no roles at all reaches every self-service endpoint
+A signed-in account without any roles at all reaches every self-service endpoint
 (its own profile, membership, and payments, the aircraft register, checkout,
 and the public catalogs) exactly as a ``member`` does, and gets **403** from
 every role-gated endpoint and from the Wagtail admin.
@@ -546,16 +546,16 @@ verifying roles and ``system_admin`` pass whatever their own membership (see
 Permission matrix
 =================
 
-Who may call what.  ``·`` means no access, ✓ means access.  ``system_admin``
-is omitted from the columns because it passes every row except the three
-payment-confirmation rows, which are owner-only for everybody.  ``verifier`` is
-omitted too: it reaches every row a ``member`` does, plus the leader-check rows
+Who may call what.  ✓ means access, and ``·`` means the call is refused.
+``system_admin`` is omitted from the columns because it passes every row except the
+three payment-confirmation rows, which are owner-only for everybody.  ``verifier``
+is omitted too: it reaches every row a ``member`` does, plus the leader-check rows
 whose notes name it.  So is ``management``, which reaches every row a ``member``
-does plus the ``/bulk-email`` rows and the ``/mail`` row, whose notes name it.
+does plus the ``/bulk-email`` rows, whose notes name it.
 
-*Anonymous* means no session at all; anything it cannot reach answers **401**,
-provided the request carried a CSRF token.  An unsafe method without one never
-reaches the permission check: it is refused with **403** first, signed in or
+*Anonymous* means a request without a session; anything it cannot reach answers
+**401**, provided the request carried a CSRF token.  An unsafe method without one
+never reaches the permission check: it is refused with **403** first, signed in or
 not (see :ref:`api-csrf-bootstrap`).
 
 .. list-table::
@@ -882,7 +882,7 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - ✓
-     - 404 for a year with no contribution
+     - 404 for a year without a contribution
    * - ``GET | PATCH | DELETE /me/renewal``
      - ·
      - ✓
@@ -1523,7 +1523,7 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ·
-     - ``management``, ``dart_leader``; a leader's own drafts and queued emails; ``POST`` opens the caller's empty draft or a fresh one, 403 for a leader whose profile names no DART
+     - ``management``, ``dart_leader``; a leader's own drafts and queued emails; ``POST`` opens the caller's empty draft or a fresh one, 403 for a leader whose profile doesn't name a DART
    * - ``GET /bulk-email/sent``
      - ·
      - ·
@@ -1595,7 +1595,7 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ·
-     - ``management``, a ``dart_leader`` on their own emails (404 on any other); queues the email, sends nothing
+     - ``management``, a ``dart_leader`` on their own emails (404 on any other); queues the email without sending it
    * - ``POST /bulk-email/{id}/cancel``
      - ·
      - ·
@@ -1723,7 +1723,7 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ·
-     - ``management``, a ``dart_leader`` on their own emails (404 on any other); one person's copy, filled in; sends nothing
+     - ``management``, a ``dart_leader`` on their own emails (404 on any other); one person's copy, filled in, without sending it
    * - ``POST /bulk-email/{id}/checks``
      - ·
      - ·
