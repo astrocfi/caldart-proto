@@ -87,7 +87,7 @@ describe('CalloutsPage', () => {
     await screen.findByText('No callout has been sent');
     expect(screen.queryByText(/switch on This is a mission callout/)).toBeNull();
     expect(
-      screen.getAllByText(/^Your profile names no DART, so there is nobody to send to\./),
+      screen.getAllByText(/^Your profile doesn't name a DART, so you can't send to anybody\./),
     ).toHaveLength(1);
   });
 });

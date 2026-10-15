@@ -10,8 +10,8 @@ seconds.
 :func:`headers_for` gives the copy the ``List-Unsubscribe`` and
 ``List-Unsubscribe-Post`` headers mail programs read for their own unsubscribe button
 (RFC 2369 and RFC 8058), and :func:`footer_for` the line the copy's footer shows.  A
-type that does not allow opting out gets no headers, and a footer saying why the
-recipient receives it.  Transactional mail never passes through here.
+type that does not allow opting out doesn't get the headers, and gets a footer saying why
+the recipient receives it.  Transactional mail never passes through here.
 """
 
 from __future__ import annotations
@@ -35,7 +35,7 @@ UNSUBSCRIBE_PATH = "/mail/unsubscribe/"
 
 
 class UnsubscribeLinkError(Exception):
-    """An unsubscribe token that was tampered with, has expired, or names nobody.
+    """An unsubscribe token that was tampered with, has expired, or doesn't name anybody.
 
     The message is for the log; the page the visitor sees says only that the link no
     longer works.
@@ -77,11 +77,11 @@ def read_token(token: str) -> tuple[User, EmailType]:
     except signing.BadSignature as error:
         raise UnsubscribeLinkError("The unsubscribe token is not one this site signed.") from error
     if not isinstance(payload, dict):
-        raise UnsubscribeLinkError("The unsubscribe token carries no account and type.")
+        raise UnsubscribeLinkError("The unsubscribe token doesn't carry an account and a type.")
     user_id = payload.get("u")
     type_id = payload.get("t")
     if not isinstance(user_id, int) or not isinstance(type_id, int):
-        raise UnsubscribeLinkError("The unsubscribe token carries no account and type.")
+        raise UnsubscribeLinkError("The unsubscribe token doesn't carry an account and a type.")
     user = User.objects.filter(pk=user_id).first()
     email_type = EmailType.objects.filter(pk=type_id).first()
     if user is None or email_type is None:
@@ -149,7 +149,7 @@ def footer_for(user: User, email_type: EmailType) -> Footer:
     For a type that allows opting out: *You receive <type> email from <organization>
     because you have not turned it off. To stop it, unsubscribe here:* with the link
     from :func:`unsubscribe_url`.  For a type that does not: *<organization> sends
-    <type> email to everyone it writes to, so it cannot be turned off.* with no link.
+    <type> email to everyone it writes to, so it cannot be turned off.* without a link.
     """
     org = org_name()
     if not email_type.allow_opt_out:

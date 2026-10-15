@@ -12,7 +12,7 @@ describe('SenderNotice', () => {
   it('says why a DART leader without a DART cannot send', () => {
     renderWithProviders(<SenderNotice sender={NO_DART_SENDER} />);
     expect(screen.getByRole('status')).toHaveTextContent(
-      'Your profile names no DART, so there is nobody to send to.',
+      "Your profile doesn't name a DART, so you can't send to anybody.",
     );
   });
 

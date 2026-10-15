@@ -247,8 +247,8 @@ class BulkEmailRetrySerializer(serializers.ModelSerializer[BulkEmailRetry]):
 class BulkEmailDetailSerializer(serializers.ModelSerializer[BulkEmail]):
     """One bulk email with everything the compose and detail screens show.
 
-    ``sender`` and ``stopped_by`` are display names, blank when there is none or the
-    account is gone.  ``batch_count`` is how many people are in the batch,
+    ``sender`` and ``stopped_by`` are display names, blank when the email doesn't have
+    one or the account is gone.  ``batch_count`` is how many people are in the batch,
     ``receiving_count`` how many of them receive a copy, and ``batch_skipped_count``
     how many do not.  ``remaining`` counts the copies waiting to be sent, and
     ``estimated_finish_at`` is when the last will have gone while the email is
@@ -262,7 +262,7 @@ class BulkEmailDetailSerializer(serializers.ModelSerializer[BulkEmail]):
     otherwise.  ``dart_name`` is the DART a DART leader's email goes to, blank for
     CalDART management's (``apps.bulk_email.senders.email_dart_name``).
     ``sender_notice`` says why nobody can be added to the email, naming its sender, while
-    it is limited to no DART, and is blank otherwise
+    its limit doesn't name a DART, and is blank otherwise
     (``apps.bulk_email.senders.sender_notice``).  ``reply_to`` is the address replies
     go to, blank for the default, and ``default_reply_to`` that default for the email's
     sender; once the email is queued ``reply_to`` is the address its copies carry.
@@ -393,7 +393,7 @@ class BulkEmailDetailSerializer(serializers.ModelSerializer[BulkEmail]):
         return self._counts(bulk).receiving
 
     def get_batch_skipped_count(self, bulk: BulkEmail) -> int:
-        """How many people in the batch receive no copy."""
+        """How many people in the batch don't receive a copy."""
         return self._counts(bulk).skipped
 
     def get_remaining(self, bulk: BulkEmail) -> int:
@@ -417,7 +417,7 @@ class BulkEmailDetailSerializer(serializers.ModelSerializer[BulkEmail]):
     def get_message_html(self, bulk: BulkEmail) -> str:
         """The whole HTML email, its recipient field tokens as written.
 
-        A callout's answer buttons are shown inert, answering for nobody.
+        A callout's answer buttons are shown inert, never answering for anybody.
         """
         answers = callout_answers(bulk, None, live=False)
         return render_message(bulk.subject, bulk.body, None, answers=answers).html
@@ -475,7 +475,7 @@ class BulkEmailSummarySerializer(serializers.ModelSerializer[BulkEmail]):
         return email_type_name(bulk)
 
     def get_dart_name(self, bulk: BulkEmail) -> str:
-        """The recorded DART's name, or ``""`` for none."""
+        """The recorded DART's name, or ``""`` without one."""
         return str(bulk.dart.name) if bulk.dart is not None else ""
 
 
@@ -529,7 +529,7 @@ class BulkEmailBatchRowSerializer(serializers.Serializer[BulkEmailBatchRowDict])
 
     ``user_id`` is null once the account is deleted; ``name``, ``email``, ``kind``,
     and ``dart_name`` are the row's own.  ``added_by`` is the id of the add that
-    brought the person in, null for none.  ``status`` is the row's; ``will_receive``
+    brought the person in, null without one.  ``status`` is the row's; ``will_receive``
     and ``reason`` say whether a copy goes and why not.  ``tried_at`` is when the copy
     was last tried.
     """
@@ -596,9 +596,9 @@ def batch_payload(bulk: BulkEmail) -> dict[str, Any]:
 class BulkEmailRunResultSerializer(serializers.Serializer[dict[str, object]]):
     """What one run of the bulk email sender did.
 
-    ``busy`` is true when another run was working and this one did nothing.  ``emails``
-    counts the bulk emails worked on; ``sent`` and ``failed`` the copies tried, and
-    ``skipped`` the people set aside as each email started.  ``out_of_time`` is true
+    ``busy`` is true when another run was working and this one didn't do anything.
+    ``emails`` counts the bulk emails worked on; ``sent`` and ``failed`` the copies tried,
+    and ``skipped`` the people set aside as each email started.  ``out_of_time`` is true
     when the run's time budget ran out with copies still to send, and ``remaining``
     counts them; the next run carries on with them.  Each action is one copy: ``kind``
     is ``sent`` or ``failed``, and ``detail`` the subject or the reason.

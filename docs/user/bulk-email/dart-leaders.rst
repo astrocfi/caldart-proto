@@ -21,8 +21,8 @@ Your DART is the one named on your own profile, on **My profile**
 DART. If your profile names a different DART later, the emails you write reach the new DART
 from then on.
 
-If your profile doesn't name a DART, **Compose** shows *Your profile names no DART, so
-there is nobody to send to. Set your DART on My profile.* in place of the email, in a box
+If your profile doesn't name a DART, **Compose** shows *Your profile doesn't name a DART, so
+you can't send to anybody. Set your DART on My profile.* in place of the email, in a box
 with a link, **Open My profile**. The same box stands at the top of **Drafts and
 scheduled**, **Sent**, and **Callouts**, and your **Dashboard** has it too, worded *Bulk
 email needs a DART. Set yours on My profile.* None of them offers **New email** until your
@@ -70,8 +70,8 @@ If something looks wrong
 ========================
 
 If an email you scheduled went back to your drafts with *This email was not sent: your
-profile names no DART, so there is nobody to send to. Set your DART on My profile and send
-again.*, your profile lost its DART before the email started. Set your DART on **My
+profile doesn't name a DART, so you can't send to anybody. Set your DART on My profile and
+send again.*, your profile lost its DART before the email started. Set your DART on **My
 profile**, open the email from **Drafts and scheduled**, check the recipient list, and send it again.
 If somebody you expected is missing from the recipient list, check their DART: only people whose
 profile names your DART can be added. A member's DART is on their profile, which an account

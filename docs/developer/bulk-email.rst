@@ -293,9 +293,9 @@ type, with the sender's roles as they are now against the type's ``sender_roles`
 away, or the type's senders changed, while a send is scheduled.  An email whose
 sender's account has been deleted, or who may no longer send the type, is not sent.
 So is the email of a DART leader whose profile doesn't name a DART any more
-(:ref:`bulk-email-dart-limit`), with *This email was not sent: your profile names no
-DART, so there is nobody to send to. Set your DART on My profile and send again.*, and
-one that has never started whose leader's DART changed so that nobody in the batch is
+(:ref:`bulk-email-dart-limit`), with *This email was not sent: your profile doesn't
+name a DART, so you can't send to anybody. Set your DART on My profile and send again.*,
+and one that has never started whose leader's DART changed so that nobody in the batch is
 in it, with *Your DART changed, so this email was not sent. Add the people again and
 send when it is ready.*, rather than a send that ends without a copy or a word why.
 One that never started goes back to a draft, its batch and content intact and its

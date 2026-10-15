@@ -6,8 +6,8 @@ Your {{ plan_name }} membership lapsed on {{ expires_on|date:"F j, Y" }},
 {{ days }} days ago. Your profile, your aircraft, and your DART are all still
 on file, exactly as you left them.
 
-Rejoining restores your access straight away — there is no penalty for the gap
-and no forms to fill in twice:
+Rejoining restores your access straight away — you won't pay a penalty for the
+gap or fill in any forms twice:
 {{ renew_url }}
 
 If you have moved on, that is fine too, and this is the last reminder you will

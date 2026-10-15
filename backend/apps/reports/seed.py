@@ -1,7 +1,7 @@
 """Seed the demo report subscriptions.
 
 Idempotent: re-running updates the three subscriptions rather than adding more.  The
-DART rosters need nothing here; the members seed checks who receives each one.
+DART rosters don't need anything here; the members seed checks who receives each one.
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
     The membership report goes monthly as a PDF to the account administrator, this
     year's payments quarterly as a CSV to the treasurer, and the aircraft register
     weekly as a CSV and a PDF to the account administrator.  Every one is due the day
-    the seed runs (``ctx["today"]``), with no send yet, so the scheduled-report job
+    the seed runs (``ctx["today"]``), without a send yet, so the scheduled-report job
     always has real work waiting.  Reads ``demo_users`` from ``ctx`` and returns it
     unchanged.  When ``stdout`` is given, one summary line is written to it.
     """

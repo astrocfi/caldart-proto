@@ -4,8 +4,8 @@
 level.  An **error** keeps the email from being sent: a missing subject or message, a
 recipient field token that cannot be filled in, or a ``Reply-To`` address that is not
 an address.  A **warning** is worth a look but the sender may send anyway: a field
-most of the batch has no value for, placeholder text left in, a picture with no
-description or too wide for an email, and a link that does not load or does not use
+most of the batch doesn't have a value for, placeholder text left in, a picture without
+a description or too wide for an email, and a link that does not load or does not use
 ``https``.  **Send** refuses an email with any error (:func:`refuse_on_errors`, which
 ``apps.bulk_email.drafts.queue`` calls); only warnings come from the network, so the
 send runs the error checks alone.
@@ -60,22 +60,22 @@ LINK_PRIVATE = "link_private"
 LINK_UNCHECKED = "link_unchecked"
 LINKS_SKIPPED = "links_skipped"
 
-#: Why an email with no subject, or no message, cannot be sent.
+#: Why an email without a subject, or without a message, cannot be sent.
 NO_SUBJECT_MESSAGE = "Write a subject."
 NO_BODY_MESSAGE = "Write the message."
 
-#: A field most of the batch has no value for.
+#: A field most of the batch doesn't have a value for.
 EMPTY_FIELD_MESSAGE = (
     "{token} is empty for {empty} of {people} who receive this email, so their copies "
-    "show nothing there. Add words to show instead, as in {example}, or take it out."
+    "don't show anything there. Add words to show instead, as in {example}, or take it out."
 )
 
 #: Placeholder text left in the email.
 PLACEHOLDER_MESSAGE = 'The email still says "{found}". Replace it before you send.'
 
-#: Pictures with no description, and pictures too wide for an email.
+#: Pictures without a description, and pictures too wide for an email.
 IMAGE_ALT_MESSAGE = (
-    "{count} {verb} no description for people who cannot see pictures. Delete {it} and "
+    "{count} {verb} a description for people who cannot see pictures. Delete {it} and "
     "put {it} in again with the Image button, which asks for one."
 )
 IMAGE_WIDE_MESSAGE = (
@@ -83,8 +83,8 @@ IMAGE_WIDE_MESSAGE = (
     "Replace {it} with {smaller}."
 )
 
-#: The link findings; ``{url}`` is the link's address.  They say no more than whether
-#: a link loads and the class of a site's refusal, so the check reveals nothing about a
+#: The link findings; ``{url}`` is the link's address.  They say only whether a link
+#: loads and the class of a site's refusal, so the check never reveals anything about a
 #: host it could be pointed at.
 LINK_INSECURE_MESSAGE = "This link does not use https, so it is not secure: {url}"
 LINK_MESSAGES: dict[Problem, tuple[str, str]] = {
@@ -169,8 +169,8 @@ def run_checks(bulk: BulkEmail) -> list[Finding]:
 def error_findings(bulk: BulkEmail) -> list[Finding]:
     """The findings that keep ``bulk`` from being sent, in the order a reader fixes them.
 
-    A blank subject (:data:`NO_SUBJECT_MESSAGE`); a message that reads as no text at
-    all once sanitized (:data:`NO_BODY_MESSAGE`); the refusal of a token in the
+    A blank subject (:data:`NO_SUBJECT_MESSAGE`); a message that doesn't read as any
+    text at all once sanitized (:data:`NO_BODY_MESSAGE`); the refusal of a token in the
     subject and then in the message, as ``apps.bulk_email.render.check_message`` words
     it; and a ``Reply-To`` address, the one the copies would carry, that is missing or
     not valid (``apps.bulk_email.reply_to.reply_to_problem``).
@@ -267,7 +267,7 @@ def _image_findings(clean: str) -> list[Finding]:
     if without_alt > 0:
         message = IMAGE_ALT_MESSAGE.format(
             count=_pictures(without_alt),
-            verb="has" if without_alt == 1 else "have",
+            verb="doesn't have" if without_alt == 1 else "don't have",
             it="it" if without_alt == 1 else "them",
         )
         findings.append(Finding(IMAGE_ALT, Level.WARNING, message))
@@ -307,7 +307,7 @@ def _image_width(image: Tag) -> int:
 
 
 def _attribute(tag: Tag, name: str) -> str:
-    """``tag``'s attribute ``name`` as one string, ``""`` when it has none."""
+    """``tag``'s attribute ``name`` as one string, ``""`` when it doesn't have one."""
     value = tag.get(name)
     if value is None:
         return ""
@@ -363,5 +363,5 @@ def _is_own_site(url: str) -> bool:
 
 
 def _default_port(scheme: str) -> int:
-    """The port a web address with no port of its own uses: 443 for https, else 80."""
+    """The port a web address without a port of its own uses: 443 for https, else 80."""
     return 443 if scheme == "https" else 80

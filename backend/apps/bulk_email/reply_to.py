@@ -32,14 +32,14 @@ INVALID_MESSAGE = (
     "Replies go to under What it says."
 )
 
-#: Why an email with no ``Reply-To`` address at all is refused.
+#: Why an email without a ``Reply-To`` address at all is refused.
 MISSING_MESSAGE = (
-    "There is no address for replies to go to. Write one in Replies go to under What it says."
+    "There isn't an address for replies to go to. Write one in Replies go to under What it says."
 )
 
 
 def default_reply_to(sender: User | None) -> str:
-    """The address replies go to when the sender chooses none.
+    """The address replies go to when the sender doesn't choose one.
 
     That is ``BULK_EMAIL_REPLY_TO``, trimmed, or, when the setting is blank,
     ``sender``'s own address; ``""`` when both are blank or the sender's account is
@@ -89,5 +89,7 @@ def claimed_reply_to(bulk: BulkEmail) -> str:
     address = reply_to_for(bulk)
     if reply_to_problem(address) is None:
         return address
-    log.warning("bulk email %s has no usable Reply-To; replies go to DEFAULT_FROM_EMAIL", bulk.pk)
+    log.warning(
+        "bulk email %s doesn't have a usable Reply-To; replies go to DEFAULT_FROM_EMAIL", bulk.pk
+    )
     return parseaddr(str(settings.DEFAULT_FROM_EMAIL))[1]

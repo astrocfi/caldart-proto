@@ -50,7 +50,7 @@ NOW = datetime(2026, 4, 6, 17, 0, tzinfo=UTC)
 
 #: Why nobody can be added to the Marin leader's email once their profile names no DART.
 OWNER_NOTICE = (
-    "This email belongs to Lane Lead, whose profile names no DART, so nobody can be added."
+    "This email belongs to Lane Lead, whose profile doesn't name a DART, so nobody can be added."
 )
 
 #: Everybody in the Marin DART: Ann, Bea, and their leader, Lane.

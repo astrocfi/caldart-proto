@@ -4,11 +4,11 @@ Each recipient's copy of a callout carries **Available**, **Available with limit
 **Not available**, each a link to the answer page, ``<SITE_URL>/mail/callout/<token>``,
 with ``?answer=<kind>`` choosing the button's answer.  The token is
 ``django.core.signing`` with the salt :data:`ANSWER_SALT` over the callout's id and the
-account's id, and carries no age limit: whether a link still records an answer is the
-callout's close time's to say (``apps.bulk_email.callouts``).  A copy a sender sees
-carries :data:`STAND_IN` where the token goes, so it answers for nobody.
+account's id, and doesn't carry an age limit: whether a link still records an answer is
+the callout's close time's to say (``apps.bulk_email.callouts``).  A copy a sender sees
+carries :data:`STAND_IN` where the token goes, so it never answers for anybody.
 
-This module reads no other part of the bulk email app but its models, so the copy's
+Of the bulk email app, this module reads only the models, so the copy's
 renderer and the callouts module can both use it.
 """
 
@@ -31,7 +31,7 @@ ANSWER_SALT = "bulk_email.callout"
 CALLOUT_PATH = "/mail/callout/"
 
 #: What stands where a signed token goes in a link a sender sees: the link reads as a
-#: recipient's does, but answers for nobody.
+#: recipient's does, but never answers for anybody.
 STAND_IN = "preview"
 
 #: The answers in the order the email, the page, and the screen offer them.
@@ -60,7 +60,7 @@ class AnswerLink:
 
 
 def make_token(callout: Callout, user: User) -> str:
-    """A signed token naming ``callout`` and ``user``, with no time limit of its own."""
+    """A signed token naming ``callout`` and ``user``, without a time limit of its own."""
     return signing.dumps({"c": callout.pk, "u": user.pk}, salt=ANSWER_SALT)
 
 
@@ -77,11 +77,11 @@ def read_token(token: str) -> tuple[Callout, User]:
     except signing.BadSignature as error:
         raise CalloutLinkError("The callout token is not one this site signed.") from error
     if not isinstance(payload, dict):
-        raise CalloutLinkError("The callout token carries no callout and account.")
+        raise CalloutLinkError("The callout token doesn't carry a callout and an account.")
     callout_id = payload.get("c")
     user_id = payload.get("u")
     if not isinstance(callout_id, int) or not isinstance(user_id, int):
-        raise CalloutLinkError("The callout token carries no callout and account.")
+        raise CalloutLinkError("The callout token doesn't carry a callout and an account.")
     callout = (
         Callout.objects.select_related("bulk_email", "bulk_email__sender")
         .filter(pk=callout_id)
@@ -98,7 +98,7 @@ def answer_url(token: str, kind: str | None = None) -> str:
 
     Built on ``SITE_URL``, which carries the path the site is served under:
     ``<SITE_URL>/mail/callout/<token>?answer=<kind>``.  ``token`` is a signed token, or
-    :data:`STAND_IN` for a link that answers for nobody.
+    :data:`STAND_IN` for a link that never answers for anybody.
     """
     base = f"{settings.SITE_URL.rstrip('/')}{CALLOUT_PATH}{token}"
     return base if kind is None else f"{base}?answer={kind}"
@@ -107,7 +107,7 @@ def answer_url(token: str, kind: str | None = None) -> str:
 def link_token(callout: Callout | None, user: User | None, *, live: bool) -> str:
     """The token a copy's links carry: signed for ``user`` when ``live``, else a stand-in.
 
-    A copy with no callout row, or for an account that is gone, carries the stand-in.
+    A copy without a callout row, or for an account that is gone, carries the stand-in.
     """
     if not live or callout is None or user is None:
         return STAND_IN

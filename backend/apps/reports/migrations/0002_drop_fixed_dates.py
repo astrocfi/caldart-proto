@@ -6,9 +6,9 @@ this year, ``last_year`` for the one before), and a reconciliation subscription 
 rows every time.  A subscription saved before the form stopped offering them keeps them
 until somebody edits it, so this clears them: a contributions subscription loses its
 ``year``, leaving it on this year, and a reconciliation one its ``from`` and ``to``.  A
-reconciliation subscription that had fixed dates and no period is set to last month, the
+reconciliation subscription that had fixed dates without a period is set to last month, the
 period a monthly reconciliation means, rather than left on every date.  Reversing it
-changes nothing, since the dates are gone.
+doesn't change anything, since the dates are gone.
 """
 
 from django.apps.registry import Apps
@@ -22,7 +22,7 @@ DROPPED_FILTERS: dict[str, tuple[str, ...]] = {
 }
 
 #: The period a reconciliation subscription that loses its fixed dates is given when it
-#: names none.
+#: doesn't name one.
 RECONCILIATION_PERIOD = "last_month"
 
 

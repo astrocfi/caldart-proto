@@ -2,7 +2,7 @@
 
 A sender writes a field into the subject or the message as a token, ``{first_name}``,
 and each person's copy carries that person's value.  A token may name a fallback
-for a person with no value, ``{first_name|friend}``.  :data:`FIELDS` is the whole
+for a person without a value, ``{first_name|friend}``.  :data:`FIELDS` is the whole
 catalog; a token naming anything else is unknown, and :func:`unknown_tokens` finds
 it so a save, a preview, or a send can refuse it by name.
 
@@ -58,7 +58,7 @@ class Token:
     """One token written in a subject or a message.
 
     ``name`` is the field it names and ``fallback`` the text that stands in for an
-    empty value, ``""`` when the token gives none.
+    empty value, ``""`` when the token doesn't give one.
     """
 
     name: str
@@ -71,7 +71,7 @@ class Field:
 
     ``token`` is the name written in braces, ``label`` what the **Insert field** menu
     calls it, ``description`` a sentence saying what it holds, and ``value`` reads
-    one person's value, ``""`` when they have none.
+    one person's value, ``""`` when they don't have one.
     """
 
     token: str
@@ -89,7 +89,7 @@ def _profile(user: User) -> MemberProfile | None:
 
 
 def _dart_name(user: User) -> str:
-    """Return the name of the DART on ``user``'s profile, ``""`` when there is none."""
+    """Return the name of the DART on ``user``'s profile, or ``""`` without one."""
     profile = _profile(user)
     if profile is None or profile.dart is None:
         return ""
@@ -97,13 +97,13 @@ def _dart_name(user: User) -> str:
 
 
 def _home_airport(user: User) -> str:
-    """Return the home airport identifier on ``user``'s profile, ``""`` for none."""
+    """Return the home airport identifier on ``user``'s profile, ``""`` without one."""
     profile = _profile(user)
     return "" if profile is None else profile.home_airport_identifier
 
 
 def _plan(user: User) -> str:
-    """Return the name of the plan behind ``user``'s membership, ``""`` for none."""
+    """Return the name of the plan behind ``user``'s membership, ``""`` without one."""
     plan = membership_of(user)["plan"]
     return "" if plan is None else plan
 
@@ -214,11 +214,11 @@ def values_for(user: User, tokens: Iterable[str]) -> dict[str, str]:
     """Return ``user``'s value for each field named in ``tokens``, token to value.
 
     Each name appears once in the answer however often it is given, and a person
-    with no value for a field gets ``""``.  A name the catalog does not have raises
+    without a value for a field gets ``""``.  A name the catalog does not have raises
     ``KeyError``: check the text with :func:`unknown_tokens` first.  The membership
     fields read the person's terms, so a caller filling in many people passes rows
     that came through ``apps.members.services.with_membership``, with the profile and
-    its DART selected, and spends no query per person.
+    its DART selected, and doesn't spend a query per person.
     """
     return {name: FIELDS_BY_TOKEN[name].value(user) for name in dict.fromkeys(tokens)}
 
@@ -227,7 +227,7 @@ def substitute(text: str, values: Mapping[str, str], *, escape: bool) -> str:
     """Return ``text`` with every token replaced by its value from ``values``.
 
     A token whose value is empty is replaced by its fallback, which is ``""`` when
-    it names none.  With ``escape`` true, for the HTML part, each value is
+    it doesn't name one.  With ``escape`` true, for the HTML part, each value is
     HTML-escaped, so a name holding ``<b>`` arrives as text, and a value inside a
     link's ``href`` or an image's ``src`` is percent-encoded as well (all but
     ``@``), so ``{dart_name}`` holding a space or ``{email}`` holding a ``+`` makes

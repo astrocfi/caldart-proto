@@ -70,7 +70,7 @@ COPY_TEMPLATE = "bulk_email_copy"
 PURPOSE = "bulk_email"
 
 #: What stands in a preview's unsubscribe link where a copy's signed token goes: the
-#: link reads as a copy's does, but unsubscribes nobody.
+#: link reads as a copy's does, but never unsubscribes anybody.
 PREVIEW_STAND_IN = "preview"
 
 #: Where the portal shows a sent bulk email to the people who received it.
@@ -120,7 +120,8 @@ def render_copy(
     whose value the row does not hold is filled in as empty, so its fallback stands.
     The footer and the headers are :func:`render_for`'s for the row's account; with
     ``inert``, for a copy shown to somebody other than its recipient, such as the sender
-    on the delivery report, the unsubscribe link carries no token and there is no header.
+    on the delivery report, the unsubscribe link doesn't carry a token and the copy
+    doesn't carry the headers.
     A callout's answer buttons are the recipient's own, signed for them, unless ``inert``.
     """
     values = stored_values(bulk, recipient)
@@ -141,14 +142,15 @@ def render_for(
     This is the copy the sender sends, the preview shows, and a test copy carries.
     With ``inert`` (the preview) the footer reads as the copy's does, but its
     unsubscribe link carries :data:`PREVIEW_STAND_IN` instead of a signed token, and the
-    copy carries no header, so showing a person's copy to a sender never hands over
-    a link that turns that person's email off.
+    copy doesn't carry the headers, so showing a person's copy to a sender never hands
+    over a link that turns that person's email off.
     The footer and the headers follow the email's type (``apps.mail.unsubscribe``):
     for a type recipients may turn off, the footer says so with ``user``'s own
     unsubscribe link and the copy carries the ``List-Unsubscribe`` and
     ``List-Unsubscribe-Post`` headers; for one they may not, the footer says why they
-    receive it and there is no header.  A copy of an email with no type, or for an
-    account that is gone (``None``), carries no header and the general line *You
+    receive it and the copy doesn't carry the headers.  A copy of an email without a
+    type, or for an account that is gone (``None``), doesn't carry the headers and carries
+    the general line *You
     receive this email as a member or a friend of <organization>.*
     Above the footer the copy links to the email on the reader's **Email to me** page,
     :func:`browser_url`; ``view_url`` given replaces that link, and ``""`` leaves it
@@ -158,8 +160,8 @@ def render_for(
     link to read the email opens the answer page.  With ``live_answers``, which only a
     recipient's own copy passes (``render_copy``), the buttons and that link carry a
     token signed for ``user``; otherwise, and always with ``inert``, they carry
-    ``callout_links.STAND_IN`` and answer for nobody, as in the preview, a test copy, and
-    every copy shown to a sender.
+    ``callout_links.STAND_IN`` and never answer for anybody, as in the preview, a test
+    copy, and every copy shown to a sender.
     """
     footer: Footer | None = None
     headers: dict[str, str] = {}
@@ -213,7 +215,7 @@ def callout_answers(bulk: BulkEmail, user: User | None, *, live: bool) -> Callou
 
 
 def inert_unsubscribe_url() -> str:
-    """The unsubscribe link a preview shows: the page's address with no signed token."""
+    """The unsubscribe link a preview shows: the page's address without a signed token."""
     return f"{settings.SITE_URL.rstrip('/')}{UNSUBSCRIBE_PATH}{PREVIEW_STAND_IN}"
 
 
@@ -250,7 +252,8 @@ def render_message(
     its link to unsubscribe from ``type_name`` email when it has one), or the general
     line when it is ``None``.  A ``view_url`` puts a line linking to the message in the
     browser above the footer's own lines.  ``answers`` puts a callout's three answer
-    buttons, and when answers close, below the message.  The copy carries no header.
+    buttons, and when answers close, below the message.  The copy doesn't carry the
+    headers.
     """
     clean = sanitize(body)
     if values is not None:

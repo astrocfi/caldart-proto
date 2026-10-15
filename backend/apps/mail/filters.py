@@ -15,7 +15,7 @@ from apps.mail.models import EmailLog, EmailStatus
 class EmailLogFilterSet(django_filters.FilterSet):
     """``?purpose=&status=&from=&to=&q=``, where the dates bound ``sent_at``.
 
-    ``purpose`` is an exact template name; one no row carries matches nothing.
+    ``purpose`` is an exact template name; one no row carries doesn't match anything.
     ``status`` is ``sent``, ``failed`` or ``bounced``, and anything else is refused.
     ``from`` and ``to`` are ``YYYY-MM-DD`` and compare with the local date part of
     ``sent_at``, inclusively.  ``q`` matches the address written to, the name recorded

@@ -114,8 +114,8 @@ def group_accounts(group: RecipientGroup) -> QuerySet[User]:
 
     A fixed group's are its accounts; a live group's are everybody any of its filter
     sets choose on the member list (``apps.bulk_email.batch.selected_accounts``),
-    deactivated accounts included, as **Add to batch** chooses them, and nobody while
-    it has no filter set.  Each account carries the member list's annotations, and a
+    deactivated accounts included, as **Add to batch** chooses them; a live group without
+    a filter set is empty.  Each account carries the member list's annotations, and a
     donor is never there.  Raises :class:`GroupFiltersError` when the member list
     refuses one of a live group's stored filters.
     """
@@ -193,12 +193,12 @@ def save_group(
     them (``apps.bulk_email.batch.searched_filters``).  A ``fixed`` group holds every
     account they match now, whether or not each would receive this email, deactivated
     ones included; a ``live`` group holds the filters, blank ones dropped, as its one
-    filter set, so it matches afresh each time it is used.  The batch plays no part.
+    filter set, so it matches afresh each time it is used.  The batch doesn't matter.
 
     ``name`` must not be taken (the API checks it).  Raises DRF's ``ValidationError``
     keyed ``filters`` for a filter the member list refuses, and ``DomainError`` for an
-    email limited to no DART; nothing is saved then.  One ``recipient_group.create``
-    audit line names the group and its kind.
+    email whose limit doesn't name a DART; nothing is saved then.  One
+    ``recipient_group.create`` audit line names the group and its kind.
     """
     given = searched_filters(bulk, filters)
     with transaction.atomic():
@@ -219,8 +219,8 @@ def add_member(group: RecipientGroup, user_id: int) -> User:
 
     Raises ``DomainError`` with :data:`NOT_FIXED_MESSAGE` for a live group, and
     ``DomainValidationError`` keyed ``user`` with :data:`NOT_A_PERSON_MESSAGE` when the
-    account is not a member or a friend (a donor, or no account at all), or with
-    :data:`ALREADY_MEMBER_MESSAGE` when it is in the group already.
+    account is not a member or a friend (a donor, or an id that doesn't name an account),
+    or with :data:`ALREADY_MEMBER_MESSAGE` when it is in the group already.
     """
     if group.kind != GroupKind.FIXED:
         raise DomainError(NOT_FIXED_MESSAGE)
@@ -305,8 +305,8 @@ def group_document(group: RecipientGroup) -> ReportDocument:
     The columns are :data:`GROUP_CSV_HEADER`: each person's name, address, kind
     (``Member`` or ``Friend``), and DART.  The file is named after the group,
     ``caldart-group-<slug>.csv`` with the slug of its name, or
-    ``caldart-group-<id>.csv`` when the name has no letter or digit to slug.  Raises
-    :class:`GroupFiltersError` when a live group's stored filters need fixing.
+    ``caldart-group-<id>.csv`` when the name doesn't have a letter or digit to slug.
+    Raises :class:`GroupFiltersError` when a live group's stored filters need fixing.
     """
     rows = [
         (person.name, person.email, person.kind.capitalize(), person.dart_name)

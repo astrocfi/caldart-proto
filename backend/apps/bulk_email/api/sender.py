@@ -30,11 +30,11 @@ class SenderRunView(APIView):
         limit on a request.  An email still going then is left sending, and the timer's
         next run carries on with it.  The answer is ``{busy, emails, sent, failed,
         skipped, out_of_time, remaining, actions}``; ``busy`` is true when another run was
-        working, and this one then did nothing, and ``out_of_time`` with ``remaining``
-        says how many copies were left for the next run.  The caller is recorded as the
-        actor on one ``bulk_email.run`` audit line with the counts, and the run is
-        recorded as a run of the ``bulk-email`` job under the caller; one that didn't find
-        a bulk email to work on replaces the job's previous such record.
+        working, and this one then didn't do anything, and ``out_of_time`` with
+        ``remaining`` says how many copies were left for the next run.  The caller is
+        recorded as the actor on one ``bulk_email.run`` audit line with the counts, and
+        the run is recorded as a run of the ``bulk-email`` job under the caller; one that
+        didn't find a bulk email to work on replaces the job's previous such record.
         """
         actor = acting_user(request)
         with recorded_request_run("bulk-email", started_by=actor) as record:

@@ -304,5 +304,5 @@ def test_an_invalid_default_at_claim_falls_back_and_is_logged(
     with caplog.at_level("WARNING", logger="apps.bulk_email.reply_to"):
         send_to_ann(bulk)
     assert caplog.messages == [
-        f"bulk email {bulk.pk} has no usable Reply-To; replies go to DEFAULT_FROM_EMAIL"
+        f"bulk email {bulk.pk} doesn't have a usable Reply-To; replies go to DEFAULT_FROM_EMAIL"
     ]

@@ -1,6 +1,6 @@
 {% extends "emails/reminder_base.html" %}
 
-{% block preheader %}Your membership lapsed {{ days }} days ago. Rejoining takes a minute and there is no penalty.{% endblock %}
+{% block preheader %}Your membership lapsed {{ days }} days ago. Rejoining takes a minute, and you won't pay a penalty.{% endblock %}
 
 {% block heading %}We would like you back{% endblock %}
 
@@ -10,8 +10,8 @@
   <p style="margin:0 0 14px 0;">Hello {{ first_name }},</p>
   <p style="margin:0 0 14px 0;">
     Your profile, your aircraft, and your DART are all still on file, exactly as
-    you left them. Rejoining restores your access straight away — there is no
-    penalty for the gap and no forms to fill in twice.
+    you left them. Rejoining restores your access straight away — you won't pay a
+    penalty for the gap or fill in any forms twice.
   </p>
   <p style="margin:0 0 14px 0;">
     If you have moved on, that is fine too, and this is the last reminder you

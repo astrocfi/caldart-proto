@@ -31,7 +31,7 @@ NOT_IN_BATCH_MESSAGE = "That person is not on the recipient list."
 class Preview:
     """One person's copy, and where they stand among the people it goes to.
 
-    ``recipient_id`` is the batch row's id, null when the batch holds nobody who
+    ``recipient_id`` is the batch row's id, null when the batch doesn't hold anybody who
     receives a copy and the copy is the sender's own.  ``name`` and ``email`` are the
     person's.  ``position`` is the person's place, from 1, among the ``count`` people
     who receive a copy, 0 for the sender's own; ``previous_id`` and ``next_id`` are

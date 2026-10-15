@@ -5,7 +5,7 @@
 reads the same way: the subject is ``<org name>: <headline>``, the lines are
 ``(label, value)`` pairs, and the link opens the record the event is about in the
 portal (the member record, the user record, the payment, the aircraft, or the callout),
-or is blank when there is nothing left to open.  Names are the account's display name,
+or is blank when there isn't anything left to open.  Names are the account's display name,
 money is printed as dollars, and a date is ``MM/DD/YYYY`` (``caldart.dates``).
 """
 
@@ -32,7 +32,7 @@ from caldart.reports import money_label
 #: One labeled line of an email: the label, then its value.
 type Line = tuple[str, str]
 
-#: What a line with nothing to name reads.
+#: What a line without anything to name reads.
 NONE = "None"
 
 #: How somebody became a friend, as the ``How`` line says it.
@@ -72,7 +72,7 @@ class Message:
 
     ``subject`` is ``<org name>: <headline>``; ``lines`` are the labeled facts in the
     order the email prints them; ``link`` is the absolute address of the record the
-    event is about, or blank when there is none.
+    event is about, or blank without one.
     """
 
     subject: str
@@ -127,7 +127,7 @@ def _words(payload: Mapping[str, object], key: str) -> list[str]:
 
 # -- words -------------------------------------------------------------------------
 def _through(term: Membership) -> str:
-    """The last day ``term`` covers, or ``Lifetime`` for a term with no end."""
+    """The last day ``term`` covers, or ``Lifetime`` for a term without an end."""
     return "Lifetime" if term.ends_on is None else format_display_date(term.ends_on)
 
 
@@ -146,7 +146,7 @@ def _owner(owner: object) -> str:
 
 
 def _labels(names: Iterable[str]) -> str:
-    """``names`` joined with commas, or ``None`` when there are none."""
+    """``names`` joined with commas, or ``None`` when ``names`` is empty."""
     joined = ", ".join(names)
     return joined or NONE
 

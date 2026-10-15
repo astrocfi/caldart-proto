@@ -182,7 +182,7 @@ def test_a_field_empty_for_most_of_the_batch_is_a_warning(three_people: BulkEmai
             EMPTY_FIELD,
             Level.WARNING,
             "{dart_name} is empty for 2 of 3 people who receive this email, so their "
-            "copies show nothing there. Add words to show instead, as in "
+            "copies don't show anything there. Add words to show instead, as in "
             "{dart_name|other words}, or take it out.",
         )
     ]
@@ -248,7 +248,7 @@ def test_a_picture_without_a_description_is_a_warning() -> None:
         Finding(
             IMAGE_ALT,
             Level.WARNING,
-            "1 picture has no description for people who cannot see pictures. Delete it "
+            "1 picture doesn't have a description for people who cannot see pictures. Delete it "
             "and put it in again with the Image button, which asks for one.",
         )
     ]
@@ -263,7 +263,7 @@ def test_pictures_with_blank_descriptions_are_counted_together() -> None:
             '<img src="https://example.org/b.png">',
         )
     )
-    assert found[0].message.startswith("2 pictures have no description")
+    assert found[0].message.startswith("2 pictures don't have a description")
 
 
 def test_a_picture_with_a_description_passes() -> None:

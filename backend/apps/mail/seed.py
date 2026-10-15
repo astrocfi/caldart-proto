@@ -1,9 +1,9 @@
 """Seed one demo opt-out from the email types every installation starts with.
 
 Operational, Fundraising, and Mission are created by the migration
-``mail/0004_default_email_types``, so the seed creates no type.  It turns Fundraising
-off for the demo friend, so a bulk email shows a skipped recipient.  Idempotent: a
-second run finds the opt-out already there.
+``mail/0004_default_email_types``, so the seed doesn't create a type.  It turns
+Fundraising off for the demo friend, so a bulk email shows a skipped recipient.
+Idempotent: a second run finds the opt-out already there.
 """
 
 from __future__ import annotations

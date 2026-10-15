@@ -25,7 +25,7 @@ class EmailTypeSerializer(serializers.ModelSerializer[EmailType]):
     the type, which then cannot be deleted.
     """
 
-    # Declared rather than generated so it carries no unique validator: the service
+    # Declared rather than generated so it doesn't carry a unique validator: the service
     # checks the name against every other type, case and slug included, and says so in
     # its own words, where the model's validator would answer first, in Django's.
     name = serializers.CharField(
@@ -90,7 +90,7 @@ class EmailPreferenceSerializer(serializers.Serializer[dict[str, object]]):
     """One type a person may turn off, and whether they have.
 
     ``email_type`` is the type's id; ``name`` and ``description`` are the type's own.
-    ``opted_out`` is true when the person receives none of that type.  For a type
+    ``opted_out`` is true when the person doesn't receive any of that type.  For a type
     turned off, ``opted_out_source`` says where (``profile``, ``unsubscribe``, or
     ``admin``) and ``opted_out_at`` when; they are ``""`` and null for a type left on.
     """

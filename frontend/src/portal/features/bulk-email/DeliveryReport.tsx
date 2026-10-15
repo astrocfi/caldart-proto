@@ -197,7 +197,7 @@ function RetryFailed({ email }: { email: BulkEmailDetail }): JSX.Element {
 
 /** Why Retry failed cannot be pressed for `email` now, or null when it can. */
 export function retryBlocked(email: BulkEmailDetail): string | null {
-  if (email.failed_count === 0) return 'No copy failed, so there is nothing to retry.';
+  if (email.failed_count === 0) return 'No copy failed, so nothing is left to retry.';
   if (email.status === 'stopped') {
     return 'This email was stopped. Send the rest first, then retry the failed copies.';
   }

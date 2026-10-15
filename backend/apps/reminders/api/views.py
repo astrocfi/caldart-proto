@@ -92,8 +92,8 @@ class ReminderScheduleView(APIView):
         """Replace the schedule with the body, recording the caller, and return it.
 
         Answers 400, keyed by field, for a body ``ReminderScheduleSerializer``
-        refuses, and changes nothing then.  The new days apply from the next scan; a
-        stage a member was already sent is never sent again for the same term.
+        refuses, and doesn't change anything then.  The new days apply from the next scan;
+        a stage a member was already sent is never sent again for the same term.
         """
         serializer = ReminderScheduleSerializer(ReminderSchedule.load(), data=request.data)
         serializer.is_valid(raise_exception=True)

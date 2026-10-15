@@ -5,7 +5,7 @@ Run by ``deploy/systemd/caldart-reminders.timer`` at 07:00 in production and by
 ``(user, membership, kind)``, which is what lets each kind cover a span of
 expiry dates rather than one date.  The command exits non-zero when any
 reminder could not be sent, so the systemd unit goes to ``failed`` instead of
-reporting a clean run that reached nobody.
+reporting a clean run that didn't reach anybody.
 """
 
 from __future__ import annotations
@@ -43,7 +43,7 @@ class Command(BaseCommand):
         ``--today`` must be an ISO ``YYYY-MM-DD`` date, or ``CommandError`` is raised
         with the invalid value quoted. After the scan, if any reminder failed to
         send, ``CommandError`` is raised naming how many did, so the command exits
-        non-zero; a scan with no failures returns normally.
+        non-zero; a scan without failures returns normally.
         """
         scan_date: date | None = None
         if options["today"]:

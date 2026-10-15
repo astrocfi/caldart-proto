@@ -7,7 +7,7 @@ us to renew it automatically, we will charge $45.00 to Test card ending 4242, ex
 <CHARGE>, and your coverage will carry straight on.
 
 Nothing to do if that is right. If it is not — a different card, a different
-contribution, or no automatic renewal at all — change it here before that date:
+contribution, or an end to automatic renewal — change it here before that date:
 http://localhost:8000/portal/payments
 
 --

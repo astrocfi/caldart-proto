@@ -72,7 +72,7 @@ from caldart.reports import (
 #: The member list's filters a batch may be built with, in the order the list names
 #: them.  The list's own **Include deactivated** switch is not one: a deactivated
 #: account is always added and listed as skipped.  Nor is ``ordering``, which sorts the
-#: list and chooses nobody.
+#: list and doesn't choose anybody.
 FILTER_KEYS: tuple[str, ...] = tuple(key for key in EXPORT_FILTER_PARAMS if key != "ordering")
 
 #: What each filter is called on the member list's filter bar, for an add's label.
@@ -91,18 +91,18 @@ FILTER_LABELS: dict[str, str] = {
 #: What the member list's filter bar calls each kind, which an add's label repeats.
 KIND_FILTER_LABELS: dict[str, str] = {"member": "Members only", "friend": "Friends only"}
 
-#: An add with no filter chose every member and friend.
+#: An add without a filter chose every member and friend.
 EVERYBODY_LABEL = "Everybody"
 
-#: Why a person in the batch is sent no copy, in the order :func:`skip_reason` asks.
+#: Why a person in the batch isn't sent a copy, in the order :func:`skip_reason` asks.
 SKIP_DELETED = "Account deleted"
 SKIP_DEACTIVATED = "Account deactivated"
 SKIP_NO_ADDRESS = "No email address"
 SKIP_INVALID = "Invalid email address"
 SKIP_BOUNCED = "Address bounced"
 SKIP_DUPLICATE = "Duplicate address"
-#: Why a person who has turned the email's type off is sent no copy; ``{type}`` is the
-#: type's name.
+#: Why a person who has turned the email's type off isn't sent a copy; ``{type}`` is
+#: the type's name.
 SKIP_OPTED_OUT = "Opted out of {type}"
 
 #: The audit reasons a queued email goes back to a draft for: its batch changed, or its
@@ -169,7 +169,7 @@ class BatchRow:
 
     ``account`` is null once the account is deleted; it carries the membership
     annotations, so its status reads without a further query.  ``reason`` is why the
-    person is sent no copy, blank for one who will receive it: worked out now for a
+    person isn't sent a copy, blank for one who will receive it: worked out now for a
     ``batched`` row, and the stored reason for a row the send has already frozen.
     """
 
@@ -188,7 +188,7 @@ class MatchRow:
     """One person a search matches, as they would join the batch.
 
     ``row`` is an unsaved batch row carrying the account's name, address, kind, and DART
-    as they are now; ``reason`` is why the person would be sent no copy, blank for one
+    as they are now; ``reason`` is why the person wouldn't be sent a copy, blank for one
     who would receive it.
     """
 
@@ -219,7 +219,7 @@ def unknown_filters(filters: Mapping[str, str]) -> list[str]:
 def given_filters(filters: Mapping[str, str]) -> dict[str, str]:
     """The filters of ``filters`` that carry a value, in :data:`FILTER_KEYS` order.
 
-    A blank value narrows nothing, and a key that is not a member list filter is
+    A blank value doesn't narrow anything, and a key that is not a member list filter is
     dropped.
     """
     return given_params(filters, FILTER_KEYS)
@@ -242,11 +242,11 @@ def selected_accounts(filters: Mapping[str, str]) -> QuerySet[User]:
 def searched_filters(bulk: BulkEmail, filters: Mapping[str, str]) -> dict[str, str]:
     """The given filters of ``filters``, held to ``bulk``'s DART limit; nothing is stored.
 
-    An email with no limit (``apps.bulk_email.senders.dart_limit``) takes the filters as
-    they are, blank ones dropped; a DART leader's email has its ``dart`` filter forced to
-    the sender's DART.  Raises ``DomainError`` with ``OWNER_NO_DART_MESSAGE`` naming the
-    sender for an email limited to no DART, and DRF's ``ValidationError`` keyed
-    ``filters`` then ``dart`` for a search naming another DART.
+    An email without a limit (``apps.bulk_email.senders.dart_limit``) takes the filters
+    as they are, blank ones dropped; a DART leader's email has its ``dart`` filter forced
+    to the sender's DART.  Raises ``DomainError`` with ``OWNER_NO_DART_MESSAGE`` naming
+    the sender for an email whose limit doesn't name a DART, and DRF's ``ValidationError``
+    keyed ``filters`` then ``dart`` for a search naming another DART.
     """
     limit = dart_limit(bulk)
     if limit is not None and limit.dart is None:
@@ -262,7 +262,7 @@ def matching_people(bulk: BulkEmail, filters: Mapping[str, str]) -> list[MatchRo
     name, then address, deactivated ones included.  Each carries :func:`skip_reason` for
     the email's type as it is now, with a second account sharing an address skipped as
     :data:`SKIP_DUPLICATE` after the first in that order.  Whether a person is in the
-    batch already plays no part.  Raises as :func:`searched_filters` does, and DRF's
+    batch already doesn't matter.  Raises as :func:`searched_filters` does, and DRF's
     ``ValidationError`` keyed by a filter whose value the member list refuses.
     """
     accounts = selected_accounts(searched_filters(bulk, filters))
@@ -314,7 +314,7 @@ def add_filters(bulk: BulkEmail, filters: Mapping[str, str], *, actor: User) -> 
     ``ValidationError`` for a filter value the member list refuses and, keyed
     ``filters`` then ``dart``, for a limited email's add naming another DART (by id or
     by name), and ``DomainError`` with ``OWNER_NO_DART_MESSAGE`` naming the sender when
-    the email is limited to no DART at all; nothing is stored then.
+    the email's limit doesn't name a DART at all; nothing is stored then.
     """
     with transaction.atomic():
         locked = locked_for_edit(bulk)
@@ -338,18 +338,18 @@ def add_accounts(
     Every account not in the batch yet (by account) joins it as a ``batched`` row
     carrying the account's name, address, kind, and DART as they are now; the others
     are counted and left alone.  One :class:`~apps.bulk_email.models.BatchAdd` records
-    the two counts with ``filters`` (the member list filters behind it, empty for
-    none), ``group`` (the saved group it brought in, if any), and ``label`` (its name
-    when it was not made with filters).  ``accounts`` is read inside the email's row
-    lock.  A queued email goes back to a draft (:func:`back_to_draft`), naming
+    the two counts with ``filters`` (the member list filters behind it, empty when
+    there aren't any), ``group`` (the saved group it brought in, if any), and ``label``
+    (its name when it was not made with filters).  ``accounts`` is read inside the email's
+    row lock.  A queued email goes back to a draft (:func:`back_to_draft`), naming
     ``actor``.
 
     A DART leader's email (``apps.bulk_email.senders.dart_limit``) records its DART,
     as an add by filters does; anybody added from outside it is skipped as
     ``Not in your DART`` whenever the batch is read (:func:`skip_reason`).  Raises
     ``DomainError`` when the email has started sending, and with
-    ``OWNER_NO_DART_MESSAGE`` naming the sender when the email is limited to no DART at
-    all; nothing is stored then.
+    ``OWNER_NO_DART_MESSAGE`` naming the sender when the email's limit doesn't name a
+    DART at all; nothing is stored then.
     """
     with transaction.atomic():
         locked = locked_for_edit(bulk)
@@ -381,9 +381,9 @@ def add_accounts(
 def _within_limit(locked: BulkEmail, filters: Mapping[str, str]) -> dict[str, str]:
     """``filters`` forced to ``locked``'s DART limit, which ``locked`` records.
 
-    An email with no limit takes the filters as they are.  Raises ``DomainError`` for an
-    email limited to no DART, and DRF's
-    ``ValidationError`` keyed ``filters`` then ``dart`` for an add naming another DART.
+    An email without a limit takes the filters as they are.  Raises ``DomainError`` for
+    an email whose limit doesn't name a DART, and DRF's ``ValidationError`` keyed
+    ``filters`` then ``dart`` for an add naming another DART.
     """
     return _forced(_record_limit(locked), filters)
 
@@ -391,9 +391,9 @@ def _within_limit(locked: BulkEmail, filters: Mapping[str, str]) -> dict[str, st
 def _forced(limit: DartLimit | None, filters: Mapping[str, str]) -> dict[str, str]:
     """``filters`` with the ``dart`` filter forced to ``limit``'s DART, when there is one.
 
-    Without a limit, or one naming no DART, the filters are taken as they are.  Raises
-    DRF's ``ValidationError`` keyed ``filters`` then ``dart`` for a ``dart`` filter
-    naming another DART.
+    Without a limit, or with one that doesn't name a DART, the filters are taken as they
+    are.  Raises DRF's ``ValidationError`` keyed ``filters`` then ``dart`` for a ``dart``
+    filter naming another DART.
     """
     if limit is None or limit.dart is None:
         return dict(filters)
@@ -404,10 +404,10 @@ def _forced(limit: DartLimit | None, filters: Mapping[str, str]) -> dict[str, st
 
 
 def _record_limit(locked: BulkEmail) -> DartLimit | None:
-    """``locked``'s DART limit, recorded as its ``dart``; ``None`` for no limit.
+    """``locked``'s DART limit, recorded as its ``dart``; ``None`` without a limit.
 
-    Raises ``DomainError`` with ``OWNER_NO_DART_MESSAGE`` for an email limited to no
-    DART, to which nobody may be added.
+    Raises ``DomainError`` with ``OWNER_NO_DART_MESSAGE`` for an email whose limit
+    doesn't name a DART, to which nobody may be added.
     """
     limit = dart_limit(locked)
     if limit is None:
@@ -531,7 +531,7 @@ def batch_counts(rows: list[BatchRow]) -> BatchCounts:
 
 
 def type_opt_outs(bulk: BulkEmail) -> TypeOptOuts | None:
-    """Who has turned ``bulk``'s type off, or ``None`` while it has no type."""
+    """Who has turned ``bulk``'s type off, or ``None`` while it doesn't have a type."""
     if bulk.email_type is None:
         return None
     return TypeOptOuts(name=bulk.email_type.name, user_ids=opted_out_user_ids(bulk.email_type))
@@ -544,10 +544,10 @@ def skip_reason(
     opt_outs: TypeOptOuts | None = None,
     limit: DartLimit | None = None,
 ) -> str:
-    """Why ``account`` is sent no copy, or ``""`` when it is sent one.
+    """Why ``account`` isn't sent a copy, or ``""`` when it is sent one.
 
-    The reasons are asked in this order: :data:`SKIP_DELETED` when there is no
-    account any more, ``apps.bulk_email.senders.SKIP_NOT_IN_DART`` when ``limit`` is
+    The reasons are asked in this order: :data:`SKIP_DELETED` when the account has
+    been deleted, ``apps.bulk_email.senders.SKIP_NOT_IN_DART`` when ``limit`` is
     given and the account's profile is not in its DART, :data:`SKIP_DEACTIVATED` when
     it is deactivated, :data:`SKIP_NO_ADDRESS` when its address is blank,
     :data:`SKIP_INVALID` when the address is not one a mail server could take,
@@ -556,7 +556,7 @@ def skip_reason(
     changes), :data:`SKIP_OPTED_OUT` naming the type when ``opt_outs`` holds the
     account, and :data:`SKIP_DUPLICATE` when ``seen``, the trimmed and case-folded
     addresses already sent a copy, holds it.  Without ``opt_outs``, as for an email
-    with no type yet, nobody is skipped as opted out; without ``limit``, as for CalDART
+    without a type yet, nobody is skipped as opted out; without ``limit``, as for CalDART
     management's email, nobody is skipped for their DART.
     """
     if account is None:
@@ -587,7 +587,7 @@ def add_label(filters: Mapping[str, str]) -> str:
     Each filter reads as its name on the member list's filter bar and its value in
     words, such as ``"Kind: Friends only, County: Marin, Napa"``: a kind as the filter
     bar offers it, a DART by its name, a role by its label, and any other choice by the
-    label the filter gives it.  An add with no filter
+    label the filter gives it.  An add without a filter
     reads :data:`EVERYBODY_LABEL`.
     """
     if len(filters) == 0:
@@ -613,7 +613,7 @@ def batch_document(bulk: BulkEmail) -> ReportDocument:
     The columns are :data:`BATCH_CSV_HEADER`: the name, address, kind, and DART the row
     holds, the account's membership status now (blank once it is deleted), the label
     of the add that chose the person, ``Yes`` or ``No``, the reason, and the email's
-    type (blank while it has none).  The file is named
+    type (blank while it doesn't have one).  The file is named
     ``caldart-bulk-email-<id>-recipient-list.csv``.
     """
     labels = {add.pk: add_name(add) for add in bulk.adds.all()}
@@ -672,7 +672,7 @@ def results_document(bulk: BulkEmail) -> ReportDocument:
 
 
 def email_type_name(bulk: BulkEmail) -> str:
-    """The name of ``bulk``'s type, or ``""`` while it has none."""
+    """The name of ``bulk``'s type, or ``""`` while it doesn't have one."""
     return bulk.email_type.name if bulk.email_type is not None else ""
 
 
@@ -721,8 +721,8 @@ def _account_kind(account: User) -> str:
     """``member`` or ``friend``: the account's kind as worked out for today.
 
     An account counts as a friend exactly when its membership status is ``friend``: a
-    friend by kind, or a member whose friend date has come.  A member who holds no term
-    yet (``none``) is a member, the kind the member list and the report show, so a
+    friend by kind, or a member whose friend date has come.  A member who doesn't hold
+    a term yet (``none``) is a member, the kind the member list and the report show, so a
     *Members only* add takes them and a *Friends only* add does not.
     """
     if membership_of(account)["status"] == MembershipState.FRIEND:
@@ -739,7 +739,7 @@ def _dart_name(account: User) -> str:
 
 
 def _kind_label(kind: str) -> str:
-    """A stored kind in words, or ``""`` for none."""
+    """A stored kind in words, or ``""`` for a blank or unknown kind."""
     return RecipientKind(kind).label if kind in RecipientKind.values else ""
 
 

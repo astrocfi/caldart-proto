@@ -17,7 +17,7 @@ never heard of the record can follow) and ``fix`` (what to ask for when it is no
 ``pass``).
 
 The records are looked up at the domain of ``DEFAULT_FROM_EMAIL``.  Only DMARC falls back
-to a parent: with no policy of its own, the From domain is judged by its organizational
+to a parent: without a policy of its own, the From domain is judged by its organizational
 domain's (found on the public suffix list bundled with ``tldextract``), as RFC 7489
 says.  The SPF check authorizes the host named by the default mailer's
 ``host`` option (``EMAIL_URL``): it follows ``include:``, ``a``, ``mx``, ``ip4``, and
@@ -264,7 +264,7 @@ def check_mail_dns(*, now: datetime, refresh: bool = False) -> DnsReport:
     A report cached in the last five minutes for the same ``DEFAULT_FROM_EMAIL``,
     ``DKIM_SELECTOR``, ``BOUNCE_ADDRESS``, and mail host is answered as it was, with its
     original ``checked_at``; ``refresh=True`` runs the lookups again and replaces it.
-    ``now`` stamps a new report's ``checked_at``.  A ``DEFAULT_FROM_EMAIL`` with no
+    ``now`` stamps a new report's ``checked_at``.  A ``DEFAULT_FROM_EMAIL`` without a
     domain gives a report with the single failing finding that says so.
     """
     inputs = _read_inputs()
@@ -292,7 +292,7 @@ def _read_inputs() -> _Inputs:
 
 
 def _domain_of(address: str) -> str:
-    """The lowercase domain of ``CalDART <noreply@example.org>``; blank for no ``@``."""
+    """The lowercase domain of ``CalDART <noreply@example.org>``; blank without ``@``."""
     _, separator, domain = parseaddr(address)[1].rpartition("@")
     return domain.strip().lower() if separator == "@" else ""
 
@@ -303,8 +303,8 @@ def _build_report(inputs: _Inputs, now: datetime) -> DnsReport:
         finding = DnsFinding(
             name=SPF_NAME,
             status=DnsStatus.FAIL,
-            detail="The From address the site sends mail as has no domain, so there is "
-            "nothing to look up.",
+            detail="The From address the site sends mail as doesn't have a domain, so "
+            "nothing can be looked up.",
             fix="Ask the person who runs the server to set the site's From address to a "
             "full address such as noreply@yourdomain.org.",
         )
@@ -466,7 +466,7 @@ def _spf_finding(inputs: _Inputs, status: DnsStatus, result: str, fix: str = "")
 
 
 def _spf_fix_publish(resolver: _Resolver, inputs: _Inputs) -> str:
-    """What to publish when there is no SPF record, naming the host's address if known."""
+    """What to publish without an SPF record, naming the host's address if known."""
     where = f"Ask whoever manages the DNS for {inputs.spf_domain} to add a TXT record "
     try:
         addresses = [a for a in _addresses(resolver, inputs.host) if _is_public_candidate(a)]
@@ -625,7 +625,7 @@ def _spf_policy_problem(terms: list[_SpfTerm]) -> _Problem | None:
         )
     elif closing.qualifier == "?":
         result = (
-            "The list ends with ?all, which tells receivers to make no judgment about "
+            "The list ends with ?all, which tells receivers not to make a judgment about "
             "mail from servers that are not on it, so it does not stop a forger."
         )
     else:
@@ -661,7 +661,7 @@ class _SpfEvaluator:
         """The first term of ``terms`` (``domain``'s record) that matches, or ``None``.
 
         Terms are tried in order and the first match decides, whatever its qualifier;
-        ``all`` always matches.  With no match, a ``redirect`` modifier hands the
+        ``all`` always matches.  Without a match, a ``redirect`` modifier hands the
         decision to the record it names.  An ``include`` matches only when the included
         record's own first match carries ``+``.
 
@@ -761,7 +761,7 @@ def _check_dkim(resolver: _Resolver, inputs: _Inputs) -> DnsFinding:
         return DnsFinding(
             DKIM_NAME,
             DnsStatus.WARN,
-            f"{DKIM_PURPOSE} No DKIM selector is configured, so this check has no "
+            f"{DKIM_PURPOSE} No DKIM selector is configured, so this check doesn't have a "
             "signature record to look for.",
             "Ask the person who runs the server for the name (the selector) the mail "
             "server signs with, and have them set it as DKIM_SELECTOR.",
@@ -790,14 +790,14 @@ def _check_dkim(resolver: _Resolver, inputs: _Inputs) -> DnsFinding:
     return DnsFinding(
         DKIM_NAME,
         DnsStatus.FAIL,
-        f"{DKIM_PURPOSE} The record at {name} has no usable key in it.",
+        f"{DKIM_PURPOSE} The record at {name} doesn't have a usable key in it.",
         "Ask the person who runs the server for the key's TXT record (it contains "
         "p= followed by a long string) and have the DNS manager republish it.",
     )
 
 
 def _dkim_key(record: str) -> str:
-    """The ``p=`` public key in a DKIM TXT ``record``; blank when it has none."""
+    """The ``p=`` public key in a DKIM TXT ``record``; blank when it doesn't have one."""
     for tag in record.split(";"):
         name, _, value = tag.strip().partition("=")
         if name.strip().lower() == "p":
@@ -814,7 +814,7 @@ def _check_dmarc(resolver: _Resolver, inputs: _Inputs) -> DnsFinding:
     The policy is read at ``_dmarc.<From domain>``.  When no record there starts with
     ``v=DMARC1``, it is read at the organizational domain's ``_dmarc`` name instead, as
     RFC 7489 section 6.6.3 has a receiver do, and that record's ``sp=`` (or its ``p=``
-    when there is no valid ``sp=``) is the policy judged; the detail then says where it
+    without a valid ``sp=``) is the policy judged; the detail then says where it
     was found, and a fix names that record.
     """
     domain = inputs.from_domain
@@ -845,7 +845,7 @@ def _check_dmarc(resolver: _Resolver, inputs: _Inputs) -> DnsFinding:
             DMARC_NAME,
             DnsStatus.FAIL,
             f"{purpose} {name} publishes {len(records)} policies; receiving servers "
-            "apply none of them when there is more than one.",
+            "don't apply any of them when there is more than one.",
             f"Ask whoever manages the DNS for {domain} to keep one TXT record "
             f"at {name} that starts with v=DMARC1 and remove the others.",
         )
@@ -855,7 +855,7 @@ def _check_dmarc(resolver: _Resolver, inputs: _Inputs) -> DnsFinding:
         return DnsFinding(
             DMARC_NAME,
             DnsStatus.FAIL,
-            f"{purpose} The policy at {name} is malformed: it has no valid p= setting.",
+            f"{purpose} The policy at {name} is malformed: it doesn't have a valid p= setting.",
             f"Ask whoever manages the DNS for {domain} to correct the "
             f"record at {name} so it contains p=none, p=quarantine, or p=reject.",
         )
@@ -891,7 +891,7 @@ def _dmarc_records(resolver: _Resolver, name: str) -> list[str]:
 
 
 def _organizational_domain(domain: str) -> str:
-    """``domain``'s registrable domain on the public suffix list; blank when it has none.
+    """``domain``'s registrable domain on the public suffix list; blank without one.
 
     ``caldart.example.co.uk`` gives ``example.co.uk``.  The list is the snapshot bundled
     with ``tldextract``: nothing is fetched over the network.
@@ -953,7 +953,7 @@ def _check_alignment(inputs: _Inputs) -> DnsFinding:
             ALIGNMENT_NAME,
             DnsStatus.FAIL,
             f"{ALIGNMENT_PURPOSE} The bounce address the site is set to use is not a valid "
-            "address: it has no domain.",
+            "address: it doesn't have a domain.",
             f"Ask the person who runs the server to set the bounce address to a full "
             f"address such as bounces@{origin}.",
         )

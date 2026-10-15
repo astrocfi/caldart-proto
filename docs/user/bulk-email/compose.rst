@@ -169,8 +169,8 @@ that may be a mistake, and *You can still send.* says you may go ahead anyway:
   nothing there.* Add words to show instead, as in *{dart_name|your DART}*, or take it out.
 - *The email still says "TODO".* Placeholder text, such as *TODO*, *XXX*, *lorem ipsum*, or
   *[insert*, is still in the subject or the message.
-- *1 picture has no description for people who cannot see pictures.* Delete it and put it
-  in again with **Image**, which asks for one.
+- *1 picture doesn't have a description for people who cannot see pictures.* Delete it and
+  put it in again with **Image**, which asks for one.
 - *1 picture is wider than 1200 pixels, too wide for many mail programs.*
 - *This link does not load*, sometimes with the kind of error the site answered, or *This
   link timed out*: the page may be gone or the address mistyped. Open it yourself to be

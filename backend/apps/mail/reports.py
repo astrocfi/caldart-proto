@@ -34,7 +34,7 @@ EXPORT_FILTER_PARAMS: tuple[str, ...] = ("purpose", "status", "from", "to", "q",
 #: The ``ordering`` terms the report honors, as the list does; any other is ignored.
 ORDERINGS: frozenset[str] = frozenset({"sent_at", "-sent_at"})
 
-#: The order with no ``ordering`` given: the most recent send first.
+#: The order without an ``ordering`` given: the most recent send first.
 DEFAULT_ORDERING = "-sent_at"
 
 
@@ -77,7 +77,7 @@ def order_email_log[R](queryset: QuerySet[EmailLog, R], raw: str) -> QuerySet[Em
     """``queryset`` in the order a comma-separated ``raw`` ordering asks for.
 
     Only ``sent_at`` and ``-sent_at`` are honored; any other term is ignored, as the
-    list's ordering filter ignores it, and with no honored term the most recent send
+    list's ordering filter ignores it, and without an honored term the most recent send
     comes first.  Rows sent in the same instant fall back to their ``id`` in the same
     direction, so the order is stable.
     """

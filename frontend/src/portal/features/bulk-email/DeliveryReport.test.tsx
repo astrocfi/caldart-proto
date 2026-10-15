@@ -239,7 +239,7 @@ describe('DeliveryReport', () => {
 
   it("says why there isn't anything to retry", () => {
     renderReport(finished({ failed_count: 0 }));
-    expect(screen.getByText('No copy failed, so there is nothing to retry.')).toBeVisible();
+    expect(screen.getByText('No copy failed, so nothing is left to retry.')).toBeVisible();
   });
 
   it('asks for the rest to be sent before a stopped email retries', () => {

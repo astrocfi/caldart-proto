@@ -14,12 +14,12 @@ from caldart.runs import RunActionSerializer
 class EmailLogSerializer(serializers.ModelSerializer[EmailLog]):
     """One row of ``GET /system/emails``.
 
-    ``user_id`` is null for a message sent to an address with no account behind it.
+    ``user_id`` is null for a message sent to an address without an account behind it.
     ``user_name`` is the recipient's name as it was at send time, falling back to
     the linked account's current name when that was not recorded; it is empty
     when neither names anybody.  ``error`` is blank unless ``status`` is
     ``failed``, and ``attachments`` is a comma-separated list of filenames,
-    blank when the message carried none.  ``purpose_label`` is the purpose in words,
+    blank when the message didn't carry any.  ``purpose_label`` is the purpose in words,
     from ``apps.mail.purposes``, or the purpose itself when no label names it.
     ``bounced_at`` is when the bounce check read a permanent-failure report for the
     message and ``bounce_detail`` that report's status code and diagnostic; they are
@@ -68,7 +68,7 @@ class EmailLogSerializer(serializers.ModelSerializer[EmailLog]):
         return purpose_label(obj.purpose, labels=labels if labels is not None else purpose_labels())
 
     def get_link(self, obj: EmailLog) -> str:
-        """Return the portal page the message belongs to, or ``""`` for none.
+        """Return the portal page the message belongs to, or ``""`` without one.
 
         The links come from the context's ``log_links`` when the caller read them once
         for a whole page, and are read for this row alone otherwise.
@@ -136,8 +136,8 @@ class MailDeliveryCheckSerializer(serializers.Serializer[dict[str, object]]):
     """The mail delivery check: the ``domain`` it ran for, its findings, and when.
 
     ``domain`` is the domain of the site's From address, blank when the From address
-    has none.  ``checked_at`` is when the lookups were made; a cached report keeps the
-    time it was made.
+    doesn't have one.  ``checked_at`` is when the lookups were made; a cached report keeps
+    the time it was made.
     """
 
     domain = serializers.CharField()

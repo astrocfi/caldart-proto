@@ -20,7 +20,7 @@ class NotificationSubscription(TimestampedModel):
     ``recipient_email`` is always filled, stored in lower case, and unique: the address
     of ``recipient_user`` when the subscription is bound to an account, or the address
     typed for somebody outside CalDART.  ``events`` is the list of event slugs, in
-    catalog order.  A paused subscription (``is_active`` false) is sent nothing.
+    catalog order.  A paused subscription (``is_active`` false) isn't sent anything.
     ``created_by`` is the account administrator who set it up, or null once that
     account is gone.
     """

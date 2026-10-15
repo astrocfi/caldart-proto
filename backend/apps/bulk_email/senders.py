@@ -2,9 +2,9 @@
 
 CalDART management (and a system administrator, who passes for every role) sends to any
 member or friend.  A DART leader sends only to the DART on their own member profile: the
-``dart_leader`` role names no DART of its own, so a leader whose profile names none has
-nobody to send to.  :func:`sender_context` answers that for one account, and is what
-``GET /bulk-email/sender`` serves the compose screen.
+``dart_leader`` role doesn't name a DART of its own, so a leader whose profile doesn't
+name one can't send to anybody.  :func:`sender_context` answers that for one account, and
+is what ``GET /bulk-email/sender`` serves the compose screen.
 
 A bulk email's limit is its sender's, whoever is working on it: :func:`dart_limit` reads
 the sender's profile as it is at that moment, so when a leader's profile DART changes,
@@ -27,21 +27,21 @@ from apps.bulk_email.models import BulkEmail
 from apps.darts.models import Dart
 from apps.members.models import MemberProfile
 
-#: Why a DART leader whose profile names no DART cannot send.
+#: Why a DART leader whose profile doesn't name a DART cannot send.
 NO_DART_MESSAGE = (
-    "Your profile names no DART, so there is nobody to send to. Set your DART on My profile."
+    "Your profile doesn't name a DART, so you can't send to anybody. Set your DART on My profile."
 )
 
 #: The refusal of an add that names a DART other than the email's own.
 NOT_YOUR_DART_MESSAGE = "You can only send to your own DART."
 
-#: Why a person outside a DART leader's DART is sent no copy.
+#: Why a person outside a DART leader's DART isn't sent a copy.
 SKIP_NOT_IN_DART = "Not in your DART"
 
-#: Why nobody can be added to an email whose sender may send to nobody; ``{name}`` is
-#: the sender's name.
+#: Why nobody can be added to an email whose sender can't send to anybody; ``{name}``
+#: is the sender's name.
 OWNER_NO_DART_MESSAGE = (
-    "This email belongs to {name}, whose profile names no DART, so nobody can be added."
+    "This email belongs to {name}, whose profile doesn't name a DART, so nobody can be added."
 )
 
 
@@ -52,8 +52,8 @@ class SenderContext:
     ``is_management`` is true for CalDART management and a system administrator, who
     send to any member or friend.  For anybody else ``dart`` is the DART they may send
     to: their profile's DART when they are a DART leader, ``None`` when they are not or
-    their profile names none.  ``user`` is ``None`` for an email whose sender's account
-    is gone.
+    their profile doesn't name one.  ``user`` is ``None`` for an email whose sender's
+    account is gone.
     """
 
     user: User | None
@@ -75,8 +75,9 @@ class SenderContext:
 class DartLimit:
     """The one DART a bulk email may go to.
 
-    ``dart`` is ``None`` when the email's sender is a DART leader whose profile names no
-    DART, or holds neither bulk email role any more: then nobody may be sent a copy.
+    ``dart`` is ``None`` when the email's sender is a DART leader whose profile doesn't
+    name a DART, or holds neither bulk email role any more: then nobody may be sent a
+    copy.
     """
 
     dart: Dart | None
@@ -92,8 +93,8 @@ def sender_context(user: User | None) -> SenderContext:
     """What ``user`` may send to, from their roles and their profile as they are now.
 
     CalDART management and a system administrator may send to everyone.  A DART leader
-    may send to the DART on their profile, and to nobody when it names none.  Any other
-    account, and ``None`` (a deleted sender), may send to nobody.
+    may send to the DART on their profile, and can't send to anybody when it doesn't name
+    one.  Any other account, and ``None`` (a deleted sender), can't send to anybody.
     """
     if user is None:
         return SenderContext(user=None, is_management=False, dart=None)
@@ -112,7 +113,7 @@ def dart_limit(bulk: BulkEmail) -> DartLimit | None:
 
     The limit is the sender's (:func:`sender_context`), whoever is working on the email:
     none for CalDART management's email, the sender's DART for a DART leader's.  An email
-    whose sender's account is gone has no limit here, since the background sender
+    whose sender's account is gone isn't limited here, since the background sender
     refuses it for that alone.
     """
     if bulk.sender is None:
@@ -145,10 +146,11 @@ def limit_dart(limit: DartLimit | None) -> Dart | None:
 def sender_notice(bulk: BulkEmail) -> str:
     """Why nobody can be added to ``bulk`` or sent it, or ``""`` when somebody can.
 
-    That is :data:`OWNER_NO_DART_MESSAGE` naming the sender when the email is limited to
-    no DART (:func:`dart_limit`), as a DART leader's is once their profile names none,
-    so a manager who opens the email reads whose it is.  Blank for any other email,
-    including one that has started sending, which nobody can change.
+    That is :data:`OWNER_NO_DART_MESSAGE` naming the sender when the email's limit
+    (:func:`dart_limit`) doesn't name a DART, as happens to a DART leader's email once
+    their profile doesn't name one, so a manager who opens the email reads whose it is.
+    Blank for any other email, including one that has started sending, which nobody can
+    change.
     """
     if not bulk.can_edit or bulk.sender is None:
         return ""
@@ -162,8 +164,8 @@ def email_dart_name(bulk: BulkEmail) -> str:
     """The name of the DART ``bulk`` goes to, or ``""`` when it may go to anybody.
 
     While the email can still change this is its sender's DART as it is now
-    (:func:`dart_limit`), blank as well for a DART leader whose profile names none; once
-    it has started sending it is the DART it was recorded as going to.
+    (:func:`dart_limit`), blank as well for a DART leader whose profile doesn't name one;
+    once it has started sending it is the DART it was recorded as going to.
     """
     dart = bulk.dart if not bulk.can_edit else limit_dart(dart_limit(bulk))
     return str(dart.name) if dart is not None else ""

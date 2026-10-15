@@ -18,7 +18,7 @@ from caldart.messages import email_messages, when_missing
 from caldart.reports import FIXED_COLUMNS_MESSAGE, Report, select_columns
 from caldart.runs import RunActionSerializer
 
-#: What a saved set with no columns is refused with.
+#: What a saved set without columns is refused with.
 NO_COLUMNS_MESSAGE = "Choose at least one column."
 
 #: What a subscription for an account that may not read its report is refused with.
@@ -96,7 +96,7 @@ class SavedColumnSetSerializer(serializers.ModelSerializer[SavedColumnSet]):
     Written with ``name`` (1 to 60 characters) and ``columns`` (the keys, in the order
     the report prints them).  The report is the one in the URL, handed in as the
     ``spec`` context entry; its registry must hold every key, no key may repeat, at
-    least one is needed, and a report whose columns are fixed keeps no sets.
+    least one is needed, and a report whose columns are fixed doesn't keep sets.
     """
 
     columns = serializers.ListField(child=serializers.CharField())
