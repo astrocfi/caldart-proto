@@ -43,6 +43,7 @@ export function BulkEmailSenderPanel(): JSX.Element {
 
   return (
     <JobPanel
+      job="bulk-email"
       eyebrow="Email"
       title="Bulk email sender"
       description="The bulk email sender runs every minute. It starts each bulk email whose time has come and sends its copies a few at a time, so the mail provider never turns them away. The page waits up to 45 seconds; a larger send carries on in the background after that."

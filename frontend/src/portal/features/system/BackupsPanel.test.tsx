@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { HttpResponse, delay, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
+import { makeJobStatus } from '@test/fixtures/jobs';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
@@ -143,5 +144,21 @@ describe('BackupsPanel', () => {
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText(/BACKUP_DIR|db_restore|[Dd]ump/)).toBeNull();
+  });
+});
+
+describe('BackupsPanel and the nightly backup', () => {
+  it("links to the nightly backup's log", async () => {
+    server.use(
+      http.get(`${API}/system/backups`, () => HttpResponse.json([])),
+      http.get(`${API}/system/jobs`, () =>
+        HttpResponse.json([makeJobStatus({ job: 'backup', name: 'Nightly backup' })]),
+      ),
+    );
+    renderWithProviders(<BackupsPanel />);
+    expect(await screen.findByRole('link', { name: 'View log: Nightly backup' })).toHaveAttribute(
+      'href',
+      '/system/jobs/backup',
+    );
   });
 });

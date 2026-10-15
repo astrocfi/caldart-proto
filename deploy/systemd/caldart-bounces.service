@@ -37,7 +37,10 @@ Environment=PYTHONDONTWRITEBYTECODE=1
 # Reads the unseen delivery reports in the bounce mailbox, marks every email
 # that permanently failed as bounced, flags the address on its account, and
 # marks each report seen. Add --dry-run to rehearse without changing anything.
-ExecStart=/opt/caldart/caldart/.venv/bin/python /opt/caldart/caldart/backend/manage.py check_bounces
+# run_job runs the command and keeps a record of the run, with its output and
+# how it ended, for the System pages; the journal still gets all the output, and
+# the exit status is the command's own.
+ExecStart=/opt/caldart/caldart/.venv/bin/python /opt/caldart/caldart/backend/manage.py run_job check_bounces
 
 # An IMAP server that stops answering should not leave this hanging into the
 # next hour's run.

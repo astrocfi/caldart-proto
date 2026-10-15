@@ -44,6 +44,7 @@ export function RemindersPanel(): JSX.Element {
 
   return (
     <JobPanel
+      job="reminders"
       eyebrow="Membership"
       title="Renewal reminder emails"
       description={

@@ -15,6 +15,7 @@ import { DateText } from '@/portal/components/DateText';
 import { useToast } from '@/portal/components/Toast';
 import { useFocusAfterSave } from '@/portal/components/focus';
 import { backupDownloadUrl, useBackups, useCreateBackup } from './api';
+import { JobLastRun } from './JobLastRun';
 
 /** Human file size; backups run from a few hundred kB to a few hundred MB. */
 export function formatBytes(bytes: number): string {
@@ -106,6 +107,7 @@ export function BackupsPanel(): JSX.Element {
       <p className="muted">
         There is no restore button. To restore a backup, ask the person who installed the site.
       </p>
+      <JobLastRun job="backup" lead="Last nightly backup" />
 
       {isError ? (
         <p className="field__error" role="alert">

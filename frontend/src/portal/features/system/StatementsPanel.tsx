@@ -57,6 +57,7 @@ export function StatementsPanel(): JSX.Element {
 
   return (
     <JobPanel
+      job="statements"
       eyebrow="Payments"
       title="Year-end statements"
       description="The year-end statements go once a year, on January 15th at 6:45 AM, for the year before. Every active member, friend, or donor who gave a settled contribution in the chosen year is emailed that year&rsquo;s statement as a PDF."

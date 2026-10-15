@@ -617,7 +617,7 @@ def test_the_reports_timer_runs_daily_at_six() -> None:
     service = (DEPLOY_DIR / "systemd" / "caldart-reports.service").read_text()
     timer = (DEPLOY_DIR / "systemd" / "caldart-reports.timer").read_text()
 
-    assert "manage.py send_scheduled_reports" in service
+    assert "manage.py run_job send_scheduled_reports" in service
     assert "Type=oneshot" in service
     assert "OnCalendar=*-*-* 06:00:00" in timer
     assert "Persistent=true" in timer

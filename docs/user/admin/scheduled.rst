@@ -17,8 +17,10 @@ money from members who asked to be renewed automatically, and they run first eac
 so a member they renew is not also reminded.
 
 Every panel is laid out the same way, top to bottom: what the job does and when the server
-runs it, any field that shapes a run (the **Year**, the **Practice run** box), **Run now**,
-and then what the last run did, so **Run now** stays where it is however long the result.
+runs it, a line such as *Last run 10/15/2026 at 6:31 AM* with how that run ended and **View
+log**, which opens the job's recent runs and everything each wrote (:doc:`job-log`), any
+field that shapes a run (the **Year**, the **Practice run** box), **Run now**, and then what
+the last press did, so **Run now** stays where it is however long the result.
 Every panel but the bulk email sender's works the same way:
 
 #. Leave the **Practice run** box checked the first time. A practice run sends, charges, and
@@ -234,9 +236,11 @@ If something looks wrong
 
 If a job's emails or charges stop happening (no reminders on :doc:`reminders` for days, no
 scheduled reports, no automatic renewals taken, no statements in January, no bounces
-marked for weeks, or bulk emails that stay *Waiting to send*), the server may
-have stopped starting that job; the person who runs the server can check it. Meanwhile **Run
+marked for weeks, or bulk emails that stay *Waiting to send*), read the panel's last run
+line and the job's log (:doc:`job-log`). A failed run gives its reason there, and a job
+that has stopped running shows as late in the **Scheduled jobs** check on
+:doc:`health-database`; the person who runs the server can check it. Meanwhile **Run
 now** does the same work by hand. A reminder run that skips everyone is normal on most days,
-because members were written to the first morning they reached each stage. A run that sends
-nothing when you expected mail usually still has its **Practice run** box checked. To see whether
+because members were written to the first morning they reached each stage. A run that didn't send
+the mail you expected usually still has its **Practice run** box checked. To see whether
 the emails a run sent went out, read :doc:`sent-emails`.

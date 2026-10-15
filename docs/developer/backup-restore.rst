@@ -153,34 +153,34 @@ once::
   journalctl -u caldart-backup -n 20
 
 The service runs as ``caldart`` with ``UMask=0027`` and the same hardening as
-the web unit, reads ``/etc/caldart/caldart.env``, and has two ``ExecStart``
-lines.  The first runs ``manage.py db_backup``.  The second prunes: nothing
-else rotates dumps, so the same run deletes the generated ones older than
-``BACKUP_RETENTION_DAYS``::
+the web unit, reads ``/etc/caldart/caldart.env``, and has one ``ExecStart`` line,
+which dumps and then prunes: nothing else rotates dumps, so the same run deletes
+the generated ones more than ``BACKUP_RETENTION_DAYS`` days old::
 
-  ExecStart=/usr/bin/find ${BACKUP_DIR} -name 'caldart-*.sql.gz' -mtime +${BACKUP_RETENTION_DAYS} -delete
+  ExecStart=.../manage.py run_job db_backup --prune-days ${BACKUP_RETENTION_DAYS}
 
-systemd expands both variables from the environment file, whose production
+systemd expands the variable from the environment file, whose production
 template keeps dumps for 30 days (``BACKUP_RETENTION_DAYS=30``,
 :doc:`configuration`); change the number there and the next run prunes by it,
-with no ``daemon-reload``.  The prune matches only the generated
+without a ``daemon-reload``.  ``--prune-days`` takes at least 1, so the dump just written always stays, and
+runs only after a dump that succeeded; an empty value, as an unset
+``BACKUP_RETENTION_DAYS`` gives, prints a warning and keeps every dump, and a value
+that isn't a whole number of at least 1 fails the unit after the dump.  It
+reads each file's modification time, and matches only the generated
 ``caldart-<timestamp>.sql.gz`` names, so a dump you gave your own ``--name`` is
-left alone.
+left alone; it prints a line for each dump it deletes.  ``run_job`` keeps a record
+of the run, with that output, for the portal (:ref:`deploy-job-runs`).
 
-Four details to keep in step with the rest of the deployment.  ``BACKUP_DIR``
-has to be an absolute path in ``/etc/caldart/caldart.env`` (the installer
-writes the deploy root's ``backups``), because the prune hands the value
-straight to ``find``, which resolves a relative path against
-``WorkingDirectory`` while Django resolves it against the repository root.
+Three details to keep in step with the rest of the deployment.  ``BACKUP_DIR``
+is resolved against the repository root when it is relative, for the dump and the
+prune alike; the installer writes the deploy root's ``backups`` as an absolute path.
 ``ReadWritePaths`` expands no variables, so it is the one line that spells the
 directory out by hand: it has to name whatever ``BACKUP_DIR`` points at, or
-``ProtectSystem=strict`` fails the dump with a permission error.  A
-``Type=oneshot`` unit runs its ``ExecStart`` lines in order and fails if either
-exits non-zero, so a prune that cannot find its directory reports a failed
-backup even when the dump itself worked.  And the unit expects a local
-``pg_dump`` with ``DB_BACKUP_VIA_DOCKER=false``, which is what the installer
-writes; going through ``docker compose`` instead needs the ``caldart`` user in
-the ``docker`` group.
+``ProtectSystem=strict`` fails the dump with a permission error.  And the unit
+expects a local ``pg_dump`` with ``DB_BACKUP_VIA_DOCKER=false``, which is what the
+installer writes; going through ``docker compose`` instead needs the ``caldart`` user
+in the ``docker`` group.  A dump that fails exits non-zero before the prune, so the
+unit reads ``failed`` and every dump stays.
 
 A dump on the same disk as the database is not a backup.  Copy them somewhere
 else — another host, object storage, an external disk — as a second step,
@@ -287,6 +287,13 @@ Leave the web unit and the timers stopped: :ref:`backup-after-restore` starts
 them again once its checks pass.  The ``migrate`` is deliberate: a dump taken
 from an older release restores an older schema, and ``manage.py health`` will
 report the pending migrations if you forget.
+
+A dump holds the record of every scheduled run under way while it was taken, the
+backup's own among them.  Once the dump is replayed, ``db_restore`` closes each of
+those rows as failed, with the error *The database was restored from a backup taken
+while this run was under way.*, since no process is left to finish them; the
+**Scheduled jobs** health check then shows them until each job's next run
+(:ref:`deploy-job-runs`).
 
 **Restoring onto a fresh machine** is the same, into an empty database:
 follow :doc:`deployment` up to its database step, restore, migrate,

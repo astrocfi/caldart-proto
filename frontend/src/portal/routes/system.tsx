@@ -1,6 +1,6 @@
 /**
  * System administration routes: Health and database, Sent emails and one sent email,
- * and Scheduled.
+ * Scheduled, and a scheduled job's log and one of its runs.
  * `/system` itself opens Health and database, and so does `/bulk-email/mail-delivery`, so
  * a bookmark or a link in an email to the mail delivery check lands on the page that
  * holds it.
@@ -32,6 +32,18 @@ export const systemRoutes: RouteObject[] = [
         path: 'system/emails/:id',
         lazy: async () => ({
           Component: (await import('../features/system/SentEmailPage')).SentEmailPage,
+        }),
+      },
+      {
+        path: 'system/jobs/runs/:id',
+        lazy: async () => ({
+          Component: (await import('../features/system/JobRunPage')).JobRunPage,
+        }),
+      },
+      {
+        path: 'system/jobs/:job',
+        lazy: async () => ({
+          Component: (await import('../features/system/JobLogPage')).JobLogPage,
         }),
       },
       {

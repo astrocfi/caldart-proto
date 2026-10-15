@@ -11,6 +11,7 @@ from apps.accounts.permissions import IsSystemAdmin
 from apps.bulk_email.api.serializers import BulkEmailRunResultSerializer
 from apps.bulk_email.job import REQUEST_BUDGET_SECONDS, run_sender
 from apps.members.api.actors import acting_user
+from apps.sysadmin.recording import mark_idle, recorded_request_run
 from caldart import audit
 
 
@@ -31,12 +32,19 @@ class SenderRunView(APIView):
         skipped, out_of_time, remaining, actions}``; ``busy`` is true when another run was
         working, and this one then did nothing, and ``out_of_time`` with ``remaining``
         says how many copies were left for the next run.  The caller is recorded as the
-        actor on one ``bulk_email.run`` audit line with the counts.
+        actor on one ``bulk_email.run`` audit line with the counts, and the run is
+        recorded as a run of the ``bulk-email`` job under the caller; one that didn't find
+        a bulk email to work on replaces the job's previous such record.
         """
-        run = run_sender(budget_seconds=REQUEST_BUDGET_SECONDS)
+        actor = acting_user(request)
+        with recorded_request_run("bulk-email", started_by=actor) as record:
+            run = run_sender(budget_seconds=REQUEST_BUDGET_SECONDS)
+            if run.busy or run.emails == 0:
+                mark_idle()
+            record.write(run.as_lines())
         audit.record(
             audit.BULK_EMAIL_RUN,
-            actor=acting_user(request),
+            actor=actor,
             busy=run.busy,
             emails=run.emails,
             sent=run.sent,

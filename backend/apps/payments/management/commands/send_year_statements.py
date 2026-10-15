@@ -85,9 +85,6 @@ class Command(BaseCommand):
         verb = "would send" if run.dry_run else "sent"
         self.stdout.write(style(f"{verb} {run.sent}, skipped {run.skipped}"))
 
-        if run.failed > 0:
-            plural = "" if run.failed == 1 else "s"
-            raise CommandError(
-                f"{run.failed} statement email{plural} could not be sent; "
-                "the run log names the account and the year"
-            )
+        problem = run.problem()
+        if problem:
+            raise CommandError(problem)

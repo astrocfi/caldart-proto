@@ -12,9 +12,11 @@ Documentation=file:///opt/caldart/caldart/docs/developer/deployment.rst
 [Timer]
 Unit=caldart-reminders.service
 
-# 07:00 every day, in the system timezone -- early enough that reminders land
+# 07:00 every day, in Pacific time -- early enough that reminders land
 # before members start their day, late enough to be a sane send time.
-OnCalendar=*-*-* 07:00:00
+# The zone is the site's TIME_ZONE, so the timer fires on the site's clock
+# whatever time zone the server is set to.
+OnCalendar=*-*-* 07:00:00 America/Los_Angeles
 
 # If the machine was off or suspended at 07:00, run as soon as it comes back
 # rather than skipping that day's reminders entirely.

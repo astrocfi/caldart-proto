@@ -85,6 +85,7 @@ export function RenewalsPanel(): JSX.Element {
 
   return (
     <JobPanel
+      job="renewals"
       eyebrow="Membership"
       title="Automatic renewal charges"
       description="The automatic renewal charges run every morning at 6:30 AM, before the reminder emails, so a member they renew is not also reminded. They charge the saved card or PayPal account of every member whose automatic renewal is due, after emailing a notice two weeks ahead and a warning when the card is about to expire."

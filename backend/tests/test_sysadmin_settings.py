@@ -468,7 +468,7 @@ def test_the_reminder_timer_runs_daily_at_seven() -> None:
     service = (DEPLOY_DIR / "systemd" / "caldart-reminders.service").read_text()
     timer = (DEPLOY_DIR / "systemd" / "caldart-reminders.timer").read_text()
 
-    assert "manage.py send_renewal_reminders" in service
+    assert "manage.py run_job send_renewal_reminders" in service
     assert "Type=oneshot" in service
     assert "OnCalendar=*-*-* 07:00:00" in timer
     assert "Persistent=true" in timer

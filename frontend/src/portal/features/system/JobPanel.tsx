@@ -1,7 +1,7 @@
 /**
  * One scheduled job's panel on `/portal/system/scheduled`, laid out the same way for
- * every job: what the job does and when the server runs it, a line when the job cannot
- * run, the fields that shape a run (a year, the practice run box), **Run now**, what the
+ * every job: what the job does and when the server runs it, its last recorded run with
+ * **View log**, a line when the job cannot run, the fields that shape a run (a year, the practice run box), **Run now**, what the
  * last run did, and then anything more the job keeps, such as its log.
  *
  * The result sits below **Run now**, so the button never moves when a long result
@@ -14,9 +14,12 @@ import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { actionsHeading } from '@/portal/components/RunActionsTable';
 import { useFocusRunResult } from '@/portal/components/focus';
+import { JobLastRun } from './JobLastRun';
 import './jobPanel.css';
 
 export interface JobPanelProps {
+  /** The job's key, such as `renewals`, whose last recorded run the panel shows. */
+  job: string;
   eyebrow: string;
   title: string;
   /** What the job does and when the server runs it, naming the job. */
@@ -37,6 +40,7 @@ export interface JobPanelProps {
 
 /** A scheduled job's description, controls, result, and anything more, in that order. */
 export function JobPanel({
+  job,
   eyebrow,
   title,
   description,
@@ -52,6 +56,7 @@ export function JobPanel({
   return (
     <Card eyebrow={eyebrow} title={title} className="job-panel">
       <p className="muted">{description}</p>
+      <JobLastRun job={job} />
       {notice}
       {options === undefined ? null : <div className="job-panel__options">{options}</div>}
       <div className="cluster job-panel__run">{action}</div>

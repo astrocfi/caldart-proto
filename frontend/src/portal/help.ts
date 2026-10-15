@@ -83,6 +83,8 @@ export const HELP_PAGES: readonly HelpPage[] = [
   { pattern: '/system/emails', slug: 'admin/sent-emails' },
   { pattern: '/system/emails/:id', slug: 'admin/sent-emails' },
   { pattern: '/system/scheduled', slug: 'admin/scheduled' },
+  { pattern: '/system/jobs/runs/:id', slug: 'admin/job-log' },
+  { pattern: '/system/jobs/:job', slug: 'admin/job-log' },
 ];
 
 /** The user guide page for the screen at `pathname`, or the guide's front page for none. */

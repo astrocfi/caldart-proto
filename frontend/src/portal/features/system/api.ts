@@ -22,6 +22,9 @@ import type {
   EmailLogEntry,
   EmailPurpose,
   Health,
+  JobRun,
+  JobRunDetail,
+  JobStatus,
   MailDeliveryCheck,
   Paginated,
   ReminderKind,
@@ -41,6 +44,8 @@ import type { FilterValues } from '@/portal/reports/types';
 import { API_BASE } from '@/portal/urlPrefix';
 
 export const HEALTH_KEY = ['system', 'health'] as const;
+/** Every scheduled job and how it stands, read by the job panels and the job logs. */
+export const JOBS_KEY = ['system', 'jobs'] as const;
 export const BACKUPS_KEY = ['system', 'backups'] as const;
 export const MAIL_DELIVERY_KEY = ['mail', 'delivery-check'] as const;
 
@@ -192,6 +197,7 @@ export function useStartRenewals(): UseMutationResult<RenewalScan, unknown, void
     mutationFn: () => api.post<RenewalScan>('/system/renewals/run', { dry_run: false }),
     onSuccess: (scan) => {
       queryClient.setQueryData(renewalScanKey(scan.id), scan);
+      void queryClient.invalidateQueries({ queryKey: JOBS_KEY });
     },
   });
 }
@@ -217,6 +223,7 @@ export function useRenewalScan(id: number | null): UseQueryResult<RenewalScan> {
     void queryClient.invalidateQueries({ queryKey: ['admin', 'renewals'] });
     void queryClient.invalidateQueries({ queryKey: ['admin', 'payments'] });
     void queryClient.invalidateQueries({ queryKey: ['system', 'emails'] });
+    void queryClient.invalidateQueries({ queryKey: JOBS_KEY });
   }, [finishedAt, queryClient]);
   return query;
 }
@@ -327,7 +334,13 @@ export function useRunRegistryImport(): UseMutationResult<RegistryImport, unknow
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => api.post<RegistryImport>('/admin/system/registry-import'),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: REGISTRY_KEY }),
+    onSuccess: async () => {
+      // The import is recorded as a run of its job, which the panel's last run line follows.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: REGISTRY_KEY }),
+        queryClient.invalidateQueries({ queryKey: JOBS_KEY }),
+      ]);
+    },
   });
 }
 
@@ -419,5 +432,63 @@ export function useEmailPurposes({ enabled = true }: UseEmailPurposesOptions = {
     queryFn: () => api.get<EmailPurpose[]>('/system/emails/purposes'),
     staleTime: Infinity,
     enabled,
+  });
+}
+
+/** How many runs one page of a job's log holds: the server's standard page. */
+export const JOB_RUNS_PAGE_SIZE = 25;
+
+/** How often the jobs are asked for again while one of them is running. */
+export const JOBS_POLL_MS: number = 5_000;
+
+/**
+ * Every scheduled job, its latest run, and how it stands, via `GET /system/jobs`.
+ * While any job is running it is asked for again every `JOBS_POLL_MS`, so a panel's
+ * last run line reads how that run ended once it does.
+ */
+export function useJobs(): UseQueryResult<JobStatus[]> {
+  return useQuery({
+    queryKey: JOBS_KEY,
+    queryFn: () => api.get<JobStatus[]>('/system/jobs'),
+    staleTime: 15_000,
+    refetchInterval: (query) =>
+      query.state.data?.some((job) => job.state === 'running') === true ? JOBS_POLL_MS : false,
+  });
+}
+
+/** What one page of a job's runs is asked for. */
+export interface JobRunsQuery {
+  /** The job's key, such as `renewals`. */
+  job: string;
+  /** The page, from 1. */
+  page: number;
+  /** `failed` for the runs that failed or stopped, `''` for every run. */
+  outcome: string;
+}
+
+/** One page of a job's recorded runs, newest first, via `GET /system/jobs/{job}/runs`. */
+export function useJobRuns({
+  job,
+  page,
+  outcome,
+}: JobRunsQuery): UseQueryResult<Paginated<JobRun>> {
+  return useQuery({
+    queryKey: [...JOBS_KEY, job, 'runs', outcome, page] as const,
+    queryFn: () =>
+      api.get<Paginated<JobRun>>(`/system/jobs/${encodeURIComponent(job)}/runs`, {
+        query: {
+          page: page > 1 ? page : undefined,
+          outcome: outcome === '' ? undefined : outcome,
+        },
+      }),
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** One recorded run with its output, via `GET /system/jobs/runs/{id}`. */
+export function useJobRun(id: number): UseQueryResult<JobRunDetail> {
+  return useQuery({
+    queryKey: [...JOBS_KEY, 'run', id] as const,
+    queryFn: () => api.get<JobRunDetail>(`/system/jobs/runs/${id}`),
   });
 }

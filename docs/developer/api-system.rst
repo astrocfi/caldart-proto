@@ -12,8 +12,10 @@ before it has a user: ``GET /admin/reminders/log``,
 ``GET /system/emails``, ``GET /system/emails/{id}``, ``GET /system/emails/purposes``,
 ``GET /system/bounces``, ``POST /system/bounces/run`` and ``GET /mail/delivery-check``
 from ``apps.mail``, the health, backup,
-renewal-scan and year-end-statement routes under ``/system/`` and
-``POST /admin/system/registry-import`` from ``apps.sysadmin``, and
+renewal-scan and year-end-statement routes under ``/system/``, the scheduled jobs'
+records (``GET /system/jobs``, ``GET /system/jobs/{job}/runs`` and
+``GET /system/jobs/runs/{id}``), and ``POST /admin/system/registry-import`` from
+``apps.sysadmin``, and
 ``GET /site/config`` from ``apps.cms``.  ``POST /system/bulk-email/run``, which runs
 the bulk email sender by hand, is on :doc:`api-bulk-email` with the rest of bulk
 email.  :doc:`api-reference` covers the conventions they share —
@@ -24,7 +26,8 @@ and when), :doc:`scheduled-reports` (which reports and rosters go out, and
 when), :doc:`renewals` (what the automatic-renewal scan charges and when),
 :doc:`statements` (who is sent a year-end statement and when),
 :doc:`aircraft-registry` (what the FAA registry import reads and writes),
-:doc:`backup-restore` (what a dump contains and how to restore one) and
+:doc:`backup-restore` (what a dump contains and how to restore one),
+:ref:`deploy-job-runs` (how every scheduled run is recorded) and
 :doc:`cms` (where the navigation and the members-only pages come from).
 
 
@@ -515,8 +518,8 @@ Statuses: **200**; **401** when anonymous; **403** for any other role.
 System
 ======
 
-All five routes are ``system_admin`` only, and every one of them is behind
-``/portal/system/health`` in the portal.  Restoring a dump is deliberately not among
+Every route here is ``system_admin`` only, and each is behind one of the System
+pages in the portal: Health and database, Scheduled tasks, or a job's log.  Restoring a dump is deliberately not among
 them: wiping the database is ``manage.py db_restore``, not a browser tab
 (:doc:`backup-restore`).
 
@@ -531,7 +534,9 @@ what is running.
 
    {"db": "ok", "pending_migrations": 0, "disk_free_mb": 41231,
     "last_backup": "2026-01-08T02:00:04-08:00", "version": "0.1.0",
-    "debug": false}
+    "debug": false,
+    "scheduled_jobs": [{"job": "backup", "name": "Nightly backup", "state": "waiting",
+                        "last_run": null, "missed_at": null}]}
 
 ``db``
    ``ok`` when a ``SELECT 1`` succeeds, and ``error: <message>`` when it does
@@ -556,6 +561,15 @@ what is running.
 
 ``debug``
    Whether the server runs with ``DEBUG`` on, which it must not in production.
+
+``scheduled_jobs``
+   Every scheduled job and how it stands, exactly as ``GET /system/jobs`` answers
+   it, and ``null`` when ``db`` is not ``ok`` or the record of runs can't be read,
+   as while ``apps.sysadmin``'s migration waits to be applied after an upgrade; the
+   read runs in a savepoint, so the rest of the report stands.  The portal's
+   **Scheduled jobs** check reads it: a problem for each ``failed`` or ``stopped``
+   job, a warning for each ``overdue`` or ``never_run`` one, and *Unknown* for
+   ``null``.
 
 Statuses: **200**; **401** when anonymous; **403** for every other role.
 
@@ -734,7 +748,10 @@ nothing but the aircraft types and the registrations.  Unlike the other run-now
 endpoints it does not wait for the job: the import downloads about 70 MB, so it
 runs as ``manage.py import_faa_registry --import-id <id>`` in a process of its
 own, started in a new session with the server's output as its own, and the
-answer comes back at once.
+answer comes back at once.  The process runs it through ``manage.py
+run_job --started-by <caller> import_faa_registry --import-id <id>``, so the run is
+recorded as one of the job's runs, with the caller as who started it
+(:ref:`api-system-jobs`).
 
 Before answering, the endpoint writes the ``RegistryImport`` row the command
 then fills in — started now, not finished, its ``source`` the
@@ -776,6 +793,108 @@ reason ``import_running``.
 
 Statuses: **202**; **401** when anonymous; **403** for any other role; **409**
 while an import is running.
+
+.. _api-system-jobs:
+
+Scheduled jobs
+--------------
+
+Every run of a scheduled job through ``manage.py run_job`` is a ``JobRun`` row
+(:ref:`deploy-job-runs`): every run a timer starts, and every real **Run now**,
+under the caller, a practice run apart: ``POST /system/reminders/run``,
+``/system/reports/run``, ``/system/statements/run`` (with ``--year <year>`` as its
+options), ``/system/bounces/run`` (failed with the check's own sentence when the
+mailbox can't be read), and ``/system/bulk-email/run`` each record their real run,
+failed when the command would exit non-zero, and the live renewal scan and the
+registry import record theirs through ``run_job``.  A job is named by its key, the
+``<key>`` of its ``caldart-<key>.timer``: ``backup``, ``registry``, ``reports``,
+``renewals``, ``statements``, ``reminders``, ``bounces``, and ``bulk-email``.  The
+records hold what the runs printed, which can name members and their addresses, so
+all three routes are ``system_admin`` only.
+
+A run reads as one object:
+
+.. code-block:: json
+
+   {
+     "id": 812,
+     "job": "renewals",
+     "name": "Automatic renewal charges",
+     "arguments": "",
+     "started_at": "2026-10-15T06:31:12-07:00",
+     "finished_at": "2026-10-15T06:33:40-07:00",
+     "outcome": "failed",
+     "exit_status": 1,
+     "started_by_name": "",
+     "error": "2 renewal charges need checking; settle them on the finance Renewals tab"
+   }
+
+``name`` is the job's name on the System pages and ``arguments`` the options the
+command was given after its name, as a shell would quote them.  ``outcome`` is
+``running``, ``succeeded``, ``failed``, or ``stopped``: a run still marked running
+longer than its job's stale limit (``stale_after`` in ``apps.sysadmin.jobs.JOBS``),
+whose process is gone.  The row itself stays as it was, so a run that does end late
+is answered as it ended.  ``finished_at`` and ``exit_status`` are null while it
+runs.  ``started_by_name`` is the display name of the system administrator who
+pressed **Run now**, and empty for a run the server started.  ``error`` is a failed
+run's ``CommandError`` text, or ``<type>: <message>`` of an unexpected exception.
+
+``GET /system/jobs``
+~~~~~~~~~~~~~~~~~~~~
+
+Every job in the table, in the order the server runs them through a day, as a
+bare array of ``{job, name, state, last_run, missed_at}``.  ``last_run`` is the
+job's latest run, whoever started it, or null; ``state`` is judged from it and the
+job's timer (:ref:`deploy-job-runs`):
+
+``ok``
+   The latest run succeeded, and none was due since.
+``running``
+   A run is under way and inside its stale limit.
+``waiting``
+   Nothing has run, and no trigger has passed since the site began recording runs.
+``failed``
+   The latest run failed.
+``stopped``
+   The latest run reads ``stopped``.
+``overdue``
+   The latest run succeeded, but the timer fired at least the job's grace period
+   ago and no run started since.  ``missed_at`` is that trigger.
+``never_run``
+   Nothing has run, though a trigger passed since the site began recording runs.
+   ``missed_at`` is the latest such trigger.
+
+``missed_at`` is null in every other state.
+
+Statuses: **200**; **401** when anonymous; **403** for any other role.
+
+``GET /system/jobs/{job}/runs``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+One job's runs, newest first, with the standard pagination (25 by default,
+``page_size`` up to 200), each run as above and without its output.  ``?outcome=failed``
+keeps the runs that failed and the ones that read ``stopped``.
+
+Statuses: **200**; **400** with ``{"outcome": ["Choose failed, or leave it out."]}``
+for any other ``outcome``; **401** when anonymous; **403** for any other role; **404**
+with ``{"detail": "No such scheduled job."}`` for a key the table does not have.
+
+``GET /system/jobs/runs/{id}``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+One run, as above, with three more fields:
+
+``output``
+   Everything the command wrote to standard output and standard error, and every
+   line a console logging handler printed, interleaved in the order written: the
+   last 65,536 characters of it.
+``output_truncated``
+   Whether the run wrote more than that, so ``output`` is its tail.
+``traceback``
+   The traceback of an unexpected exception, and empty otherwise.
+
+Statuses: **200**; **401** when anonymous; **403** for any other role; **404** for
+an id that isn't a run's, as for a run pruned for its age.
 
 
 Site
@@ -855,3 +974,19 @@ Tests
    Run now answering 202 with the unfinished row, the launcher handed that row,
    the 409 while an import runs, a stale import closed as *Did not finish.*,
    the audit lines, the role matrix, and the launcher's command line.
+
+``backend/tests/test_job_runs_api.py``
+   The role matrix on the three job routes, the job list's order and states, the
+   runs list's order, pagination and ``stopped`` reading, one run's output, the
+   404s, and ``scheduled_jobs`` in the health payload.
+
+``backend/tests/test_job_runs.py``
+   ``manage.py run_job``: a success, a ``CommandError`` and an unexpected
+   exception recorded and raised again, the output and the log lines captured in
+   order, the size cap, the pruning, and the backup's own prune.
+
+``backend/tests/test_job_status.py``
+   The schedule read from each ``OnCalendar=`` value, every state a job can be
+   in, and the table of jobs held to ``deploy/systemd/``: each timer's
+   ``OnCalendar=``, each service's ``run_job`` line, and each
+   ``TimeoutStartSec=`` within the job's stale limit.

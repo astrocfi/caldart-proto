@@ -478,7 +478,7 @@ docs/developer/api-renewals.rst 16
 docs/developer/api-reports.rst 5
 docs/developer/api-system.rst 28
 docs/developer/architecture.rst 35
-docs/developer/backup-restore.rst 14
+docs/developer/backup-restore.rst 13
 docs/developer/bulk-email.rst 38
 docs/developer/cms.rst 11
 docs/developer/configuration.rst 18
@@ -512,7 +512,7 @@ docs/user/admin/members.rst 5
 docs/user/admin/new-member.rst 3
 docs/user/admin/notifications.rst 10
 docs/user/admin/reminders.rst 2
-docs/user/admin/scheduled.rst 26
+docs/user/admin/scheduled.rst 25
 docs/user/admin/sent-emails.rst 3
 docs/user/admin/subscriptions.rst 13
 docs/user/admin/user-password.rst 1

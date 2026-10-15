@@ -1873,6 +1873,62 @@ export interface Health {
   last_backup: IsoDateTime | null;
   version: string;
   debug: boolean;
+  /** Each scheduled job's state, as `GET /system/jobs` answers it; null while unreadable. */
+  scheduled_jobs: JobStatus[] | null;
+}
+
+/**
+ * How a recorded run of a scheduled job ended: `stopped` is a run still unfinished
+ * past its job's stale limit, whose process is gone.
+ */
+export type JobRunOutcome = 'running' | 'succeeded' | 'failed' | 'stopped';
+
+/**
+ * How a scheduled job stands: `waiting` before anything was due, `overdue` when no run
+ * followed a trigger, and `never_run` when none ever has though one was due.
+ */
+export type JobState =
+  'ok' | 'running' | 'waiting' | 'failed' | 'stopped' | 'overdue' | 'never_run';
+
+/**
+ * One recorded run of a scheduled job, without its output. `started_by_name` is blank
+ * for a run the server started; `finished_at` and `exit_status` are null while it runs.
+ */
+export interface JobRun {
+  id: number;
+  /** The job's key, such as `renewals`. */
+  job: string;
+  /** The job's name on the System pages. */
+  name: string;
+  /** The options the command was given, as a command line. */
+  arguments: string;
+  started_at: IsoDateTime;
+  finished_at: IsoDateTime | null;
+  outcome: JobRunOutcome;
+  exit_status: number | null;
+  started_by_name: string;
+  /** A failed run's message. */
+  error: string;
+}
+
+/** One recorded run with everything it wrote, via `GET /system/jobs/runs/{id}`. */
+export interface JobRunDetail extends JobRun {
+  /** Standard output and standard error, interleaved; only the tail when `output_truncated`. */
+  output: string;
+  output_truncated: boolean;
+  /** The traceback of an unexpected exception, or blank. */
+  traceback: string;
+}
+
+/** One scheduled job and how it stands, via `GET /system/jobs`. */
+export interface JobStatus {
+  job: string;
+  name: string;
+  state: JobState;
+  /** The job's latest run, whoever started it. */
+  last_run: JobRun | null;
+  /** The trigger no run followed, for `overdue` and `never_run`. */
+  missed_at: IsoDateTime | null;
 }
 
 /** How one line of the mail delivery check turned out. */

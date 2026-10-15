@@ -4,6 +4,7 @@ import { HttpResponse, http } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { makeRegistryImport, makeRegistryStatus } from '@test/fixtures/registry';
+import { makeJobStatus } from '@test/fixtures/jobs';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
@@ -163,5 +164,19 @@ describe('<RegistryPanel/>', () => {
     await waitFor(() =>
       expect(screen.getByRole('alert')).toHaveTextContent('An import is already running.'),
     );
+  });
+});
+
+describe('RegistryPanel and the nightly load', () => {
+  it("links to the nightly load's log", async () => {
+    server.use(
+      http.get(`${API}/system/jobs`, () =>
+        HttpResponse.json([makeJobStatus({ job: 'registry', name: 'FAA aircraft data load' })]),
+      ),
+    );
+    renderWithProviders(<RegistryPanel />);
+    expect(
+      await screen.findByRole('link', { name: 'View log: FAA aircraft data load' }),
+    ).toHaveAttribute('href', '/system/jobs/registry');
   });
 });

@@ -37,14 +37,12 @@ Environment=PYTHONUNBUFFERED=1
 Environment=PYTHONDONTWRITEBYTECODE=1
 
 # Writes BACKUP_DIR/caldart-<timestamp>.sql.gz with the local pg_dump
-# (DB_BACKUP_VIA_DOCKER=false).
-ExecStart=/opt/caldart/caldart/.venv/bin/python /opt/caldart/caldart/backend/manage.py db_backup
-
-# Nothing rotates dumps, so the same run drops the generated ones older than
-# BACKUP_RETENTION_DAYS.  systemd expands both variables from the environment
-# file, so the prune reads the directory the dump just wrote to; a dump given
-# its own --name is never matched.  A oneshot fails if either line fails.
-ExecStart=/usr/bin/find ${BACKUP_DIR} -name 'caldart-*.sql.gz' -mtime +${BACKUP_RETENTION_DAYS} -delete
+# (DB_BACKUP_VIA_DOCKER=false), then, since nothing else rotates dumps, deletes
+# the generated ones more than BACKUP_RETENTION_DAYS days old; a dump given its
+# own --name is never matched.  systemd expands the variable from the
+# environment file.  run_job keeps a record of the run, with its output and how
+# it ended, for the System pages; the journal still gets all the output.
+ExecStart=/opt/caldart/caldart/.venv/bin/python /opt/caldart/caldart/backend/manage.py run_job db_backup --prune-days ${BACKUP_RETENTION_DAYS}
 
 # pg_dump on a large database is not quick.
 TimeoutStartSec=3600

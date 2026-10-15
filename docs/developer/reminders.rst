@@ -297,11 +297,12 @@ Production runs it from a systemd timer, not cron, so that the run is a unit
 with logs, status, and a catch-up policy:
 
 ``deploy/systemd/caldart-reminders.service``
-   ``Type=oneshot``, runs ``manage.py send_renewal_reminders`` as the
+   ``Type=oneshot``, runs ``manage.py run_job send_renewal_reminders`` as the
    ``caldart`` user with ``EnvironmentFile=/etc/caldart/caldart.env``.
 
 ``deploy/systemd/caldart-reminders.timer``
-   ``OnCalendar=*-*-* 07:00:00`` in the system timezone, ``Persistent=true`` so
+   ``OnCalendar=*-*-* 07:00:00 America/Los_Angeles``, the site's ``TIME_ZONE``
+   whatever zone the server is set to, ``Persistent=true`` so
    a machine that was off at 07:00 catches up when it comes back, and a five
    minute randomized delay so the scan does not collide with every other 07:00
    job on the host.
@@ -320,13 +321,12 @@ Running it by hand is safe at any time::
 
   sudo systemctl start caldart-reminders.service
 
-**Changing the cadence.**  Edit ``OnCalendar`` in the timer and reload::
-
-  sudo systemctl daemon-reload
-  sudo systemctl restart caldart-reminders.timer
-
-``OnCalendar=*-*-* 06:30:00`` moves it to 06:30; ``Mon *-*-* 07:00:00`` makes
-it weekly.  The scanner is date-driven and idempotent, so running it more often
+**Changing the cadence.**  Change ``OnCalendar`` in
+``deploy/systemd/caldart-reminders.timer`` and the job's ``on_calendar`` in
+``apps.sysadmin.jobs.JOBS`` in the same commit, which ``test_job_status.py`` holds
+together, and upgrade; the upgrade reinstalls the timer.
+``OnCalendar=*-*-* 06:30:00 America/Los_Angeles`` moves it to 06:30.  The table
+reads daily, hourly, every-minute, and yearly forms.  The scanner is date-driven and idempotent, so running it more often
 simply finds nothing new, and a missed morning costs nothing: the stages are
 spans, so the next run finds everyone the missed one would have
 (:ref:`reminders-stages`).  A weekly timer is the point at which that stops

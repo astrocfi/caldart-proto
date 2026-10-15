@@ -152,6 +152,21 @@ def test_the_launcher_starts_the_command_in_its_own_session(
     assert detached is True
 
 
+def test_the_launcher_records_the_run_as_the_administrators(
+    monkeypatch: pytest.MonkeyPatch, system_admin: User
+) -> None:
+    """The scan runs through ``run_job``, naming who pressed **Run now**."""
+    calls: list[list[str]] = []
+
+    def record(argv: list[str], *, start_new_session: bool) -> None:
+        calls.append(argv)
+
+    monkeypatch.setattr(subprocess, "Popen", record)
+    scan = RenewalScan.objects.create(started_by=system_admin)
+    background.launch_scan(scan)
+    assert calls[0][2:5] == ["run_job", "--started-by", str(system_admin.pk)]
+
+
 # --------------------------------------------------------------------------
 # Reading a scan back
 # --------------------------------------------------------------------------

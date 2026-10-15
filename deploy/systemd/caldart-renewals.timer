@@ -12,10 +12,12 @@ Documentation=file:///opt/caldart/caldart/docs/developer/deployment.rst
 [Timer]
 Unit=caldart-renewals.service
 
-# 06:30 every day, in the system timezone -- half an hour before the reminder
+# 06:30 every day, in Pacific time -- half an hour before the reminder
 # scan, so a membership this run renews is never also sent a reminder about
 # running out.
-OnCalendar=*-*-* 06:30:00
+# The zone is the site's TIME_ZONE, so the timer fires on the site's clock
+# whatever time zone the server is set to.
+OnCalendar=*-*-* 06:30:00 America/Los_Angeles
 
 # If the machine was off or suspended at 06:30, run as soon as it comes back
 # rather than skipping that day's renewals entirely.

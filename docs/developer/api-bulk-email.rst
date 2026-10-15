@@ -578,7 +578,9 @@ finishes any email left ``sending``, then starts and sends every queued email wh
 proxy's limit on a request.  An email still going then is left ``sending`` for the
 timer's next run.  ``system_admin`` only.  No body
 is taken; there is no dry run, because the sender sends only what CalDART
-management has already pressed **Send** on.
+management has already pressed **Send** on.  The run is recorded as a run of the
+``bulk-email`` job under the caller (:ref:`api-system-jobs`); one that found the
+sender busy, or didn't have an email due, replaces the job's previous such record.
 
 .. code-block:: json
 

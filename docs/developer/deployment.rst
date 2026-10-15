@@ -300,7 +300,9 @@ What you are deploying
                 **dashed arrow** is an outbound call; a **dotted arrow** is a
                 file written to disk.  Every job service reads its settings
                 from the same environment file as ``caldart-web.service``, so
-                the server runs nine services in all.
+                the server runs nine services in all, and runs its command
+                through ``manage.py run_job``, which records the run
+                (:ref:`deploy-job-runs`).
       :alt: The eight CalDART timers and their services, each using
             Postgres; five send mail, the renewals job also charges through
             Stripe and PayPal, the registry job downloads the FAA registry,
@@ -316,14 +318,14 @@ What you are deploying
           edge [fontname="Helvetica", fontsize=11];
 
           Env [label="/etc/caldart/caldart.env\l  EnvironmentFile for\l  every job service\l", shape=note, style=""];
-          Reports [label="caldart-reports.timer\l  daily 06:00 ->\l  caldart-reports.service\l  manage.py send_scheduled_reports\l"];
-          Renewals [label="caldart-renewals.timer\l  daily 06:30 ->\l  caldart-renewals.service\l  manage.py run_auto_renewals\l"];
-          Reminders [label="caldart-reminders.timer\l  daily 07:00 ->\l  caldart-reminders.service\l  manage.py send_renewal_reminders\l"];
-          Statements [label="caldart-statements.timer\l  yearly Jan 15, 06:45 ->\l  caldart-statements.service\l  manage.py send_year_statements\l"];
-          Bounces [label="caldart-bounces.timer\l  hourly at :20 ->\l  caldart-bounces.service\l  manage.py check_bounces\l"];
-          BulkEmail [label="caldart-bulk-email.timer\l  every minute ->\l  caldart-bulk-email.service\l  manage.py send_bulk_emails\l"];
-          Registry [label="caldart-registry.timer\l  daily 04:30 ->\l  caldart-registry.service\l  manage.py import_faa_registry\l"];
-          Backup [label="caldart-backup.timer\l  daily 03:30 ->\l  caldart-backup.service\l  manage.py db_backup,\l  then prunes old dumps\l"];
+          Reports [label="caldart-reports.timer\l  daily 06:00 ->\l  caldart-reports.service\l  manage.py run_job send_scheduled_reports\l"];
+          Renewals [label="caldart-renewals.timer\l  daily 06:30 ->\l  caldart-renewals.service\l  manage.py run_job run_auto_renewals\l"];
+          Reminders [label="caldart-reminders.timer\l  daily 07:00 ->\l  caldart-reminders.service\l  manage.py run_job send_renewal_reminders\l"];
+          Statements [label="caldart-statements.timer\l  yearly Jan 15, 06:45 ->\l  caldart-statements.service\l  manage.py run_job send_year_statements\l"];
+          Bounces [label="caldart-bounces.timer\l  hourly at :20 ->\l  caldart-bounces.service\l  manage.py run_job check_bounces\l"];
+          BulkEmail [label="caldart-bulk-email.timer\l  every minute ->\l  caldart-bulk-email.service\l  manage.py run_job send_bulk_emails\l"];
+          Registry [label="caldart-registry.timer\l  daily 04:30 ->\l  caldart-registry.service\l  manage.py run_job import_faa_registry\l"];
+          Backup [label="caldart-backup.timer\l  daily 03:30 ->\l  caldart-backup.service\l  manage.py run_job db_backup,\l  then prunes old dumps\l"];
           Dumps [label="/opt/caldart/backups/\l  BACKUP_DIR, kept for\l  BACKUP_RETENTION_DAYS\l", shape=folder, style=""];
           Faa [label="registry.faa.gov\l  ReleasableAircraft.zip\l"];
           Stripe [label="Stripe and PayPal\l  off-session charges\l"];
@@ -380,50 +382,50 @@ What you are deploying
                                                 :CALDART_DB_PORT, 5432 by default
       caldart-backup.timer, daily 03:30               ^
         -> caldart-backup.service                     |
-           manage.py db_backup -----------------------|
+           manage.py run_job db_backup ---------------|
            -> /opt/caldart/backups (BACKUP_DIR),      |
               then deletes                            |
               dumps older than BACKUP_RETENTION_DAYS  |
                                                       |
       caldart-registry.timer, daily 04:30             |
         -> caldart-registry.service                   |
-           manage.py import_faa_registry -------------|
+           manage.py run_job import_faa_registry -----|
            -> registry.faa.gov, for the FAA's         |
               Releasable Aircraft Database            |
                                                       |
       caldart-reports.timer, daily 06:00              |
         -> caldart-reports.service                    |
-           manage.py send_scheduled_reports ----------|
+           manage.py run_job send_scheduled_reports --|
            -> the SMTP server, for the report         |
               subscriptions and the DART rosters      |
                                                       |
       caldart-renewals.timer, daily 06:30             |
         -> caldart-renewals.service                   |
-           manage.py run_auto_renewals ---------------|
+           manage.py run_job run_auto_renewals -------|
            -> Stripe / PayPal for the off-session     |
               charges, and the SMTP server for the    |
               renewal notices and receipts            |
                                                       |
       caldart-reminders.timer, daily 07:00            |
         -> caldart-reminders.service                  |
-           manage.py send_renewal_reminders ----------|
+           manage.py run_job send_renewal_reminders --|
            -> the SMTP server from EMAIL_URL          |
                                                       |
       caldart-statements.timer, yearly Jan 15, 06:45  |
         -> caldart-statements.service                 |
-           manage.py send_year_statements ------------|
+           manage.py run_job send_year_statements ----|
            -> the SMTP server, for the contribution   |
               statements                              |
                                                       |
       caldart-bounces.timer, hourly at :20            |
         -> caldart-bounces.service                    |
-           manage.py check_bounces -------------------|
+           manage.py run_job check_bounces -----------|
            -> the bounce mailbox over IMAPS, from     |
               BOUNCE_IMAP_URL                         |
                                                       |
       caldart-bulk-email.timer, every minute          |
         -> caldart-bulk-email.service                 |
-           manage.py send_bulk_emails ----------------'
+           manage.py run_job send_bulk_emails --------'
            -> the SMTP server, for each bulk email
               whose start time has come
 
@@ -1527,8 +1529,9 @@ before the reminder scan deliberately: a membership this scan renews is then
 never also sent a reminder about running out on the same morning.  Unlike the
 reminder scan it calls Stripe and PayPal, so the unit needs the same payment
 keys the web service has; they come from the same ``/etc/caldart/caldart.env``.
-**Run now** on the Scheduled tasks page starts the same command as a child of
-``caldart-web``, outside the request, so its output is in that unit's journal.  A
+**Run now** on the Scheduled tasks page starts the same command, through
+``run_job``, as a child of ``caldart-web``, outside the request, so its output is in
+that unit's journal and its record names the administrator who pressed it.  A
 scan stopped mid-charge, by a timeout, a crash, or a restart, needs nothing from
 the operator: the next scan settles each unfinished charge with the provider
 before charging anything (:ref:`renewals-scanner`).
@@ -1602,7 +1605,8 @@ the database and an outbound HTTPS connection to ``registry.faa.gov``.  The
 ``systemctl start`` above runs the first import straight away, so the aircraft
 type picker has its vocabulary before anybody opens it.  A system administrator
 can also start an import from the Health and database page (**Run now** on the
-*FAA aircraft data* panel); that import runs as a child of ``caldart-web``, so
+*FAA aircraft data* panel); that import runs through ``run_job`` as a child of
+``caldart-web``, recorded under the administrator who pressed it, so
 restarting the web service while one is under way stops it, and the next press
 after ``REGISTRY_IMPORT_STALE_MINUTES`` records it as *Did not finish.* and
 starts another.  See :doc:`aircraft-registry` for what the import reads and
@@ -1675,9 +1679,11 @@ The backup timer is installed with the other scheduled jobs::
   sudo systemctl enable --now caldart-backup.timer
   systemctl list-timers caldart-backup.timer
 
-Daily at 03:30, with catch-up if the machine was off.  Each run writes a dump
-to ``BACKUP_DIR`` and deletes the generated dumps older than
-``BACKUP_RETENTION_DAYS`` (30 in the environment file the installer writes).
+Daily at 03:30, with catch-up if the machine was off.  Each run, ``manage.py
+run_job db_backup --prune-days ${BACKUP_RETENTION_DAYS}``, writes a dump to
+``BACKUP_DIR`` and deletes the generated dumps more than ``BACKUP_RETENTION_DAYS``
+days old (30 in the environment file the installer writes), so the record of the
+run lists every dump it deleted.
 Then ``steps/backup.sh`` takes one straight away, so a fresh install has a dump
 before anything else happens::
 
@@ -1685,6 +1691,84 @@ before anything else happens::
 
 :doc:`backup-restore` covers the commands, the timer, retention, copying dumps
 off the machine, and restoring.
+
+
+.. _deploy-job-runs:
+
+The record of every scheduled run
+=================================
+
+Every job service's ``ExecStart=`` runs its command through ``manage.py run_job``,
+such as ``manage.py run_job run_auto_renewals``.  ``run_job`` runs the command with
+``call_command`` and passes every option after its name on unchanged.  What the
+command writes still goes to standard output and standard error, so **the journal
+keeps everything**, as ``journalctl -u caldart-<job>`` shows it, and the process
+exits with the status the command alone would have: 2 for options the command's
+parser refuses, a ``CommandError``'s ``returncode``, 1 for an unexpected exception,
+whose traceback Python prints as before, and 143 for ``SIGTERM``, as when systemd
+stops the unit at ``TimeoutStartSec=``: the row is first closed as failed with
+*Stopped by the server before it finished.*, then the process ends of the same
+signal.  ``run_job`` refuses ``-h`` and ``--help`` among the options, exiting 1,
+since the help would be recorded as a run; ``manage.py <command> --help`` prints it.  A unit that fails still reads ``failed`` to systemd: ``run_auto_renewals``
+exits non-zero every morning while a renewal charge waits for a treasurer, for one.
+
+**The site keeps a copy** as a ``sysadmin.JobRun`` row (:doc:`data-model`): the
+job's key, the options, when the run started and finished, its outcome and exit
+status, who started it, and its output, with standard output, standard error, and
+every line a console logging handler printed interleaved in the order written.
+The row keeps the last 65,536 characters of the output and says when it cut the
+rest; it keeps a ``CommandError``'s text, or an exception's type, message, and
+traceback, without any NUL character, which Postgres text refuses.  Rows older
+than 90 days are deleted whenever a run starts, and a run that succeeded without
+finding anything to do (a bulk sender minute when nothing was due) replaces the
+job's previous such row, so the sender keeps one quiet run and every run that sent
+mail.  A run long enough to outlive its database connection gets a fresh one before
+the row is saved.  Both limits are ``OUTPUT_LIMIT`` and ``RETENTION`` in ``apps/sysadmin/recording.py``.  A
+system administrator reads the rows on each job's log in the portal, from **View
+log** on the Scheduled tasks and Health and database pages, through the
+``/system/jobs`` routes (:ref:`api-system-jobs`).  When the row cannot be written,
+as with the database down, the command runs anyway, unrecorded, and a warning says
+why.
+
+A run the timer starts doesn't name a starter.  The two **Run now** presses that
+start a process of their own, a live renewal scan and an FAA registry import, run
+``run_job --started-by <id>``, so their rows name the administrator.  Every other real
+**Run now** runs inside the request through ``recorded_request_run``
+(``apps/sysadmin/recording.py``), under the caller: its output is the lines the
+command would print and the log lines of the request's own thread, and it fails as the
+command would, so a real run that succeeds clears a failure from the health check.
+A practice run isn't recorded, and neither is a renewal scan that finds another one
+under way, which the scan under way covers.  A command run by hand with ``sudo deploy/manage.sh run_job <command> ...``
+is recorded as the server's; ``sudo deploy/manage.sh <command> ...`` is not
+recorded at all, which is the way to rehearse with ``--dry-run`` without the
+rehearsal becoming the job's latest run.
+
+The output names members and their addresses, and is shown only to system
+administrators.  None of the commands prints a credential: the backup prints the
+dump's path and size, and ``pg_dump``'s errors don't carry a password, which reaches it
+through ``PGPASSWORD``; the bounce check's errors name the mailbox's host and never
+its password; and the payment providers' errors name a charge, never a key.
+
+**The table of jobs** is ``JOBS`` in ``apps/sysadmin/jobs.py``: each job's key (the
+``<key>`` of ``caldart-<key>.timer``), its command, its name on the website, its
+timer's ``OnCalendar=`` value, a grace period, and a stale limit.
+``backend/tests/test_job_status.py`` holds the table to ``deploy/systemd/``: every
+timer has an entry, every ``OnCalendar=`` matches, every service runs its command
+through ``run_job``, and no stale limit is shorter than the unit's
+``TimeoutStartSec=``.  Changing a timer's schedule therefore means changing the
+table in the same commit.
+
+The **Scheduled jobs** health check reads each job's latest row against the table.
+Every timer's ``OnCalendar=`` names the site's ``TIME_ZONE``,
+``America/Los_Angeles``, so it fires on the site's clock whatever time zone the
+server is set to, and the check reads the schedule in that same zone; the drift test
+fails a timer that names another.  A job is a problem when its latest run failed, or is still
+unfinished past its stale limit (the process is gone, so the run reads as
+*stopped*).  It is a warning when its timer fired at least the grace period ago
+and no run started since, or when it has never run although a trigger has passed
+since the site began recording, which is when ``apps.sysadmin``'s first migration
+was applied: on a fresh install, until each job's first trigger, nothing is
+expected.
 
 
 .. _deploy-check:
@@ -1731,7 +1815,8 @@ same report as ``GET /system/health`` and the health panel of
 through ``DATABASE_URL``, which step 5 wrote with the recorded database port.  It
 reports database connectivity, pending
 migrations, free space on the backup filesystem, the last backup, the version
-from ``pyproject.toml``, and whether ``DEBUG`` is on.  The step requires
+from ``pyproject.toml``, whether ``DEBUG`` is on, and each scheduled job's state
+(:ref:`deploy-job-runs`), which the step reads but does not require.  The step requires
 ``debug`` to be ``false`` and ``pending_migrations`` to be ``0``.  Then it
 prints the summary described under :ref:`deploy-install-scripts`.
 
@@ -1891,6 +1976,9 @@ Logs
 ====
 
 Everything goes to the journal; there are no application log files to rotate.
+The site also keeps the last 90 days of every scheduled job's runs, with their
+output, for system administrators to read from the portal
+(:ref:`deploy-job-runs`).
 
 ===========================  =================================================
 What                         Where
@@ -2179,6 +2267,14 @@ list so that no upgrade can leave a box without ``caldart_cache``.
 ``preload_app`` is on, so a restart, and not a reload, is what picks up new
 code.  The timers start a fresh process on every run, so they pick up the new
 code by themselves; reinstalling their units carries any change to a unit file.
+
+The job units call ``manage.py run_job``, which writes to the ``sysadmin_jobrun``
+table.  Step 6's ``migrate`` creates that table before step 8 reinstalls the units,
+so every run after the upgrade is recorded.  An upgrade onto a release whose units
+first call ``run_job`` leaves the runs before it in the journal alone, and the
+**Scheduled jobs** health check counts from that migration: a job reads as never
+run only once its timer has fired since.  The backup unit's prune is part of
+``db_backup --prune-days``, so the reinstalled unit has one ``ExecStart=`` line.
 
 An upgrade never touches the environment file, the vhost, or the snippet.  It
 keeps the recorded gunicorn and Postgres ports: each step it runs reads the

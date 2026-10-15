@@ -408,6 +408,11 @@ SPECTACULAR_SETTINGS = {
         "CalloutAnswerEnum": "apps.bulk_email.models.CalloutAnswerKind.choices",
         # The portal's and the public donation page's mock completions share one set.
         "MockCompleteOutcomeEnum": "apps.payments.api.serializers.MOCK_OUTCOMES",
+        # A job's ``state`` would otherwise share the US state's field name and push a
+        # hash suffix onto both enums.
+        "StateEnum": "apps.members.models.US_STATE_VALUES",
+        "JobStateEnum": "apps.sysadmin.jobs.JOB_STATES",
+        "JobRunOutcomeEnum": "apps.sysadmin.jobs.RUN_OUTCOMES",
     },
     # A read-only field and a write-only one describe different objects, so the
     # request body gets its own component; that is the split the portal's

@@ -14,7 +14,9 @@ Unit=caldart-bulk-email.service
 
 # At the start of every minute, so a send queued with its undo window starts
 # within a minute of the window closing.
-OnCalendar=*-*-* *:*:00
+# The zone is the site's TIME_ZONE, so the timer fires on the site's clock
+# whatever time zone the server is set to.
+OnCalendar=*-*-* *:*:00 America/Los_Angeles
 
 # A run missed while the machine was off is simply the next minute's run.
 Persistent=false

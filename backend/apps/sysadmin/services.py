@@ -13,7 +13,7 @@ import shutil
 import subprocess
 import tomllib
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import lru_cache
 from pathlib import Path
 from tempfile import TemporaryFile
@@ -21,10 +21,12 @@ from typing import IO, TYPE_CHECKING, Any, cast
 from urllib.parse import quote
 
 from django.conf import settings
-from django.db import connection
+from django.db import DatabaseError, connection, transaction
 from django.utils import timezone
 
 from apps.aircraft.models import Registration
+from apps.sysadmin.jobs import JobStatus, job_statuses
+from apps.sysadmin.models import JobRun
 from caldart import audit
 
 if TYPE_CHECKING:
@@ -40,6 +42,16 @@ STREAM_CHUNK_BYTES = 1024 * 1024
 #: leading dot, and the suffix we write -- which is what makes
 #: ``GET /system/backups/<name>/download`` safe against path traversal.
 BACKUP_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*\.sql\.gz$")
+
+#: The dumps a prune may delete: the names :func:`create_backup` generates.  A dump
+#: given its own ``--name`` matches only if that name has the same shape.
+GENERATED_BACKUP_GLOB = f"caldart-*{BACKUP_SUFFIX}"
+
+#: The error a run a restored dump caught under way is closed with.
+RESTORED_MID_RUN = "The database was restored from a backup taken while this run was under way."
+
+#: The fewest days a prune keeps, so the dump just written always survives it.
+MIN_PRUNE_DAYS = 1
 
 
 class BackupError(RuntimeError):
@@ -298,6 +310,26 @@ def create_backup(name: str | None = None) -> BackupFile:
     return _backup_file(target)
 
 
+def prune_backups(days: int, *, now: datetime | None = None) -> list[str]:
+    """Delete the generated dumps more than ``days`` days old; return their names.
+
+    Age is read from each file's modification time, against ``now`` (the current
+    time).  Only names matching :data:`GENERATED_BACKUP_GLOB` are considered, and the
+    names come back oldest first.  Raises ``ValueError`` for ``days`` below
+    :data:`MIN_PRUNE_DAYS`, so the dump a run has just written is never among them.
+    """
+    if days < MIN_PRUNE_DAYS:
+        raise ValueError(f"days must be at least {MIN_PRUNE_DAYS}, not {days}")
+    cutoff = (now or timezone.now()) - timedelta(days=days)
+    generated = [
+        _backup_file(path) for path in backup_dir().glob(GENERATED_BACKUP_GLOB) if path.is_file()
+    ]
+    expired = sorted((f for f in generated if f.created_at < cutoff), key=lambda f: f.created_at)
+    for backup in expired:
+        backup.path.unlink(missing_ok=True)
+    return [backup.name for backup in expired]
+
+
 def restore_backup(path: Path, *, drop_first: bool = True) -> None:
     """Restore a gzipped dump over the current database.
 
@@ -310,7 +342,9 @@ def restore_backup(path: Path, *, drop_first: bool = True) -> None:
     that is already there untouched.
 
     A restore only ever runs from the command line, so the audit record it
-    writes on success names ``command`` as the actor and the dump's file name.
+    writes on success names ``command`` as the actor and the dump's file name.  Every
+    scheduled run the dump caught under way, such as the backup that took it, is
+    closed by :func:`close_restored_runs`.
     """
     if not path.is_file():
         raise BackupError(f"No such backup: {path}")
@@ -333,7 +367,27 @@ def restore_backup(path: Path, *, drop_first: bool = True) -> None:
     with opener(path, "rb") as handle:
         _stream_pg([*argv, "--quiet", "--dbname", _dbname_url_for(argv)], "psql", source=handle)
 
+    close_restored_runs()
     audit.record(audit.BACKUP_RESTORE, actor=audit.COMMAND_ACTOR, file=audit.safe_slug(path.name))
+
+
+def close_restored_runs() -> int:
+    """Close every recorded run still under way as failed with :data:`RESTORED_MID_RUN`.
+
+    A dump holds the record of every run under way while it was taken, the backup's
+    own among them, and no process is left to finish those rows once the dump is
+    restored.  Returns how many were closed; a dump taken before the record existed
+    doesn't hold a table for it, and then the count is 0.
+    """
+    try:
+        with transaction.atomic():
+            return JobRun.objects.filter(outcome=JobRun.Outcome.RUNNING).update(
+                outcome=JobRun.Outcome.FAILED,
+                finished_at=timezone.now(),
+                error=RESTORED_MID_RUN,
+            )
+    except DatabaseError:
+        return 0
 
 
 def drop_schema() -> None:
@@ -380,6 +434,8 @@ def health() -> dict[str, Any]:
 
     Disk space is measured on ``BACKUP_DIR``: that is the filesystem that fills
     up first, and the one that has to have room for the next ``pg_dump``.
+    ``scheduled_jobs`` is :func:`readable_job_statuses`, read only while the database
+    answers, and ``None`` when it does not or the record of runs can't be read.
     """
     try:
         with connection.cursor() as cursor:
@@ -399,4 +455,19 @@ def health() -> dict[str, Any]:
         "last_backup": backups[0].created_at.isoformat() if backups else None,
         "version": app_version(),
         "debug": settings.DEBUG,
+        "scheduled_jobs": readable_job_statuses() if db_status == "ok" else None,
     }
+
+
+def readable_job_statuses() -> list[JobStatus] | None:
+    """``job_statuses``, or ``None`` when the record of runs can't be read.
+
+    The read runs in a savepoint, so a database refusing it, as while this app's
+    migration has yet to be applied after an upgrade, leaves the request's transaction
+    usable and the rest of the health report standing.
+    """
+    try:
+        with transaction.atomic():
+            return job_statuses()
+    except DatabaseError:
+        return None
