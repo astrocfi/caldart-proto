@@ -124,7 +124,7 @@ parse_flags() {
                 PASSTHROUGH+=("$1")
                 ;;
             --help)
-                # Piped into bash there is no file to read the header from.
+                # Piped into bash, there isn't a file to read the header from.
                 if [[ -f "${BASH_SOURCE[0]}" ]]; then
                     print_help "${BASH_SOURCE[0]}"
                 else

@@ -154,7 +154,7 @@ remove_vhost() {
 }
 
 # Print the first entry of the deploy root that the install did not make: not
-# the checkout, backups/, or media/.  Nothing when there is none.
+# the checkout, backups/, or media/.  Nothing when there isn't one.
 foreign_entry() {
     find "$ROOT" -mindepth 1 -maxdepth 1 ! -name "$(basename "$CHECKOUT")" \
         ! -name backups ! -name media -print -quit

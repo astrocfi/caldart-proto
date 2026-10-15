@@ -2425,7 +2425,9 @@ def test_a_vhost_with_no_block_is_refused(
     vhost = tmp_path / "site.conf"
     vhost.write_text("# nothing here\n")
     result = _attach(root, web_server, vhost)
-    assert _errors(result) == [f"error: {vhost} holds no {block} block to include the snippet in"]
+    assert _errors(result) == [
+        f"error: {vhost} doesn't hold a {block} block to include the snippet in"
+    ]
 
 
 def test_a_missing_vhost_is_refused(root: Path, tmp_path: Path) -> None:

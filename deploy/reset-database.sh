@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 #
-# CalDART - empty the site's database and start it again from nothing.
+# CalDART - empty the site's database and start it again from scratch.
 #
 # Takes a backup, stops caldart-web and the scheduled jobs, drops every table
 # (manage.py db_reset), runs the database step again (the migrations, the cache
 # table, the role groups, the membership plans, the static files, and, with the
 # flags below, the administrator and the seed data), then starts the site and
 # the timers again and starts an import of the FAA registry, whose table is
-# empty too.  What is left is the database of a fresh install: no accounts, no
-# payments, no pages but the blank home page.  The environment file, the
+# empty too.  What is left is the database of a fresh install: it holds only the
+# blank home page, without any accounts or payments.  The environment file, the
 # install record, the web server, the backups, and the uploads in media/ are
-# not touched; the uploads stay on disk with nothing in the database naming
-# them.  To undo a reset, restore the backup it took (deploy/README.rst,
+# not touched; the uploads stay on disk, though nothing in the database
+# names them.  To undo a reset, restore the backup it took (deploy/README.rst,
 # Restoring).
 #
 # Without --admin-email or --seed-demo nobody can sign in afterwards; create an

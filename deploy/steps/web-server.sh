@@ -20,7 +20,7 @@
 # With certbot it also installs a renewal hook that reloads the web server.
 #
 # With the existing TLS mode a web server here already serves the hostname over
-# HTTPS, and this step obtains no certificate and installs no vhost.  It writes
+# HTTPS, and this step doesn't obtain a certificate or install a vhost.  It writes
 # a snippet instead, for the URL prefix in the install record:
 # deploy/apache/caldart-attach.conf to /etc/apache2/conf-available/caldart.conf,
 # or deploy/nginx/caldart-attach.conf to /etc/nginx/snippets/caldart.conf with
@@ -134,7 +134,7 @@ other_web_server_unit() {
 # CalDART configures, and the other is left alone; with a vhost of CalDART's own
 # the two would both want ports 80 and 443, which is the operator's to sort out,
 # so this is a note, never a refusal.  Behind an existing site (--tls existing)
-# CalDART holds no port itself, so nothing is said.
+# CalDART doesn't hold a port itself, so nothing is said.
 note_other_web_server() {
     local other
     other="$(other_web_server_unit)"
@@ -218,7 +218,7 @@ make_self_signed_certificate() {
 }
 
 # Have certbot's plugin write the TLS options the vhost includes.  Preparing
-# the plugin writes files and contacts no one, so it runs in both TLS modes.
+# the plugin writes files and doesn't contact anyone, so it runs in both TLS modes.
 prepare_tls_options() {
     local needed=()
     log "Writing certbot's TLS options"
@@ -353,7 +353,7 @@ attach_include() {
     fi
     local lines=() line indent expressions=()
     mapfile -t lines < <(closing_lines "$file")
-    ((${#lines[@]})) || die "$file holds no $block block to include the snippet in"
+    ((${#lines[@]})) || die "$file doesn't hold a $block block to include the snippet in"
     for line in "${lines[@]}"; do
         indent="$(sed -n "${line}{s/[^[:space:]].*//;p}" "$file")"
         expressions+=(-e "${line}i\\${indent}    ${include}")
@@ -367,7 +367,7 @@ attach_include() {
 
 # Check the configuration with the snippet in place.  When the check fails and
 # this run inserted the include line into the vhost file $1, take the line out
-# again (the file carried none before this run, or nothing would have been
+# again (the file didn't carry one before this run, or nothing would have been
 # inserted), so the existing site keeps a configuration that passes its check,
 # then stop.
 check_or_detach() {

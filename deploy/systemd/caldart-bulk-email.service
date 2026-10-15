@@ -6,7 +6,7 @@
 # deploy/steps/timers.sh installs it and enables the timer.
 #
 # Run it by hand (safe to repeat -- it sends only what is due, and a second
-# run while one is working does nothing):
+# run while one is working doesn't do anything):
 #   sudo systemctl start caldart-bulk-email.service
 #   journalctl -u caldart-bulk-email -n 50
 
@@ -42,8 +42,8 @@ Environment=PYTHONDONTWRITEBYTECODE=1
 ExecStart=/opt/caldart/caldart/.venv/bin/python /opt/caldart/caldart/backend/manage.py run_job send_bulk_emails
 
 # A large send runs for as long as its copies take at the configured rate, so
-# no time limit cuts it short.  systemd starts no second run while this one
-# works: the timer's next run finds the unit still active and waits.
+# no time limit cuts it short.  systemd doesn't start a second run while this
+# one works: the timer's next run finds the unit still active and waits.
 TimeoutStartSec=0
 
 # --- Hardening --------------------------------------------------------------

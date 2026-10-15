@@ -33,8 +33,8 @@ source "$CHECKOUT/deploy/lib.sh"
 readonly BASE_PACKAGES=(git curl ca-certificates openssl postgresql-client)
 readonly DOCKER_PACKAGE=docker.io
 readonly NODE_MAJOR=22
-# pipefail, so a download that fails fails the step instead of piping nothing
-# into a shell that exits 0.
+# pipefail, so a download that fails fails the step instead of piping an empty
+# script into a shell that exits 0.
 readonly NODESOURCE_SETUP="set -o pipefail; curl -fsSL https://deb.nodesource.com/setup_${NODE_MAJOR}.x | bash -"
 readonly UV_BIN=/usr/local/bin/uv
 readonly UV_INSTALL="set -o pipefail; curl -LsSf https://astral.sh/uv/install.sh | sh"
@@ -101,7 +101,7 @@ apt_install() {
 packages_step() {
     local docker=() web=()
     # compose_package refuses an unsupported distribution even when the
-    # machine's Docker needs nothing from the archive.
+    # machine's Docker doesn't need anything from the archive.
     compose_package >/dev/null
     mapfile -t docker < <(docker_packages)
     mapfile -t web < <(web_server_packages)
