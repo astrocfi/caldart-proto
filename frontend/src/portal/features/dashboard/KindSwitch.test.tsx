@@ -185,7 +185,7 @@ describe('<KindSwitch/>', () => {
     },
   );
 
-  it('opens on Cancel, so pressing Enter twice converts nobody', async () => {
+  it("opens on Cancel, so pressing Enter twice doesn't convert anybody", async () => {
     setUp();
     renderWithProviders(<KindSwitch />);
     await openPanel();
@@ -237,7 +237,7 @@ describe('<KindSwitch/>', () => {
     );
   });
 
-  it('offers a life member nothing', async () => {
+  it("doesn't offer a life member anything", async () => {
     setUp({ user: makeUser({ membership: LIFETIME_MEMBERSHIP }) });
     renderWithProviders(<KindCard />);
     await screen.findByText('You are a life member of CalDART.');

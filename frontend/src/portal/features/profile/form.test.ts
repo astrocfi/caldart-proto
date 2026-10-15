@@ -117,7 +117,7 @@ describe('profileToForm names', () => {
     expect([values.first_name, values.last_name]).toEqual(['Ann', 'Lee']);
   });
 
-  it('reads absent names as blank, as the member record’s profile has none', () => {
+  it('reads absent names as blank, as the member record’s profile doesn’t have any', () => {
     const { first_name: _first, last_name: _last, ...rest } = makeProfile();
     expect(profileToForm(rest).first_name).toBe('');
   });

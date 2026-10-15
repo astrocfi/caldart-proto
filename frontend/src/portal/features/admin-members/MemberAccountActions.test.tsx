@@ -100,14 +100,14 @@ describe('MemberAccountActions', () => {
     expect(screen.queryByRole('button', { name: 'Make a friend' })).not.toBeInTheDocument();
   });
 
-  it('offers a member who has not paid yet no switch to friend, as the server refuses it', () => {
+  it("doesn't offer a member who has not paid yet a switch to friend, as the server refuses it", () => {
     stub();
     renderActions(makeDetail({ kind: 'member', membership: { ...FRIEND, status: 'none' } }));
 
     expect(screen.queryByRole('button', { name: 'Make a friend' })).not.toBeInTheDocument();
   });
 
-  it('offers a life member no switch to friend', () => {
+  it("doesn't offer a life member a switch to friend", () => {
     stub();
     renderActions(makeDetail({ membership: LIFETIME }));
 
@@ -143,7 +143,7 @@ describe('MemberAccountActions', () => {
     await waitFor(() => expect(posted.friend).toEqual([{}]));
   });
 
-  it('opens Make a friend on Cancel, so a second Enter converts nobody', async () => {
+  it("opens Make a friend on Cancel, so a second Enter doesn't convert anybody", async () => {
     stub({ mandate: makeMandate({ contribution_cents: 2_500 }) });
     renderActions();
 

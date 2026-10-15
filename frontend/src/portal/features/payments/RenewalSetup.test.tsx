@@ -242,7 +242,7 @@ describe('RenewalSetup', () => {
     expect(confirms).toEqual([{ setup_intent_id: 'seti_123', setup_token: '' }]);
   });
 
-  it('shows what Stripe refused a card for and saves nothing', async () => {
+  it("shows what Stripe refused a card for and doesn't save anything", async () => {
     const user = userEvent.setup();
     confirmSetup.mockResolvedValue({ error: { message: 'Your card was declined.' } });
     const { confirms, handleDone } = mount({ providers: ['stripe'] });

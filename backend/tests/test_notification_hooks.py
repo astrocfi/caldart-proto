@@ -315,7 +315,7 @@ def test_an_administrator_making_a_friend_a_member_raises_became_member(
 def test_resending_the_kind_an_account_holds_does_not_raise_anything(
     user_admin: User, member: User, recorded: Recorded
 ) -> None:
-    """An edit that leaves the kind where it was changes nobody's kind."""
+    """An edit that leaves the kind where it was doesn't change anyone's kind."""
     update_account(user_admin, member, {"kind": AccountKind.MEMBER})
 
     assert recorded == []

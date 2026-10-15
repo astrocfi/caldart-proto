@@ -131,7 +131,7 @@ describe('<RenewPage/>', () => {
     expect(screen.getByTestId('path')).toHaveTextContent('/membership/join');
   });
 
-  it('tells a member whose term is current that renewing early costs nothing', async () => {
+  it("tells a member whose term is current that renewing early doesn't lose any days", async () => {
     renderRenew(detail());
 
     expect(

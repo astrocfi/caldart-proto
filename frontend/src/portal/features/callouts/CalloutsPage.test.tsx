@@ -66,7 +66,7 @@ describe('CalloutsPage', () => {
     expect(row).toHaveTextContent('Closed 04/07/2026 at 9:15 AM');
   });
 
-  it('says how to send one when there is none', async () => {
+  it("says how to send one when there isn't one", async () => {
     renderList([]);
 
     expect(await screen.findByText('No callout has been sent')).toBeInTheDocument();

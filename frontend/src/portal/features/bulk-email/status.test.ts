@@ -102,7 +102,7 @@ describe('progressSentence', () => {
 });
 
 describe('resultSentence', () => {
-  it('leaves out a count of nobody', () => {
+  it('leaves out a count of zero', () => {
     expect(
       resultSentence({ status: 'sent', sent_count: 37, failed_count: 2, skipped_count: 0 }),
     ).toBe('Sent to 37 people. 2 failed.');

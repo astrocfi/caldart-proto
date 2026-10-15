@@ -197,7 +197,7 @@ describe('visibleNavItems', () => {
     },
   );
 
-  it('shows website_admin nothing extra (Wagtail lives outside the portal)', () => {
+  it("doesn't show website_admin anything extra (Wagtail lives outside the portal)", () => {
     expect(labels(['member', 'website_admin'])).toEqual(labels(['member']));
   });
 
@@ -240,11 +240,11 @@ describe('visibleNavItems', () => {
     expect(labels(['member'], { isEffectiveFriend: false })).toContain('Renew');
   });
 
-  it('offers a lifetime member no Renew, since Donate is where they give', () => {
+  it("doesn't offer a lifetime member Renew, since Donate is where they give", () => {
     expect(labels(['member'], { isLifetime: true })).not.toContain('Renew');
   });
 
-  it('offers a lifetime member no second giving entry beside Donate', () => {
+  it("doesn't offer a lifetime member a second giving entry beside Donate", () => {
     expect(labels(['member'], { isLifetime: true })).not.toContain('Contribute');
   });
 

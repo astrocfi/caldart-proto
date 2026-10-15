@@ -178,7 +178,7 @@ describe('<JoinWizard/> resume logic', () => {
     expect(path()).toBe('/join/pay');
   });
 
-  it('offers a member-intent joiner no Not now on the pay step', async () => {
+  it("doesn't offer a member-intent joiner Not now on the pay step", async () => {
     stubApi(makeUser({ kind: 'member', profile_complete: true, membership: UNPAID }));
     renderWizard('/join/pay');
 

@@ -63,7 +63,7 @@ describe('<JoinAsMemberPage/>', () => {
     ).toBeInTheDocument();
   });
 
-  it('says leaving the page changes nothing', async () => {
+  it("says leaving the page doesn't change anything", async () => {
     renderPage();
     expect(await screen.findByText(/Nothing changes if you leave this page\./)).toBeInTheDocument();
   });

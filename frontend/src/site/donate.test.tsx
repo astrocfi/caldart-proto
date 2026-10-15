@@ -53,7 +53,7 @@ describe('the donation page script', () => {
     await waitFor(() => expect(paths).toEqual(['/x/api/v1/donations/config']));
   });
 
-  it('falls back to the config under the URL prefix when the mount names none', async () => {
+  it("falls back to the config under the URL prefix when the mount doesn't name one", async () => {
     stampUrlPrefix('/x');
     document.body.innerHTML = '<div id="donate-app"></div>';
     const paths = recordConfigRequests();

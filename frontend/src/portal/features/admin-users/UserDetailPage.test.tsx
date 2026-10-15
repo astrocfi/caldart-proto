@@ -82,7 +82,7 @@ describe('UserDetailPage', () => {
     );
   });
 
-  it('offers a user administrator alone no link to the member record', async () => {
+  it("doesn't offer a user administrator alone a link to the member record", async () => {
     const client = signedInClient('user_admin');
     stubDetail();
     renderDetail(String(TARGET.id), client);
@@ -454,7 +454,7 @@ describe('UserDetailPage', () => {
       );
     }
 
-    it('asks before acting, so pressing it alone posts nothing', async () => {
+    it("asks before acting, so pressing it alone doesn't post anything", async () => {
       stubDetail();
       const calls = stubRequire();
       renderDetail();

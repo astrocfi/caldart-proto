@@ -273,7 +273,7 @@ describe('listFilters', () => {
   });
 });
 
-describe('the choice that filters nothing', () => {
+describe("the choice that doesn't filter anything", () => {
   it.each(
     Object.values(REPORTS).flatMap((report) =>
       report.filters.map((field) => [report.slug, field] as const),

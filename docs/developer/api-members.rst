@@ -723,7 +723,7 @@ named **Deleted member** on the ``deleted.invalid`` domain.  Its name and addres
 are what keep a late-settling payment from buying a term or mailing a receipt,
 so ``members.services.refuse_tombstone_change`` refuses every change to one,
 with a **400** ``{"detail": "This record keeps a deleted member's payments in the
-books and cannot be changed."}`` and nothing written:
+books and cannot be changed."}``, and doesn't write anything:
 
 * ``PATCH /admin/members/{user_id}`` and ``PATCH /admin/users/{id}``, whatever the
   body holds, audited as ``account.update``;

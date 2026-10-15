@@ -89,7 +89,7 @@ describe('RecordPaymentPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('refuses a negative contribution rather than recording nothing', async () => {
+  it('refuses a negative contribution instead of recording it as zero', async () => {
     const user = userEvent.setup();
     const recorded: Record<string, unknown>[] = [];
     serveRecord(recorded);
