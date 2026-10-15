@@ -21,7 +21,7 @@ changes.
   emails the site sends, such as receipts. It reads **CalDART** until an administrator
   changes it here.
 * **Tagline**, shown under the logo, and used as a page's description for search engines
-  when the page has none of its own.
+  when the page doesn't have one of its own.
 * **EIN**, shown in the footer and on the contact page.
 
 **Contact**
@@ -83,7 +83,7 @@ While you are signed in as a website or system administrator, add ?theme= and th
 theme's first word in lowercase to the end of any page's address, such as
 caldart.org/about/?theme=night. For the two-word names use a hyphen:
 ?theme=flight-deck or ?theme=monterey-night. The preview lasts only for the page you
-added it to, and it changes nothing for anybody else.
+added it to, and it doesn't change anything for anybody else.
 
 If something looks wrong
 ========================

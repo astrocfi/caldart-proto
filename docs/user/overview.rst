@@ -30,15 +30,15 @@ Every account belongs to one of three kinds of person.
 
 **Friend**
   A friend of CalDART has the same portal as a member (the profile, the aircraft,
-  the payments, and the dashboard) but pays no dues. Nothing expires, no renewal
+  the payments, and the dashboard) but doesn't pay dues. Nothing expires, no renewal
   reminder is ever sent, and members-only pages stay closed. A friend can give
   whenever they like, and becomes a member by paying for a plan. A member can
   become a friend, and a friend a member, from the portal.
 
 **Donor**
   Somebody who gave to CalDART from the public donation page without joining.
-  CalDART keeps the gifts and the receipts, but a donor has no password, cannot
-  sign in, and appears in no member list. A donor who later joins, with the same
+  CalDART keeps the gifts and the receipts, but a donor doesn't have a password,
+  cannot sign in, and doesn't appear in any member list. A donor who later joins, with the same
   email address, keeps every gift.
 
 Members and friends sign in to the same portal. A donor does not.
@@ -50,7 +50,7 @@ What membership means
 A membership is made of **terms**. A term is one plan bought, or granted by an
 administrator, with a start date and an end date. You are current whenever a term
 covers today, up to and including its last day. An Annual term runs 365 days. A Life
-term has no end date and never runs out.
+term doesn't have an end date and never runs out.
 
 Buying a plan a second time does not replace the first term; it adds another after
 it. So renewing early never loses you days: the new term starts the day after your
@@ -65,7 +65,7 @@ first thing a DART leader checks before letting you fly a mission.
       :caption: The life of a membership. A solid box is a state CalDART works out
                 for you. A dashed box is a warning or a special case inside one:
                 *Expiring soon* is still current, and *Life member* is a current
-                term with no end date. The boxes at the bottom are the five renewal
+                term without an end date. The boxes at the bottom are the five renewal
                 emails, in the order they are sent.
       :alt: The states of a CalDART membership, from visitor to expired, drawn top to bottom
 

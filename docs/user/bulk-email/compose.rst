@@ -11,7 +11,7 @@ DART leader, who writes to their own DART (:doc:`dart-leaders`). A system admini
 open it too.
 
 Pressing **Compose** opens a fresh email, or the empty one you started earlier. The screen
-reads top to bottom as three numbered cards. There is no Save button: everything you do is
+reads top to bottom as three numbered cards. There isn't a Save button: everything you do is
 kept as you go, so you can leave and come back from :doc:`drafts`. A draft made with
 **Duplicate** (:doc:`sent`) says at the top *This is a copy of* and the email's subject.
 
@@ -31,7 +31,7 @@ search at a time, with the filters the member list uses:
 - **Expiring within (days)**: members whose membership ends within that many days.
 
 The people the filters match show under them, ten at a time, counted, as in *12 people match
-these filters.* (every member and friend with no filters chosen; donors never match). Each row
+these filters.* (every member and friend when no filter is chosen; donors never match). Each row
 has **Name**, **Email**, **Will receive?** (*Yes*, or why not, as below), **Kind**, and **DART**.
 
 Press **Add these people** to put everybody the search matches on the recipient list. A line,
@@ -54,7 +54,7 @@ screen leaves out **Chosen by**, **DART**, **Kind**, then **Email**. The reasons
 - *Account deactivated*: the account has been deactivated.
 - *Account deleted*: the account no longer exists.
 - *Not in your DART*: on a DART leader's email, the person's profile names another DART, or
-  none (:doc:`dart-leaders`).
+  doesn't name one (:doc:`dart-leaders`).
 - *No email address* or *Invalid email address*: there is nowhere to send it.
 - *Address bounced*: an earlier email to this address came back undelivered. Once the
   address is corrected, or a user administrator presses **Clear bounce** on the account, the
@@ -91,7 +91,7 @@ Then write the **Subject**, one line, and the **Message**. Your work is automati
 quiet note under the message reads *Saving…* and then *Saved*.
 
 **Replies go to** is where a reader's reply goes. Every copy comes from the site's own address,
-which nobody reads, so without it a reply would reach nobody. Left empty, replies go to the
+which nobody reads, so without it a reply wouldn't reach anybody. Left empty, replies go to the
 address your organization chose for replies, or to your own address; the hint under the box
 names which. Type any address that should get the replies instead, such as a DART leader's
 or a shared operations mailbox; empty the box to go back to the one the hint names. The
@@ -104,7 +104,7 @@ and **Numbered list**. A button stays pressed while the words at the cursor have
 press it again to take the style off.
 
 - **Link** asks for the **Web or email address** the selected words go to, such as
-  *caldart.org/events* or an email address, then **Add link**. With nothing selected, the
+  *caldart.org/events* or an email address, then **Add link**. When nothing is selected, the
   address itself is put in as the link. On a link, the button offers **Save link** and
   **Remove link**.
 - **Image** opens your computer's file picker. Choose a PNG, JPEG, GIF, or WebP picture of
@@ -153,7 +153,7 @@ At the top of the card are the **Checks**: mistakes the site looks for in the sa
 each on a line of its own with a dot. They run when the card opens, again when you press
 **Check again**, and again when you press **Send** or **Schedule for later**. While they run
 the card reads *Checking the email for mistakes, such as links that do not work…*, which can
-take a few seconds. *No problems found.* means there is nothing to say, or *Nothing else to
+take a few seconds. *No problems found.* means there isn't anything to say, or *Nothing else to
 fix.* while a step such as the subject is still missing.
 
 Words that could not be saved come first, marked **Must fix**, such as *Your subject has a
@@ -193,7 +193,7 @@ Able (1 of 38)* says whose copy it is; **Next person** and **Previous person** s
 everybody who receives it. The preview shows what has been saved, and says so while your
 latest words cannot be saved. While nobody on the recipient list receives the email, the preview is
 your own copy. The footer reads as it will in the email, but its unsubscribe link in the
-preview unsubscribes nobody. Every link in the preview opens in a new tab, so you can try
+preview doesn't unsubscribe anybody. Every link in the preview opens in a new tab, so you can try
 them without leaving the email. When a field in the message cannot be filled in, the
 preview says why instead.
 
@@ -222,7 +222,7 @@ Once you press **Send**, the cards go. The banner at the top is all that stays.
 
 After **Send** you have two minutes to change your mind. The banner reads *Sending in 1
 min 58 s* with a bar counting down and **Cancel**; then *Starting to send. Nothing has been
-sent yet.* **Cancel** turns the email back into a draft with nothing lost until the first
+sent yet.* **Cancel** turns the email back into a draft without losing anything until the first
 copy goes out, and the three cards come back.
 
 A scheduled email keeps its cards until it starts. Its banner shows *Scheduled for* its date

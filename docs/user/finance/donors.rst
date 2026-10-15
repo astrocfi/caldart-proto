@@ -14,10 +14,10 @@ Who donors are
 Anybody can give through the public site's **Donate** page without a portal account.
 Each gift is kept against a **donor**, a record the site makes from the giver's email
 address the first time they give and finds again by that address every time after. A
-donor has no password and cannot sign in. The record holds the giver's name, phone
+donor doesn't have a password and cannot sign in. The record holds the giver's name, phone
 number, and anything else they chose to give.
 
-A donor's gift is an ordinary contribution with no plan. It appears on the payment list,
+A donor's gift is an ordinary contribution without a plan. It appears on the payment list,
 in the headline figures, in **Payments by period**, and on the **Contributions** tab like
 any other gift, it earns the same receipt the moment it clears, and it is refunded the
 same way (see :doc:`payment-record`).
@@ -43,7 +43,7 @@ A row named **Deleted member** followed by a number, such as **Deleted member 5*
 holds the gifts of a person whose account an account administrator deleted (see
 :doc:`../admin/member-record`). The gifts stay in the books under that name, so the
 organization's totals do not change, and the row's email address, which ends in
-``deleted.invalid``, reaches nobody. A deleted member's gifts beyond their dues are
+``deleted.invalid``, doesn't reach anybody. A deleted member's gifts beyond their dues are
 listed here too, because that name is not a member.
 
 Four more columns start off: **County**, **DART**, **Refunded**, and **Active**, which
@@ -106,8 +106,8 @@ totals do not change. The payment list names the same **Deleted member** on each
 A **Deleted member** row is never a link: that record keeps the payments in the books and
 cannot be changed or deleted.
 
-A donor's record offers no **Grant a term**: a donor holds no membership, and becomes a
-member only by registering on the site with the same address.
+A donor's record doesn't offer **Grant a term**: a donor doesn't hold a membership, and
+becomes a member only by registering on the site with the same address.
 
 A treasurer who is not an account administrator sees the names without links: the member
 record is the account administrator's screen.

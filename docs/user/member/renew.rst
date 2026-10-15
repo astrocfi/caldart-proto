@@ -19,15 +19,15 @@ your membership status, then *Expires* and the date with the days to go, or
 membership*.
 
 Renewing is for a member. A friend of CalDART, and somebody who joined as a member and
-has not paid yet, have nothing to renew: opening **Renew** takes them to
+has not paid yet, don't have anything to renew: opening **Renew** takes them to
 :doc:`become-a-member` instead.
 
 Below it is the checkout, in a card of its own. It works the same way as the join
 wizard's payment step (see :doc:`join`): choose the plan, with the first plan listed
 chosen for you, add a contribution if you like, check **Renew automatically each
 year** if you want CalDART to renew you from now on, and pay from one of the tabs. A
-site with no membership plan set up shows *No membership plan is set up yet. Ask an
-administrator.* instead of the plans, and offers no way to pay.
+site without a membership plan set up shows *No membership plan is set up yet. Ask an
+administrator.* instead of the plans, and doesn't offer a way to pay.
 
 If your automatic renewal is already on, a card headed **Automatic renewal is on**
 takes the checkout's place: *We will charge $145.00 on 04/27/2027. You do not need
@@ -40,7 +40,7 @@ now anyway** is still there.
 
 If automatic renewal has stopped, the card reads **Automatic renewal is paused**, with
 the reason: *A charge was refused, so CalDART will not renew you by itself.*, or, when
-your membership lapsed more than 30 days ago with no refused charge, *Your membership
+your membership lapsed more than 30 days ago without a refused charge, *Your membership
 lapsed, so CalDART will not renew it by itself.* The checkout is open below it, with **Renew automatically each year** checked, so you
 can renew here and turn it on again with the method you pay with.
 
@@ -66,9 +66,9 @@ An Annual term runs 365 days, counting the day it starts, so a term that starts 
 Life members
 ============
 
-A life member has nothing to renew, so their menu has no **Renew** entry: they give
-through **Donate** like everyone else (see :doc:`donate`). A renewal link that reaches a
-life member, such as one in an old email, opens **Donate** instead.
+A life member doesn't have anything to renew, so their menu doesn't have a **Renew**
+entry: they give through **Donate** like everyone else (see :doc:`donate`). A renewal link
+that reaches a life member, such as one in an old email, opens **Donate** instead.
 
 
 Renewal reminders
@@ -133,7 +133,7 @@ If something looks wrong
 
 If you renewed and your dashboard still shows the old date, reload the page. If it
 persists, look at **Recent payments** on your dashboard: a payment marked
-**Failed** means no money moved and no term was made, so try again. *Your payment
+**Failed** means that no money moved and no term was made, so try again. *Your payment
 is still being processed.* means the payment is settling; the membership turns on
 by itself when it clears. If you were charged and are still shown as expired,
 contact the office with the date and the amount.

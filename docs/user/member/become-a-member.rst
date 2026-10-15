@@ -3,7 +3,7 @@ Become a member
 ===============
 
 The **Become a member** screen is where a friend of CalDART pays dues and becomes a
-member. A friend is a supporter with an account who pays no dues. *Choose a plan and
+member. A friend is a supporter with an account who doesn't pay dues. *Choose a plan and
 pay your dues: you are a member of CalDART as soon as the payment goes through.
 Nothing changes if you leave this page.*
 
@@ -23,8 +23,8 @@ The checkout, in a card under the page's title, the same one the join wizard use
 
 #. **Membership**: **Annual** ($45.00, *One year*) or **Life** ($650.00, *One
    payment, membership for life*). The first plan listed is chosen for you. A site
-   with no membership plan set up shows *No membership plan is set up yet. Ask an
-   administrator.* instead of the plans, and offers no way to pay.
+   without a membership plan set up shows *No membership plan is set up yet. Ask an
+   administrator.* instead of the plans, and doesn't offer a way to pay.
 #. **Add a contribution**, if you would like to give more on top of the dues.
 #. **Renew automatically each year**, if you want CalDART to renew the membership
    for you (see :doc:`payments`).
@@ -51,7 +51,7 @@ recurring donation you hold carries on.
 If something looks wrong
 ========================
 
-Leaving the screen changes nothing: you stay a friend until a payment goes through.
-A declined card leaves nothing charged. If you paid and your dashboard still says
+Leaving the screen doesn't change anything: you stay a friend until a payment goes
+through. A declined card isn't charged. If you paid and your dashboard still says
 **You are a friend of CalDART**, reload the page. If it persists, contact the office
 with the date and the amount.

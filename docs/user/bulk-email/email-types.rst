@@ -33,8 +33,8 @@ the senders wrap, so they read in full:
 
 On a screen too narrow for every column, **Can be turned off**, then **Who may send it**
 are left out, and **Edit** and the trashcan sit one above the other; on a phone the table
-scrolls sideways, says so above it, and keeps **Name** pinned at the left. With no types the
-table reads *No email types yet*, with a **New email type** button.
+scrolls sideways, says so above it, and keeps **Name** pinned at the left. When there
+aren't any types, the table reads *No email types yet*, with a **New email type** button.
 
 Every site starts with three types: **Operational** and **Mission**, sent by CalDART
 management and DART leaders, and **Fundraising**, sent by CalDART management alone. All
@@ -64,8 +64,8 @@ to its first box, scrolling it into view. Fill it in:
    keeps everyone's earlier choice, and checking it again brings those choices back.
 
 Press **Add email type** or **Save changes**. The message *Operational added.* or *Operational saved.*
-confirms it, with the type's own name. **Cancel**, or Escape, closes the form and changes
-nothing, and you are back on the button that opened it.
+confirms it, with the type's own name. **Cancel**, or Escape, closes the form and doesn't
+change anything, and you are back on the button that opened it.
 
 
 Deleting a type

@@ -44,7 +44,7 @@ See :doc:`member/renew`.
 What is a friend of CalDART?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Somebody with an account and the member portal who pays no dues. Nothing expires,
+Somebody with an account and the member portal who doesn't pay dues. Nothing expires,
 no reminder is sent, and members-only pages stay closed. A friend can give whenever
 they like, and becomes a member by paying for a plan. See :doc:`overview`.
 
@@ -129,13 +129,13 @@ Can I get a statement of my contributions for my taxes?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Yes. CalDART emails one each January for the year before, and **My payments** offers a
-button for each year you gave in. A year of dues alone has none. See
+button for each year you gave in. A year of dues alone doesn't have one. See
 :doc:`member/payments`.
 
 My payment failed. Was I charged?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-No. A failed payment moves no money and makes no term. Try again, or try another
+No. A failed payment doesn't move any money or make a term. Try again, or try another
 method. See :doc:`member/join`.
 
 Can I get a refund?
@@ -152,13 +152,13 @@ Why is my medical showing as expired?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The **Medical expires** date on your profile has passed. CalDART reads the date you
-typed; it works nothing out for you. Update it on **My profile**. See
+typed; it doesn't work anything out for you. Update it on **My profile**. See
 :doc:`member/profile`.
 
 Why is an aircraft's insurance showing as expired?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The insurance expiry on the aircraft's record has passed, or there is none on file.
+The insurance expiry on the aircraft's record has passed, or the record doesn't have one.
 If you added the airplane, correct it with **Edit** on **My aircraft**; otherwise ask
 an account administrator. See :doc:`member/my-aircraft`.
 

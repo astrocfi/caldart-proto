@@ -35,8 +35,8 @@ sideways, says so above it, and keeps the subject pinned at the left. Before the
 the table reads *No bulk email has been sent* and *Each bulk email appears here once it
 starts going out.*; a DART leader's reads *You have not sent an email yet* and *Emails you
 send appear here once they start going out.* Either offers **New email**, which opens
-:doc:`compose`, to anybody who has people to send to. A DART leader whose profile names no
-DART sees, above the table, the box saying to set their DART on My profile
+:doc:`compose`, to anybody who has people to send to. A DART leader whose profile doesn't
+name a DART sees, above the table, the box saying to set their DART on My profile
 (:doc:`dart-leaders`). The list keeps itself up to date while an email is sending.
 
 An email that is sending offers **Stop…** in place of the download, and a stopped one **Send
@@ -52,7 +52,7 @@ Grace Holloway on 10/03/2026 at 5:34 PM.*, and has three cards:
 - **Sending progress**: while it sends, *Sending… 12 of 38 sent, about 1 minute left.* with
   a bar and **Stop sending**, which stops it after the copy going out now, once you press
   **Stop now**; copies already sent cannot be called back. When it is finished, a line
-  such as *Sent to 37 people. 1 failed and 4 were skipped.* (a count of nobody is left
+  such as *Sent to 37 people. 1 failed and 4 were skipped.* (a count of zero is left
   out), or *Everyone was sent a copy.*, followed by *2 came back undelivered.* once copies
   have bounced (`The delivery report`_). A stopped email reads *Stopped by* who stopped
   it, with **Send the rest**, which sends it to everybody the stop kept it from once you
@@ -115,10 +115,10 @@ Seeing one person's copy
 exactly as it went, in a window over the page: who it went to and when, its subject, and
 the email itself, with the details that were filled in for them at the time, even if they have
 changed their profile since. This answers "what did I get?" Its links open in a new tab.
-The unsubscribe link at its foot is shown but does nothing here, since it belongs to the
+The unsubscribe link at its foot is shown but doesn't do anything here, since it belongs to the
 person the copy went to. The page behind waits until you shut the window. **Close**, or the
 Escape key, shuts it and returns you to the line you opened it from. Somebody who was
-skipped, or not sent a copy yet, has no copy to view.
+skipped, or not sent a copy yet, doesn't have a copy to view.
 
 Retry failed
 ------------
@@ -175,8 +175,8 @@ own from the email; **Duplicate…** on each line of the list opens that page. I
 
 The new draft opens on :doc:`compose`, ready to change and send, with a line at the top
 saying which email it is a copy of. The email you copied stays as it was. A copy of a
-mission callout is a callout too, with no answers yet and its answers closing two days ahead
-(:doc:`callouts`). **Cancel** closes the question without copying anything.
+mission callout is a callout too, without any answers yet and its answers closing two days
+ahead (:doc:`callouts`). **Cancel** closes the question without copying anything.
 
 
 If something looks wrong

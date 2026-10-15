@@ -20,7 +20,7 @@ The heading is the member's name, with their email address beneath it and, on th
 *Membership:* and a dot and its word showing where their membership stands, such as
 **Current**. Beside it, an account administrator
 sees **Member record**, which opens the person's :doc:`../admin/member-record`, a donor's
-included. The history of a **Deleted member** has no such link: that record cannot be
+included. The history of a **Deleted member** doesn't have that link: that record cannot be
 changed.
 
 Totals
@@ -45,22 +45,22 @@ or **Automatic renewal and contribution**. It shows:
 * **Last failed charge**, when the last charge was declined, with the reason the provider gave.
   It is the same wording the member was emailed.
 
-A member with no standing authority sees *This member renews by hand.* A friend, or a
-member who has not paid yet, who holds no standing authority has no such card.
+A member without a standing authority sees *This member renews by hand.* A friend, or a
+member who has not paid yet, who doesn't hold a standing authority doesn't see that card.
 
 Payments
 ~~~~~~~~
 
-The **Payments** card lists every payment, including attempts that failed, with the day
-it was **Paid**, the **Receipt** number (which opens the payment's own screen, see
+The **Payments** card lists every payment, including attempts that failed, with the day it
+was **Paid**, the **Receipt** number (which opens the payment's own screen, see
 :doc:`payment-record`), what it was **For** (the plan by name, such as **Annual** or
-**Annual and contribution**, or **Contribution**), the **Total**, what was **Refunded**, the
-provider under **Method**, and the **Status**. A member with none sees *No payments
-recorded*; a term an administrator granted by hand has no payment behind it. The receipt
-numbers are never broken or cut short. On a narrower screen the card leaves out **Refunded**
-and **Method**, then **For**; on a phone the table scrolls sideways inside the card, a line
-above it says so, and **Paid**, the date, stays pinned at the left with the whole receipt
-number beside it.
+**Annual and contribution**, or **Contribution**), the **Total**, what was **Refunded**,
+the provider under **Method**, and the **Status**. A member without any payments sees *No
+payments recorded*; a term an administrator granted by hand doesn't have a payment behind
+it. The receipt numbers are never broken or cut short. On a narrower screen the card
+leaves out **Refunded** and **Method**, then **For**; on a phone the table scrolls
+sideways inside the card, a line above it says so, and **Paid**, the date, stays pinned at
+the left with the whole receipt number beside it.
 
 Contribution statements
 ~~~~~~~~~~~~~~~~~~~~~~~

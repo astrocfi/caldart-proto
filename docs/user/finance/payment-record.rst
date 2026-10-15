@@ -24,8 +24,8 @@ The **This payment** card lists the facts:
 * **Member**, the member's name and email address, then **Money history**, which opens
   everything they have paid (see :doc:`member-ledger`). An account administrator also
   sees **Member record**, which opens the person's :doc:`../admin/member-record`, a
-  donor's included. A payment kept under **Deleted member** and a number has no
-  **Member record**: that record cannot be changed.
+  donor's included. A payment kept under **Deleted member** and a number doesn't
+  have **Member record**: that record cannot be changed.
 * **Receipt**, the receipt number.
 * **For**, what the payment bought (**Membership**, **Contribution**, or **Membership and
   contribution**) and the plan's name.
@@ -38,7 +38,7 @@ The **This payment** card lists the facts:
 * **Reference**, the provider's own reference for the payment, or the check number.
 * **Receipt emailed**, when the receipt last went to the member.
 * **Term**, the membership term the payment bought, with its dates and state, such as
-  *01/09/2026 to 01/08/2027 · Active*, or a dash when it bought none.
+  *01/09/2026 to 01/08/2027 · Active*, or a dash when it didn't buy one.
 * A row named for what the payment was for, **Automatic renewal**, **Recurring donation**,
   or **Automatic renewal and contribution**, which reads *Charged on* and a date when the
   site took the payment on its own, or *No, paid by the member* when the member paid
@@ -52,7 +52,7 @@ The **Refunds** card lists every refund against the payment, with the day it was
 **Issued**, the **Amount**, the **Reason**, your **Note**, the **Status** (**Pending**,
 **Refunded**, or **Failed**), and the **Source**: **The CalDART portal** for a refund
 issued from this screen, or **The provider's dashboard** for one somebody made in
-Stripe's or PayPal's own dashboard. With no refunds it reads *Nothing has been
+Stripe's or PayPal's own dashboard. When no refund has been made, it reads *Nothing has been
 refunded* and *Refunds made here or in the provider's dashboard are listed here.*
 
 Reconciliation
@@ -82,7 +82,7 @@ Ask the provider for the fee
 **Fetch fee from provider** appears only while the fee is unknown. Stripe and PayPal
 report what they kept a little after the money arrives, and sometimes later still; this
 asks again, and the screen confirms with *Fee read from the provider.* A payment
-recorded by hand has no fee, so the button never appears for it.
+recorded by hand doesn't carry a fee, so the button never appears for it.
 
 Mark the payment as reconciled
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -126,9 +126,9 @@ A payment recorded by hand is refunded the same way, except that no provider is 
 write the check, record the refund here, and the books match.
 
 A refund of more than is left is refused with *Only $… of this payment is left to
-refund.* A refund of nothing is refused with *A refund must be for more than zero.* A
-payment that never succeeded cannot be refunded, and the form says *That payment has
-not succeeded, so there is nothing to refund.*
+refund.* A refund of $0 is refused with *A refund must be for more than zero.* A
+payment that never succeeded cannot be refunded, and the form says *That payment was
+never paid, so there is nothing to refund.*
 
 See everything the member has paid
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

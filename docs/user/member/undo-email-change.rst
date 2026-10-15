@@ -7,7 +7,7 @@ Change undone
 The **Change undone** screen is where the link in a change-of-address notice takes
 you. CalDART sends that notice to the address your account had whenever somebody asks
 to move the account to another address, and again when the move is made (see
-:doc:`change-email`). If the change was yours, you need do nothing. If it was not,
+:doc:`change-email`). If the change was yours, you don't need to do anything. If it was not,
 the link takes your account back.
 
 
@@ -37,7 +37,7 @@ What you see
 
 The screen asks **Undo the change of address?** and says what undoing does. Nothing
 happens until you press **Undo the change**, so opening the link, or a mail program
-checking it, changes nothing. The screen then says **Change undone**: *Your sign-in
+checking it, doesn't change anything. The screen then says **Change undone**: *Your sign-in
 address is marta.reyes@example.org. Everybody has been signed out of the account, and
 its password no longer works. We sent marta.reyes@example.org a link to choose a new
 one.*
@@ -64,7 +64,7 @@ The screen says **Change not undone**, with the reason:
 *That link is invalid, has expired, or has been used.*
   The link is more than seven days old, it was cut short when it was copied, or it
   has been followed already. Following one link spends every link sent before it,
-  so an earlier notice's link does nothing once you have used a later one.
+  so an earlier notice's link doesn't do anything once you have used a later one.
 
 Under the reason, **Forgot your password?** opens :doc:`forgot-password`.
 

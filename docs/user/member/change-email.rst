@@ -49,7 +49,7 @@ shows a **Change waiting** card with the same sentence and a **Resend verificati
 message** button, which sends the link to the new address again. To move to a
 different address instead, change it again: only the newest link works.
 
-Capital letters make no difference: Marta@example.org and marta@example.org are the
+Capital letters don't make a difference: Marta@example.org and marta@example.org are the
 same address.
 
 If you change the address from the join wizard's **Check your email** step, to fix a

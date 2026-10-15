@@ -35,7 +35,7 @@ A payment whose name reads **Deleted member** followed by a number, such as **De
 5**, belonged to a person whose account an account administrator deleted (see
 :doc:`../admin/member-record`). The payment itself is unchanged and still counts in every
 total; only the name changed, and the email address, which ends in ``deleted.invalid``,
-reaches nobody.
+doesn't reach anybody.
 
 The statuses are **Pending**, **Paid**, **Failed**, **Partly refunded**, and
 **Refunded**. The providers are **Stripe**, **PayPal**, **By hand** for money you recorded
@@ -77,7 +77,7 @@ A heading with a faint two-way arrow beside it sorts the list: click it to sort 
 column, and click it again to reverse the order. The arrow of the column the list is sorted
 by points up or down; the list opens sorted by **Date**, newest first. The headings that
 sort are **Date**, **Name**, **Email**, **Plan**, **Contribution**, **Total**, **Fee**,
-**Net**, **Provider**, **Status**, and **Reconciled**. A heading with no arrow, such as
+**Net**, **Provider**, **Status**, and **Reconciled**. A heading without an arrow, such as
 **For** or **Reference**, does not sort. Sorting and paging cover every matching payment,
 so the first row after sorting by **Total** is the largest payment of all.
 
@@ -128,7 +128,7 @@ If something looks wrong
 If a member says they paid and you cannot find the payment, press **Reset filters**
 first: a date range left over from an earlier search, or carried in a link somebody sent
 you, hides every payment outside it. Then search by the member's email address. If the
-money is on their card statement and there is no row here at all, the provider took it
+money is on their card statement and there isn't a row here at all, the provider took it
 without the site hearing back. The provider's dashboard has the truth, and an account
 administrator can grant the membership by hand. *No payments match these filters*
 nearly always means a date range that is too narrow.

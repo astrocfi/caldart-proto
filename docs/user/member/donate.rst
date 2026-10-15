@@ -3,7 +3,7 @@ Donate
 ======
 
 The **Donate** screen is where any member or friend gives to CalDART, once or on a
-schedule. A gift buys no membership and needs none. *Every gift pays for training,
+schedule. A gift doesn't buy a membership and doesn't need one. *Every gift pays for training,
 fuel, and equipment.* Open it from **Donate** in the menu, or from **Set up** on the
 **Recurring donation** card of :doc:`payments`.
 
@@ -30,13 +30,13 @@ Then the form, in a card of its own:
 * **Make this a recurring donation**, a box to check for a gift that repeats.
 * **How would you like to pay?**, the payment tabs, described on :doc:`join`.
 
-No amount is chosen when the screen opens, and there is no "No thank you", since
+No amount is chosen when the screen opens, and there isn't a "No thank you", since
 giving is what the screen is for. Until you choose an amount the screen says *Choose
 a donation amount to continue.* Choosing **Other amount** opens a box with its hint,
 *From $5 up to $99,999.*, above it at the form's full width. An amount under $5 says
 *A donation must be at least $5.* in place of the payment tabs: $5 is the smallest
-gift CalDART takes on its own. A contribution added to your dues on :doc:`renew` has
-no smallest amount.
+gift CalDART takes on its own. A contribution added to your dues on :doc:`renew`
+doesn't have a smallest amount.
 
 
 Giving once
@@ -53,7 +53,7 @@ Giving on a schedule
 
 A recurring donation gives the same amount monthly, quarterly, or yearly, from a
 card or PayPal account saved for the purpose. Any member, life member, or friend may
-hold one, beside an automatic renewal or without one. It renews nothing and buys no
+hold one, beside an automatic renewal or without one. It doesn't renew anything or buy a
 membership.
 
 #. Choose the amount.
@@ -111,7 +111,7 @@ The emails it sends
 
 * A yearly donation gets a warning 14 days before every charge: *CalDART: we
   will take your recurring donation on* the day of the charge. A monthly or
-  quarterly one sends no warning.
+  quarterly one doesn't get a warning.
 * Each charge sends *CalDART: thank you for your recurring donation*, with the
   receipt attached. That is the one message per charge.
 * A card that will expire before the next charge earns *CalDART: the card we take
@@ -130,7 +130,7 @@ The emails it sends
 If something looks wrong
 ========================
 
-A declined card leaves nothing charged. The card form clears, with the reason
+A declined card isn't charged. The card form clears, with the reason
 above it, so you can try another card or the PayPal tab; each try is a payment of
 its own. If the screen says the request was throttled, you have started or
 confirmed many payments within the hour: wait the time it names and try again. If

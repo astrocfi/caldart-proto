@@ -18,8 +18,8 @@ from the **Sign-in** button in the **Member sign-in** box on the home page, or f
 any portal page you open while signed out. The screen asks for two things:
 
 **Email address**
-  Your email address is your username. There is no separate login name, and
-  capital letters make no difference: Marta.Reyes@example.org and
+  Your email address is your username. There isn't a separate login name, and
+  capital letters don't make a difference: Marta.Reyes@example.org and
   marta.reyes@example.org are the same account.
 
 **Password**
@@ -90,7 +90,8 @@ If the screen says something else
   to check.
 
 *Use an email address like name@example.org.*
-  The box has no @ in it, or nothing after the last dot. The box takes no spaces,
+  The box doesn't have an @ in it, or doesn't have anything after the last dot. The box
+  doesn't take spaces,
   and a copied address often brings one with it.
 
 *Incorrect email address or password.*
@@ -164,4 +165,4 @@ reset link from :doc:`forgot-password`. If the code is the trouble and you have
 neither your phone nor a backup code, ask a user administrator to reset your
 two-factor sign-in (see :doc:`two-factor`). A user administrator can also send you a
 reset link, which helps when you are not sure which address your account uses. If
-you have no account yet, you want :doc:`join`.
+you don't have an account yet, you want :doc:`join`.

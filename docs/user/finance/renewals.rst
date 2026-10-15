@@ -52,7 +52,7 @@ stays pinned at the left.
 A recurring donation charges monthly, quarterly, or yearly, whatever the giver's
 membership, and only a yearly one sends a warning email before it charges. An automatic
 renewal is always yearly. The daily run skips a renewal held by somebody who has since
-become a friend, since a friend pays no dues.
+become a friend, since a friend doesn't pay dues.
 
 Recent charges
 ~~~~~~~~~~~~~~
@@ -145,7 +145,7 @@ What happens next:
 
 * Every charge still scheduled against it is dropped, except one already sent to the
   payment provider whose answer is not in: the site still records that one if the money
-  was taken, and charges nothing new.
+  was taken, and doesn't charge anything new.
 * The membership itself runs to the end of its term.
 * The row stays in the table, marked **Turned off**.
 * The person is emailed. The subject is *CalDART: automatic renewal is off* for a

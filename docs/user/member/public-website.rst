@@ -2,7 +2,7 @@
 Public website
 ==============
 
-The public website is the part of CalDART anybody can read, with no account: the
+The public website is the part of CalDART anybody can read, without an account: the
 home page, the DART directory, the news, the events, the contact page, and the
 donation page. This page describes it as a visitor sees it. The pages and their
 words are written by CalDART's website administrator, so the titles below are the
@@ -60,8 +60,8 @@ only**, only for a reader who may open it.
 
 **Events** lists what is **Coming up**, then what has **Already happened**, with
 **« More recent** and **Older »** to page through past events twenty at a time. An event's page says when and
-where it is, and **« All events** goes back. With nothing planned, the list says
-*Nothing on the calendar yet. Check back soon.*
+where it is, and **« All events** goes back. When nothing is planned, the list shows the
+message *Nothing on the calendar yet. Check back soon.*
 
 
 Contact Us
@@ -76,7 +76,7 @@ Giving from the donation page
 =============================
 
 **Donate** in the top menu opens the public donation page, which takes a gift from
-anybody, with no account and no password. Members and friends should give from the
+anybody, without an account or a password. Members and friends should give from the
 portal's :doc:`donate` screen instead, so the gift lands on their own record. The
 form:
 
@@ -99,7 +99,7 @@ form:
 Once the gift goes through, the form gives way to CalDART's thanks and *A receipt
 is on its way to rosa@example.org.* The receipt email has the PDF attached and the
 sentence *No goods or services were provided in exchange for this contribution.* A
-payment that fails leaves the form where it was, says why, and charges nothing; the
+payment that fails leaves the form where it was, says why, and doesn't charge anything; the
 card form clears for another card, and each try is a payment of its own. Too many
 tries from one connection within the hour are refused for a while: wait and try
 again.
@@ -118,8 +118,8 @@ What a donor is
 
 Giving from this page makes you a donor: somebody who gave without joining.
 CalDART keeps one record for each email address, with your name, phone, whatever
-you told it in the optional section, and every gift. A donor has no password, cannot
-sign in, and appears in no member list. Each January a donor who gave in the year
+you told it in the optional section, and every gift. A donor doesn't have a password, cannot
+sign in, and doesn't appear in any member list. Each January a donor who gave in the year
 before is emailed a contribution statement.
 
 If you later join as a member or a friend, use the same email address in

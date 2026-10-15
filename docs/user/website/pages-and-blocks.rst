@@ -48,11 +48,11 @@ that parent. Under **Home** and under a standard page it offers:
   :doc:`settings-and-themes`), so those details are only ever typed in one place.
 * **Donate page**, the public donation page. Its **Intro** is shown above the donation
   form, and its **Thanks** replaces the form once a gift has gone through. The form
-  itself is built in and needs no editing.
+  itself is built in and doesn't need editing.
 
 A news post can only be added under **News**, an event only under **Events**, and a DART
 page only under **DARTs**. The **Events** calendar and the home page are set up with the
-site; there is no type for adding another of either.
+site; there isn't a type for adding another of either.
 
 The home page
 ~~~~~~~~~~~~~
@@ -150,7 +150,7 @@ its menu to duplicate or delete it.
 * **Raw HTML**, offered only to website and system administrators, because a mistake in
   it can break the page.
 
-Write in short paragraphs and let the site's design do the styling. There is no need to
+Write in short paragraphs and let the site's design do the styling. You don't need to
 reach for **Raw HTML** to make something look right.
 
 If something looks wrong

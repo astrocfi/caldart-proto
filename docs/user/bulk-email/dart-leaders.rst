@@ -17,18 +17,19 @@ Your DART
 =========
 
 Your DART is the one named on your own profile, on **My profile**
-(:doc:`../member/profile`). Every email you write goes to people in that DART and nobody
-else. If your profile names a different DART later, the emails you write reach the new DART
+(:doc:`../member/profile`). Every email you write goes only to people in that
+DART. If your profile names a different DART later, the emails you write reach the new DART
 from then on.
 
-If your profile names no DART, **Compose** shows *Your profile names no DART, so there is
-nobody to send to. Set your DART on My profile.* in place of the email, in a box with a
-link, **Open My profile**. The same box stands at the top of **Drafts and scheduled**,
-**Sent**, and **Callouts**, and your **Dashboard** has it too, worded *Bulk email needs a
-DART. Set yours on My profile.* None of them offers **New email** until your DART is
-set. Choose your DART there and press **Compose** again. An email you started earlier
-says, in place of the filters, that it belongs to you and that your profile names no DART,
-so nobody can be added; CalDART management reads the same line if they open it.
+If your profile doesn't name a DART, **Compose** shows *Your profile names no DART, so
+there is nobody to send to. Set your DART on My profile.* in place of the email, in a box
+with a link, **Open My profile**. The same box stands at the top of **Drafts and
+scheduled**, **Sent**, and **Callouts**, and your **Dashboard** has it too, worded *Bulk
+email needs a DART. Set yours on My profile.* None of them offers **New email** until your
+DART is set. Choose your DART there and press **Compose** again. An email you started
+earlier says, in place of the filters, that it belongs to you and that your profile
+doesn't name a DART, so nobody can be added; CalDART management reads the same line if
+they open it.
 
 
 Choosing who gets it
@@ -38,12 +39,12 @@ On **Compose**, card **1. Who gets it** says *Sending to the Marin DART* (with y
 name) where CalDART management sees a **DART** filter. Every other filter works as it does
 for management, inside your DART: **Kind**, **Search**, **Membership**, **Certificate**,
 **Medical**, **County**, **Role**, and **Expiring within (days)**. The people they match,
-shown under the filters before you add them, are all in your DART: with no filters chosen,
+shown under the filters before you add them, are all in your DART: when no filter is chosen,
 every member and friend of it, you among them. **Add these people** adds them.
 
 Anybody on the recipient list whose profile no longer names your DART, such as a member who moved to
-another DART after you added them, shows *Not in your DART* under **Will receive?** and is
-sent nothing.
+another DART after you added them, shows *Not in your DART* under **Will receive?** and isn't
+sent a copy.
 
 
 The type of email
