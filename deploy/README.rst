@@ -672,8 +672,8 @@ set.  The summary lists the ones still empty.  Add them with
   ``STRIPE_APPLE_PAY_DOMAIN_ASSOCIATION``.  The webhook endpoint to register
   with Stripe is ``SITE_URL`` followed by ``/api/v1/payments/stripe/webhook``.
 - **PayPal**: ``PAYPAL_CLIENT_ID``, ``PAYPAL_CLIENT_SECRET``, ``PAYPAL_ENV``
-  (``live`` in the template), and, to have PayPal's notifications verified,
-  ``PAYPAL_WEBHOOK_ID``; the webhook endpoint is ``SITE_URL`` followed by
+  (``live`` in the template), and ``PAYPAL_WEBHOOK_ID``, without which the
+  webhook route answers 404; the webhook endpoint is ``SITE_URL`` followed by
   ``/api/v1/payments/paypal/webhook``.
 - **Geoapify**: ``GEOAPIFY_API_KEY``, the key behind the address suggestions.
 - **The from address**: ``DEFAULT_FROM_EMAIL``, if ``--from-email`` was not

@@ -494,6 +494,10 @@ BULK_EMAIL_CHECKS_THROTTLE_RATE = _throttle_rate("BULK_EMAIL_CHECKS_THROTTLE_RAT
 # ``apps.bulk_email.throttling``: each change can email every subscriber.  Empty is off.
 CALLOUT_ANSWER_THROTTLE_RATE = _throttle_rate("CALLOUT_ANSWER_THROTTLE_RATE", "10/hour")
 
+# How many deliveries one client address may make to the payment webhooks, read by
+# ``apps.payments.webhook_throttling``.  Empty is off.
+PAYMENTS_WEBHOOK_THROTTLE_RATE = _throttle_rate("PAYMENTS_WEBHOOK_THROTTLE_RATE", "120/min")
+
 # --------------------------------------------------------------------------
 # Address suggestions (Geoapify)
 # --------------------------------------------------------------------------

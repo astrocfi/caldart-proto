@@ -345,8 +345,8 @@ def record_provider_event(payment: Payment, payload: dict[str, Any]) -> Payment:
     ``payload`` replaces ``raw["last_webhook"]``, so only the most recent
     notification is kept.  The status, the wallet and the term are untouched.
 
-    Used by the PayPal webhook, which is a recorder rather than an authority:
-    the capture call is what activates a membership.
+    Used by the PayPal webhook, for a notification PayPal has verified, before it
+    acts on one.
     """
     payment = Payment.objects.select_for_update().get(pk=payment.pk)
     raw = dict(payment.raw or {})

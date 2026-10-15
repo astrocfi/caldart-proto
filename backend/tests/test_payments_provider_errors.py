@@ -514,10 +514,10 @@ def post_webhook(client: APIClient, event: dict[str, Any]) -> Response:
 
 
 @respx.mock
-def test_a_verification_timeout_leaves_the_webhook_unverified(
+def test_a_verification_timeout_refuses_the_webhook(
     api_client: APIClient, member: User, annual_plan: MembershipPlan, settings: Settings
 ) -> None:
-    """A timeout verifying a PayPal webhook signature leaves it unverified, not a 500."""
+    """A timeout verifying a PayPal webhook signature is a 400, not a 500."""
     settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
     payment = pending_paypal_payment(member)
     token_route(respx.mock)
@@ -525,8 +525,10 @@ def test_a_verification_timeout_leaves_the_webhook_unverified(
 
     response = post_webhook(api_client, capture_completed_event(payment))
 
-    assert response.status_code == 200
-    assert json.loads(response.content)["verified"] is False
+    assert (response.status_code, json.loads(response.content)) == (
+        400,
+        {"detail": paypal.UNVERIFIED_MESSAGE},
+    )
 
 
 @respx.mock

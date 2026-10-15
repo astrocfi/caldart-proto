@@ -624,7 +624,10 @@ Webhooks
 ========
 
 Both endpoints are unauthenticated and CSRF-exempt: the signature *is* the
-authentication.
+authentication.  Both are throttled by client address under the
+``payments_webhook`` scope (``PAYMENTS_WEBHOOK_THROTTLE_RATE``, ``120/min``,
+shared between the two; see :doc:`configuration`), and a delivery past the rate
+is a **429** that the provider sends again later.
 
 ``POST /payments/stripe/webhook``
 ---------------------------------
@@ -663,36 +666,49 @@ to be re-delivered from the Stripe dashboard.  A ``payment_intent.succeeded`` or
 full or in part, leaves it refunded.
 
 Statuses: **200** whether or not the event was acted on; **400** for a
-signature that does not check out; **405** for any method but ``POST``.
+signature that does not check out; **429** past
+``PAYMENTS_WEBHOOK_THROTTLE_RATE``; **405** for any method but ``POST``.
 
 ``POST /payments/paypal/webhook``
 ---------------------------------
 
-The capture call is authoritative, so this endpoint is a recorder.  It files
-the payload against the matching payment (found by ``custom_id``, then by
-order id) and answers:
+The route needs ``PAYPAL_WEBHOOK_ID``: while it is empty every delivery is a
+**404** ``{"detail": "PayPal notifications are not configured."}``, read no
+further.  A body larger than 64 KB is a **413**
+``{"detail": "Notification too large."}`` and one that is not a JSON object a
+**400** ``{"detail": "Malformed JSON."}``, both before PayPal is asked.
+
+Every other delivery is checked with PayPal's ``verify-webhook-signature`` call
+before anything is written.  A notification PayPal does not vouch for, or that
+it cannot be asked about, is a **400**
+``{"detail": "PayPal did not verify this notification."}`` that records nothing
+and touches no payment; its ``event_type`` is logged quoted, as a literal.
+PayPal sends again a delivery it is not answered 2xx for, so one refused while
+PayPal could not be reached arrives again.
+
+A verified notification is filed against the matching payment (found by
+``custom_id``, then by order id) as its ``raw["last_webhook"]``, and answered:
 
 .. code-block:: json
 
-   {"received": true, "verified": false, "handled": false}
+   {"received": true, "handled": true}
 
-``verified`` is true only when ``PAYPAL_WEBHOOK_ID`` is set *and* PayPal's
-``verify-webhook-signature`` call passes.  A verified
-``PAYMENT.CAPTURE.COMPLETED`` activates the membership once it passes the
+A ``PAYMENT.CAPTURE.COMPLETED`` activates the membership once it passes the
 capture call's own checks: the amount, the currency, a ``custom_id`` when the
 capture carries one, and the order, read from
 ``supplementary_data.related_ids.order_id``, which has to be the payment's own
 ``provider_ref``.  One that fails them is logged at ``ERROR`` for reconciliation
-and answered with ``handled`` false;
-``PAYMENT.CAPTURE.DENIED`` and ``PAYMENT.CAPTURE.REVERSED`` mark it failed; and
-a verified ``PAYMENT.CAPTURE.REFUNDED`` records the refund, as
-:ref:`api-refunds-webhooks` describes.
-Without verification nothing changes — an unverifiable notification is not
-evidence that money moved.  A notification about a payment this installation
-does not have is received but not filed.
+and answered with ``handled`` false.  ``PAYMENT.CAPTURE.DENIED`` and
+``PAYMENT.CAPTURE.REVERSED`` mark a payment that is still waiting on its money
+failed, and leave one that has settled as it is.  ``PAYMENT.CAPTURE.REFUNDED``
+records the refund, as :ref:`api-refunds-webhooks` describes.  ``handled`` is
+false for a notification about a payment this installation does not have, which
+is kept nowhere, and for every other event type.
 
-Statuses: **200** whether or not the notification was verified or acted on;
-**400** ``{"detail": "Malformed JSON."}`` for a body that is not JSON;
+Statuses: **200** for a verified notification, whether or not it was acted on;
+**400** for a body that is not JSON and for a notification PayPal did not
+verify; **404** while ``PAYPAL_WEBHOOK_ID`` is empty; **413** for a body over
+64 KB; **429** past ``PAYMENTS_WEBHOOK_THROTTLE_RATE``;
 **405** for any method but ``POST``.
 
 

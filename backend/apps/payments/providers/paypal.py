@@ -8,8 +8,8 @@ before it expires; the entry records the environment and client id, so changing
 either (in tests, or by editing ``.env``) fetches a fresh one.
 
 Capture is authoritative: ``confirm`` only activates a membership when PayPal
-answers ``COMPLETED`` *and* the captured amount matches our own row.  The
-webhook is a recorder, and only acts when its signature has been verified.
+answers ``COMPLETED`` *and* the capture matches our own row.  The webhook reads
+nothing until PayPal has verified the notification's signature.
 """
 
 from __future__ import annotations
@@ -71,6 +71,19 @@ CAPTURE_REFUNDED = "PAYMENT.CAPTURE.REFUNDED"
 
 #: What the member is told when PayPal will not take a vaulted payment.
 DECLINED_MESSAGE = "PayPal refused the saved payment method."
+
+#: The largest webhook body read, in bytes.  PayPal's notifications are a few
+#: kilobytes; anything near this size is not one of theirs.
+MAX_WEBHOOK_BYTES = 64 * 1024
+
+#: What the webhook answers while ``PAYPAL_WEBHOOK_ID`` is empty.
+WEBHOOK_NOT_CONFIGURED_MESSAGE = "PayPal notifications are not configured."
+
+#: What the webhook answers a body over :data:`MAX_WEBHOOK_BYTES`.
+WEBHOOK_TOO_LARGE_MESSAGE = "Notification too large."
+
+#: What the webhook answers a notification PayPal does not vouch for.
+UNVERIFIED_MESSAGE = "PayPal did not verify this notification."
 
 #: The vault instruction attached to a checkout order that is to save the payer's
 #: account for automatic renewal.
@@ -535,39 +548,50 @@ class PayPalProvider(Provider):
 
     # --------------------------------------------------------------- webhook
     def handle_webhook(self, request: HttpRequest) -> HttpResponse:
-        """Record the notification; act on it only once it is verified.
+        """Verify the notification with PayPal, then file it and act on it.
 
-        PayPal's signature check needs a ``PAYPAL_WEBHOOK_ID`` from the
-        developer dashboard.  Without one we cannot tell a real notification
-        from a forged one, so the payload is filed against the payment and
-        nothing else happens -- capture (above) is what activates memberships.
+        PayPal's signature check needs a ``PAYPAL_WEBHOOK_ID`` from the developer
+        dashboard, so without one the route answers 404 and reads nothing.  A body
+        over :data:`MAX_WEBHOOK_BYTES` is a 413 and one that is not a JSON object
+        a 400, both before PayPal is asked.  A notification PayPal does not vouch
+        for is a 400 that records nothing and touches no payment.
 
-        A verified ``PAYMENT.CAPTURE.REFUNDED`` is the one notification that
-        writes a record of its own: it files the refund somebody took in PayPal's
-        dashboard, so the ledger is right whoever issued it.
+        A verified notification is filed as the matching payment's
+        ``raw["last_webhook"]`` and answered 200 with ``{"received": true,
+        "handled": ...}``.  ``handled`` is true when a ``PAYMENT.CAPTURE.COMPLETED``
+        passed :func:`verify_capture` and settled the payment, when a denial or a
+        reversal was applied (which fails a payment still waiting on its money and
+        leaves a settled one as it is), and when a ``PAYMENT.CAPTURE.REFUNDED`` was
+        filed: the refund somebody took in PayPal's dashboard, so the ledger is
+        right whoever issued it.  A notification about no payment of ours, and
+        any other event type, is received but not handled.
         """
         if request.method != "POST":
             return HttpResponseNotAllowed(["POST"])
+        if not settings.PAYPAL_WEBHOOK_ID:
+            return JsonResponse({"detail": WEBHOOK_NOT_CONFIGURED_MESSAGE}, status=404)
+        if exceeds_webhook_cap(request):
+            return JsonResponse({"detail": WEBHOOK_TOO_LARGE_MESSAGE}, status=413)
 
         try:
             payload = json_body(request)
         except ValueError:
             return JsonResponse({"detail": "Malformed JSON."}, status=400)
 
-        verified = self.verify_signature(request, payload)
         event_type = payload.get("event_type", "")
+        # Nothing is written, and no payment row is locked, until PayPal vouches for
+        # the notification: the route is anonymous.
+        if not self.verify_signature(request, payload):
+            log.warning("Refused an unverified PayPal webhook %r", event_type)
+            return JsonResponse({"detail": UNVERIFIED_MESSAGE}, status=400)
+
         resource = payload.get("resource") or {}
         payment = payment_for_resource(resource)
-
         if payment is None:
-            log.info("PayPal webhook %s referenced an unknown payment", event_type)
-            return JsonResponse({"received": True, "verified": verified, "handled": False})
+            log.info("PayPal webhook %r referenced an unknown payment", event_type)
+            return JsonResponse({"received": True, "handled": False})
 
         record_provider_event(payment, {"event_type": event_type, "payload": payload})
-
-        if not verified:
-            log.info("PayPal webhook %s recorded but not verified", event_type)
-            return JsonResponse({"received": True, "verified": False, "handled": False})
 
         if event_type == CAPTURE_COMPLETED:
             try:
@@ -578,7 +602,7 @@ class PayPalProvider(Provider):
                     order_id=related_order_id(resource),
                 )
             except PaymentVerificationError:
-                return JsonResponse({"received": True, "verified": True, "handled": False})
+                return JsonResponse({"received": True, "handled": False})
             fees = fees_from_capture(resource)
             mark_succeeded(
                 payment,
@@ -592,9 +616,9 @@ class PayPalProvider(Provider):
         elif event_type == CAPTURE_REFUNDED:
             self.record_refund(payment, resource)
         else:
-            return JsonResponse({"received": True, "verified": True, "handled": False})
+            return JsonResponse({"received": True, "handled": False})
 
-        return JsonResponse({"received": True, "verified": True, "handled": True})
+        return JsonResponse({"received": True, "handled": True})
 
     # ------------------------------------------------------------------ fees
     def fetch_fees(self, payment: Payment) -> ProviderFees | None:
@@ -634,7 +658,7 @@ class PayPalProvider(Provider):
 
         Returns ``False`` without calling PayPal when ``PAYPAL_WEBHOOK_ID`` is
         unset, and ``False`` when the verification call itself fails, so an
-        unverifiable notification is only ever recorded.
+        unverifiable notification is never acted on.
         """
         webhook_id = settings.PAYPAL_WEBHOOK_ID
         if not webhook_id:
@@ -773,6 +797,18 @@ class PayPalProvider(Provider):
     def method_from_payment(self, payment: Payment) -> MandateMethod | None:
         """The vaulted account a captured order saved, or ``None`` when it saved none."""
         return vault_from_capture(payment.raw or {})
+
+
+def exceeds_webhook_cap(request: HttpRequest) -> bool:
+    """Whether the request's body is larger than :data:`MAX_WEBHOOK_BYTES`.
+
+    A declared ``Content-Length`` over the cap is enough, so such a body is never
+    read into memory; otherwise the body itself is measured.
+    """
+    declared = str(request.META.get("CONTENT_LENGTH") or "")
+    if declared.isdigit() and int(declared) > MAX_WEBHOOK_BYTES:
+        return True
+    return len(request.body) > MAX_WEBHOOK_BYTES
 
 
 def json_body(request: HttpRequest) -> dict[str, Any]:

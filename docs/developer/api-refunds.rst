@@ -151,6 +151,6 @@ Three rules keep the ledger honest:
   on the payment's own screen.
 
 PayPal acts on a notification only once its signature has been verified, which
-needs ``PAYPAL_WEBHOOK_ID``; an unverified notification is filed against the
-payment and nothing else.  Stripe's signature is checked on every delivery, so
+needs ``PAYPAL_WEBHOOK_ID``; an unverified notification is refused and recorded
+nowhere.  Stripe's signature is checked on every delivery, so
 a ``charge.refunded`` that verifies is always acted on.

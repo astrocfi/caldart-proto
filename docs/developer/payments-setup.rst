@@ -60,8 +60,9 @@ mock switch, which ``backend/caldart/settings/prod.py`` reads.
      - Not from a dashboard: ``sandbox`` with Sandbox-tab credentials,
        ``live`` with Live-tab ones.
    * - ``PAYPAL_WEBHOOK_ID``
-     - Optional.  Set it and the PayPal webhook verifies its signature; leave
-       it blank and the webhook only records payloads.
+     - Required for the PayPal webhook, which checks every notification's
+       signature against it.  Blank, the webhook route answers 404 and records
+       nothing; the capture call works either way.
      - **Apps & Credentials →** the app **→ Webhooks**, the *Webhook ID*
        shown once the webhook exists, under the same tab.
    * - ``PAYMENTS_MOCK_ENABLED``
@@ -262,12 +263,12 @@ and what it can do depends on the provider.  Stripe's handler checks the
 ``Stripe-Signature`` header against ``STRIPE_WEBHOOK_SECRET`` — a body that
 fails the check is refused with a 400 — and then runs the same idempotent
 activation as the confirm call, which is why one arriving after a successful
-confirm changes nothing.  PayPal's handler files every notification against the
-payment and activates only one it has verified, which needs
-``PAYPAL_WEBHOOK_ID``: with that setting unset, verification returns false
-without calling PayPal, so the notification is recorded and nothing else
-happens, and the capture in step 8 remains the only thing that activates a
-term.
+confirm changes nothing.  PayPal's handler asks PayPal to verify each
+notification before it reads or records anything, which needs
+``PAYPAL_WEBHOOK_ID``: with that setting unset the route answers 404, and the
+capture in step 8 remains the only thing that activates a term.  A notification
+PayPal does not verify is refused with a 400 and leaves no trace on any
+payment.
 
 What each provider verifies, how long it may take, and how the mock provider
 stands in for both are below.
@@ -357,6 +358,9 @@ a test event in another terminal:
 
 Both webhook views are ``csrf_exempt`` with no authentication and no
 permission classes: the provider's signature over the body is the whole gate.
+Each client address may make ``PAYMENTS_WEBHOOK_THROTTLE_RATE`` deliveries
+(``120/min`` by default) to the two together; past that it is answered 429, and
+the provider sends the delivery again later.
 Make sure the reverse proxy passes ``/api/v1/payments/stripe/webhook`` and
 ``/api/v1/payments/paypal/webhook`` through unauthenticated, and does not
 strip the ``Stripe-Signature`` or ``Paypal-*`` headers.
@@ -609,8 +613,10 @@ site, with fake money.  Both sides of the transaction show up under
 Webhooks
 --------
 
-The capture call is authoritative, so the PayPal webhook is optional.  Set one
-up if you want a belt-and-braces record:
+The capture call is authoritative, so the PayPal webhook is a safety net for
+a browser that closes before the capture, and the way a refund taken in PayPal's
+dashboard reaches the ledger.  It needs ``PAYPAL_WEBHOOK_ID``, without which the
+route answers 404.  To set it up:
 
 1. **Apps & Credentials → your app → Add Webhook**, URL
    ``https://<your-domain>/api/v1/payments/paypal/webhook``, subscribed to
@@ -622,10 +628,10 @@ up if you want a belt-and-braces record:
 With that id set, each delivery is verified through
 ``POST /v1/notifications/verify-webhook-signature``, and a verified
 ``PAYMENT.CAPTURE.COMPLETED`` whose amount, currency, and order match the
-payment activates the membership.
-**Without** it the endpoint still accepts and records the payload against the
-payment, but changes nothing — an unverifiable notification is not evidence
-that money moved.
+payment activates the membership.  Nothing is recorded until PayPal has
+verified the notification: one it does not vouch for is refused with a 400, since
+an unverifiable notification is not evidence that money moved.  **Without** the
+id the route answers 404 to every delivery.
 
 
 The mock provider
@@ -937,8 +943,9 @@ Going live: checklist
    [ ] Google Pay enabled in live-mode payment methods
    [ ] PayPal live REST app created; PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET
        swapped; PAYPAL_ENV=live
-   [ ] PAYPAL_WEBHOOK_ID set if the PayPal webhook is in use, and the live
-       webhook subscribed to PAYMENT.CAPTURE.REFUNDED as well
+   [ ] PAYPAL_WEBHOOK_ID set, since the PayPal webhook route is 404
+       without it, and the live webhook subscribed to
+       PAYMENT.CAPTURE.REFUNDED as well
    [ ] PAYMENTS_MOCK_ENABLED_IN_PRODUCTION unset, so the mock provider is off
    [ ] DEBUG=false, HTTPS enforced, SITE_URL, and ALLOWED_HOSTS correct
    [ ] Secrets are in /etc/caldart/caldart.env, not in git

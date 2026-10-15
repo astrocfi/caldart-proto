@@ -13,9 +13,12 @@ import json
 import time
 from collections.abc import Callable
 
+import httpx
 import pytest
+import respx
 from django.contrib.auth.tokens import default_token_generator
 from django.core import mail
+from django.core.cache import cache
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from pytest_django.fixtures import Settings
@@ -46,6 +49,7 @@ LOGOUT = "/api/v1/auth/logout"
 CHECKOUT = "/api/v1/payments/checkout"
 STRIPE_WEBHOOK = "/api/v1/payments/stripe/webhook"
 PAYPAL_WEBHOOK = "/api/v1/payments/paypal/webhook"
+PAYPAL_SANDBOX = "https://api-m.sandbox.paypal.com"
 
 
 ATTACKER_EMAIL = "attacker@evil.test"
@@ -253,8 +257,21 @@ def test_the_stripe_webhook_needs_no_token(csrf_client: APIClient, settings: Set
     assert response.status_code == 400
 
 
-def test_the_paypal_webhook_needs_no_token(csrf_client: APIClient) -> None:
-    """The PayPal webhook accepts a request carrying no CSRF token."""
+@respx.mock
+def test_the_paypal_webhook_needs_no_token(csrf_client: APIClient, settings: Settings) -> None:
+    """The PayPal webhook accepts a verified notification carrying no CSRF token."""
+    settings.PAYPAL_CLIENT_ID = "client-id"
+    settings.PAYPAL_CLIENT_SECRET = "client-secret"  # noqa: S105 - test fixture
+    settings.PAYPAL_ENV = "sandbox"
+    settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
+    # A token another test cached would leave the token route below unasked.
+    cache.clear()
+    respx.post(f"{PAYPAL_SANDBOX}/v1/oauth2/token").mock(
+        return_value=httpx.Response(200, json={"access_token": "token", "expires_in": 3_600})
+    )
+    respx.post(f"{PAYPAL_SANDBOX}/v1/notifications/verify-webhook-signature").mock(
+        return_value=httpx.Response(200, json={"verification_status": "SUCCESS"})
+    )
     body = json.dumps({"event_type": "PAYMENT.CAPTURE.COMPLETED", "resource": {}})
 
     response = csrf_client.post(PAYPAL_WEBHOOK, data=body, content_type="application/json")
