@@ -19,6 +19,7 @@ from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.members.models import MembershipPlan, MembershipStatusChoices
+from apps.payments.api.serializers import CLOSED_CHARGE_MEMBER_MESSAGE
 from apps.payments.models import (
     MandateStatus,
     PaymentProvider,
@@ -26,7 +27,11 @@ from apps.payments.models import (
     RenewalMandate,
 )
 from apps.payments.renewals import emails as renewal_emails
-from apps.payments.renewals.charge import SETTLE_FAILED, settle_in_doubt
+from apps.payments.renewals.charge import (
+    CLOSED_BY_TREASURER_MESSAGE,
+    SETTLE_FAILED,
+    settle_in_doubt,
+)
 from tests.conftest import Golden
 from tests.factories import (
     MemberProfileFactory,
@@ -282,6 +287,85 @@ def test_a_closed_donation_never_speaks_of_renewing(
 
 
 # --------------------------------------------------------------------------
+# A renewal with a contribution
+# --------------------------------------------------------------------------
+@pytest.fixture
+def renewal_and_contribution(
+    member: User, annual_plan: MembershipPlan, today: date
+) -> RenewalAttempt:
+    """The member's renewal with a $20.00 contribution, held for checking."""
+    return held_charge(
+        member, annual_plan, ends_on=today + timedelta(days=10), contribution_cents=2000
+    )
+
+
+def test_a_closed_renewal_and_contribution_carries_the_renewal_subject(
+    treasurer_client: APIClient,
+    renewal_and_contribution: RenewalAttempt,
+    mailoutbox: list[EmailMessage],
+) -> None:
+    """Dues and a contribution together are a renewal, as every renewal email says."""
+    close_as_failed(treasurer_client, renewal_and_contribution)
+
+    assert subjects(mailoutbox) == ["we could not renew your membership"]
+
+
+def test_a_closed_renewal_and_contribution_names_both(
+    treasurer_client: APIClient,
+    annual_plan: MembershipPlan,
+    renewal_and_contribution: RenewalAttempt,
+    mailoutbox: list[EmailMessage],
+) -> None:
+    """The body says the renewal and the contribution couldn't be completed."""
+    close_as_failed(treasurer_client, renewal_and_contribution)
+
+    body = " ".join(str(mailoutbox[0].body).split())
+    assert (
+        "We couldn't complete the automatic renewal of your "
+        f"{annual_plan.name} membership and your contribution."
+    ) in body
+
+
+# --------------------------------------------------------------------------
+# What the member reads on My payments afterwards
+# --------------------------------------------------------------------------
+def my_renewal(client: APIClient, member: User) -> dict[str, object]:
+    """The member's own renewal, as My payments reads it."""
+    client.force_login(member)
+    mandate: dict[str, object] = client.get("/api/v1/me/renewal").json()["mandate"]
+    return mandate
+
+
+def test_the_member_reads_a_closed_charge_in_the_emails_words(
+    treasurer_client: APIClient, member: User, renewal: RenewalAttempt
+) -> None:
+    """My payments says the last charge couldn't be completed, as the email does."""
+    close_as_failed(treasurer_client, renewal)
+
+    assert my_renewal(treasurer_client, member)["last_error"] == CLOSED_CHARGE_MEMBER_MESSAGE
+
+
+def test_the_member_is_told_the_last_charge_was_closed(
+    treasurer_client: APIClient, member: User, renewal: RenewalAttempt
+) -> None:
+    """``last_charge_closed`` lets My payments drop the words for a refusal."""
+    close_as_failed(treasurer_client, renewal)
+
+    assert my_renewal(treasurer_client, member)["last_charge_closed"] is True
+
+
+def test_the_treasurer_reads_what_the_closed_charge_recorded(
+    treasurer_client: APIClient, renewal: RenewalAttempt
+) -> None:
+    """The finance screens keep the attempt's own record of who closed it."""
+    close_as_failed(treasurer_client, renewal)
+
+    response = treasurer_client.get(f"/api/v1/admin/renewals/{renewal.mandate_id}")
+
+    assert response.json()["last_error"] == CLOSED_BY_TREASURER_MESSAGE
+
+
+# --------------------------------------------------------------------------
 # When it goes, and when it doesn't
 # --------------------------------------------------------------------------
 def test_the_closed_charge_email_waits_for_the_commit(
@@ -424,6 +508,58 @@ def test_the_answer_to_a_release_says_the_member_isnt_emailed(
     response = treasurer_client.post(settle_url(renewal.pk), {"outcome": "released"}, format="json")
 
     assert response.json()["member_emailed"] is False
+
+
+@pytest.mark.parametrize("field", ["user_email", "user_phone"])
+def test_the_answer_to_a_release_leaves_out_the_contact_details(
+    treasurer_client: APIClient, member: User, renewal: RenewalAttempt, field: str
+) -> None:
+    """Only a closed charge's answer gives the member's address and phone number."""
+    MemberProfileFactory(user=member, phone=MEMBER_PHONE)
+
+    response = treasurer_client.post(settle_url(renewal.pk), {"outcome": "released"}, format="json")
+
+    assert response.json()[field] is None
+
+
+def test_the_answer_says_the_renewal_is_paused(
+    treasurer_client: APIClient, renewal: RenewalAttempt
+) -> None:
+    """A close that paused the renewal says it stands paused."""
+    response = treasurer_client.post(settle_url(renewal.pk), {"outcome": "failed"}, format="json")
+
+    assert response.json()["mandate_paused"] is True
+
+
+def test_the_answer_says_the_renewal_is_paused_for_a_member_without_an_address(
+    treasurer_client: APIClient, member: User, renewal: RenewalAttempt
+) -> None:
+    """The pause is reported whether or not the member could be emailed."""
+    User.objects.filter(pk=member.pk).update(email="")
+
+    response = treasurer_client.post(settle_url(renewal.pk), {"outcome": "failed"}, format="json")
+
+    assert response.json()["mandate_paused"] is True
+
+
+def test_the_answer_says_a_renewal_that_was_off_is_not_paused(
+    treasurer_client: APIClient, renewal: RenewalAttempt
+) -> None:
+    """A renewal the member turned off stays off, and isn't called paused."""
+    RenewalMandate.objects.update(status=MandateStatus.CANCELED)
+
+    response = treasurer_client.post(settle_url(renewal.pk), {"outcome": "failed"}, format="json")
+
+    assert response.json()["mandate_paused"] is False
+
+
+def test_the_answer_to_a_release_doesnt_call_the_renewal_paused(
+    treasurer_client: APIClient, renewal: RenewalAttempt
+) -> None:
+    """*No payment found* leaves the renewal on."""
+    response = treasurer_client.post(settle_url(renewal.pk), {"outcome": "released"}, format="json")
+
+    assert response.json()["mandate_paused"] is False
 
 
 @pytest.mark.parametrize(

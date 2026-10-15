@@ -120,11 +120,13 @@ def mandate_body(mandate: RenewalMandate | None) -> dict[str, Any]:
 
     ``mandate`` is ``null`` for a member who has never turned automatic renewal
     on.  The envelope is what carries that null: DRF renders a bare ``None`` as
-    an empty body, which a browser cannot tell from a failure.
+    an empty body, which a browser cannot tell from a failure.  The mandate is shaped
+    for its member (``for_member``), so a charge a treasurer closed reads in the
+    member's words.
     """
     if mandate is None:
         return {"mandate": None}
-    return {"mandate": dict(RenewalMandateSerializer(mandate).data)}
+    return {"mandate": dict(RenewalMandateSerializer(mandate, context={"for_member": True}).data)}
 
 
 class MyRenewalView(APIView):
@@ -425,11 +427,12 @@ class AdminRenewalAttemptSettleView(APIView):
         attempt is settled at once, the term renewed, and the member emailed once
         the answer has gone.  ``{"outcome": "released"}`` releases the hold, so the
         next scan charges the same payment again under the same invoice id.
-        ``{"outcome": "failed"}`` closes it as failed without a charge and pauses
+        ``{"outcome": "failed"}`` closes it as failed, so it isn't charged, and pauses
         an active mandate, and its member is emailed that it is paused once the answer
-        has gone.  The answer carries the member's email address and phone number, so
-        the treasurer can get in touch, and ``member_emailed``, true when an email to
-        the member was handed over to send and they have an address to send it to.
+        has gone.  For ``failed`` the answer carries the member's email address and
+        phone number, so the treasurer can get in touch, and ``mandate_paused``;
+        ``member_emailed`` is true when an email to the member was handed over to send
+        and they have an address to send it to.
         404 for an unknown attempt, 400 keyed by ``attempt`` for one that is not in
         doubt, and 400 naming ``detail`` when the provider will not confirm the
         reference or cannot be reached.
@@ -449,10 +452,10 @@ class AdminRenewalAttemptSettleView(APIView):
             )
         except PaymentError as exc:
             raise ValidationError({"detail": str(exc)}) from exc
+        outcome = payload.validated_data["outcome"]
         member_emailed = len(emails) > 0 and settled.mandate.user.email != ""
-        response = Response(
-            RenewalSettleResultSerializer(settled, context={"member_emailed": member_emailed}).data
-        )
+        context = {"outcome": outcome, "member_emailed": member_emailed}
+        response = Response(RenewalSettleResultSerializer(settled, context=context).data)
         if emails:
             send_after_response(
                 response, lambda: [send() for send in emails], what="the settled renewal email"
