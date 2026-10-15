@@ -104,6 +104,15 @@ class FailingIntents:
         """Raise the configured error instead of retrieving an intent."""
         raise self.error
 
+    def cancel(
+        self,
+        intent_id: str,
+        params: dict[str, Any] | None = None,
+        options: dict[str, Any] | None = None,
+    ) -> stripe.PaymentIntent:
+        """Raise the configured error instead of canceling an intent."""
+        raise self.error
+
 
 def break_stripe(monkeypatch: pytest.MonkeyPatch, error: stripe.StripeError) -> None:
     """Make every Stripe call raise ``error`` instead of reaching the network."""

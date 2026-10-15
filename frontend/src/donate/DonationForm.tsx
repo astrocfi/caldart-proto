@@ -200,9 +200,11 @@ function GiftForm({ configUrl, returnUrl, onGiven }: GiftFormProps): JSX.Element
     );
   }
 
+  const minimumCents = config.donation_minimum_cents;
+
   function handleContinue(event: FormEvent): void {
     event.preventDefault();
-    const found = validateDonation(values, amountCents);
+    const found = validateDonation(values, amountCents, minimumCents);
     setErrors(found);
     if (Object.keys(found).length === 0) setDonor(donorBody(values));
   }
@@ -218,6 +220,7 @@ function GiftForm({ configUrl, returnUrl, onGiven }: GiftFormProps): JSX.Element
         tiers={config.contribution_tiers.filter((tier) => tier.cents > 0)}
         value={amountCents}
         maxCents={config.max_contribution_cents}
+        minCents={config.donation_minimum_cents}
         onChange={(next) => setAmountCents(next)}
         isOther={isOther}
         // codespell:ignore-next-line onother

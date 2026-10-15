@@ -245,6 +245,14 @@ rate is a **429**.
    :Production: ``10/hour``.  Plenty for a household giving more than once,
       tight enough that a script cannot fill the books with donors.
 
+``AUTH_THROTTLE_DONATE_CONFIRM``
+   ``POST /donations/stripe/confirm`` and ``POST /donations/paypal/capture``, which
+   ask the provider about a gift on the public donation page, sharing one budget
+   per address.  Each gift is confirmed once or twice in the ordinary way of things.
+
+   :Development: ``30/hour``
+   :Production: ``30/hour``
+
 ``AUTH_THROTTLE_MFA``
    Every endpoint that takes a two-factor code: the code steps of signing in
    (``POST /auth/login/mfa``, ``…/mfa/enroll``, and ``…/mfa/enroll/confirm``) and
@@ -259,8 +267,9 @@ The rates land in the ``AUTH_THROTTLE_RATES`` setting, one key per scope, and
 are read by ``apps.accounts.throttling``.  A scope mapped to ``None``, mapped
 to an empty string, or missing from that dict is off, so an
 ``override_settings`` in a test can switch one on or off without knowing how
-the environment was set.  There is no project-wide throttle: apart from these
-and the per-account limit on :ref:`address suggestions
+the environment was set.  There is no project-wide throttle: apart from these,
+the per-account limits on :ref:`payments <configuration-payment-limits>`, and the
+per-account limit on :ref:`address suggestions
 <configuration-address-suggestions>`, every endpoint is unlimited.  See
 :doc:`api-reference`.
 
@@ -716,6 +725,57 @@ verifies whichever of the keys below are set before you open a browser.
    demonstrate the checkout flow on a box with no payment keys.
 
    :Production: ``false``
+
+.. _configuration-payment-limits:
+
+Payment limits
+--------------
+
+Each checkout endpoint asks a provider about a card.  A floor on what a payer may
+give on its own and a per-account rate on starting and confirming payments bound
+how many cards anybody can try through CalDART's own endpoints in an hour.  A card
+tried in the browser against a client secret already handed out goes straight to
+Stripe and is never counted here; the Stripe webhook and the Radar rules in
+:doc:`payments-setup` cover that.  The public donation page's own
+endpoints are limited by
+client address instead, under ``AUTH_THROTTLE_DONATE`` and
+``AUTH_THROTTLE_DONATE_CONFIRM`` above.
+
+``DONATION_MINIMUM_CENTS``
+   The smallest gift, in cents, a payer may choose on its own: a donation from the
+   portal's Donate screen or from the public donation page, once or recurring, and a
+   change to a recurring donation's amount.  A contribution added to a membership
+   fee takes any amount, except that a checkout for a plan priced under the minimum
+   must come to the minimum in all.  Both donation forms read it
+   from their config and wait for it.  A value under ``1`` stops start-up with
+   ``ImproperlyConfigured``.
+
+   :Development: ``500`` ($5.00)
+   :Production: ``500``
+
+``PAYMENT_THROTTLE_START``
+   ``POST /payments/checkout``, ``POST /me/renewal/setup``, and
+   ``POST /me/donation/setup``, sharing one budget per signed-in account.  The
+   Stripe tab starts a checkout each time the amount settles, and again after each
+   decline, so leave room for a member trying a few amounts and a second card.
+
+   :Development: ``30/hour``
+   :Production: ``30/hour``
+
+``PAYMENT_THROTTLE_CONFIRM``
+   ``POST /payments/stripe/confirm``, ``POST /payments/paypal/capture``,
+   ``POST /me/renewal/confirm``, and ``POST /me/donation/confirm``, sharing one
+   budget per signed-in account.  The portal confirms once more after each decline,
+   to have the declined intent canceled.
+
+   :Development: ``30/hour``
+   :Production: ``30/hour``
+
+Both rates read as the ``AUTH_THROTTLE_*`` ones do: ``<count>/<period>``, empty to
+turn the throttle off, and anything else stops start-up.  They land in the
+``PAYMENT_THROTTLE_RATES`` setting, keyed ``payment_start`` and
+``payment_confirm``, and are read by ``apps.payments.throttling``, whose classes
+subclass ``UserRateThrottle`` and count each account on its own.
 
 
 Frontend assets

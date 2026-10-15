@@ -7,6 +7,10 @@
  * so a card that needs no bank confirmation never leaves the page; one that does
  * comes back to `/portal/payments` with the SetupIntent and the authority it was
  * for in the query string, and that authority's card confirms it there.
+ *
+ * A declined card is reported to the server, which cancels the SetupIntent, and the
+ * panel asks for a fresh one with the reason kept on screen.  Any other error keeps
+ * the same SetupIntent.
  */
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -21,6 +25,7 @@ import { isAbortError, panelErrorMessage } from '@/portal/features/checkout/api'
 import {
   AMOUNT_DEBOUNCE_MS,
   appearanceFromTokens,
+  isStripeDecline,
   stripeFor,
 } from '@/portal/features/checkout/StripePanel';
 import type { RenewalSetupFields } from './api';
@@ -57,6 +62,9 @@ export function StripeRenewalPanel({
 }: StripeRenewalPanelProps): JSX.Element {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Each decline asks for a SetupIntent of its own, keeping the reason on screen.
+  const [attempt, setAttempt] = useState(0);
+  const [declined, setDeclined] = useState<string | null>(null);
   const stripePromise = useMemo(() => stripeFor(publishableKey), [publishableKey]);
   const appearance = useMemo(() => appearanceFromTokens(), []);
   const settled = useSettledSetup(fields);
@@ -92,7 +100,12 @@ export function StripeRenewalPanel({
     return () => {
       controller.abort();
     };
-  }, [scope, settled, onRenewalContribution]);
+  }, [scope, settled, onRenewalContribution, attempt]);
+
+  function handleDecline(message: string): void {
+    setDeclined(message);
+    setAttempt((count) => count + 1);
+  }
 
   if (error) {
     return (
@@ -116,8 +129,17 @@ export function StripeRenewalPanel({
 
   return (
     <div className="checkout__panel">
-      <Elements key={clientSecret} stripe={stripePromise} options={{ clientSecret, appearance }}>
-        <StripeSetupForm scope={scope} onDone={handleDone} />
+      <Elements
+        key={`${attempt}:${clientSecret}`}
+        stripe={stripePromise}
+        options={{ clientSecret, appearance }}
+      >
+        <StripeSetupForm
+          scope={scope}
+          declined={declined}
+          onDone={handleDone}
+          onDecline={handleDecline}
+        />
       </Elements>
     </div>
   );
@@ -126,15 +148,21 @@ export function StripeRenewalPanel({
 /** The Payment Element plus its submit button, confirming the SetupIntent on submit. */
 function StripeSetupForm({
   scope,
+  declined,
   onDone,
+  onDecline,
 }: {
   scope: MandateScope;
+  /** Why the last card was declined, shown until the next try; null for none. */
+  declined: string | null;
   onDone: () => void;
+  /** Called with Stripe's reason when a card is declined, to start another setup. */
+  onDecline: (message: string) => void;
 }): JSX.Element {
   const stripe = useStripe();
   const elements = useElements();
   const confirm = useConfirmRenewal(scope);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(declined);
   const [isBusy, setIsBusy] = useState(false);
   const isMounted = useRef(true);
 
@@ -144,6 +172,19 @@ function StripeSetupForm({
       isMounted.current = false;
     };
   }, []);
+
+  /**
+   * Have the server ask Stripe about a declined SetupIntent, which cancels it there
+   * without waiting for the webhook.  The server refuses the setup, as it must: the
+   * decline is already known, and a fresh setup follows either way.
+   */
+  async function reportDecline(setupIntentId: string): Promise<void> {
+    try {
+      await confirm.mutateAsync({ setup_intent_id: setupIntentId, setup_token: '' });
+    } catch {
+      // The refusal is expected, and the webhook reports the same decline.
+    }
+  }
 
   async function submit(event: React.FormEvent): Promise<void> {
     event.preventDefault();
@@ -158,7 +199,14 @@ function StripeSetupForm({
         redirect: 'if_required',
       });
       if (confirmation.error) {
-        setError(confirmation.error.message ?? "That card wasn't saved. Try again in a moment.");
+        const message =
+          confirmation.error.message ?? "That card wasn't saved. Try again in a moment.";
+        if (!isStripeDecline(confirmation.error)) {
+          setError(message);
+          return;
+        }
+        await reportDecline(confirmation.error.setup_intent?.id ?? '');
+        onDecline(message);
         return;
       }
       await confirm.mutateAsync({

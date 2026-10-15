@@ -24,7 +24,8 @@ Then the form, in a card of its own:
 * **Your donation**: *Gifts to CalDART, a 501(c)(3), are tax deductible.* Then the
   tiers (Participating $20, Bronze $100, Silver $300,
   Gold $1,000, Diamond $3,000, and Platinum $10,000), or **Other amount**, where you
-  type whole dollars up to $99,999. For more than that, talk to the treasurer.
+  type whole dollars from $5 up to $99,999. For more than that, talk to the
+  treasurer.
 * **Total today**, the sum that will be charged now.
 * **Make this a recurring donation**, a box to check for a gift that repeats.
 * **How would you like to pay?**, the payment tabs, described on :doc:`join`.
@@ -32,7 +33,10 @@ Then the form, in a card of its own:
 No amount is chosen when the screen opens, and there is no "No thank you", since
 giving is what the screen is for. Until you choose an amount the screen says *Choose
 a donation amount to continue.* Choosing **Other amount** opens a box with its hint,
-*Up to $99,999*, above it at the form's full width.
+*From $5 up to $99,999.*, above it at the form's full width. An amount under $5 says
+*A donation must be at least $5.* in place of the payment tabs: $5 is the smallest
+gift CalDART takes on its own. A contribution added to your dues on :doc:`renew` has
+no smallest amount.
 
 
 Giving once
@@ -94,7 +98,8 @@ Changing or stopping it
 
 On :doc:`payments`, the **Recurring donation** card's **Change** opens **Change your
 recurring donation**: the amount, **How often**, and **Next charge on**. It waits
-for an amount with *Choose an amount to give.* Press **Save changes**.
+for an amount with *Choose an amount to give.*, and for at least $5 with *A donation
+must be at least $5.* Press **Save changes**.
 
 **Turn off** asks *Turn your recurring donation off? Nothing further is charged and
 your saved method is dropped.* **Turn it off** stops it at once, and CalDART
@@ -121,6 +126,9 @@ The emails it sends
 If something looks wrong
 ========================
 
-A declined card leaves nothing charged; try another card or the PayPal tab. If the
-screen says **Online payment is not set up yet**, contact CalDART to give by check.
-To give more than $99,999 at once, talk to the treasurer.
+A declined card leaves nothing charged. The card form clears, with the reason
+above it, so you can try another card or the PayPal tab; each try is a payment of
+its own. If the screen says the request was throttled, you have started or
+confirmed many payments within the hour: wait the time it names and try again. If
+the screen says **Online payment is not set up yet**, contact CalDART to give by
+check. To give more than $99,999 at once, talk to the treasurer.

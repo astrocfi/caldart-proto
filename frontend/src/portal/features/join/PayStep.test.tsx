@@ -47,6 +47,7 @@ const PAYMENTS_CONFIG: PaymentsConfig = {
     { label: 'Participating', cents: 2000 },
   ],
   max_contribution_cents: 9_999_900,
+  donation_minimum_cents: 500,
 };
 
 /**

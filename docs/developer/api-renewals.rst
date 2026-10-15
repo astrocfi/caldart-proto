@@ -100,8 +100,9 @@ Statuses: **200**; **401** when anonymous.
 ``POST /me/renewal/setup`` and ``POST /me/donation/setup``
 ----------------------------------------------------------
 
-Any authenticated member or friend.  Start saving a payment method, without
-paying anything.
+Any authenticated member or friend, under the ``payment_start`` rate that
+``POST /payments/checkout`` shares (see :doc:`api-payments`).  Start saving a
+payment method, without paying anything.
 
 .. code-block:: json
 
@@ -120,7 +121,8 @@ for what the browser needs.
 For the renewal, ``plan`` must name a plan that has a duration, and the caller
 must not be a life member; ``cadence`` may be left out, and anything but
 ``yearly`` is refused.  For the donation, ``plan`` is not read,
-``contribution_cents`` must be above zero, and ``cadence`` is ``monthly``,
+``contribution_cents`` must be above zero and at least ``DONATION_MINIMUM_CENTS``
+(``500`` unless configured; see :doc:`configuration`), and ``cadence`` is ``monthly``,
 ``quarterly`` or ``yearly`` (the default).  ``remove_renewal_contribution`` is
 read by the donation alone: see :ref:`renewals-one-contribution`.
 
@@ -144,21 +146,23 @@ Provider      ``client``
 Statuses: **200**; **400** naming ``plan`` for a slug no active plan carries,
 naming ``next_charge_on`` for a day that has already gone by, naming ``cadence``
 for a renewal on any cadence but ``yearly``, naming ``contribution_cents`` for a
-renewal that takes a contribution while the caller holds a recurring donation,
+renewal that takes a contribution while the caller holds a recurring donation and
+for a donation under the minimum (``A donation must be at least $5.00.``),
 naming ``auto_renew`` for a renewal with no plan or with one that never expires,
 for a life member who names a plan, for a donation of nothing, and for a provider
 that cannot charge a saved method, and naming ``detail`` when the provider refuses
 to start; **400** ``{"detail": ..., "code": "renewal_contribution"}`` for a
 donation while the caller's renewal takes a contribution and the body does not
-carry ``remove_renewal_contribution: true``; **401** when anonymous.  A 400
-writes nothing: the caller's mandates, and a renewal's contribution, stay as they
-were.
+carry ``remove_renewal_contribution: true``; **401** when anonymous; **429**
+past the caller's ``payment_start`` rate.  A 400 writes nothing: the caller's
+mandates, and a renewal's contribution, stay as they were.
 
 ``POST /me/renewal/confirm`` and ``POST /me/donation/confirm``
 --------------------------------------------------------------
 
-Any authenticated member or friend.  Save the method the browser has just
-collected and make the mandate of that kind active.
+Any authenticated member or friend, under the ``payment_confirm`` rate that the
+payment confirms share (see :doc:`api-payments`).  Save the method the browser has
+just collected and make the mandate of that kind active.
 
 .. code-block:: json
 
@@ -170,9 +174,16 @@ caller is emailed that the authority is on.  A Stripe setup that sends the
 browser to a bank returns to ``/portal/payments``, with ``mandate=donation`` in
 the query string for a donation, and that card confirms it.
 
+A Stripe SetupIntent that comes back ``requires_payment_method``, which is what a
+declined card leaves, is canceled at Stripe as the confirm is refused, so its client
+secret takes no further card; the portal calls this endpoint after every decline the
+browser sees, then starts a fresh setup.  The ``setup_intent.setup_failed`` webhook
+does the same for a decline nobody reports, and also deletes the ``pending`` mandate
+when that SetupIntent is the one saving its method (:doc:`payments-setup`).
+
 Statuses: **200**; **400** naming ``detail`` when the provider will not confirm
 what it is given; **404** when the caller started no setup of that kind; **401**
-when anonymous.
+when anonymous; **429** past the caller's ``payment_confirm`` rate.
 
 ``PATCH /me/renewal`` and ``PATCH /me/donation``
 ------------------------------------------------
@@ -190,8 +201,10 @@ often, and the day of the next charge.
 
 For the renewal, ``plan`` names the plan that renews from now on, and leaving it
 out leaves the plan alone; ``cadence`` may only be ``yearly``.  For the donation,
-``plan`` is not read, and ``cadence`` changes how often it charges; leaving it out
-leaves it alone.  ``next_charge_on`` moves the next charge, and leaving it out leaves the stored day
+``plan`` is not read, ``cadence`` changes how often it charges, and leaving it out
+leaves it alone; its ``contribution_cents`` must be at least
+``DONATION_MINIMUM_CENTS``, while a renewal's contribution, which rides on the dues,
+takes any amount.  ``next_charge_on`` moves the next charge, and leaving it out leaves the stored day
 alone; a charge already scheduled keeps its day, so a member who moves the date
 inside the fourteen-day notice window is still charged on the day the waiting
 charge was written for, which is the date the envelope answers.  The dues are not
@@ -202,7 +215,8 @@ What the authority may become is the rule the setup endpoint applies, so a patch
 that would leave a mandate nothing to charge again is refused.
 
 Statuses: **200**; **400** naming ``contribution_cents`` for an amount outside
-what a checkout would accept, and for a contribution on a renewal while the
+what a checkout would accept, for a donation under the minimum, and for a
+contribution on a renewal while the
 caller holds a recurring donation (``You already have a recurring donation.
 Change it on the Donate screen.``), naming ``next_charge_on`` for a day that has
 already gone by, naming ``plan`` for a slug no active plan carries, naming

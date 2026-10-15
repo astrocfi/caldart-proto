@@ -323,6 +323,98 @@ def test_capture_that_is_not_completed_grants_nothing(
     assert Membership.objects.count() == 0
 
 
+def unprocessable(issue: str) -> httpx.Response:
+    """PayPal's 422 answer to a capture it refuses for ``issue``."""
+    return httpx.Response(
+        422,
+        json={
+            "name": "UNPROCESSABLE_ENTITY",
+            "message": "The requested action could not be performed.",
+            "details": [{"issue": issue, "description": "The instrument was refused."}],
+        },
+    )
+
+
+@respx.mock
+def test_a_declined_capture_fails_the_payment(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A capture PayPal refuses as ``INSTRUMENT_DECLINED`` fails the payment."""
+    payment = pending_paypal_payment(member)
+    token_route(respx.mock)
+    respx.post(f"{ORDERS_URL}/ORDER1/capture").mock(
+        return_value=unprocessable("INSTRUMENT_DECLINED")
+    )
+
+    api_client.force_login(member)
+    api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER1"})
+
+    payment.refresh_from_db()
+    assert payment.status == PaymentStatus.FAILED
+
+
+@respx.mock
+def test_a_declined_capture_keeps_the_stored_order(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """The refusal is added to the stored order body rather than replacing it."""
+    payment = pending_paypal_payment(member)
+    payment.raw = {"id": "ORDER1", "status": "CREATED"}
+    payment.save(update_fields=["raw"])
+    token_route(respx.mock)
+    respx.post(f"{ORDERS_URL}/ORDER1/capture").mock(
+        return_value=unprocessable("INSTRUMENT_DECLINED")
+    )
+
+    api_client.force_login(member)
+    api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER1"})
+
+    payment.refresh_from_db()
+    assert payment.raw == {
+        "id": "ORDER1",
+        "status": "CREATED",
+        "capture_refused": ["INSTRUMENT_DECLINED"],
+    }
+
+
+@respx.mock
+def test_a_declined_order_is_never_captured_again(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """After a decline, capturing the same order again asks PayPal nothing."""
+    payment = pending_paypal_payment(member)
+    token_route(respx.mock)
+    route = respx.post(f"{ORDERS_URL}/ORDER1/capture").mock(
+        return_value=unprocessable("INSTRUMENT_DECLINED")
+    )
+
+    api_client.force_login(member)
+    body = {"payment_id": payment.pk, "order_id": "ORDER1"}
+    api_client.post(CAPTURE, body)
+    api_client.post(CAPTURE, body)
+
+    assert route.call_count == 1
+
+
+@respx.mock
+def test_a_capture_refused_for_another_reason_stays_pending(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A refusal that is not a decline, such as an unapproved order, fails nothing."""
+    payment = pending_paypal_payment(member)
+    token_route(respx.mock)
+    respx.post(f"{ORDERS_URL}/ORDER1/capture").mock(
+        return_value=unprocessable("ORDER_NOT_APPROVED")
+    )
+
+    api_client.force_login(member)
+    response = api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER1"})
+
+    assert response.status_code == 400
+    payment.refresh_from_db()
+    assert payment.status == PaymentStatus.PENDING
+
+
 @respx.mock
 def test_capture_of_the_wrong_amount_is_refused(
     api_client: APIClient, member: User, annual_plan: MembershipPlan
@@ -456,12 +548,20 @@ def test_capture_refuses_an_order_id_that_is_not_paypals_shape(
     assert response.json() == {"order_id": [PAYPAL_ORDER_ID_MESSAGE]}
 
 
-@pytest.mark.parametrize("status", [PaymentStatus.PENDING, PaymentStatus.FAILED])
+@pytest.mark.parametrize(
+    ("status", "answer"),
+    [(PaymentStatus.PENDING, 400), (PaymentStatus.FAILED, 200)],
+    ids=["pending-refused", "failed-answered-from-its-row"],
+)
 @respx.mock
 def test_capture_of_a_payment_with_no_order_is_refused(
-    api_client: APIClient, member: User, annual_plan: MembershipPlan, status: str
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, status: str, answer: int
 ) -> None:
-    """A payment PayPal never gave an order is not captured under one the caller names."""
+    """A payment PayPal never gave an order is not captured under one the caller names.
+
+    A pending one is refused; a failed one is answered from its row, as every payment
+    that is no longer pending is, and PayPal is asked nothing either way.
+    """
     payment = create_checkout(member, "annual", 0, PaymentProvider.PAYPAL)
     payment.status = status
     payment.save(update_fields=["status"])
@@ -473,7 +573,7 @@ def test_capture_of_a_payment_with_no_order_is_refused(
     api_client.force_login(member)
     response = api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDERELSE"})
 
-    assert response.status_code == 400
+    assert response.status_code == answer
     assert route.call_count == 0
 
 

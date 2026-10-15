@@ -6,12 +6,13 @@ import datetime as dt
 import re
 from typing import Any
 
+from django.conf import settings
 from django.utils import timezone
 from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema_field
 from rest_framework import serializers
 
 from apps.members.api.serializers import MembershipStatusSerializer, PlanSerializer
-from apps.members.models import Membership
+from apps.members.models import Membership, MembershipPlan
 from apps.members.services import is_tombstone
 from apps.payments.dates import is_in_the_future
 from apps.payments.manual import MANUAL_METHOD_CHOICES
@@ -42,7 +43,73 @@ from apps.payments.renewals.schedule import (
     renewal_amount_cents,
 )
 from apps.payments.reports import FIRST_REPORTABLE_YEAR, ContributionRow, DonorRow, PeriodSummary
+from caldart.reports import money_label
 from caldart.runs import RunActionSerializer
+
+#: What a gift under ``DONATION_MINIMUM_CENTS`` is told, with the minimum filled in.
+DONATION_MINIMUM_MESSAGE = "A donation must be at least {amount}."
+
+#: What a checkout for a plan priced under the minimum is told when its whole charge
+#: is under the minimum too.
+CHARGE_MINIMUM_MESSAGE = "A payment must be at least {amount}."
+
+#: The field a refusal of a gift under the minimum is keyed by.
+CONTRIBUTION_FIELD = "contribution_cents"
+
+
+def gift_minimum_message() -> str:
+    """The words that refuse a gift under the minimum.
+
+    For example ``A donation must be at least $5.00.``: the amount is
+    ``DONATION_MINIMUM_CENTS`` as configured, in dollars and cents.
+    """
+    return DONATION_MINIMUM_MESSAGE.format(amount=money_label(settings.DONATION_MINIMUM_CENTS))
+
+
+def is_below_gift_minimum(cents: int) -> bool:
+    """Whether ``cents`` is more than nothing but under ``DONATION_MINIMUM_CENTS``.
+
+    A gift of nothing is not below the minimum here: each endpoint already refuses one
+    with words of its own.
+    """
+    minimum: int = settings.DONATION_MINIMUM_CENTS
+    return 0 < cents < minimum
+
+
+def refuse_gift_below_minimum(cents: int) -> None:
+    """Refuse a gift :func:`is_below_gift_minimum` names, keyed by ``contribution_cents``.
+
+    For a body's ``validate``: raises DRF's ``ValidationError`` carrying
+    :func:`gift_minimum_message` under ``contribution_cents``.  A gift of nothing and a
+    gift of the minimum or more pass.
+    """
+    if is_below_gift_minimum(cents):
+        raise serializers.ValidationError({CONTRIBUTION_FIELD: [gift_minimum_message()]})
+
+
+def refuse_charge_below_minimum(plan_slug: str, contribution_cents: int) -> None:
+    """Refuse a checkout for a cheap plan whose whole charge is under the minimum.
+
+    A plan priced under ``DONATION_MINIMUM_CENTS`` -- a free one among them -- would
+    otherwise let a tiny charge through as dues plus a contribution.  When the active
+    plan ``plan_slug`` names costs less than the minimum and its price plus
+    ``contribution_cents`` comes to more than nothing but less than the minimum, raises
+    DRF's ``ValidationError`` keyed by ``contribution_cents`` with
+    :data:`CHARGE_MINIMUM_MESSAGE`.  A plan priced at the minimum or more takes any
+    contribution, a charge of nothing passes (``create_checkout`` refuses it), and so
+    does a slug no active plan carries, which ``create_checkout`` refuses too.
+    """
+    price = (
+        MembershipPlan.objects.filter(slug=plan_slug, is_active=True)
+        .values_list("price_cents", flat=True)
+        .first()
+    )
+    if price is None:
+        return
+    minimum: int = settings.DONATION_MINIMUM_CENTS
+    if price < minimum and 0 < price + contribution_cents < minimum:
+        message = CHARGE_MINIMUM_MESSAGE.format(amount=money_label(minimum))
+        raise serializers.ValidationError({CONTRIBUTION_FIELD: [message]})
 
 
 class ContributionTierSerializer(serializers.Serializer[dict[str, Any]]):
@@ -65,6 +132,7 @@ class PaymentsConfigSerializer(serializers.Serializer[dict[str, Any]]):
     plans = PlanSerializer(many=True)
     contribution_tiers = ContributionTierSerializer(many=True)
     max_contribution_cents = serializers.IntegerField()
+    donation_minimum_cents = serializers.IntegerField()
 
 
 def no_past_charge_date(value: dt.date) -> None:
@@ -141,7 +209,12 @@ class CheckoutSerializer(serializers.Serializer[dict[str, Any]]):
 
     There is deliberately no amount field: the server recomputes the total from
     the plan price plus the contribution.  A contribution outside
-    ``0..MAX_CONTRIBUTION_CENTS`` is a 400 naming ``contribution_cents``.
+    ``0..MAX_CONTRIBUTION_CENTS`` is a 400 naming ``contribution_cents``, and so is a
+    donation -- a checkout with no plan, one-time or recurring -- of more than nothing
+    but under ``DONATION_MINIMUM_CENTS``, with :func:`gift_minimum_message`.  A
+    contribution added to a plan's dues has no minimum of its own, but a plan priced
+    under the minimum must bring the whole charge to it
+    (:func:`refuse_charge_below_minimum`).
 
     ``auto_renew`` asks for the payment method to be saved and charged again on a
     schedule.  With a plan, that is an automatic renewal, which is always yearly:
@@ -167,9 +240,13 @@ class CheckoutSerializer(serializers.Serializer[dict[str, Any]]):
     remove_renewal_contribution = remove_renewal_contribution_field()
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
-        """Refuse an automatic renewal on any cadence but yearly, keyed by ``cadence``."""
+        """Refuse a renewal that is not yearly, and a charge under the minimum."""
         if attrs["auto_renew"] and attrs["plan"]:
             refuse_non_yearly_renewal(attrs["cadence"])
+        if attrs["plan"]:
+            refuse_charge_below_minimum(attrs["plan"], attrs["contribution_cents"])
+        else:
+            refuse_gift_below_minimum(attrs["contribution_cents"])
         return attrs
 
 
@@ -546,8 +623,10 @@ class RenewalSetupSerializer(MandateScopedSerializer):
     For the renewal, ``plan`` is the slug of the plan to renew and must be given
     (a 400 naming ``auto_renew`` otherwise) and have a duration, and ``cadence``
     may only be ``yearly`` (a 400 naming ``cadence`` otherwise).  For the donation,
-    ``plan`` is not read, ``contribution_cents`` must be more than nothing, and
-    ``cadence`` is ``monthly``, ``quarterly`` or ``yearly``, which is the default;
+    ``plan`` is not read, ``contribution_cents`` must be more than nothing and, when it
+    is, at least ``DONATION_MINIMUM_CENTS`` (a 400 naming ``contribution_cents``
+    otherwise), and ``cadence`` is ``monthly``, ``quarterly`` or ``yearly``, which is
+    the default;
     ``remove_renewal_contribution`` agrees to move the renewal's contribution to it.
     ``provider`` must be one that can charge a saved method.  ``next_charge_on`` is
     the day of the first charge; leaving it out takes the day the membership runs
@@ -565,8 +644,12 @@ class RenewalSetupSerializer(MandateScopedSerializer):
     remove_renewal_contribution = remove_renewal_contribution_field()
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
-        """Drop the plan from a donation; refuse a renewal with no plan or not yearly."""
+        """Drop a donation's plan, or refuse a renewal with no plan or not yearly.
+
+        A donation under the minimum is refused first, keyed by ``contribution_cents``.
+        """
         if self.is_donation:
+            refuse_gift_below_minimum(attrs["contribution_cents"])
             return {**attrs, "plan": ""}
         refuse_non_yearly_renewal(attrs["cadence"])
         if not attrs["plan"]:
@@ -641,11 +724,13 @@ class RenewalConfirmSerializer(serializers.Serializer[dict[str, Any]]):
 class RenewalPatchSerializer(MandateScopedSerializer):
     """``PATCH /me/renewal`` and ``PATCH /me/donation``: what the authority charges.
 
-    ``contribution_cents`` is required.  ``plan`` is the slug of the plan a renewal
-    renews from now on; leaving it out leaves the plan alone, and a donation does
-    not read it.  ``cadence`` changes how often a donation charges, and a renewal
-    takes only ``yearly`` (a 400 naming ``cadence`` otherwise); leaving it out
-    leaves the cadence alone.  ``next_charge_on`` moves the next charge; leaving it
+    ``contribution_cents`` is required, and a donation's, when it is more than nothing,
+    must be at least ``DONATION_MINIMUM_CENTS`` (a 400 naming ``contribution_cents``
+    otherwise).  ``plan`` is the slug of the plan a renewal renews from now on;
+    leaving it out leaves the plan alone, and a donation does not read it.
+    ``cadence`` changes how often a donation charges, and a renewal takes only
+    ``yearly`` (a 400 naming ``cadence`` otherwise); leaving it out leaves the cadence
+    alone.  ``next_charge_on`` moves the next charge; leaving it
     out leaves the stored day alone, and a day before today is a 400 naming
     ``next_charge_on``.
     """
@@ -656,8 +741,12 @@ class RenewalPatchSerializer(MandateScopedSerializer):
     cadence = cadence_field(default=None)
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
-        """Drop the plan from a donation, and refuse a renewal that is not yearly."""
+        """Drop the plan from a donation, and refuse a renewal that is not yearly.
+
+        A donation under the minimum is refused first, keyed by ``contribution_cents``.
+        """
         if self.is_donation:
+            refuse_gift_below_minimum(attrs["contribution_cents"])
             return {**attrs, "plan": ""}
         refuse_non_yearly_renewal(attrs["cadence"])
         return attrs

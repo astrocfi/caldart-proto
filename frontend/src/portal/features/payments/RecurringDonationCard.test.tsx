@@ -162,6 +162,20 @@ describe('RecurringDonationCard', () => {
     expect(screen.getByText('Choose an amount to give.')).toBeVisible();
   });
 
+  it('will not save a donation under the smallest the server takes', async () => {
+    const user = userEvent.setup();
+    mount(monthly());
+
+    await user.click(await screen.findByRole('button', { name: 'Change' }));
+    await user.click(screen.getByRole('radio', { name: 'Other amount' }));
+    const amount = screen.getByLabelText('Contribution amount');
+    await user.clear(amount);
+    await user.type(amount, '4');
+
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
+    expect(screen.getByText('A donation must be at least $5.')).toBeVisible();
+  });
+
   it('turns the donation off through its own endpoint and says so', async () => {
     const user = userEvent.setup();
     mount(monthly());

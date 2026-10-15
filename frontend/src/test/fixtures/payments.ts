@@ -29,6 +29,7 @@ export function makePaymentsConfig(overrides: Partial<PaymentsConfig> = {}): Pay
       { label: 'Supporter', cents: 2500 },
     ],
     max_contribution_cents: 9_999_900,
+    donation_minimum_cents: 500,
     ...overrides,
   };
 }

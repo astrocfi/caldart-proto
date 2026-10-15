@@ -391,6 +391,17 @@ draw on the same budget:
    * - ``POST /donations/checkout``
      - ``donate``
      - ``AUTH_THROTTLE_DONATE`` (``10/hour``)
+   * - ``POST /donations/stripe/confirm`` and ``POST /donations/paypal/capture``
+     - ``donate_confirm``
+     - ``AUTH_THROTTLE_DONATE_CONFIRM`` (``30/hour``)
+   * - ``POST /payments/checkout``, ``POST /me/renewal/setup``, and
+       ``POST /me/donation/setup``
+     - ``payment_start``
+     - ``PAYMENT_THROTTLE_START`` (``30/hour``), per account
+   * - ``POST /payments/stripe/confirm``, ``POST /payments/paypal/capture``,
+       ``POST /me/renewal/confirm``, and ``POST /me/donation/confirm``
+     - ``payment_confirm``
+     - ``PAYMENT_THROTTLE_CONFIRM`` (``30/hour``), per account
    * - ``GET /addresses/suggest``
      - ``address_suggest``
      - ``ADDRESS_SUGGEST_THROTTLE_RATE`` (``60/min``), per account
@@ -403,10 +414,11 @@ empty nor a readable rate stops start-up; see :doc:`configuration`.  The test
 settings switch every one off in Python rather than through the environment.
 The auth and donation classes subclass ``AnonRateThrottle`` but override
 ``get_cache_key`` so they bucket by address even for an authenticated caller,
-whose requests would otherwise go uncounted.  The address-suggestion class subclasses
-``UserRateThrottle`` and counts each account on its own, because every
-suggestion spends the Geoapify quota the whole site shares.  Exceeding a rate
-is **429**.
+whose requests would otherwise go uncounted.  The address-suggestion class
+subclasses ``UserRateThrottle`` and counts each account on its own, because every
+suggestion spends the Geoapify quota the whole site shares.  The two payment classes
+count each account on its own as well, because each start or confirmation asks a
+provider about a card.  Exceeding a rate is **429**.
 
 Signing in is also limited per email address, whoever tries it: ten failed
 attempts at one address within fifteen minutes, wrong passwords and wrong

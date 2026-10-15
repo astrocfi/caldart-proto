@@ -59,6 +59,24 @@ TOKEN_SKEW_SECONDS = 60
 #: skew above.  Caching for a moment is still better than a fetch per call.
 MINIMUM_TOKEN_SECONDS = 30
 
+#: The issue PayPal names when it refuses a capture because the buyer's card or
+#: account was declined.
+DECLINED_ISSUE = "INSTRUMENT_DECLINED"
+
+
+class PayPalRejectedError(PaymentVerificationError):
+    """PayPal answered a call with an error status.
+
+    ``issues`` are the ``details[].issue`` codes the answer carried, such as
+    ``INSTRUMENT_DECLINED``, in the order PayPal listed them; empty when it named none.
+    """
+
+    def __init__(self, message: str, issues: tuple[str, ...]) -> None:
+        """Carry ``message`` for the member and PayPal's ``issues`` for the caller."""
+        super().__init__(message)
+        self.issues = issues
+
+
 #: Where the client-credentials token sits in Django's default cache.
 TOKEN_CACHE_KEY = "paypal:access_token"  # noqa: S105 - a cache key, not a secret
 
@@ -227,8 +245,8 @@ def call(
     resource the first call made rather than making a second one.
 
     Raises :class:`~apps.payments.providers.base.ProviderUnavailableError` when the
-    call never completes, and
-    :class:`~apps.payments.providers.base.PaymentVerificationError` when PayPal
+    call never completes, and :class:`PayPalRejectedError`, a
+    :class:`~apps.payments.providers.base.PaymentVerificationError`, when PayPal
     answers with an error status.  A body that is not JSON is read as an empty
     dict, so a successful call with an unreadable body returns ``{}``.
     """
@@ -255,7 +273,12 @@ def call(
         body = {}
     if response.status_code >= 400:
         detail = body.get("message") or body.get("name") or f"HTTP {response.status_code}"
-        raise PaymentVerificationError(f"PayPal rejected the request: {detail}")
+        issues = tuple(
+            str(entry.get("issue") or "")
+            for entry in body.get("details") or []
+            if isinstance(entry, dict)
+        )
+        raise PayPalRejectedError(f"PayPal rejected the request: {detail}", issues)
     return body
 
 
@@ -506,12 +529,13 @@ class PayPalProvider(Provider):
         its own, when ``order_id`` names another order, when PayPal reports
         anything but ``COMPLETED``, when it completes the order without a capture,
         and when :func:`verify_capture` finds the captured total, the currency, the
-        capture's ``custom_id``, or the order id disagreeing with the payment.  Of
-        those, a status other than ``COMPLETED`` and a completed order without a
-        capture also mark the payment failed;
-        the rest leave it as it was.  A capture that never completes raises
-        :class:`ProviderUnavailableError` and is logged at ERROR for reconciliation,
-        because the money may have moved.
+        capture's ``custom_id``, or the order id disagreeing with the payment, and
+        :class:`PayPalRejectedError` when PayPal refuses the capture.  Of those, a
+        status other than ``COMPLETED``, a completed order without a capture, and a
+        refusal naming :data:`DECLINED_ISSUE` also mark the payment failed, so the
+        order is never captured again; the rest leave it as it was.  A capture that
+        never completes raises :class:`ProviderUnavailableError` and is logged at
+        ERROR for reconciliation, because the money may have moved.
         """
         if payment.status in SETTLED_STATUSES:
             # A second click, a webhook that beat the browser back, or a refund since.
@@ -527,6 +551,12 @@ class PayPalProvider(Provider):
 
         try:
             order = call("POST", f"/v2/checkout/orders/{segment(order_id)}/capture")
+        except PayPalRejectedError as exc:
+            if DECLINED_ISSUE in exc.issues:
+                # The order body stored at start stays; the refusal is added to it.
+                refusal = {"capture_refused": list(exc.issues)}
+                mark_failed(payment, {**(payment.raw or {}), **refusal})
+            raise
         except ProviderUnavailableError:
             # The capture may have been taken before the connection died, so
             # this one needs reconciling rather than a silent retry.

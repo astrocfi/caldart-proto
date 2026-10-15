@@ -18,6 +18,40 @@ amount**.  A checkout request names a plan slug and a contribution; the total
 is recomputed from the plan's price every time, and again when the provider is
 asked to confirm.
 
+Three more rules keep the endpoints from being a way to try cards at will:
+
+* **A gift has a floor.**  A payment whose amount the payer chooses on its own
+  -- a donation from the portal or from the public donation page, one-time or
+  recurring -- must be at least ``DONATION_MINIMUM_CENTS`` (``500``, $5.00, unless
+  configured; see :doc:`configuration`).  Anything from one cent up to it is a 400
+  naming ``contribution_cents``: ``A donation must be at least $5.00.``  A
+  contribution added to a plan's dues has no minimum of its own, but a checkout for
+  a plan priced under the minimum, a free one included, must bring the whole charge
+  to it: ``A payment must be at least $5.00.``
+* **Starting and confirming are throttled.**  Per account for a signed-in caller
+  (``payment_start`` for checkout and for starting to save a method at
+  ``/me/renewal/setup`` and ``/me/donation/setup``, ``payment_confirm`` for the
+  Stripe confirm, the PayPal capture, and ``/me/renewal/confirm`` and
+  ``/me/donation/confirm``) and per client address on the public donation page
+  (``donate`` to start a gift, ``donate_confirm`` to confirm or capture one).  Past
+  a rate the answer is **429**; the rates are in :doc:`configuration`.  The rates
+  count calls to CalDART: a card tried in the browser against a client secret
+  already handed out goes straight to Stripe and is not counted.
+* **A payment is confirmed once.**  Only a ``pending`` payment is taken to the
+  provider, under a lock on its row held from the status check until the provider
+  answers, so two confirms of one payment run one after the other.  A confirm,
+  capture, or mock completion of a payment that has succeeded, failed, or been
+  refunded answers its ``{status, membership}`` as it stands without asking the
+  provider, so a second call never takes money again and a failed payment is never
+  retried through the order or the intent it was started with.  A Stripe intent
+  CalDART learns has declined a card -- from this confirm, which the portal calls
+  after every decline, or from the ``payment_intent.payment_failed`` webhook -- is
+  canceled at Stripe, so its client secret takes no further card; until then
+  Stripe alone stands between the client secret and more cards, which is why the
+  webhook is required and Stripe Radar is configured (:doc:`payments-setup`).  A
+  PayPal capture refused as ``INSTRUMENT_DECLINED`` fails the payment.  Paying after
+  either starts a payment of its own.
+
 
 Checkout
 ========
@@ -48,23 +82,25 @@ Any authenticated user.  What the checkout screen can offer.
        {"label": "Diamond", "cents": 300000},
        {"label": "Platinum", "cents": 1000000}
      ],
-     "max_contribution_cents": 9999900
+     "max_contribution_cents": 9999900,
+     "donation_minimum_cents": 500
    }
 
 ``providers`` lists only providers whose keys are all configured, plus
 ``mock`` when ``PAYMENTS_MOCK_ENABLED`` is on.  The two key fields are
 publishable values, safe in a browser; they are empty strings when unset.
-``plans`` covers active plans only, and ``max_contribution_cents`` is the
+``plans`` covers active plans only, ``max_contribution_cents`` is the
 largest contribution checkout accepts, which the form uses to bound its
-"other amount" box.
+"other amount" box, and ``donation_minimum_cents`` is the smallest donation it
+accepts (``DONATION_MINIMUM_CENTS``), which the form shows and waits for.
 
 Statuses: **200**; **401** when anonymous.
 
 ``POST /payments/checkout``
 ---------------------------
 
-Any authenticated user.  Creates a ``pending`` payment and starts it with the
-chosen provider.
+Any authenticated user, under the ``payment_start`` rate.  Creates a ``pending``
+payment and starts it with the chosen provider.
 
 .. code-block:: json
 
@@ -83,8 +119,13 @@ from one is refused with a 400 naming ``plan``: ``You are a life member, so ther
 is nothing to renew. Make a donation instead.``  There is no amount field; one
 sent anyway is ignored.  ``contribution_cents`` runs from ``0`` to
 ``9999900`` ($99,999.00) inclusive -- inside every provider's per-charge
-ceiling, so an amount the API accepts is one the provider will take.  Anything
-outside that range is refused before a payment row is created.
+ceiling, so an amount the API accepts is one the provider will take.  A checkout
+with no plan is a donation, so its contribution must also be at least
+``DONATION_MINIMUM_CENTS``: ``{"contribution_cents": ["A donation must be at least
+$5.00."]}``.  A checkout for a plan priced under the minimum must come to the
+minimum with its contribution, or it is ``{"contribution_cents": ["A payment must
+be at least $5.00."]}``.  Anything outside the range is refused before a payment
+row is created.
 
 ``auto_renew`` defaults to ``false``.  When it is true the payer is given a
 ``pending`` standing authority before the provider is started -- Stripe needs a
@@ -152,13 +193,15 @@ refused connection or an error on the provider's own side, all of which answer
 is left behind in the database when the provider rejects it or fails.
 
 Statuses: **201**; **400** for any of the above, including a
-``next_charge_on`` that has already gone by; **401** when anonymous.
+``next_charge_on`` that has already gone by; **401** when anonymous; **429** past
+the caller's ``payment_start`` rate, which the two method setups in
+:doc:`api-renewals` share.
 
 ``POST /payments/stripe/confirm``
 ---------------------------------
 
 The payment's **owner** only — an administrator has no business finishing
-somebody else's checkout.
+somebody else's checkout — under the ``payment_confirm`` rate.
 
 .. code-block:: json
 
@@ -189,7 +232,12 @@ term nor undoes the refund.
                    "plan": "Annual", "is_lifetime": false}}
 
 A ``canceled`` or ``requires_payment_method`` intent marks the payment
-``failed`` and answers 200 with ``"status": "failed"``.  A mismatch, or an
+``failed`` and answers 200 with ``"status": "failed"``; a ``requires_payment_method``
+intent, which is what a decline leaves, is canceled at Stripe as well, so its client
+secret takes no further card.  The portal calls this endpoint after every decline the
+browser sees, so the cancel does not wait for the webhook.  A Stripe refusal of that cancel is logged and changes
+nothing else.  A payment that is no longer ``pending`` answers 200 with its status
+as it stands, and Stripe is not asked.  A mismatch, or an
 intent still ``processing``, is a **400** with the reason in ``detail``.  A
 provider that cannot be reached is a **400** too, and the payment stays
 ``pending`` so the member can try again.  A payment the caller does own but
@@ -197,16 +245,18 @@ that was started with another provider is a **400** keyed by ``payment_id``:
 ``{"payment_id": "That payment is not a stripe payment."}``.
 
 Statuses: **200** for a verified intent, for one Stripe reports as failed, and
-for a payment that had already settled;
+for a payment that is no longer ``pending``;
 **400** for a missing field, a payment started with another provider, a
 mismatch against our row, an intent still in flight, or Stripe being
 unreachable; **401** when anonymous; **404** when the payment is not the
-caller's, an unknown id included.
+caller's, an unknown id included; **429** past the caller's ``payment_confirm``
+rate.
 
 ``POST /payments/paypal/capture``
 ---------------------------------
 
-The payment's owner only.
+The payment's owner only, under the ``payment_confirm`` rate, which the Stripe
+confirm shares.
 
 .. code-block:: json
 
@@ -227,9 +277,13 @@ at least one completed capture, a captured total equal to ``amount_cents`` and
 the same currency.  ``custom_id`` is checked only when the capture carries one:
 a capture that names a payment is required to name *this* one, and a capture
 with no ``custom_id`` at all is accepted on the amount, the currency, and the
-order id.  Capturing a payment whose money has already arrived —
-``succeeded``, ``partially_refunded``, or ``refunded`` — is a no-op that answers
-200 with the payment's status as it stands, without calling PayPal again.
+order id.  The payment's row stays locked from the status check until PayPal has
+answered.  Capturing a payment that is no longer ``pending`` — ``succeeded``,
+``partially_refunded``, ``refunded``, or ``failed`` — is a no-op that answers 200
+with the payment's status as it stands, without calling PayPal again.  A capture
+PayPal refuses with the issue ``INSTRUMENT_DECLINED`` marks the payment ``failed``
+and answers the **400**, so the order is never captured again; any other refusal
+leaves it ``pending``.
 
 .. code-block:: json
 
@@ -246,12 +300,12 @@ dashboard: the mismatch names the payment and both amounts, and the call that
 never completed names the payment and the amount at stake.
 
 Statuses: **200** for a completed capture and for a payment that had already
-settled; **400** for a missing field, an ``order_id`` that is not PayPal's shape
-or names another order, a payment with no order of its own, a payment started
-with another provider (``{"payment_id": "That payment is not a paypal
-payment."}``), a capture PayPal did not complete, a mismatch, or PayPal being
-unreachable;
-**401** when anonymous; **404** when the payment is not the caller's.
+settled or failed; **400** for a missing field, an ``order_id`` that is not
+PayPal's shape or names another order, a payment with no order of its own, a
+payment started with another provider (``{"payment_id": "That payment is not a
+paypal payment."}``), a capture PayPal did not complete or refused, a mismatch, or
+PayPal being unreachable; **401** when anonymous; **404** when the payment is not
+the caller's; **429** past the caller's ``payment_confirm`` rate.
 
 ``POST /payments/mock/complete``
 --------------------------------
@@ -265,7 +319,9 @@ otherwise **404**, so production never advertises the route.
 
 ``outcome`` is ``succeed`` or ``fail``.  Succeeding takes exactly the same
 activation path as a real payment, and the response is the same
-``{status, membership}`` body the two real confirm endpoints answer with:
+``{status, membership}`` body the two real confirm endpoints answer with.  As
+there, a payment that is no longer ``pending`` answers its status as it stands,
+whatever ``outcome`` says:
 
 .. code-block:: json
 
@@ -315,8 +371,10 @@ endpoints are open to anyone, and three rules stand in for a session:
   caller as for a signed-in one, so only a page this site served can start or
   finish a gift.
 * **Starting a gift is throttled** by client address under the ``donate`` scope
-  (``AUTH_THROTTLE_DONATE``, ``10/hour``; see :doc:`configuration`).  Reading the
-  config and finishing a payment are not.
+  (``AUTH_THROTTLE_DONATE``, ``10/hour``; see :doc:`configuration`), and confirming
+  it with Stripe or capturing it with PayPal under the ``donate_confirm`` scope
+  (``AUTH_THROTTLE_DONATE_CONFIRM``, ``30/hour``).  Reading the config, the mock
+  completion, and reading a gift's status are not.
 * **A token proves the payment.**  The checkout answers ``token``, a value signed
   with ``django.core.signing`` under the salt ``payments.donation`` that names the
   payment and is good for an hour.  Every call that finishes or reads that payment
@@ -344,13 +402,14 @@ Anyone.  What the donation form offers.
      "contribution_tiers": [{"label": "No contribution", "cents": 0},
                             {"label": "Participating", "cents": 2000}],
      "max_contribution_cents": 9999900,
+     "donation_minimum_cents": 500,
      "counties": ["Alameda", "Alpine"],
      "darts": [{"id": 3, "name": "Bay Area"}],
      "states": [{"value": "AL", "label": "Alabama"}]
    }
 
-``providers``, the keys, the tiers, and the ceiling are the portal config's own
-(see `GET /payments/config`_); the form leaves out the tier of nothing.
+``providers``, the keys, the tiers, the ceiling, and the floor are the portal
+config's own (see `GET /payments/config`_); the form leaves out the tier of nothing.
 ``counties`` is every California county by name, ``darts`` every active DART in
 name order, and ``states`` every state as a two-letter code and its name.
 
@@ -376,7 +435,8 @@ name, and under the profile's own rules (see :doc:`api-profile`): ``address_line
 ``pilot_certificate_type``, and the seven ``vol_*`` volunteer interests.  A pilot
 certificate needs no number here.  ``address_line1``, ``address_line2``, and
 ``city`` land on the profile in title case, the same as a member's own.
-``contribution_cents`` runs from 1 to ``max_contribution_cents``.
+``contribution_cents`` runs from ``donation_minimum_cents`` to
+``max_contribution_cents``.
 
 The address is matched case-insensitively.  A new address becomes a bare donor
 account with no name yet and no profile; an existing donor is only found, never
@@ -432,7 +492,9 @@ cleans either up.
     "token": "eyJwYXltZW50Ijo0MTV9:1tQ..."}
 
 Statuses: **201**; **400** for a missing or malformed field, a gift
-of nothing (``{"contribution_cents": ["Choose an amount to give."]}``), a provider
+of nothing (``{"contribution_cents": ["Choose an amount to give."]}``), a gift under
+the minimum (``{"contribution_cents": ["A donation must be at least $5.00."]}``), a
+provider
 that is not configured (``{"provider": "'stripe' is not configured."}``), or a
 provider that refuses to start (``detail``); **403** without a CSRF token;
 **429** past the ``donate`` rate.  A refusal writes nothing: no donor, no
@@ -441,7 +503,8 @@ payment.
 ``POST /donations/stripe/confirm``, ``POST /donations/paypal/capture``, ``POST /donations/mock/complete``
 ---------------------------------------------------------------------------------------------------------
 
-Anyone holding the payment's token.  The bodies are the portal's (see
+Anyone holding the payment's token; the Stripe confirm and the PayPal capture
+under the ``donate_confirm`` rate.  The bodies are the portal's (see
 `POST /payments/stripe/confirm`_, `POST /payments/paypal/capture`_, and
 `POST /payments/mock/complete`_) plus ``token``:
 
@@ -452,13 +515,15 @@ Anyone holding the payment's token.  The bodies are the portal's (see
 The provider is asked exactly as the portal's endpoint asks it, and the answer is
 the same ``{status, membership}`` body, except that ``membership`` always reads
 ``donor`` (``apps.payments.api.donation_views.gift_result``): the giver may not own
-the account the gift went to, so the answer says nothing about it.
+the account the gift went to, so the answer says nothing about it.  A gift that
+is no longer ``pending`` is answered as it stands, without asking the provider.
 ``/mock/complete`` is **404** while ``PAYMENTS_MOCK_ENABLED`` is off.
 
 Statuses: **200**; **400** for a missing field, a payment started with another
 provider (``{"payment_id": "That payment is not a stripe payment."}``), or the
 provider's refusal (``detail``); **403** without a CSRF token; **404** without the
-payment's token.
+payment's token; **429** past the ``donate_confirm`` rate, for the Stripe confirm
+and the PayPal capture.
 
 ``GET /donations/{id}?token=``
 ------------------------------
@@ -641,7 +706,9 @@ check out.  Handles:
 * ``payment_intent.succeeded`` — re-runs the same amount/currency/metadata
   verification as the confirm endpoint, then marks the payment succeeded,
   recording the fee when the event carries an expanded balance transaction;
-* ``payment_intent.payment_failed`` — marks it failed;
+* ``payment_intent.payment_failed`` — marks it failed and, when the intent is
+  left in ``requires_payment_method`` (a decline), cancels the intent at Stripe so
+  its client secret takes no other card;
 * ``charge.updated`` — fills in a fee that did not exist when the money
   arrived.  The figures are taken from the event when it carries an expanded
   balance transaction, and read back from Stripe otherwise.  A payment whose
@@ -650,7 +717,11 @@ check out.  Handles:
   payment is in: a fee that arrives before the ``payment_intent.succeeded``
   that settles the row is kept when the row settles;
 * ``charge.refunded`` — records every succeeded refund on the charge that is
-  not already on file, as :ref:`api-refunds-webhooks` describes.
+  not already on file, as :ref:`api-refunds-webhooks` describes;
+* ``setup_intent.setup_failed`` — cancels the SetupIntent when it is left in
+  ``requires_payment_method``, and deletes the ``pending`` mandate its
+  ``metadata.mandate_id`` names when that SetupIntent is the one saving its method
+  (:doc:`api-renewals`).  A failure naming no Stripe mandate is not handled.
 
 Everything else is acknowledged and ignored.  The response says what happened:
 
@@ -763,9 +834,12 @@ Role summary
 Endpoint                               Who
 =====================================  ==========================================
 ``GET /payments/config``               Any authenticated user
-``POST /payments/checkout``            Any authenticated user
-``POST /payments/stripe/confirm``      The payment's owner
-``POST /payments/paypal/capture``      The payment's owner
+``POST /payments/checkout``            Any authenticated user,
+                                       ``payment_start`` rate
+``POST /payments/stripe/confirm``      The payment's owner,
+                                       ``payment_confirm`` rate
+``POST /payments/paypal/capture``      The payment's owner,
+                                       ``payment_confirm`` rate
 ``POST /payments/mock/complete``       The payment's owner, mock enabled
 ``GET /payments/{id}``                 Owner, ``treasurer`` or
                                        ``account_admin``
@@ -775,7 +849,8 @@ Endpoint                               Who
 ``POST /payments/*/webhook``           Nobody — signature verified instead
 ``GET /donations/config``              Anyone
 ``POST /donations/checkout``           Anyone, CSRF token and ``donate`` rate
-``POST /donations/*`` (confirm)        Anyone holding the payment's token
+``POST /donations/*`` (confirm)        Anyone holding the payment's token,
+                                       ``donate_confirm`` rate
 ``GET /donations/{id}``                Anyone holding the payment's token
 ``GET /admin/payments*``               See :doc:`api-finance`
 =====================================  ==========================================

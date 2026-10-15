@@ -12,13 +12,24 @@ const FILLED: DonationFormValues = {
   phone: '(415) 555-0100',
 };
 
+/** The smallest gift the server takes, in cents, as its config would say. */
+const MINIMUM = 500;
+
 describe('validateDonation', () => {
+  it('refuses a gift under the smallest the server takes', () => {
+    expect(validateDonation(FILLED, 400, MINIMUM).amount).toBe('A donation must be at least $5.');
+  });
+
+  it('accepts a gift of the smallest the server takes', () => {
+    expect(validateDonation(FILLED, 500, MINIMUM)).toEqual({});
+  });
+
   it('accepts an amount and the three required fields', () => {
-    expect(validateDonation(FILLED, 2000)).toEqual({});
+    expect(validateDonation(FILLED, 2000, MINIMUM)).toEqual({});
   });
 
   it('names every missing required field, and never the optional phone', () => {
-    expect(Object.keys(validateDonation(EMPTY_DONATION_FORM, 0))).toEqual([
+    expect(Object.keys(validateDonation(EMPTY_DONATION_FORM, 0, MINIMUM))).toEqual([
       'amount',
       'first_name',
       'last_name',
@@ -27,13 +38,13 @@ describe('validateDonation', () => {
   });
 
   it('refuses a phone number that is typed but not ten digits', () => {
-    expect(validateDonation({ ...FILLED, phone: '555' }, 2000).phone).toBe(
+    expect(validateDonation({ ...FILLED, phone: '555' }, 2000, MINIMUM).phone).toBe(
       'Use a ten-digit number like 415-555-0100.',
     );
   });
 
   it('refuses an address that does not read as one', () => {
-    expect(validateDonation({ ...FILLED, email: 'pat@example' }, 2000).email).toBe(
+    expect(validateDonation({ ...FILLED, email: 'pat@example' }, 2000, MINIMUM).email).toBe(
       'Use an email address like name@example.org.',
     );
   });

@@ -29,6 +29,7 @@ VERIFY_SCOPE = "auth_verify"
 VERIFY_RESEND_SCOPE = "auth_verify_resend"
 EMAIL_CHANGE_SCOPE = "auth_email_change"
 DONATE_SCOPE = "donate"
+DONATE_CONFIRM_SCOPE = "donate_confirm"
 MFA_SCOPE = "auth_mfa"
 
 
@@ -102,6 +103,17 @@ class DonateThrottle(AuthScopedThrottle):
     """
 
     scope = DONATE_SCOPE
+
+
+class DonateConfirmThrottle(AuthScopedThrottle):
+    """Throttles the public Stripe confirm and PayPal capture under ``donate_confirm``.
+
+    ``POST /donations/stripe/confirm`` and ``/donations/paypal/capture`` each ask the
+    provider about a gift for a caller nobody has signed in, so they are counted by
+    client address under one budget.
+    """
+
+    scope = DONATE_CONFIRM_SCOPE
 
 
 class MfaThrottle(AuthScopedThrottle):

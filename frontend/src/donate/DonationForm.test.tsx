@@ -24,6 +24,7 @@ const CONFIG: DonationsConfig = {
     { label: 'Bronze', cents: 10000 },
   ],
   max_contribution_cents: 9_999_900,
+  donation_minimum_cents: 500,
   counties: ['Alameda', 'Marin'],
   darts: [{ id: 4, name: 'Bay Area' }],
   states: [
@@ -102,6 +103,29 @@ describe('DonationForm', () => {
     await user.click(await screen.findByRole('button', { name: 'Continue to payment' }));
 
     expect(screen.getByText('Choose an amount to give.')).toBeInTheDocument();
+  });
+
+  it('refuses to continue with less than the smallest gift', async () => {
+    serveGift();
+    const user = userEvent.setup();
+    renderForm();
+    await fillInGift(user);
+    await user.click(screen.getByRole('radio', { name: 'Other amount' }));
+    await user.type(screen.getByLabelText('Contribution amount'), '4');
+
+    await user.click(screen.getByRole('button', { name: 'Continue to payment' }));
+
+    expect(screen.getByText('A donation must be at least $5.')).toBeInTheDocument();
+  });
+
+  it('says how small a gift may be', async () => {
+    serveGift();
+    const user = userEvent.setup();
+    renderForm();
+
+    await user.click(await screen.findByRole('radio', { name: 'Other amount' }));
+
+    expect(screen.getByText(/From \$5 up to \$99,999/)).toBeInTheDocument();
   });
 
   it('refuses to continue without a ten-digit phone number', async () => {

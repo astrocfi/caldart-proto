@@ -50,7 +50,7 @@ import { EmptyState } from '@/portal/components/EmptyState';
 import { formatCents } from '@/portal/components/Money';
 import { MandateSetupTabs } from '@/portal/features/payments/MandateSetupTabs';
 import { PROVIDER_ORDER, usePaymentsConfig } from './api';
-import { ContributionChooser, DONATION_HINT } from './ContributionChooser';
+import { ContributionChooser, DONATION_HINT, donationMinimumMessage } from './ContributionChooser';
 import { PlanChooser } from './PlanChooser';
 import { ProviderTabs } from './ProviderTabs';
 import { RecurringDonationFields } from './RecurringDonationFields';
@@ -200,6 +200,10 @@ export function Checkout({
   // The server refuses a payment of nothing, so a contribution waits for an
   // amount rather than starting a provider that cannot be paid.
   const needsContribution = isContributing && contributionCents === 0;
+  // A donation stands alone, so the server refuses one under its smallest; dues take any
+  // contribution on top.
+  const isBelowMinimum =
+    isContributing && contributionCents > 0 && contributionCents < config.donation_minimum_cents;
 
   const isDonating = isContributing && canAutoRenew && recurring.isRecurring;
   const needsChargeDate = isDonating && recurring.firstChargeOn === '';
@@ -244,6 +248,7 @@ export function Checkout({
         tiers={config.contribution_tiers}
         value={contributionCents}
         maxCents={config.max_contribution_cents}
+        minCents={isContributing ? config.donation_minimum_cents : undefined}
         onChange={(next) => setContributionCents(next)}
         // A donation stands on its own: there are no dues to add it to, and giving is
         // the point, so nothing is preselected and "No thank you" is not offered.
@@ -319,6 +324,10 @@ export function Checkout({
             Choose a donation amount to continue.
           </p>
         ) : null
+      ) : isBelowMinimum ? (
+        <p className="checkout__blocked muted" role="status">
+          {donationMinimumMessage(config.donation_minimum_cents)}
+        </p>
       ) : scheduledOn !== null ? (
         <p className="checkout__notice" role="status">
           Your recurring donation is set up. The first charge is on {formatDate(scheduledOn)}.

@@ -1900,12 +1900,16 @@ Scope                    Default                    Environment variable
 ``auth_verify_resend``   5/hour                     ``AUTH_THROTTLE_VERIFY_RESEND``
 ``auth_email_change``    10/hour                    ``AUTH_THROTTLE_EMAIL_CHANGE``
 ``donate``               10/hour                    ``AUTH_THROTTLE_DONATE``
+``donate_confirm``       30/hour                    ``AUTH_THROTTLE_DONATE_CONFIRM``
 ``auth_mfa``             10/min                     ``AUTH_THROTTLE_MFA``
 =======================  =========================  ===========================
 
-``donate`` guards only ``POST /donations/checkout``: the calls that finish or
-read a gift are proven instead by the signed token that checkout answers (see
-:doc:`api-payments`), so throttling them by address would gain nothing.
+``donate`` guards ``POST /donations/checkout``, and ``donate_confirm`` the two
+calls that ask a provider about a gift, ``POST /donations/stripe/confirm`` and
+``POST /donations/paypal/capture``.  The calls that read a gift or complete a mock
+one are proven by the signed token that checkout answers (see
+:doc:`api-payments`) and ask no provider, so they are not counted.  The signed-in
+payment endpoints are limited per account instead (:ref:`configuration-payment-limits`).
 
 A scope mapped to ``None`` — or missing from the dict — is inert.
 ``caldart/settings/test.py`` maps every scope to ``None`` so the suite never
