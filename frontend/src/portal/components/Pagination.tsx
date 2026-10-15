@@ -2,7 +2,7 @@
  * The portal's one pagination control, drawn by `DataTable` under a paged table.
  *
  * It reads "Showing 26–50 of 51" beside a **Previous** and a **Next** button, and
- * draws nothing while one page holds every row.  A button with nowhere to go is
+ * isn't drawn while one page holds every row.  A button with nowhere to go is
  * disabled and drawn plainly so, with a dashed frame and muted words.
  */
 import type { JSX } from 'react';
@@ -44,8 +44,8 @@ export function rangeText(page: number, pageSize: number, count: number): string
 }
 
 /**
- * Previous and Next with the range between them, or nothing when one page holds
- * every row.
+ * Previous and Next with the range between them, or null when one page holds every
+ * row.
  */
 export function Pagination({
   page,

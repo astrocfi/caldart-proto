@@ -50,7 +50,7 @@ export interface TypeaheadProps<T> {
   minLength?: number;
   /**
    * A line shown under the box when a search comes back empty, such as `No member matches
-   * that.`; without it an empty answer shows nothing.
+   * that.`; without it an empty answer doesn't show anything.
    */
   emptyText?: string;
   name?: string;
@@ -95,7 +95,7 @@ export function Typeahead<T>({
   const items = isAsking ? (data ?? []) : [];
   const isListShown = items.length > 0;
   const isEmptyShown = emptyText !== undefined && isAsking && data !== undefined && !isListShown;
-  // A fresh answer can be shorter than the last, so an index past its end means none.
+  // A fresh answer can be shorter than the last, so an index past its end is dropped.
   const active = activeIndex < items.length ? activeIndex : -1;
 
   const handleClose = useCallback(() => {

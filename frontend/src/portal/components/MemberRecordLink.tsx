@@ -2,7 +2,7 @@
  * "Member record": a link to an account's member record, for a reader who can open one.
  *
  * The finance and users screens name people the member list may not hold, such as a
- * donor, who is on no member list at all; this link is how an account administrator
+ * donor, who isn't on any member list at all; this link is how an account administrator
  * reaches that person's record from there.
  */
 import type { JSX } from 'react';

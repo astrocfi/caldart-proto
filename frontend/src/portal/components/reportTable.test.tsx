@@ -33,7 +33,7 @@ describe('reportTableColumns', () => {
     expect([name?.key, name?.sortable]).toEqual(['last_name', true]);
   });
 
-  it('makes a column with no ordering value unsortable on the server', () => {
+  it('makes a column without an ordering value unsortable on the server', () => {
     const [phone] = reportTableColumns(REGISTRY, ['phone'], CELLS, true);
     expect(phone?.sortable).toBe(false);
   });
@@ -43,7 +43,7 @@ describe('reportTableColumns', () => {
     expect(name?.isIdentity).toBe(true);
   });
 
-  it('draws a dash for a column the page has no cell for', () => {
+  it('draws a dash for a column the page does not have a cell for', () => {
     const [extra] = reportTableColumns(
       [{ key: 'extra', label: 'Extra', default: false }],
       ['extra'],

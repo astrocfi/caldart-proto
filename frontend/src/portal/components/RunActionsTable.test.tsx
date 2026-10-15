@@ -64,7 +64,7 @@ describe('RunActionsTable', () => {
     expect(summary.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it('renders no summary content when the caller passes none', () => {
+  it('leaves out the summary content when the caller does not pass any', () => {
     render(<RunActionsTable actions={ACTIONS} dryRun={false} kindLabel={() => 'Notice'} />);
 
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
@@ -164,7 +164,7 @@ describe('RunActionsTable', () => {
     expect(headers).toEqual(['Who', 'What']);
   });
 
-  it('leaves the When and Amount columns out for actions that carry neither', () => {
+  it('leaves the When and Amount columns out for actions that do not carry either', () => {
     render(
       <RunActionsTable
         actions={[{ ...ACTIONS[0]!, detail: 'Duplicate address' }]}

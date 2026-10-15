@@ -8,7 +8,7 @@ import type { AircraftFormValues } from './form';
 /**
  * The register's owner type for a registrant: a person or co-owners are an
  * individual, a partnership is a flying club, and a company is an FBO.  A
- * government or unknown registrant has no match, and leaves the owner type be.
+ * government or unknown registrant doesn't have a match, and leaves the owner type be.
  */
 const OWNER_TYPE_FOR_REGISTRANT: Record<RegistrantType, OwnerType | null> = {
   individual: 'individual',
@@ -46,7 +46,7 @@ export function withPickedType(
  * The form filled from `registration`: the type, the year, the seats, the
  * category, the airworthiness, the owner's name, and the owner type.  Anything
  * the registry does not say (no year, no seats or category on the type, no
- * airworthiness certificate, a registrant with no matching owner type) keeps
+ * airworthiness certificate, a registrant without a matching owner type) keeps
  * what the form held.  The other fields are untouched.
  */
 export function withRegistration(

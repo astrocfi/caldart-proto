@@ -4,7 +4,7 @@
  * medical, and the photo ID, and an Aircraft card listing the airplanes on the profile.
  * **Verify** on the Verification card only checks items off: the details themselves are
  * corrected in the form. Deactivating the account is the Delete or deactivate tab's. A
- * "Deleted member N" record shows no form: the server refuses every edit to one.
+ * "Deleted member N" record doesn't show a form: the server refuses every edit to one.
  */
 import { useRef, useState } from 'react';
 import type { JSX } from 'react';

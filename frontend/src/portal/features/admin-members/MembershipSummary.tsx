@@ -2,9 +2,10 @@
  * Where a person's membership stands, in words, for the member record's summary strip
  * and the user record's Membership card.
  *
- * A member with no term in force is never called a friend: one whose terms a deactivation
- * set aside says so, and one with no term reads that there is none, with where to grant
- * one when the reader can.  Anybody else gets the membership's dot, plan, and expiry.
+ * A member without a term in force is never called a friend: one whose terms a
+ * deactivation set aside says so, and one without a term reads that there isn't one,
+ * with where to grant one when the reader can.  Anybody else gets the membership's dot,
+ * plan, and expiry.
  */
 import type { JSX } from 'react';
 

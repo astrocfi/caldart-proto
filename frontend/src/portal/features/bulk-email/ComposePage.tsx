@@ -117,7 +117,7 @@ function ComposeForm({
     >
       {copy === null || email.status !== 'draft' ? null : (
         <p className="bulk-email__notice" role="status">
-          {`This is a copy of "${copy === '' ? 'an email with no subject' : copy}".`}
+          {`This is a copy of "${copy === '' ? 'an email without a subject' : copy}".`}
         </p>
       )}
       {email.not_sent_reason === '' ? null : (

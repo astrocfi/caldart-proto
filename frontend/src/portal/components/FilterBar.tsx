@@ -5,7 +5,7 @@
  * draw their filters through this component, from the report's `FilterField`s
  * in `@/portal/reports/definitions`.  Every control applies itself: a select,
  * a multiselect, a date and a toggle as soon as they change, a text or number
- * box once the typing pauses.  There is no Apply button.  **Reset filters**,
+ * box once the typing pauses.  The bar doesn't have an Apply button.  **Reset filters**,
  * as tall as the fields beside it, empties every field; a form that holds the bar
  * among its own fields, such as a subscription's, leaves it out (`hasReset`).  Every control in the bar
  * is one height, and they line up along the bottom.  A field's hint is its control's `title` rather than a
@@ -63,7 +63,7 @@ function isTyped(field: FilterField): boolean {
   return field.kind === 'search' || field.kind === 'number';
 }
 
-/** Cents as the whole dollars a dollar field shows, or `''` for no bound. */
+/** Cents as the whole dollars a dollar field shows, or `''` for an unset bound. */
 function dollarsFromCents(cents: string): string {
   if (cents === '') return '';
   return String(Math.floor(Number(cents) / 100));

@@ -53,7 +53,7 @@ describe('DraftsPage', () => {
     expect(link.querySelector('.field-chip')).toHaveTextContent('First name, or friend');
   });
 
-  it('tells two drafts with no subject apart by when each was saved', async () => {
+  it('tells two drafts without a subject apart by when each was saved', async () => {
     answerDrafts([
       makeSummary({ id: 1, subject: '', updated_at: '2026-10-04T12:33:00Z' }),
       makeSummary({ id: 2, subject: '', updated_at: '2026-10-03T16:05:00Z' }),
@@ -95,7 +95,7 @@ describe('DraftsPage', () => {
     );
   });
 
-  it('shows no notice when every email is as its sender left it', async () => {
+  it("doesn't show a notice when every email is as its sender left it", async () => {
     answerDrafts([makeSummary()]);
     renderWithProviders(<DraftsPage />);
     await screen.findByRole('link', { name: 'Hangar day' });
@@ -132,7 +132,7 @@ describe('DraftsPage', () => {
     await waitFor(() => expect(calls.deleted).toEqual([7]));
   });
 
-  it('says so when there is no draft', async () => {
+  it('says so when the list of drafts is empty', async () => {
     answerDrafts([]);
     renderWithProviders(<DraftsPage />);
     expect(await screen.findByText('No drafts')).toBeVisible();
@@ -165,7 +165,7 @@ describe('DraftsPage', () => {
     expect(tableHeaders(table).at(-1)).toBe('Actions');
   });
 
-  it('tells a DART leader with no DART to set it, rather than to write an email', async () => {
+  it('tells a DART leader without a DART to set it, rather than to write an email', async () => {
     answerSender(NO_DART_SENDER);
     answerDrafts([]);
     renderWithProviders(<DraftsPage />);

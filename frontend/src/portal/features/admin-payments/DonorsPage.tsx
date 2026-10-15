@@ -5,7 +5,7 @@
  * One row per donor, aggregated over the range the filter bar narrows to:
  * how much they have given, how much of it came back, and when they last
  * gave.  An account administrator does not reach this screen; the route
- * guard and `FinanceTabs` both key off the treasurer role.  A donor is on no
+ * guard and `FinanceTabs` both key off the treasurer role.  A donor isn't on any
  * member list, so for a reader who also opens member records (an account
  * administrator, or a system administrator) each name links to the donor's
  * record, where the donor can be deleted; a "Deleted member N" row is not linked.  The column

@@ -34,7 +34,7 @@ function hasRenewal(mandate: RenewalMandate | null | undefined): mandate is Rene
 }
 
 /**
- * What an active automatic renewal gives on top of the dues, in cents; 0 for none. A
+ * What an active automatic renewal gives on top of the dues, in cents; 0 when there isn't one. A
  * recurring donation is not a renewal, and a paused renewal's contribution simply
  * stops, so neither is offered.
  */
@@ -45,7 +45,7 @@ function renewalContribution(mandate: RenewalMandate | null | undefined): number
 
 /**
  * True when `member` is a member who can still be made a friend: not one already, nor a
- * member with no term yet, who counts as a friend until they pay.
+ * member without a term yet, who counts as a friend until they pay.
  */
 function canBecomeFriend(member: MemberDetail): boolean {
   if (member.kind !== 'member' || isWithoutTerm(member.membership.status)) return false;
@@ -75,7 +75,7 @@ function MakeFriend({ member }: { member: MemberDetail }) {
   const make = useMakeFriend(member.id);
   const ledger = useMemberLedger(member.id);
   const contribution = renewalContribution(ledger.data?.mandate);
-  // A request that gave no answer and was refused under the field is the server asking
+  // A request that didn't give an answer and was refused under the field is the server asking
   // the question itself, so the panel asks it rather than showing the refusal.
   const wasAsked =
     make.variables?.keep_contribution === undefined && fieldError(make.error, KEEP_FIELD) !== null;
@@ -120,8 +120,8 @@ function MakeFriend({ member }: { member: MemberDetail }) {
       >
         <p>
           {expiresOn === null
-            ? `${member.name} becomes a friend of CalDART today: no dues, no expiry, and no ` +
-              'renewal reminders.'
+            ? `${member.name} becomes a friend of CalDART today, without dues, an expiry ` +
+              'date, or renewal reminders.'
             : `${member.name}'s membership stays current through ${formatDate(expiresOn)}; ` +
               'they become a friend of CalDART the day after.'}
           {hasRenewal(ledger.data?.mandate) ? ' Their automatic renewal is canceled.' : null}
@@ -134,7 +134,7 @@ function MakeFriend({ member }: { member: MemberDetail }) {
         ) : null}
       </ConfirmButton>
       <p className="muted account-actions__hint">
-        A friend pays no dues and gets no renewal reminders.
+        A friend doesn&apos;t pay dues or get renewal reminders.
       </p>
       <FormAlert error={make.error} handled={wasAsked ? [KEEP_FIELD] : []} />
     </div>

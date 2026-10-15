@@ -39,8 +39,8 @@ interface AuthUnavailableProps {
 }
 
 /**
- * Shown when `GET /auth/me` failed and nothing is cached, so the portal has no
- * idea who this is.  Sending them to the sign-in page would claim a sign-out
+ * Shown when `GET /auth/me` failed and nothing is cached, so the portal doesn't
+ * know who this is.  Sending them to the sign-in page would claim a sign-out
  * that never happened, and hide the outage behind it.
  */
 function AuthUnavailable({ onRetry: handleRetry, isRetrying }: AuthUnavailableProps): ReactNode {
@@ -67,7 +67,7 @@ export function RequireAuth({ children }: { children?: ReactNode }): JSX.Element
   const location = useLocation();
 
   if (isLoading) return <Loading />;
-  // A failed check with nothing cached: React Query keeps `data` across a
+  // A failed check while nothing is cached: React Query keeps `data` across a
   // failed refetch, so a signed-in member keeps their page instead.
   if (!isAuthenticated && error != null)
     return <AuthUnavailable onRetry={handleRetry} isRetrying={isRefetching} />;

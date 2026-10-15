@@ -174,7 +174,7 @@ export function useLoginMfaEnrollConfirm(): UseMutationResult<EnrolledSignIn, Er
 
 /**
  * Registers against `POST /auth/register`.  The server answers every address the same
- * way, with a sentence naming it, and signs nobody in: the address's owner learns the
+ * way, with a sentence naming it, and doesn't sign anyone in: the address's owner learns the
  * next step from the message mailed there.  The cache is left alone.
  */
 export function useRegister(): UseMutationResult<VerificationSentResult, Error, RegisterPayload> {
@@ -209,7 +209,7 @@ export interface SignOut {
  *
  * Signing out is a `POST` a person presses, so no address ends a session by being
  * opened.  `useLogout` empties the query cache before the navigation runs, so the
- * sign-in page renders with nothing of the old session left behind.  A call the
+ * sign-in page renders without any trace of the old session.  A call the
  * server refuses leaves the member where they were, with the control usable again.
  */
 export function useSignOut(): SignOut {
@@ -305,7 +305,7 @@ export function useEmailChange(): UseMutationResult<User, Error, EmailChangePayl
 /**
  * Follows a link that undoes a change of address through `POST /auth/email/undo`.  The
  * server ends every session of the account, so on success the cache is emptied and the
- * auth-me cache says nobody is signed in.
+ * auth-me cache reads as signed out.
  */
 export function useEmailChangeUndo(): UseMutationResult<
   EmailChangeUndoResult,

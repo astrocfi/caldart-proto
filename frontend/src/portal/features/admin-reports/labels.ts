@@ -44,8 +44,9 @@ export const WEEKDAY_OPTIONS: readonly Option[] = WEEKDAY_NAMES.map((name, day) 
  * Why the report sender passed a subscription or a person over, in words.
  *
  * `not_permitted`: the account no longer holds a role that may read the report
- * (the subscription is paused); `no_recipients`: a DART has nobody checked to receive its roster with
- * an address; `no_email`: a checked person has no address.
+ * (the subscription is paused); `no_recipients`: a DART doesn't have anyone with an
+ * address checked to receive its roster; `no_email`: a checked person doesn't have an
+ * address.
  */
 const REPORT_SKIPPED_REASON_LABELS: Record<string, string> = {
   not_permitted: 'no longer permitted',
@@ -81,7 +82,7 @@ export function recipientLabel(subscription: ReportSubscription): string {
     : subscription.recipient_name;
 }
 
-/** A report run's action kind in words, or its slug when it names no kind above. */
+/** A report run's action kind in words, or its slug when it names a kind not listed above. */
 export function reportKindLabel(kind: string): string {
   return REPORT_KIND_LABELS[kind] ?? kind;
 }
@@ -93,8 +94,8 @@ export function reportSkippedBreakdown(byReason: Record<string, number>): string
 
 /**
  * A report as the finance tabs and the menu name it (`Payments`, `Reconciliation`), rather
- * than by the title its PDF carries (`CalDART payments`); a report the portal has no
- * definition for keeps the server's title.
+ * than by the title its PDF carries (`CalDART payments`); a report without a
+ * definition in the portal keeps the server's title.
  *
  * @param slug the report's slug.
  * @param title the server's title for it.

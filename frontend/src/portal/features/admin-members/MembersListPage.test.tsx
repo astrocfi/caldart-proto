@@ -630,7 +630,7 @@ describe('MembersListPage', () => {
     expect(cells[4]).toHaveTextContent(/^Friend$/);
   });
 
-  it('lists a member with no term yet as a Member with Not yet paid', async () => {
+  it('lists a member without a term yet as a Member with Not yet paid', async () => {
     server.use(
       ...listHandlers([
         makeRow({
@@ -688,7 +688,7 @@ describe('MembersListPage for a DART leader', () => {
     expect(screen.queryByRole('button', { name: 'Show my DART' })).not.toBeInTheDocument();
   });
 
-  it('offers no New member button', async () => {
+  it("doesn't offer a New member button", async () => {
     server.use(...listHandlers());
     await renderList();
     await screen.findByRole('link', { name: 'Ana Bracco' });

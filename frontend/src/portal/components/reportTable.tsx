@@ -43,7 +43,7 @@ export interface ColumnChoice {
   isPending: boolean;
   /**
    * The columns the table draws from: the registry once it has arrived, or the page's
-   * fallback while it loads, if it cannot be read, or if it names no column.
+   * fallback while it loads, if it cannot be read, or if it is empty.
    */
   tableColumns: readonly ReportColumn[];
   /** The keys the table shows: the chosen ones, or the fallback's defaults. */
@@ -55,7 +55,7 @@ export interface ColumnChoice {
  * them, following a registry that is still loading.
  *
  * The table never goes without columns: until the registry arrives, and if it cannot
- * be read or names none, it draws `fallback`, the page's own copy of the report's
+ * be read or is empty, it draws `fallback`, the page's own copy of the report's
  * default columns.
  *
  * @param report the report whose columns are chosen.
@@ -136,7 +136,7 @@ export interface ColumnToolsProps {
 
 /**
  * The Columns, Load columns, and Save columns buttons for a list, or a line saying
- * the columns could not be loaded, or nothing while they load.
+ * the columns could not be loaded, or null while they load.
  */
 export function ColumnTools({ choice, disabledReason }: ColumnToolsProps): JSX.Element | null {
   if (choice.isError) {

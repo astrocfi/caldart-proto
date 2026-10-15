@@ -10,7 +10,7 @@
  * Link, and Image, each an icon with its name beside it, followed by any extra
  * controls the caller passes.  Link and Image open a small panel under the
  * toolbar (`RichTextPanels.tsx`).  A recipient field's token shows as a chip
- * (`richTextField.ts`), whose own panel sets what it shows for a person with no
+ * (`richTextField.ts`), whose own panel sets what it shows for a person without a
  * value.
  */
 import { Image } from '@tiptap/extension-image';
@@ -42,7 +42,7 @@ import { ChipPanel } from './RichTextFieldPanels';
 import { ImagePanel, LinkPanel } from './RichTextPanels';
 import type { UploadState } from './RichTextPanels';
 
-/** The image types the picker offers; the server accepts these and no others. */
+/** The image types the picker offers; the server accepts only these. */
 export const IMAGE_TYPES = 'image/png,image/jpeg,image/gif,image/webp';
 
 /** The heading level the Heading button sets. */

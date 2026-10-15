@@ -53,7 +53,7 @@ export function sendNotice(result: ReportRunResult, recipient: string): string {
 /** Which subscription form is open: a new one, or the edit of one subscription. */
 type OpenForm = { mode: 'new' } | { mode: 'edit'; id: number } | null;
 
-/** An error's message for the status line, or `fallback` when it carries none. */
+/** An error's message for the status line, or `fallback` when it doesn't carry one. */
 function errorText(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
 }

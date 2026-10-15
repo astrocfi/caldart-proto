@@ -38,7 +38,7 @@ describe('MemberLedgerPage', () => {
     );
   });
 
-  it('offers a treasurer no link to the member record', async () => {
+  it("doesn't offer a treasurer a link to the member record", async () => {
     serveLedger();
     renderLedger(signedInClient('treasurer'));
 
@@ -47,7 +47,7 @@ describe('MemberLedgerPage', () => {
     expect(screen.queryByRole('link', { name: 'Member record' })).not.toBeInTheDocument();
   });
 
-  it('offers no member record on the ledger of a deleted member', async () => {
+  it("doesn't offer a member record on the ledger of a deleted member", async () => {
     const ledger = makeLedger();
     serveLedger({
       ...ledger,
@@ -85,7 +85,7 @@ describe('MemberLedgerPage', () => {
     );
   });
 
-  it('says the member renews by hand when they hold no mandate', async () => {
+  it("says the member renews by hand when they don't hold a mandate", async () => {
     serveLedger();
     renderLedger();
 
@@ -100,7 +100,7 @@ describe('MemberLedgerPage', () => {
     expect(within(table).getByText('Annual and contribution')).toBeInTheDocument();
   });
 
-  it('says nothing of renewals or dues to somebody who has not paid yet', async () => {
+  it("doesn't mention renewals or dues to somebody who has not paid yet", async () => {
     const ledger = makeLedger({ statement_years: [] });
     serveLedger({
       ...ledger,
@@ -122,7 +122,7 @@ describe('MemberLedgerPage', () => {
     expect(await screen.findByText('Visa ending 4242, expires 03/2028')).toBeInTheDocument();
   });
 
-  it('titles the card Recurring donation for a mandate that names no plan', async () => {
+  it("titles the card Recurring donation for a mandate that doesn't name a plan", async () => {
     serveLedger(makeLedger({ mandate: makeContributionMandate() }));
     renderLedger();
 
@@ -151,7 +151,7 @@ describe('MemberLedgerPage', () => {
     ).toHaveAttribute('href', '/api/v1/admin/payments/ledger/37/statements/2026.pdf');
   });
 
-  it('says so when the member has given nothing', async () => {
+  it("says so when the member hasn't given anything", async () => {
     serveLedger(makeLedger({ statement_years: [] }));
     renderLedger();
 

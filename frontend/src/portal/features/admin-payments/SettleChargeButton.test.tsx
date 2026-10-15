@@ -89,7 +89,7 @@ describe('SettleChargeButton', () => {
     expect(screen.getByText('caldart-renewal-901')).toBeInTheDocument();
   });
 
-  it('holds No payment found back until the search is confirmed', async () => {
+  it('holds "No payment found" back until the search is confirmed', async () => {
     await openPanel();
 
     expect(screen.getByRole('button', { name: 'No payment found' })).toBeDisabled();

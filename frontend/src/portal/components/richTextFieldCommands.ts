@@ -29,8 +29,8 @@ export function insertFieldToken(editor: Editor, name: string): void {
 
 /**
  * Focuses the editor with a plain cursor just after the chip at `pos`, as a panel
- * closes, so the next key typed goes in beside the chip rather than over it.  With
- * no chip at `pos` the editor is only focused.
+ * closes, so the next key typed goes in beside the chip rather than over it.  Without
+ * a chip at `pos` the editor is only focused.
  */
 export function placeCursorAfterField(editor: Editor, pos: number): void {
   if (chipAt(editor.state, pos) === null) {
@@ -102,7 +102,7 @@ export function renameField(
 
 /**
  * Puts the chip at `pos` back as words: its field's name alone, `nickname` for
- * `{nickname|pal}`, which is no token, so it stays as written (see `changeField`).
+ * `{nickname|pal}`, which isn't a token, so it stays as written (see `changeField`).
  */
 export function fieldToWords(editor: Editor, pos: number, expected: FieldTokenAttrs): void {
   changeField(editor, pos, expected, (tr, node) => {

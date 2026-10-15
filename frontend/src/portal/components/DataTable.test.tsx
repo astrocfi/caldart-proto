@@ -276,7 +276,7 @@ describe('the minimum widths of a single-line table', () => {
     expect(tableMinWidth(columns)).toBe('calc(16rem + 9rem + 6rem)');
   });
 
-  it('sets no least width on a table whose columns name no minimum', () => {
+  it('leaves the least width unset on a table whose columns do not name a minimum', () => {
     expect(tableMinWidth([{ key: 'a', header: 'A', render: () => '' }])).toBeUndefined();
   });
 
@@ -308,7 +308,7 @@ describe('a table fitted to a narrow container', () => {
   });
 
   it('leaves out a droppable column and keeps the actions in sight', () => {
-    // jsdom lays nothing out, so every container measures 0 pixels wide.
+    // jsdom doesn't lay anything out, so every container measures 0 pixels wide.
     vi.stubGlobal(
       'ResizeObserver',
       class {
@@ -474,7 +474,7 @@ describe('a table wider than its container', () => {
     expect(screen.getByText('Scroll sideways to see every column.')).toBeInTheDocument();
   });
 
-  it('adds no tab stop and no cue for a table that fits', () => {
+  it('does not add a tab stop or a cue to a table that fits', () => {
     widths.scrollWidth = 300;
     widths.clientWidth = 300;
     renderTable();
@@ -496,7 +496,7 @@ describe('sorting cues', () => {
     expect([header.getAttribute('aria-sort'), header.textContent]).toEqual(['ascending', 'Name↑']);
   });
 
-  it('draws an unsortable heading as plain words with no button', () => {
+  it('draws an unsortable heading as plain words without a button', () => {
     render(<DataTable columns={COLUMNS} rows={ROWS} rowKey={(row) => row.id} />);
     expect(
       within(screen.getByRole('columnheader', { name: 'Actions' })).queryByRole('button'),
@@ -563,7 +563,7 @@ describe('pagination', () => {
     ]);
   });
 
-  it('draws no pagination while one page holds every row', () => {
+  it('leaves out the pagination while one page holds every row', () => {
     render(
       <DataTable
         columns={COLUMNS}
@@ -615,7 +615,7 @@ describe('tableCue', () => {
   }));
   const phone = { hasChooser: false, isScrolling: true, canWiden: false };
 
-  it('says only that a table scrolls when it hides nothing', () => {
+  it('says only that a table scrolls when it does not hide a column', () => {
     expect(tableCue(all, all, phone)).toBe('Scroll sideways to see every column.');
   });
 

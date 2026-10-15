@@ -25,7 +25,7 @@ describe('skippedBreakdown', () => {
     );
   });
 
-  it('says nothing when every reason is at zero', () => {
+  it('is empty when every reason is at zero', () => {
     expect(skippedBreakdown({}, REASON_LABELS)).toBe('');
   });
 
@@ -35,7 +35,7 @@ describe('skippedBreakdown', () => {
     );
   });
 
-  it('appends a reason it has no label for by its raw slug, rather than dropping it', () => {
+  it('appends a reason it lacks a label for by its raw slug, rather than dropping it', () => {
     expect(skippedBreakdown({ already_sent: 10, future_reason: 3 }, REASON_LABELS)).toBe(
       'Skipped: already sent 10, future_reason 3.',
     );

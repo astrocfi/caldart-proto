@@ -35,7 +35,7 @@ function undoSucceeds(): { posted: unknown[] } {
 }
 
 describe('<UndoEmailChangePage/>', () => {
-  it('posts nothing until the visitor presses Undo the change', async () => {
+  it("doesn't post anything until the visitor presses Undo the change", async () => {
     const record = undoSucceeds();
     renderPage();
 
@@ -150,7 +150,7 @@ describe('<UndoEmailChangePage/>', () => {
     expect(await screen.findByRole('heading', { name: 'Account closed' })).toBeInTheDocument();
   });
 
-  it('refuses a link with no token without asking the server', () => {
+  it('refuses a link missing its token without asking the server', () => {
     const record = undoSucceeds();
     renderPage('/undo-email-change');
 

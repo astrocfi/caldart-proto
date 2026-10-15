@@ -51,7 +51,7 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
   const results = found.filter((aircraft) => !excludeIds.includes(aircraft.id));
   const attached = found.filter((aircraft) => excludeIds.includes(aircraft.id));
   const searched = debounced.length > 0 && search.isSuccess;
-  // Say so when a search found nothing, rather than leaving the results blank.
+  // Say so when a search didn't find anything, rather than leaving the results blank.
   const nothingFound = searched && results.length === 0 && attached.length === 0;
 
   // The add form takes the place of its button, which gets the focus back as it closes.
@@ -70,7 +70,7 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
     onSelect(aircraft);
   };
 
-  // Enter adds the one match, so a search that found the plane needs no pointer.
+  // Enter adds the one match, so a search that found the plane doesn't need a pointer.
   const handleSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
     const [only, ...rest] = results;
     if (event.key !== 'Enter' || only === undefined || rest.length > 0) return;

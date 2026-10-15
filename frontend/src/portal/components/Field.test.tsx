@@ -60,7 +60,7 @@ describe('Field', () => {
     expect(screen.getByRole('textbox', { name: 'Phone of person 2' })).toBeInTheDocument();
   });
 
-  it('draws an empty hint slot for a field with no hint, so a grid row lines up', () => {
+  it('draws an empty hint slot for a field without a hint, so a grid row lines up', () => {
     const { container } = render(
       <Field label="Alternate phone">{(props) => <input {...props} />}</Field>,
     );

@@ -32,7 +32,7 @@ export const MEMBERS_KEY = ['admin-members'] as const;
 /**
  * The DART on the signed-in reader's own profile, read only when `enabled`: a DART
  * leader's roster is the member list filtered to it.  Null while it loads, and for a
- * profile that names no DART.
+ * profile that doesn't name a DART.
  */
 export function useOwnDart(enabled: boolean): Pick<Dart, 'id' | 'name'> | null {
   const profile = useQuery({

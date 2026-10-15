@@ -156,7 +156,7 @@ describe('NotificationSubscriptionForm', () => {
     expect(screen.getByLabelText(/Recipient email/)).not.toHaveAttribute('aria-invalid');
   });
 
-  it('shows no confirmation box before the server asks for one', async () => {
+  it("doesn't show a confirmation box before the server asks for one", async () => {
     await renderForm();
 
     expect(screen.queryByRole('checkbox', { name: /outside CalDART/ })).not.toBeInTheDocument();

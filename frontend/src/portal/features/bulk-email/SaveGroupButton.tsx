@@ -1,7 +1,7 @@
 /**
  * **Save as a group**, beside **Add these people**: keeps the search the filters make
  * as a saved recipient group, to add to an email's recipient list later with **Add a
- * saved group**. The recipient list plays no part.
+ * saved group**. The recipient list doesn't play a part.
  *
  * It asks for a name and the kind: fixed keeps the people the filters match now, live
  * keeps the filters, run again each time the group is used. The popup closes on

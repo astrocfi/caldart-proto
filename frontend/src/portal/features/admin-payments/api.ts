@@ -45,7 +45,7 @@ export function filterParams(filters: FilterValues): Record<string, string> {
   return Object.fromEntries(Object.entries(filters).filter(([, value]) => value !== ''));
 }
 
-/** Turns filter parameters into a URL query string, or `''` when there are none. */
+/** Turns filter parameters into a URL query string, or `''` when `params` is empty. */
 export function queryString(params: Record<string, string>): string {
   const search = new URLSearchParams(params).toString();
   return search ? `?${search}` : '';
@@ -289,7 +289,7 @@ export function providersIn(rows: PaymentPeriodSummary[]): PaymentProvider[] {
 /**
  * The messages a failed write should show, keyed by field.
  *
- * `ApiError.fieldErrors` skips `detail`, so an error that carries nothing else —
+ * `ApiError.fieldErrors` skips `detail`, so an error that carries only `detail` —
  * a 404 for a member deleted since the search, a 403, any DRF error with only a
  * sentence — would leave the form silent.  Fall back to the sentence itself.
  */

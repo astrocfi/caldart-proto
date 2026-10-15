@@ -64,7 +64,7 @@ describe('fitColumns', () => {
 });
 
 describe('needsFitting', () => {
-  it('needs no measuring for a table with nothing to drop or keep in sight', () => {
+  it('skips measuring a table without a column to drop or keep in sight', () => {
     expect(needsFitting([column('a'), column('b')])).toBe(false);
   });
 });

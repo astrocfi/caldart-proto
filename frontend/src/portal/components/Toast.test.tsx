@@ -21,7 +21,7 @@ function wrapper({ children }: { children: ReactNode }) {
 }
 
 describe('ToastProvider', () => {
-  it('renders nothing until a toast is raised', () => {
+  it('leaves out the status region until a toast is raised', () => {
     render(<Raiser message="Saved." />, { wrapper });
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
@@ -138,7 +138,7 @@ describe('ToastProvider', () => {
 });
 
 describe('ToastViewport', () => {
-  it('renders nothing for an empty queue', () => {
+  it('leaves its container empty for an empty queue', () => {
     const { container } = render(<ToastViewport toasts={[]} onDismiss={() => {}} />);
     expect(container).toBeEmptyDOMElement();
   });

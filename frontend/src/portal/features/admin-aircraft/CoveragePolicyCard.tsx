@@ -33,7 +33,7 @@ const AIRWORTHINESS_OPTIONS = AIRWORTHINESS_VALUES.map((value) => ({
 /** The longest note the server takes. */
 const NOTE_MAX_LENGTH = 1000;
 
-/** `labels` of `values`, joined, or `None` when there are none. */
+/** `labels` of `values`, joined, or `None` when `values` is empty. */
 function listed<Code extends string>(
   values: readonly Code[],
   labels: Record<Code, string>,

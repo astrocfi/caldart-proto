@@ -7,7 +7,7 @@
  * its last `keepInSight` column (the row's actions) in sight where it can: those
  * columns take their `narrowWidth` and wrap, and the identifying column gives up its
  * room, down to `LEAD_FLOOR_REM`, which is still enough to read a name by. No column
- * is ever drawn narrower than its own width or minimum, so none shrinks to nothing.
+ * is ever drawn narrower than its own width or minimum, so none shrinks away.
  */
 import type { Column } from './DataTable';
 

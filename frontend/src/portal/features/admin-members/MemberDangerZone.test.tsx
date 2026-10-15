@@ -75,13 +75,13 @@ describe('MemberDangerZone', () => {
     expect(screen.getByLabelText(/Type ana@example.org to confirm/)).toBeInTheDocument();
   });
 
-  it('says nothing about payments to a member who never paid', () => {
+  it("doesn't mention payments to a member who never paid", () => {
     renderZone([]);
 
     expect(screen.queryByText(/stays? in the books/)).not.toBeInTheDocument();
   });
 
-  it('offers the delete form to a member with no payments', () => {
+  it('offers the delete form to a member without any payments', () => {
     renderZone([]);
 
     expect(screen.getByRole('button', { name: 'Delete member' })).toBeDisabled();

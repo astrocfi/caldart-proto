@@ -139,7 +139,7 @@ describe('SubscriptionForm', () => {
     expect(within(bar).getByRole('option', { name: 'Last month' })).toBeInTheDocument();
   });
 
-  it('offers the reconciliation its Period alone, with no fixed dates beside it', async () => {
+  it('offers the reconciliation its Period alone, without fixed dates beside it', async () => {
     server.use(
       ...subscriptionHandlers({
         reports: [
@@ -157,7 +157,7 @@ describe('SubscriptionForm', () => {
     expect(within(bar).queryByLabelText('To')).not.toBeInTheDocument();
   });
 
-  it('draws no Reset filters button among the form of a subscription', async () => {
+  it("doesn't draw a Reset filters button among the form of a subscription", async () => {
     renderForm();
 
     await chooseReport('Payments');
@@ -225,7 +225,7 @@ describe('SubscriptionForm', () => {
     expect(await screen.findByRole('button', { name: 'Columns' })).toBeInTheDocument();
   });
 
-  it('offers no column chooser for a fixed report', async () => {
+  it("doesn't offer a column chooser for a fixed report", async () => {
     renderForm();
 
     await chooseReport('Contributions');
@@ -499,7 +499,7 @@ describe('SubscriptionForm editing a subscription', () => {
     ]);
   });
 
-  it('sends a subscription on the default columns back with none chosen', async () => {
+  it('sends a subscription on the default columns back while no column is chosen', async () => {
     const bodies: unknown[] = [];
     renderEdit(makeSubscription({ id: 6, columns: [] }), bodies);
     await screen.findByRole('button', { name: 'Columns' });
@@ -543,7 +543,7 @@ describe('SubscriptionForm editing a subscription', () => {
     expect(within(editForm()).queryByRole('alert')).not.toBeInTheDocument();
   });
 
-  it('shows a refusal that names no field above Save', async () => {
+  it("shows a refusal that doesn't name a field above Save", async () => {
     renderEdit();
     server.use(
       http.patch(`${API}/reports/subscriptions/5`, () =>

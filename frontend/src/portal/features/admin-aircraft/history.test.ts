@@ -35,7 +35,7 @@ describe('actorName', () => {
     expect(actorName({ id: 4, name: 'Dana Fiske' })).toBe('Dana Fiske');
   });
 
-  it('calls a write with no account behind it the seed', () => {
+  it('calls a write without an account behind it the seed', () => {
     expect(actorName(null)).toBe('the seed');
   });
 });
@@ -59,7 +59,7 @@ describe('changeLine', () => {
     );
   });
 
-  it('says only updated when an update names no column', () => {
+  it("says only updated when an update doesn't name a column", () => {
     expect(changeLine(makeChange({ fields: [], changed_by: null }))).toBe(
       '09/01/2026 at 12:34 PM · the seed · updated',
     );

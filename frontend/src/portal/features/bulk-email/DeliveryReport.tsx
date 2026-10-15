@@ -87,7 +87,7 @@ export function DeliveryReport({
 
   // Back to the View copy button that opened the copy, so a keyboard reader keeps their
   // place in the table: once the dialog has gone, since the page behind a modal dialog
-  // takes no focus while it is open.
+  // can't take the focus while it is open.
   const returnFocusRef = useRef<HTMLButtonElement | null>(null);
   const handleClose = (): void => {
     returnFocusRef.current = viewing?.trigger ?? null;
@@ -156,8 +156,8 @@ export function DeliveryCounts({ email }: { email: BulkEmailDetail }): JSX.Eleme
 }
 
 /**
- * **Retry failed**, behind a confirmation; disabled, with the reason, when there is
- * nothing to retry yet.
+ * **Retry failed**, behind a confirmation; disabled, with the reason, when there isn't
+ * anything to retry yet.
  */
 function RetryFailed({ email }: { email: BulkEmailDetail }): JSX.Element {
   const retry = useRetryFailed(email.id);

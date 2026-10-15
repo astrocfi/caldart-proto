@@ -68,7 +68,7 @@ export interface AircraftFormProps {
   useNNumberNote?: (nNumber: string) => ReactNode;
 }
 
-/** No note about the N-number, for a form that offers none. */
+/** No note about the N-number, for a form that doesn't offer one. */
 function useNoNote(): ReactNode {
   return null;
 }
@@ -93,7 +93,7 @@ export function AircraftForm({
   const freshServerErrors = useFreshErrors(serverError, values, serverErrors ?? {});
   // The fields that have been typed in and left; a complaint appears when the
   // typist moves on from a field rather than when they try to save.  Leaving a box
-  // untouched says nothing, so pressing Cancel straight after the form opens does not
+  // untouched doesn't mark it, so pressing Cancel straight after the form opens does not
   // first draw an error that moves the button out from under the pointer.
   const [touched, setTouched] = useState<Record<string, true>>({});
   const [submitted, setSubmitted] = useState(false);

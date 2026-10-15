@@ -104,7 +104,7 @@ export const NOT_SAVED_PROBLEM =
 
 /**
  * The refused save as problems for the checks list: one per field the server named,
- * or one sentence when it named none.
+ * or one sentence when it didn't name any.
  */
 export function saveProblems(
   saveState: SaveState,
@@ -197,7 +197,7 @@ export function SendCard({
   };
 
   // The confirmation opens once the latest words are saved and the checks, run on
-  // them afresh, find nothing that must be fixed; the list says what. Checks that
+  // them afresh, don't find anything that must be fixed; the list says what. Checks that
   // fail, or take longer than CHECKS_WAIT_MS, do not hold it back.
   const handleConfirmStep = async (next: {
     startAt: string | null;

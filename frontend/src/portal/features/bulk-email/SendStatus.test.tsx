@@ -37,7 +37,7 @@ describe('SendStatus', () => {
     expect(screen.getByText(/Nothing has been sent yet\. You can still cancel/)).toBeVisible();
   });
 
-  it('cancels a queued send at once, with no second question', async () => {
+  it('cancels a queued send at once, without a second question', async () => {
     const calls = renderStatus(
       makeBulkEmail({ status: 'queued', start_at: new Date(Date.now() + 60_000).toISOString() }),
     );

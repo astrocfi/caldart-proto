@@ -11,7 +11,7 @@ describe('FixedValue', () => {
     expect(screen.getByRole('group', { name: 'Recipient' })).toHaveTextContent('ops@example.test');
   });
 
-  it('offers nothing to edit', () => {
+  it('does not offer anything to edit', () => {
     render(<FixedValue label="Recipient" value="ops@example.test" />);
 
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();

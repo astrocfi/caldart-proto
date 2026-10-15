@@ -123,7 +123,7 @@ describe('UserDetailPage', () => {
     expect(await screen.findByText(/account saved/i)).toBeInTheDocument();
   });
 
-  it('carries the name and the address in the heading alone, with no card repeating them', async () => {
+  it('carries the name and the address in the heading alone, without a card repeating them', async () => {
     stubDetail();
     renderDetail();
     await screen.findByRole('heading', { name: 'Priya Raman' });
@@ -144,7 +144,7 @@ describe('UserDetailPage', () => {
   });
 
   it.each(['First name', 'Last name', 'Email address'])(
-    'offers no box to change the %s',
+    "doesn't offer a box to change the %s",
     async (name) => {
       stubDetail();
       renderDetail();
@@ -234,7 +234,7 @@ describe('UserDetailPage', () => {
     );
   });
 
-  it('offers no action on your own account', async () => {
+  it("doesn't offer an action on your own account", async () => {
     const me = makeUser({ id: 7, roles: ['member', 'user_admin'] });
     stubDetail({ me });
     renderDetail();
@@ -244,7 +244,7 @@ describe('UserDetailPage', () => {
     expect(screen.getByText('You cannot deactivate or block your own account.')).toBeVisible();
   });
 
-  it('has no Active box in the form', async () => {
+  it("doesn't have an Active box in the form", async () => {
     stubDetail();
     renderDetail();
     await screen.findByRole('heading', { name: 'Priya Raman' });
@@ -352,7 +352,7 @@ describe('UserDetailPage', () => {
       expect(calls).toEqual(['block']);
     });
 
-    it('offers no reactivation while the account is blocked', async () => {
+    it("doesn't offer reactivation while the account is blocked", async () => {
       stubDetail({ target: { ...TARGET, is_active: false, reactivation_blocked: true } });
       renderDetail();
       await screen.findByRole('heading', { name: 'Priya Raman' });
@@ -491,7 +491,7 @@ describe('UserDetailPage', () => {
       expect(calls).toEqual(['require-new-password']);
     });
 
-    it('posts nothing when the confirmation is canceled', async () => {
+    it("doesn't post anything when the confirmation is canceled", async () => {
       stubDetail();
       const calls = stubRequire();
       renderDetail();
@@ -549,7 +549,7 @@ describe('UserDetailPage', () => {
       ).toBeVisible();
     });
 
-    it('says in the confirmation that a blocked account is sent nothing', async () => {
+    it("says in the confirmation that a blocked account isn't sent anything", async () => {
       stubDetail({ target: { ...TARGET, is_active: false, reactivation_blocked: true } });
       renderDetail();
       await screen.findByRole('heading', { name: 'Priya Raman' });
@@ -595,7 +595,7 @@ describe('UserDetailPage', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('offers no password reset on your own account either', async () => {
+    it("doesn't offer a password reset on your own account either", async () => {
       stubDetail({ me: makeUser({ id: 7, roles: ['member', 'user_admin'] }) });
       renderDetail();
       await screen.findByRole('heading', { name: 'Priya Raman' });
@@ -638,7 +638,7 @@ describe('UserDetailPage', () => {
     expect(screen.getByText('5.1.1 550 User unknown')).toBeInTheDocument();
   });
 
-  it('offers no Clear bounce for an address that has not bounced', async () => {
+  it("doesn't offer Clear bounce for an address that has not bounced", async () => {
     stubDetail();
     renderDetail();
 
@@ -685,7 +685,7 @@ describe('UserDetailPage', () => {
     expect(await screen.findByText('Not allowed.')).toBeInTheDocument();
   });
 
-  it('shows when the email address was verified, with no resend button', async () => {
+  it('shows when the email address was verified, without a resend button', async () => {
     stubDetail();
     renderDetail();
     await screen.findByRole('heading', { name: 'Priya Raman' });
@@ -803,7 +803,7 @@ describe('UserDetailPage', () => {
       ).toBeInTheDocument();
     });
 
-    it('offers no password reset', async () => {
+    it("doesn't offer a password reset", async () => {
       stubDetail({ target: DONOR });
       renderDetail(String(DONOR.id));
       await screen.findByRole('heading', { name: 'Gil Ivers' });
@@ -813,7 +813,7 @@ describe('UserDetailPage', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('offers no Require a new password', async () => {
+    it("doesn't offer Require a new password", async () => {
       stubDetail({ target: DONOR });
       renderDetail(String(DONOR.id));
       await screen.findByRole('heading', { name: 'Gil Ivers' });
@@ -823,7 +823,7 @@ describe('UserDetailPage', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('offers no verification message', async () => {
+    it("doesn't offer a verification message", async () => {
       stubDetail({ target: DONOR });
       renderDetail(String(DONOR.id));
       await screen.findByRole('heading', { name: 'Gil Ivers' });
@@ -832,7 +832,7 @@ describe('UserDetailPage', () => {
     });
   });
 
-  it('words a member with no term as the member record does, not as a friend', async () => {
+  it('words a member without a term as the member record does, not as a friend', async () => {
     const noTerm = makeAdminUserDetail({
       ...TARGET,
       membership: { status: 'none', expires_on: null, plan: null, is_lifetime: false },
@@ -901,7 +901,7 @@ describe('UserDetailPage', () => {
       });
     }
 
-    it('offers no role box', async () => {
+    it("doesn't offer a role box", async () => {
       stubOwn();
       renderDetail();
       await screen.findByRole('heading', { name: 'Priya Raman' });
@@ -909,7 +909,7 @@ describe('UserDetailPage', () => {
       expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
     });
 
-    it('offers no Save changes', async () => {
+    it("doesn't offer Save changes", async () => {
       stubOwn();
       renderDetail();
       await screen.findByRole('heading', { name: 'Priya Raman' });

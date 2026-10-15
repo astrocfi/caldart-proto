@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { renderWithProviders } from '@test/render';
 import { Page } from './Page';
 
-/** The eyebrow over the page title, or null when there is none. */
+/** The eyebrow over the page title, or null when there isn't one. */
 function eyebrow(container: HTMLElement): string | null {
   return container.querySelector('.page__header .eyebrow')?.textContent ?? null;
 }
@@ -23,13 +23,13 @@ describe('<Page/>', () => {
     expect(eyebrow(container)).toBe(group);
   });
 
-  it('draws no eyebrow for a page outside the menu', () => {
+  it('leaves out the eyebrow for a page outside the menu', () => {
     const { container } = renderWithProviders(<Page title="Join CalDART" />, { route: '/join' });
 
     expect(eyebrow(container)).toBeNull();
   });
 
-  it('draws no eyebrow when the page asks for none', () => {
+  it('leaves out the eyebrow when the page asks it to', () => {
     const { container } = renderWithProviders(<Page title="Page not found" noEyebrow />, {
       route: '/admin/members/999',
     });
@@ -64,7 +64,7 @@ describe('<Page/>', () => {
     );
   });
 
-  it('draws no lede paragraph when there is no lede', () => {
+  it('leaves out the lede paragraph when there is not a lede', () => {
     const { container } = renderWithProviders(<Page title="Members" />, {
       route: '/admin/members',
     });

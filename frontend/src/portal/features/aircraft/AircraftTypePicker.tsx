@@ -5,8 +5,8 @@
  * aircraft types, and typing in the box again drops the type until another is
  * picked.
  *
- * An account administrator whose search finds nothing is offered **New aircraft type**,
- * for a type the FAA has never registered; the type it adds is picked at once.
+ * An account administrator whose search doesn't find anything is offered **New aircraft
+ * type**, for a type the FAA has never registered; the type it adds is picked at once.
  */
 import { useState } from 'react';
 import type { JSX } from 'react';
@@ -37,7 +37,7 @@ export function aircraftTypeName(type: AircraftType): string {
   return `${type.make} ${type.model}`;
 }
 
-/** A type's seats, for the muted end of its line in the list, or nothing when unknown. */
+/** A type's seats, for the muted end of its line in the list, or `''` when unknown. */
 function seatsMeta(type: AircraftType): string {
   if (type.seats === null) return '';
   return type.seats === 1 ? '1 seat' : `${type.seats} seats`;

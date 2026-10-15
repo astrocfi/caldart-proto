@@ -62,7 +62,7 @@ const DONE: Record<StatusCardAction, string> = {
 
 export interface AccountStatusCardProps {
   user: AdminUser;
-  /** True on your own record, which offers no action. */
+  /** True on your own record, which doesn't offer an action. */
   isSelf: boolean;
 }
 

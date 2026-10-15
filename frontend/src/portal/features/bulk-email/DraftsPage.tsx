@@ -9,7 +9,7 @@
  * because its sender may no longer send its type, is named above the table with
  * the reason. CalDART management, who sees every sender's emails, also sees who
  * wrote each and the DART a DART leader's email goes to. A DART leader whose profile
- * names no DART is told to set it on My profile, in place of **New email**.
+ * doesn't name a DART is told to set it on My profile, in place of **New email**.
  */
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
@@ -34,12 +34,12 @@ import { withSenderColumns } from './senderColumns';
 import { actionError, CANCELED_MESSAGE } from './SendStatus';
 import { statusLabel, statusTone } from './status';
 
-/** What a draft with no subject yet is listed as. */
+/** What a draft without a subject yet is listed as. */
 export const NO_SUBJECT = '(no subject yet)';
 
 /**
- * What a screen reader calls an email in the list: its subject, or, for a draft with
- * none yet, `(no subject yet)` and when it was last saved, so two such drafts are not
+ * What a screen reader calls an email in the list: its subject, or, for a draft without
+ * one yet, `(no subject yet)` and when it was last saved, so two such drafts are not
  * heard as one.
  */
 export function draftName(row: Pick<BulkEmailSummary, 'subject' | 'updated_at'>): string {
@@ -77,7 +77,7 @@ export function DraftsPage(): JSX.Element {
 
   const failure = cancel.error ?? remove.error;
   const notSent = rows.filter((row) => row.not_sent_reason !== '');
-  // A DART leader with no DART on their profile cannot write one, so the screen says
+  // A DART leader without a DART on their profile cannot write one, so the screen says
   // how to fix that rather than how to start one.
   const cannotSend = sender.data?.can_send === false;
 

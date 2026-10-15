@@ -8,7 +8,7 @@ export interface ServiceDotProps {
 }
 
 /**
- * "Out of service", or nothing at all.
+ * "Out of service" for an airframe out of service, and `null` for one in service.
  *
  * An administrator clears the in-service flag on an airframe that is grounded
  * or sold; every screen that offers an airplane says so, rather than letting

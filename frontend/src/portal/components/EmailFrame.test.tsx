@@ -7,7 +7,7 @@ const EMAIL =
   '<!doctype html><html lang="en"><head><meta charset="utf-8" /></head><body><a href="https://caldart.org">Site</a></body></html>';
 
 describe('EmailFrame', () => {
-  it('allows popups that leave the sandbox, and nothing else', () => {
+  it('allows only popups that leave the sandbox', () => {
     render(<EmailFrame title="The email" html={EMAIL} />);
     expect(screen.getByTitle('The email')).toHaveAttribute(
       'sandbox',
@@ -34,7 +34,7 @@ describe('EmailFrame', () => {
 });
 
 describe('withNewTabLinks', () => {
-  it('puts the base first in an email with no head', () => {
+  it('puts the base first in an email without a head', () => {
     expect(withNewTabLinks('<p>Hi</p>')).toBe('<base target="_blank" rel="noopener"><p>Hi</p>');
   });
 

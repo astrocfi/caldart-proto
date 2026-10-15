@@ -43,7 +43,7 @@ interface DeleteButtonBaseProps extends Omit<ButtonProps, 'children' | 'ref'> {
    * Called once the reader accepts the inline confirmation, from the danger
    * button in the pair that replaces this control. It may return a promise;
    * the control reverts to its ordinary self once it settles, whichever way.
-   * Left out, the control has no confirmation of its own and fires its click
+   * Left out, the control doesn't have a confirmation of its own and fires its click
    * straight away, for a caller whose own flow already confirms the action.
    */
   onDelete?: () => void | Promise<unknown>;
@@ -68,12 +68,12 @@ export interface WordedDeleteButtonProps extends DeleteButtonBaseProps {
   children: ReactNode;
 }
 
-/** A bare trashcan, with no frame for `variant` or `small` to act on. */
+/** A bare trashcan, without a frame for `variant` or `small` to act on. */
 export interface IconDeleteButtonProps extends Omit<DeleteButtonBaseProps, 'variant' | 'small'> {
   children?: undefined;
-  /** There is no frame without words, so the frame props are not accepted. */
+  /** Only a control with words has a frame, so the frame props are not accepted. */
   variant?: never;
-  /** There is no frame without words, so the frame props are not accepted. */
+  /** Only a control with words has a frame, so the frame props are not accepted. */
   small?: never;
 }
 
@@ -85,12 +85,12 @@ export type DeleteButtonProps = WordedDeleteButtonProps | IconDeleteButtonProps;
  * `label` names the thing being removed. Without `children` the control is an
  * `IconButton`: a bare trashcan whose accessible name and tooltip are both
  * `label`, unless the caller passes its own `title` -- the reason the button is
- * disabled, say -- which wins. That form has no frame, so it takes neither
- * `variant` nor `small`; passing either without children is a type error.
- * Children that are absent, `null` or `false` count as no children, so a caller
+ * disabled, say -- which wins. That form doesn't have a frame, so it doesn't take
+ * `variant` or `small`; passing either without children is a type error.
+ * Children that are `null` or `false` count as absent, so a caller
  * may show its words conditionally and still have a named control. With
  * `children` the words follow the icon inside a `Button`, `label` is not repeated
- * as an `aria-label`, and there is no tooltip unless the caller supplies one,
+ * as an `aria-label`, and a tooltip shows only when the caller supplies one,
  * since the button already says what it does; `variant` defaults to `quiet`, the
  * size to small, and the trashcan is drawn at the text size rather than at the
  * larger size a bare icon uses.

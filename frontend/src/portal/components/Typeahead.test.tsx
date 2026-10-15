@@ -92,7 +92,7 @@ describe('Typeahead', () => {
     expect(await screen.findByText('No address matches that.', { selector: 'p' })).toBeVisible();
   });
 
-  it('shows nothing for an empty search without the words to say it with', async () => {
+  it('stays blank for an empty search without the words to say it with', async () => {
     const user = userEvent.setup();
     const { terms, useSuggestions } = makeSuggestions();
     render(<Harness useSuggestions={useSuggestions} />);
@@ -103,7 +103,7 @@ describe('Typeahead', () => {
     expect(screen.queryByText(/matches/)).not.toBeInTheDocument();
   });
 
-  it('is a combobox with no list until something is typed', () => {
+  it('is a combobox without a list until something is typed', () => {
     render(<Harness />);
 
     expect(screen.getByRole('combobox', { name: 'Address' })).toHaveAttribute(
@@ -120,7 +120,7 @@ describe('Typeahead', () => {
     );
   });
 
-  it('asks for nothing until three characters are typed', async () => {
+  it('does not ask for suggestions until three characters are typed', async () => {
     const user = userEvent.setup();
     const suggestions = makeSuggestions();
     render(<Harness useSuggestions={suggestions.useSuggestions} />);
@@ -248,7 +248,7 @@ describe('Typeahead', () => {
     expect(screen.queryByRole('listbox')).toBeNull();
   });
 
-  it('shows no list when nothing matches', async () => {
+  it('does not show a list when nothing matches', async () => {
     const user = userEvent.setup();
     render(<Harness />);
 

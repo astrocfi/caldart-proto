@@ -79,7 +79,7 @@ export const MANDATE_STATUS_LABELS: Record<MandateStatus, string> = {
 
 /**
  * What a standing renewal authority is called on the finance screens, by what
- * it charges for.  `contribution` is a recurring donation, which names no plan.
+ * it charges for.  `contribution` is a recurring donation, which doesn't name a plan.
  */
 export const MANDATE_KIND_LABELS: Record<MandateKind, string> = {
   renewal: 'Automatic renewal',

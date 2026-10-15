@@ -5,7 +5,7 @@
  * treasurer sees is what the file they download will hold.  Sorting and paging
  * both go to the server, so ordering a column reorders the whole report rather
  * than just the page on screen; a column the server cannot order by has a plain
- * heading with no arrow.
+ * heading without an arrow.
  */
 import { useMemo } from 'react';
 import type { JSX } from 'react';

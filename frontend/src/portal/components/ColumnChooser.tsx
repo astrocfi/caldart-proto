@@ -47,7 +47,7 @@ export function defaultColumnKeys(columns: readonly ReportColumn[]): string[] {
  * Order matters: the export prints the columns in the order the registry lists
  * them, so the table has to agree however the boxes were checked.  The last
  * column cannot be removed: an empty set would export the server's defaults
- * rather than what is on screen, and a table of nothing helps nobody.
+ * rather than what is on screen, and an empty table doesn't help anyone.
  */
 export function toggleColumn(columns: ReportColumn[], chosen: string[], key: string): string[] {
   const wanted = new Set(chosen);

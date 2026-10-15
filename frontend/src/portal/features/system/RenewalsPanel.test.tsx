@@ -75,7 +75,7 @@ function liveRun(reads: RenewalScan[], bodies: unknown[] = []): void {
 async function chargeForReal(): Promise<void> {
   await userEvent.click(
     screen.getByLabelText(
-      'Practice run: show what would happen, charge nothing (automatic renewal charges)',
+      'Practice run: show what would happen without charging anything (automatic renewal charges)',
     ),
   );
   await userEvent.click(screen.getByRole('button', { name: 'Run now: automatic renewal charges' }));
@@ -109,7 +109,7 @@ describe('RenewalsPanel', () => {
 
     expect(
       screen.getByLabelText(
-        'Practice run: show what would happen, charge nothing (automatic renewal charges)',
+        'Practice run: show what would happen without charging anything (automatic renewal charges)',
       ),
     ).toBeChecked();
     await userEvent.click(
@@ -160,7 +160,7 @@ describe('RenewalsPanel', () => {
 
     await userEvent.click(
       screen.getByLabelText(
-        'Practice run: show what would happen, charge nothing (automatic renewal charges)',
+        'Practice run: show what would happen without charging anything (automatic renewal charges)',
       ),
     );
     await userEvent.click(
@@ -238,7 +238,7 @@ describe('RenewalsPanel', () => {
 
     await userEvent.click(
       screen.getByLabelText(
-        'Practice run: show what would happen, charge nothing (automatic renewal charges)',
+        'Practice run: show what would happen without charging anything (automatic renewal charges)',
       ),
     );
     await userEvent.click(

@@ -62,7 +62,7 @@ describe('RecordPaymentPage', () => {
     expect(screen.getByLabelText(/Plan/)).toHaveFocus();
   });
 
-  it('sends nothing and refuses nothing when Enter is pressed in the member search', async () => {
+  it("doesn't send or refuse anything when Enter is pressed in the member search", async () => {
     const user = userEvent.setup();
     const recorded: Record<string, unknown>[] = [];
     serveRecord(recorded);
@@ -121,7 +121,7 @@ describe('RecordPaymentPage', () => {
     );
   });
 
-  it('counts no dues when the payment is a contribution alone', async () => {
+  it('counts the dues as $0.00 when the payment is a contribution alone', async () => {
     const user = userEvent.setup();
     serveRecord([]);
     renderWithProviders(<RecordPaymentPage />);
@@ -163,7 +163,7 @@ describe('RecordPaymentPage', () => {
     expect(screen.getByLabelText(/Member/)).toHaveFocus();
   });
 
-  it('refuses to record a payment with nobody chosen', async () => {
+  it('refuses to record a payment until a member is chosen', async () => {
     const user = userEvent.setup();
     const recorded: Record<string, unknown>[] = [];
     serveRecord(recorded);
@@ -214,7 +214,7 @@ describe('RecordPaymentPage', () => {
     await waitFor(() => expect(recorded[0]).toMatchObject({ contribution_cents: 2_550 }));
   });
 
-  it('records a contribution with no membership at all', async () => {
+  it('records a contribution without a membership', async () => {
     const user = userEvent.setup();
     const recorded: Record<string, unknown>[] = [];
     serveRecord(recorded);
@@ -237,7 +237,7 @@ describe('RecordPaymentPage', () => {
     expect(await screen.findByText('Another payment carries that reference.')).toBeInTheDocument();
   });
 
-  it('shows Nothing to charge under the contribution when the payment comes to zero', async () => {
+  it('shows "Nothing to charge" under the contribution when the payment comes to zero', async () => {
     const user = userEvent.setup();
     serveRecord([], { amount_cents: ['Nothing to charge.'] });
     renderWithProviders(<RecordPaymentPage />);

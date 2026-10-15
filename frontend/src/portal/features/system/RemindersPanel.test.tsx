@@ -106,7 +106,7 @@ describe('RemindersPanel', () => {
 
     expect(
       screen.getByLabelText(
-        'Practice run: show what would happen, send nothing (renewal reminder emails)',
+        'Practice run: show what would happen without sending anything (renewal reminder emails)',
       ),
     ).toBeChecked();
     await userEvent.click(screen.getByRole('button', { name: 'Run now: renewal reminder emails' }));
@@ -155,7 +155,7 @@ describe('RemindersPanel', () => {
 
     await userEvent.click(
       screen.getByLabelText(
-        'Practice run: show what would happen, send nothing (renewal reminder emails)',
+        'Practice run: show what would happen without sending anything (renewal reminder emails)',
       ),
     );
     await userEvent.click(screen.getByRole('button', { name: 'Run now: renewal reminder emails' }));
@@ -263,7 +263,7 @@ describe('RemindersPanel', () => {
 
     await userEvent.click(
       screen.getByLabelText(
-        'Practice run: show what would happen, send nothing (renewal reminder emails)',
+        'Practice run: show what would happen without sending anything (renewal reminder emails)',
       ),
     );
     await userEvent.click(screen.getByRole('button', { name: 'Run now: renewal reminder emails' }));

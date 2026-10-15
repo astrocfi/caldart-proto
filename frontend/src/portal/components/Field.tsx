@@ -32,10 +32,10 @@ export interface FieldProps {
  * error describes the box, so the two never disagree on screen. In one column the hidden
  * hint gives its line up to the error (`field__hint--hidden` takes it out of the flow), so
  * no blank band opens between the label and the box; in a two-column form grid it keeps
- * its space, so the boxes of one row stay level as the error comes and goes. A field with
- * no hint still draws an empty hint slot, which a two-column form grid gives one line, so
- * the boxes in one row line up whether or not each has a hint. A status sits under the
- * box, above any error, and describes the box whether or not an error shows.
+ * its space, so the boxes of one row stay level as the error comes and goes. A field
+ * without a hint still draws an empty hint slot, which a two-column form grid gives one
+ * line, so the boxes in one row line up whether or not each has a hint. A status sits
+ * under the box, above any error, and describes the box whether or not an error shows.
  */
 export function Field({
   label,

@@ -153,7 +153,7 @@ describe('AircraftRecordPage', () => {
     expect(await screen.findByText('Last updated 09/01/2026 by Dana Fiske')).toBeInTheDocument();
   });
 
-  it('leaves out the last-updated line while the history records no change', async () => {
+  it("leaves out the last-updated line while the history doesn't record a change", async () => {
     server.use(
       http.get(`${API}/aircraft/1`, () =>
         HttpResponse.json(makeDetail({ updated_by: { id: 4, name: 'Dana Fiske' } })),

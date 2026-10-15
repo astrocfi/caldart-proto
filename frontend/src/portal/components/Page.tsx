@@ -27,7 +27,7 @@ export interface PageProps {
    */
   tabTitle?: string;
   /**
-   * Leave the eyebrow off: for a page that belongs to no menu group, such as an
+   * Leave the eyebrow off: for a page that doesn't belong to a menu group, such as an
    * error page shown at whatever address failed.
    */
   noEyebrow?: boolean;
@@ -43,7 +43,7 @@ export interface PageProps {
  * it, an optional lede, a rule, then the content.
  *
  * The eyebrow is always the menu group the page sits under (`navEyebrow`), so it
- * reads the same as the rail; a page outside the rail has none.  The page's title
+ * reads the same as the rail; a page outside the rail doesn't have one.  The page's title
  * (or `tabTitle`) also names the browser tab, followed by the organization's name.  A
  * page reached with `FOCUS_TITLE` as its navigation state moves the focus to its title.
  */

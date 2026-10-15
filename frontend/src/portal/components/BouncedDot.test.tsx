@@ -20,7 +20,7 @@ describe('BouncedDot', () => {
     expect(screen.getByText('5.1.1 User unknown')).toBeInTheDocument();
   });
 
-  it('renders nothing for an address with no bounce', () => {
+  it('is empty for an address that has not bounced', () => {
     const { container } = renderWithProviders(<BouncedDot bouncedAt={null} detail="" />);
 
     expect(container).toBeEmptyDOMElement();

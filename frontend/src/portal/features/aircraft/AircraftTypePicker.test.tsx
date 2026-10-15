@@ -100,7 +100,7 @@ describe('<AircraftTypePicker/>', () => {
     );
   });
 
-  it('offers a member no way to add a type the search cannot find', async () => {
+  it("doesn't offer a member a way to add a type the search cannot find", async () => {
     const user = renderPicker(['member']);
     await search(user, 'zzzz');
     await waitFor(() => expect(screen.getByText('No aircraft type matches that.')).toBeVisible());

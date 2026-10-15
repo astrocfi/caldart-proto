@@ -6,7 +6,7 @@
  * scale of whatever encloses it.  Each is `aria-hidden`: the control around the
  * icon carries the accessible name, and an icon that announced itself as well
  * would say the same thing twice.  They are written out here rather than pulled
- * from an icon library so the portal ships no icon dependency.
+ * from an icon library so the portal doesn't depend on an icon package.
  */
 import type { JSX, ReactNode } from 'react';
 

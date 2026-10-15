@@ -261,7 +261,7 @@ describe('ColumnChooser Load columns', () => {
     await waitFor(() => expect(requests).toHaveLength(1));
   });
 
-  it('says so when there are no saved sets', async () => {
+  it("says so when there aren't any saved sets", async () => {
     await openWithSets([], 'Load columns');
 
     expect(await within(loadPanel()).findByText('No saved sets yet.')).toBeInTheDocument();
@@ -301,7 +301,7 @@ describe('ColumnChooser Load columns', () => {
     expect(screen.getByRole('textbox', { name: 'Name for these columns' })).toHaveValue('Short');
   });
 
-  it('does nothing to a saved set on the first press of its trashcan', async () => {
+  it('leaves a saved set alone on the first press of its trashcan', async () => {
     const { user, requests } = await openWithSets(SAVED_SETS, 'Load columns');
 
     await user.click(await screen.findByRole('button', { name: 'Delete the saved set Audit' }));
@@ -482,7 +482,7 @@ describe('ColumnChooser Save columns', () => {
     server.use(
       http.post(`${API}/reports/payments/column-sets`, () =>
         HttpResponse.json(
-          { name: ['Ensure this field has no more than 60 characters.'] },
+          { name: ['Ensure this field has no more than 60 characters.'] }, // wording:ignore
           { status: 400 },
         ),
       ),
@@ -492,7 +492,7 @@ describe('ColumnChooser Save columns', () => {
     await user.click(within(savePanel()).getByRole('button', { name: 'Save' }));
 
     expect(await within(savePanel()).findByRole('alert')).toHaveTextContent(
-      'Ensure this field has no more than 60 characters.',
+      'Ensure this field has no more than 60 characters.', // wording:ignore
     );
   });
 });

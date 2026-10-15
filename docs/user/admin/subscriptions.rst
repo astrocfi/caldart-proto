@@ -158,7 +158,7 @@ The **DART rosters** card lists each active DART, its **Recipients** (the checke
 an address), and when its roster was **Last sent**. No roster goes to a DART without anyone
 set to receive it.
 
-Under the table sit the box **Practice run: show what would happen, send nothing**, checked
+Under the table sit the box **Practice run: show what would happen without sending anything**, checked
 to begin with, the button beside it, and under them what the last run did, so the button
 never moves when a long result appears. While the box is checked the button reads
 **Preview rosters**: press it, and under it the card reads **What this run would do**, where
@@ -177,7 +177,7 @@ If a subscription stops arriving, look at its **Active** column: *Paused* means 
 often because the recipient lost the role that reads the report, and **Resume** tells you
 whether that is still so. If a roster never reaches a DART's people, check on :doc:`darts`
 that somebody is checked **Roster** and has an email address, then press **Preview
-rosters**, with **Practice run: show what would happen, send nothing** checked, to see who
+rosters**, with **Practice run: show what would happen without sending anything** checked, to see who
 it would reach. If a line reads *Not sent*
 and blames the mail server, try **Send now** again later, and tell a system administrator if
 it keeps failing; they can see every email CalDART tried to send on the :doc:`sent-emails` page.

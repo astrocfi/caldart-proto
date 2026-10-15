@@ -35,7 +35,7 @@ export function periodLabel(period: string, group: SummaryGroup): string {
 
 /**
  * A money column: right-aligned, sortable, and dropped in `dropOrder` on a narrow
- * screen.  A period `cents` gives nothing for reads as a dash.
+ * screen.  A period that `cents` gives `undefined` for reads as a dash.
  */
 function moneyColumn(
   key: string,

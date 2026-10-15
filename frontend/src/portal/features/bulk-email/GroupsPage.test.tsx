@@ -100,7 +100,7 @@ describe('GroupsPage', () => {
     ).toBe('Download list');
   });
 
-  it('offers no download for a group with nobody in it', async () => {
+  it("doesn't offer a download for an empty group", async () => {
     state.rows = [makeGroup({ kind: 'live', count: 0 })];
     renderGroups();
     await screen.findByRole('link', { name: 'Board' });

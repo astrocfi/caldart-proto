@@ -213,7 +213,7 @@ describe('SubscriptionsCard', () => {
     );
   });
 
-  it('does nothing to a subscription on the first press of its trashcan', async () => {
+  it("doesn't do anything to a subscription on the first press of its trashcan", async () => {
     const deleted: string[] = [];
     const table = await renderCard();
     server.use(
@@ -248,7 +248,7 @@ describe('SubscriptionsCard', () => {
     expect(deleted).toEqual(['1']);
   });
 
-  it('says so when there are no subscriptions', async () => {
+  it('says so when the list of subscriptions is empty', async () => {
     server.use(...subscriptionHandlers({ subscriptions: [] }));
     renderWithProviders(<SubscriptionsCard />);
 

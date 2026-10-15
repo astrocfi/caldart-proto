@@ -2,7 +2,7 @@
  * `/admin/members/:id` — one member record, in four tabs.
  *
  * The summary strip above the tabs says where the membership stands in words: a member
- * with no term in force is pointed at Memberships, and one whose terms a deactivation
+ * without a term in force is pointed at Memberships, and one whose terms a deactivation
  * set aside says so, rather than either reading as a friend.
  *
  * A donor's record is reached from the donors report rather than the member list,

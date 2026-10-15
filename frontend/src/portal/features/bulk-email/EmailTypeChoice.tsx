@@ -30,7 +30,7 @@ export function wasUnqueued(before: BulkEmailDetail | undefined, after: BulkEmai
 /** The hint shown until a type is chosen. */
 export const NO_TYPE_HINT = 'Choose what type of email this is.';
 
-/** What a callout's choice says when the sender may send no Mission type. */
+/** What a callout's choice says when the sender may not send the Mission type. */
 export const NO_MISSION_TYPE =
   'A mission callout goes as the Mission type, which you may not send. Ask a system administrator.';
 
@@ -66,7 +66,7 @@ export function EmailTypeChoice({
   const handleChoose = (id: number | null): void => {
     // The radios stay enabled while a choice saves, so the keyboard focus stays on
     // them; a second choice made before the first is saved is ignored. The compose
-    // screen offers no choice of no type.
+    // screen never offers a choice without a type.
     if (update.isPending || id === null) return;
     setSaving(id);
     const before = queryClient.getQueryData<BulkEmailDetail>(emailKey(emailId));
@@ -114,7 +114,7 @@ export function EmailTypeChoice({
         <p className="field__error" role="alert">
           {isCallout
             ? NO_MISSION_TYPE
-            : 'There is no type of email you may send. Ask a system administrator.'}
+            : 'You may not send any type of email. Ask a system administrator.'}
         </p>
       ) : null}
       <TypeRadios
@@ -132,14 +132,14 @@ export function EmailTypeChoice({
   );
 }
 
-/** One type a radio list offers: an id, or null for no type, with its words. */
+/** One type a radio list offers: an id, or null for the choice without a type, with its words. */
 export type TypeOption = Pick<SendableEmailType, 'name' | 'description'> & { id: number | null };
 
 interface TypeRadiosProps {
   /** The radio group's name, unique on the page. */
   name: string;
   options: readonly TypeOption[];
-  /** The chosen type's id, null for none. */
+  /** The chosen type's id, null while none is chosen. */
   chosen: number | null;
   onChoose: (id: number | null) => void;
 }

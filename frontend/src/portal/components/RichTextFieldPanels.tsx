@@ -1,6 +1,6 @@
 /**
  * The panels a recipient field's chip opens under the editor's toolbar: one sets
- * what a field shows for a person with no value, the other offers the ways out of a
+ * what a field shows for a person without a value, the other offers the ways out of a
  * chip whose name is not one of the fields.
  *
  * Each panel is about one chip.  It follows that chip while the message changes
@@ -153,7 +153,7 @@ export function fieldPhrase(label: string): string {
 export interface FieldPanelProps {
   /** The field's label, such as "First name", which titles the panel. */
   label: string;
-  /** The chip's fallback, `''` when it has none. */
+  /** The chip's fallback, `''` when it doesn't have one. */
   initialFallback: string;
   /**
    * Sets the fallback to `fallback`, which `isFallbackAllowed` accepted and
@@ -166,14 +166,14 @@ export interface FieldPanelProps {
 }
 
 /**
- * Asks what a field's chip shows for a person with no value, its fallback.
+ * Asks what a field's chip shows for a person without a value, its fallback.
  *
  * **Apply** sets it, and **Clear**, offered once a fallback is set, takes it off.
  * Text holding a brace, a bar, an angle bracket, or a line break cannot be part of
  * a token, so it is refused with `FALLBACK_ERROR` and the panel stays open; so is
- * text of nothing but spaces, with `FALLBACK_BLANK_ERROR`.  Any other run of
- * whitespace goes in as one space and none at either end, the only spacing the
- * server fills in alike in both parts of a copy.
+ * text of spaces alone, with `FALLBACK_BLANK_ERROR`.  Any other run of whitespace
+ * goes in as one space, with both ends trimmed, the only spacing the server fills in
+ * alike in both parts of a copy.
  */
 export function FieldPanel({
   label,
@@ -206,7 +206,7 @@ export function FieldPanel({
       <p className="rich-text__panel-title">{label}</p>
       <Field
         label={`If we don't have their ${fieldPhrase(label)}, show`}
-        hint="Such as friend. Leave it empty to show nothing."
+        hint="Such as friend. Leave it empty and nothing shows."
         error={error}
       >
         {(props) => (

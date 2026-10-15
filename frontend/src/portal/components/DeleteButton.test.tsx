@@ -28,7 +28,7 @@ function RowsWithTrashcans(): JSX.Element {
 }
 
 describe('DeleteButton', () => {
-  it('takes its accessible name from the label when it shows no text', () => {
+  it('takes its accessible name from the label when it shows only the icon', () => {
     render(<DeleteButton label="Remove N12345" />);
 
     expect(screen.getByRole('button', { name: 'Remove N12345' })).toBeInTheDocument();
@@ -43,13 +43,13 @@ describe('DeleteButton', () => {
     );
   });
 
-  it('is a bare icon button when it shows no text', () => {
+  it('is a bare icon button when it shows only the icon', () => {
     render(<DeleteButton label="Remove N12345" />);
 
     expect(screen.getByRole('button', { name: 'Remove N12345' })).toHaveClass('icon-button');
   });
 
-  it('carries none of the portal button classes when it shows no text', () => {
+  it('does not carry any of the portal button classes when it shows only the icon', () => {
     render(<DeleteButton label="Remove N12345" />);
 
     expect(screen.getByRole('button', { name: 'Remove N12345' })).not.toHaveClass('button');
@@ -61,7 +61,7 @@ describe('DeleteButton', () => {
     expect(container.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
   });
 
-  it('draws the trashcan rather than another icon when it shows no text', () => {
+  it('draws the trashcan rather than another icon when it shows only the icon', () => {
     const { container } = render(<DeleteButton label="Remove N12345" />);
 
     expect(container.querySelector('svg path[d="M4 7h16"]')).toBeInTheDocument();
@@ -75,7 +75,7 @@ describe('DeleteButton', () => {
     );
   });
 
-  it('shows no tooltip when it already shows its words', () => {
+  it('does not show a tooltip when it already shows its words', () => {
     render(<DeleteButton label="Delete member">Delete member</DeleteButton>);
 
     expect(screen.getByRole('button', { name: 'Delete member' })).not.toHaveAttribute('title');
@@ -111,7 +111,7 @@ describe('DeleteButton', () => {
     expect(container.querySelector('svg')).toHaveAttribute('width', '1em');
   });
 
-  it('draws the trashcan at the shared icon size when it shows no text', () => {
+  it('draws the trashcan at the shared icon size when it shows only the icon', () => {
     const { container } = render(<DeleteButton label="Remove N12345" />);
 
     expect(container.querySelector('svg')).toHaveAttribute('width', '1.25em');
@@ -127,7 +127,7 @@ describe('DeleteButton', () => {
     expect(screen.getByRole('button', { name: 'Delete member' })).toHaveClass('button--danger');
   });
 
-  it('reports the press to the caller when it has no confirmation of its own', async () => {
+  it('reports the press to the caller when it lacks a confirmation of its own', async () => {
     const handleClick = vi.fn();
     render(<DeleteButton label="Remove N12345" onClick={handleClick} />);
 
@@ -360,7 +360,7 @@ describe('DeleteButton confirmation', () => {
     expect(handleDelete).not.toHaveBeenCalled();
   });
 
-  it('never shows a confirmation for a caller with no onDelete', async () => {
+  it('never shows a confirmation for a caller without an onDelete', async () => {
     const handleClick = vi.fn();
     render(<DeleteButton label="Delete member" type="submit" onClick={handleClick} />);
 

@@ -5,8 +5,7 @@
  *
  * The everyday list and its summary live in `./api`; these are the screens a
  * treasurer opens at the end of a month or a year, plus the standing renewal
- * authorities they administer, and they share nothing but the feature they sit
- * in.
+ * authorities they administer, and they share only the feature they sit in.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';

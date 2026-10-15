@@ -179,7 +179,7 @@ describe('NotificationSubscriptionsCard', () => {
     expect(await screen.findByRole('status')).toHaveTextContent(message);
   });
 
-  it('does nothing to a subscription on the first press of its trashcan', async () => {
+  it("doesn't do anything to a subscription on the first press of its trashcan", async () => {
     const table = await renderCard();
 
     await userEvent.click(

@@ -5,7 +5,7 @@
  * Granting goes through the server's `activate_term`, so leaving the start date
  * blank does the right thing: a current member's new term begins the day after
  * their present one ends, and a lapsed member's begins today.  A donor, a "Deleted
- * member N" record included, is offered no grant: the server refuses one.
+ * member N" record included, isn't offered a grant: the server refuses one.
  */
 import { useEffect, useRef, useState } from 'react';
 import type { JSX, KeyboardEvent } from 'react';
@@ -27,8 +27,9 @@ import { useGrantTerm, useUpdateTerm } from './api';
 import { splitErrors } from './errors';
 import './members.css';
 
-/** Why a donor's history is empty and offers no grant. */
-const DONOR_NO_TERMS = 'A donor holds no membership, and becomes a member only by registering.';
+/** Why a donor's history is empty and doesn't offer a grant. */
+const DONOR_NO_TERMS =
+  "A donor doesn't hold a membership, and becomes a member only by registering.";
 
 interface TermEdit {
   ends_on: string;

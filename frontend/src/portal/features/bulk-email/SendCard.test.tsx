@@ -78,7 +78,7 @@ describe('SendCard', () => {
     renderCard(makeBulkEmail({ body: '' }));
     expect(screen.getByText('Write the message.')).toBeVisible();
     expect(screen.queryByRole('button', { name: /^Send to/ })).toBeNull();
-    // With no message there is no preview to ask for; the checks still answer.
+    // Without a message there isn't a preview to ask for; the checks still answer.
     await screen.findByText('Nothing else to fix.');
   });
 

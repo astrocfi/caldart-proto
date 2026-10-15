@@ -30,7 +30,7 @@ export interface DonationFormValues {
   postal_code: string;
   county: string;
   home_airport_identifier: string;
-  /** The DART's id as the select holds it, or `''` for none. */
+  /** The DART's id as the select holds it, or `''` when none is chosen. */
   dart_id: string;
   air_care_alliance_number: string;
   pilot_certificate_type: PilotCertificateType;
@@ -162,7 +162,7 @@ const DONOR_FORM_FIELDS: readonly (keyof DonationFormValues)[] = [
  * `ApiError.fieldErrors` reads every string-valued key of the response body, which
  * would also pick up a sibling ``code``; this narrows that down to the fields the
  * donation form can show an error beside.  Anything else --
- * a refusal with no such field, or a rejection that is not an `ApiError` at all --
+ * a refusal without such a field, or a rejection that is not an `ApiError` at all --
  * answers empty.
  */
 export function donorFieldErrors(

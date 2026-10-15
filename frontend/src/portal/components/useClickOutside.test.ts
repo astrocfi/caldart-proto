@@ -80,7 +80,7 @@ describe('useClickOutside', () => {
     expect(handleOutside).not.toHaveBeenCalled();
   });
 
-  it('listens to nothing while it is inactive', () => {
+  it('does not listen to anything while it is inactive', () => {
     const { panel } = mountPanel();
     const ref = createRef<HTMLDivElement>();
     Object.assign(ref, { current: panel });

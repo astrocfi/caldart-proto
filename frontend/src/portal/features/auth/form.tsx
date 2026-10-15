@@ -16,9 +16,9 @@ export interface FormAlertProps {
 }
 
 /**
- * The form-level complaint: a `detail` string, or any field error the form has
- * no input for (a stale reset token, say). Renders nothing when the form is
- * already showing everything the server said.
+ * The form-level complaint: a `detail` string, or any field error the form doesn't
+ * have an input for (a stale reset token, say). Doesn't render anything when the form
+ * is already showing everything the server said.
  */
 export function FormAlert({ error, handled = [] }: FormAlertProps): JSX.Element | null {
   if (!(error instanceof ApiError)) return null;

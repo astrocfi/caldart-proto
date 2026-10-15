@@ -85,7 +85,7 @@ describe('ComposePage', () => {
     expect(await screen.findByLabelText('DART')).toBeVisible();
   });
 
-  it("says whose email it is when its sender's profile names no DART, in place of the filters", async () => {
+  it("says whose email it is when its sender's profile doesn't name a DART, in place of the filters", async () => {
     const notice =
       'This email belongs to Lane Lead, whose profile names no DART, so nobody can be added.';
     answerBulkEmail(draftState({ sender_notice: notice }));
@@ -124,11 +124,11 @@ describe('ComposePage', () => {
     await waitFor(() => expect(result).toHaveFocus());
   });
 
-  it('says a search with no filters is everybody only until a filter is chosen', async () => {
+  it('says a search without filters is everybody only until a filter is chosen', async () => {
     answerBulkEmail(draftState());
     renderCompose(draftState());
     const user = typist();
-    const hint = 'With no filters chosen, this is every member and friend: 1 person.';
+    const hint = 'When no filter is chosen, this is every member and friend: 1 person.';
     expect(await screen.findByText(hint)).toBeVisible();
     const filters = screen.getByRole('search', { name: 'Choose people to add' });
     await user.type(within(filters).getByLabelText('Search'), 'bea');
@@ -189,7 +189,7 @@ describe('ComposePage', () => {
     expect(screen.getByText('Gil Gone').closest('tr')).toHaveTextContent('Account deactivated');
   });
 
-  it('shows no count while the batch is empty', async () => {
+  it("doesn't show a count while the batch is empty", async () => {
     const state = draftState({ batch_count: 0, receiving_count: 0 });
     state.batch = makeBatch([]);
     answerBulkEmail(state);
@@ -277,7 +277,7 @@ describe('ComposePage', () => {
     );
   });
 
-  it('says nothing about saving on a draft nobody has touched', async () => {
+  it("doesn't mention saving on a draft nobody has touched", async () => {
     answerBulkEmail(draftState());
     renderCompose(draftState());
     await screen.findByRole('heading', { name: '2. What it says' });

@@ -38,7 +38,7 @@ describe('the router', () => {
     expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
   });
 
-  it('routes under /portal when the page carries no prefix', async () => {
+  it("routes under /portal when the page doesn't carry a prefix", async () => {
     clearUrlPrefix();
     window.history.replaceState(null, '', '/portal/login');
     const { App } = await import('./App');

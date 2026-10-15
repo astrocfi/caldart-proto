@@ -126,7 +126,7 @@ describe('formatDateAt', () => {
     expect(formatDateAt('2026-10-04T13:30', undefined)).toBe('10/04/2026 at 1:30 PM');
   });
 
-  it('shows the placeholder for nothing', () => {
+  it('shows the placeholder for a missing moment', () => {
     expect(formatDateAt(null)).toBe('—');
   });
 });

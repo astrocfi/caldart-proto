@@ -12,7 +12,7 @@ import { PORTAL_BASENAME } from '@/portal/urlPrefix';
 import { AuthShell } from './AuthShell';
 import { FormAlert, fieldError } from './form';
 
-/** What the server says about every unusable link, shown too for a link with no token. */
+/** What the server says about every unusable link, shown too for a link missing its token. */
 const INVALID_LINK = 'That verification link is invalid or has expired.';
 
 /** The `code` the server answers with when the link opens an account and needs a password. */
@@ -25,7 +25,7 @@ const PASSWORD_REQUIRED_CODE = 'password_required';
  * the answer's `changed` says so, and the page then names the new sign-in address.
  *
  * It posts the token as soon as it loads, signed in or not, since the mail client
- * may open the link in a browser that has no session.  A link that opens a donor's
+ * may open the link in a browser without a session.  A link that opens a donor's
  * account is answered with a request for a password, so the page then asks the person
  * who followed it to choose one and posts again.  Continuing goes on with the join
  * wizard when the visitor has not finished joining (a profile to fill in, or a
@@ -41,7 +41,7 @@ export function VerifyEmailPage(): JSX.Element {
   const [needsPassword, setNeedsPassword] = useState(false);
 
   useEffect(() => {
-    // The token is spent server-side on nothing, but one request is enough, and
+    // A second post is harmless server-side, but one request is enough, and
     // React runs this effect twice in development.
     if (token === '' || posted.current) return;
     posted.current = true;
@@ -96,7 +96,7 @@ export function VerifyEmailPage(): JSX.Element {
 /**
  * Where `Continue` goes: the join wizard, the dashboard, or the sign-in page with the
  * verified address filled in.  Signing in from there goes on to the join wizard, which
- * resumes wherever the account stands, so a donor who registered, and so had no
+ * resumes wherever the account stands, so a donor who registered, and so didn't have a
  * session until now, goes on to the profile step.
  */
 function continueTo(user: User | null, email: string): string {

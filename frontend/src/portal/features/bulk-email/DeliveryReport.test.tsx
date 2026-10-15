@@ -167,7 +167,7 @@ describe('DeliveryReport', () => {
   });
 
   describe('in a browser with modal dialogs', () => {
-    // jsdom has no modal dialogs; these stand in for the browser's, opening and
+    // jsdom doesn't have modal dialogs; these stand in for the browser's, opening and
     // shutting the dialog as `showModal` and `close` do.
     beforeEach(() => {
       HTMLDialogElement.prototype.showModal = function showModal(this: HTMLDialogElement) {
@@ -186,7 +186,7 @@ describe('DeliveryReport', () => {
     it('moves the focus back to View copy only once the modal dialog has shut', async () => {
       renderReport();
       const view = await screen.findByRole('button', { name: 'View the copy sent to Ann Able' });
-      // The page behind a modal dialog takes no focus, so the dialog must be shut first.
+      // The page behind a modal dialog can't take the focus, so the dialog must be shut first.
       const isOpenAtFocus: boolean[] = [];
       vi.spyOn(view, 'focus').mockImplementation(() => {
         isOpenAtFocus.push(document.querySelector('dialog[open]') !== null);
@@ -237,7 +237,7 @@ describe('DeliveryReport', () => {
     expect(screen.getByRole('button', { name: 'Retry failed' })).toBeDisabled();
   });
 
-  it('says why there is nothing to retry', () => {
+  it("says why there isn't anything to retry", () => {
     renderReport(finished({ failed_count: 0 }));
     expect(screen.getByText('No copy failed, so there is nothing to retry.')).toBeVisible();
   });

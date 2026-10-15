@@ -44,7 +44,7 @@ describe('replyToHint', () => {
     );
   });
 
-  it('says only what the field is for when there is no default', () => {
+  it("says only what the field is for when there isn't a default", () => {
     expect(replyToHint('')).toBe(
       'When someone replies to this email, the reply goes to this address.',
     );
@@ -70,7 +70,7 @@ describe('ReplyToField', () => {
     expect(patches).toEqual([{ reply_to: 'marin@example.org' }]);
   });
 
-  it('saves nothing while the address is being typed', async () => {
+  it("doesn't save anything while the address is being typed", async () => {
     const patches = answerPatches();
     renderField();
     await userEvent.type(screen.getByRole('textbox', { name: 'Replies go to' }), 'x');
@@ -98,7 +98,7 @@ describe('ReplyToField', () => {
     expect(field).toHaveAttribute('aria-invalid', 'true');
   });
 
-  it('sends nothing when the address has not changed', async () => {
+  it("doesn't send anything when the address has not changed", async () => {
     const patches = answerPatches();
     renderField();
     await userEvent.click(screen.getByRole('textbox', { name: 'Replies go to' }));

@@ -60,7 +60,7 @@ function isNameless(contact: AdminDartContact | undefined): boolean {
   return contact !== undefined && contact.name.trim() === '';
 }
 
-/** Why **Add a person** is grayed out while the last row has no name. */
+/** Why **Add a person** is grayed out while the last row doesn't have a name. */
 const NAME_FIRST = 'Give the person above a name first';
 
 /** What a row is called aloud: the person's name, or its place in the list. */
@@ -88,7 +88,7 @@ export interface DartFormProps {
   onSubmit: (payload: AdminDartPatch) => void;
   onCancel: () => void;
   /**
-   * Delete this DART; absent on the add form, which has nothing to delete.
+   * Delete this DART; absent on the add form, which doesn't have anything to delete.
    *
    * A promise lets the form know the attempt is over, whether it worked or not.
    */
@@ -109,7 +109,7 @@ const MAX_AIRPORTS = 12;
  * The identifiers in `typed`, as they are stored, with the blanks dropped.
  *
  * A comma or a space separates one from the next, because a pasted list often
- * carries no commas and no identifier holds a space.
+ * leaves out the commas, and no identifier holds a space.
  */
 export function splitAirports(typed: string): string[] {
   return typed
@@ -329,7 +329,7 @@ export function DartForm({
           error={airportsError}
           // Leaving the box checks it, so its error line comes and goes as the focus moves
           // on, to the submit button among others.  An empty line held in its place while
-          // there is no error keeps everything below, the button included, from moving.
+          // there isn't an error keeps everything below, the button included, from moving.
           status={airportsError ? undefined : <span aria-hidden="true">{'\u00a0'}</span>}
           hint="The fields the team flies from, separated by commas, such as CCR, C83. Leave off the leading K: CRQ, not KCRQ."
         >

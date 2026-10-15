@@ -70,14 +70,15 @@ function registryLine({ as_of: asOf }: RegistryStatus): string {
 }
 
 /**
- * True when the register holds no policy for `row`: no carrier and no expiry date.  Its
- * insurance figures are then blank, rather than a dash or a $0 nobody insured.
+ * True when the register doesn't hold a policy for `row`: neither a carrier nor an
+ * expiry date.  Its insurance figures are then blank, rather than a dash or a $0
+ * nobody insured.
  */
 function hasNoPolicy(row: Aircraft): boolean {
   return row.insurance_carrier.trim() === '' && row.insurance_expiration === null;
 }
 
-/** One insurance figure: the amount, blank when it is not on file or there is no policy. */
+/** One insurance figure: the amount, blank when it is not on file or there isn't a policy. */
 function PolicyMoney({ row, cents }: { row: Aircraft; cents: number | null }): JSX.Element {
   return <Money cents={hasNoPolicy(row) ? null : cents} whole placeholder="" />;
 }

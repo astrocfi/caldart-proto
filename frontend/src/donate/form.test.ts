@@ -110,7 +110,7 @@ describe('donorFieldErrors', () => {
     expect(donorFieldErrors(caught)).toEqual({ email: 'Enter a valid email address.' });
   });
 
-  it('is empty for a refusal that names no form field', () => {
+  it("is empty for a refusal that doesn't name a form field", () => {
     const caught = new ApiError(400, { detail: 'Nothing to charge.' });
 
     expect(donorFieldErrors(caught)).toEqual({});

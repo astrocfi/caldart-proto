@@ -153,7 +153,7 @@ describe('DonationForm', () => {
   });
 
   it.each(['IFR rated', 'Home airport city'])(
-    'asks for no %s in the optional section',
+    "doesn't ask for %s in the optional section",
     async (label) => {
       const user = userEvent.setup();
       serveGift();

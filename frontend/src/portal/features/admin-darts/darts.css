@@ -38,7 +38,7 @@
 }
 
 /*
- * A field inside a row carries no bottom margin: the row's own padding
+ * A field inside a row doesn't carry a bottom margin: the row's own padding
  * separates one person from the next, and the margin would push the icon
  * buttons off center.
  */

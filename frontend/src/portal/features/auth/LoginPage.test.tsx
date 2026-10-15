@@ -84,7 +84,7 @@ describe('nextTarget', () => {
     expect(nextTarget('/members/')).toEqual({ kind: 'site', path: '/members/' });
   });
 
-  it('reads no next as the dashboard', () => {
+  it('reads a missing next as the dashboard', () => {
     expect(nextTarget(null)).toEqual({ kind: 'portal', path: '/' });
   });
 
@@ -465,7 +465,7 @@ describe('LoginPage reactivation', () => {
     expect(await screen.findByText('Incorrect email address or password.')).toBeInTheDocument();
   });
 
-  it('offers no reactivation for an ordinary wrong password', async () => {
+  it("doesn't offer reactivation for an ordinary wrong password", async () => {
     server.use(
       http.post(`${API}/auth/login`, () =>
         HttpResponse.json({ detail: 'Incorrect email address or password.' }, { status: 400 }),
@@ -478,7 +478,7 @@ describe('LoginPage reactivation', () => {
     expect(screen.queryByRole('button', { name: 'Reactivate my account' })).not.toBeInTheDocument();
   });
 
-  it('tells the owner of a blocked account it is closed, with no reactivation', async () => {
+  it('tells the owner of a blocked account it is closed, without offering reactivation', async () => {
     const closed = 'This account has been closed. Contact CalDART to reopen it.';
     server.use(
       http.post(`${API}/auth/login`, () => HttpResponse.json({ detail: closed }, { status: 403 })),

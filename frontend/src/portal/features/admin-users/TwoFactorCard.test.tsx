@@ -21,7 +21,7 @@ describe('<TwoFactorCard/>', () => {
     expect(screen.getByText('Off')).toBeInTheDocument();
   });
 
-  it('offers no reset while two-factor sign-in is off', () => {
+  it("doesn't offer a reset while two-factor sign-in is off", () => {
     renderWithProviders(<TwoFactorCard user={makeAdminUser()} isSelf={false} />);
     expect(screen.queryByRole('button', { name: 'Reset two-factor' })).not.toBeInTheDocument();
   });
@@ -33,7 +33,7 @@ describe('<TwoFactorCard/>', () => {
     expect(screen.getByRole('button', { name: 'Reset two-factor' })).toBeDisabled();
   });
 
-  it('offers no reset on your own record', () => {
+  it("doesn't offer a reset on your own record", () => {
     renderWithProviders(
       <TwoFactorCard user={makeAdminUser({ two_factor_enabled: true })} isSelf />,
     );

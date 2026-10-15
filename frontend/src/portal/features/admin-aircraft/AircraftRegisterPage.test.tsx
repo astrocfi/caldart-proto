@@ -208,7 +208,7 @@ describe('AircraftRegisterPage', () => {
     expect(screen.getByRole('cell', { name: '$145,000' })).toHaveClass('numeric');
   });
 
-  it('leaves the insurance figures blank for an airplane with no policy on file', async () => {
+  it('leaves the insurance figures blank for an airplane without a policy on file', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     const uninsured = makeAircraft({
       insurance_carrier: '',

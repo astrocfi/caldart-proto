@@ -31,7 +31,7 @@ export interface MaskedInputProps extends Omit<
  * back where the typist left it, so an edit in the middle of a number does not
  * jump to the end.
  *
- * @param value - the masked value; the component holds no state of its own.
+ * @param value - the masked value; the component doesn't hold any state of its own.
  * @param onValueChange - called with the masked value whenever it changes.
  */
 export function MaskedInput({

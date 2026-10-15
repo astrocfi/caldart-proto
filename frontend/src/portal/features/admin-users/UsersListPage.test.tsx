@@ -72,11 +72,11 @@ function headingText(cell: HTMLElement): string {
 
 /** The title the disabled export controls carry while Donor is chosen. */
 const DONOR_TITLE =
-  'Columns and the downloads are off for donors: a donor holds no role, so the roles report lists nobody.';
+  "Columns and the downloads are off for donors: a donor doesn't hold a role, so the roles report doesn't list anyone.";
 
 /** The title the disabled export controls carry while Member is the role. */
 const MEMBER_TITLE =
-  'Columns and the downloads are off for the Member role: the roles report has no section for it.';
+  "Columns and the downloads are off for the Member role: the roles report doesn't have a section for it.";
 
 /** Records every `/admin/users` query the page issues, and answers from `rows`. */
 function stubList(rows: AdminUser[] = [MARTA, PRIYA]) {
@@ -307,7 +307,7 @@ describe('UsersListPage', () => {
     ]);
   });
 
-  it('offers no export link while Donor is chosen', async () => {
+  it("doesn't offer an export link while Donor is chosen", async () => {
     stubList([MARTA, GIL]);
     renderWithProviders(<UsersListPage />);
     await screen.findByRole('button', { name: 'Columns' });
@@ -497,7 +497,7 @@ describe('UsersListPage', () => {
     expect(await screen.findByText('Reset the filters to see more accounts.')).toBeInTheDocument();
   });
 
-  it('offers a shorter search when the search found nobody', async () => {
+  it("offers a shorter search when the search didn't find anyone", async () => {
     stubList([]);
     renderWithProviders(<UsersListPage />, { route: '/admin/users?search=zzz' });
 
@@ -542,7 +542,7 @@ describe('UsersListPage', () => {
     expect(await screen.findByText(/See every payment\./)).toHaveClass('users-list__note');
   });
 
-  it('shows No membership for a donor rather than a membership dot', async () => {
+  it('shows "No membership" for a donor rather than a membership dot', async () => {
     stubList([GIL]);
     renderWithProviders(<UsersListPage />);
     await screen.findByRole('link', { name: 'Gil Ivers' });

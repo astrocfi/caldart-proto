@@ -4,7 +4,7 @@
  * people, and the button that sends stays off until the number matches; the
  * server checks the number again, in case the batch changed meanwhile.
  *
- * The focus starts in the number box, or on **Cancel** when there is none, so a
+ * The focus starts in the number box, or on **Cancel** when there isn't one, so a
  * second press of Enter does not send by accident; the Escape key cancels, as
  * **Cancel** does.
  */

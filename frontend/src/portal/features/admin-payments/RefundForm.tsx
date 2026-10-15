@@ -46,8 +46,8 @@ const ENDABLE_TERM_STATES: readonly MembershipTermStatus[] = ['active', 'suspend
 
 /**
  * Whether the payment bought a membership a refund can still end: one that is running, or
- * suspended while the account is deactivated.  An expired or canceled term has nothing
- * left to end.
+ * suspended while the account is deactivated.  An expired or canceled term doesn't
+ * have anything left to end.
  */
 export function canEndTerm(payment: PaymentDetail): boolean {
   const status = payment.membership?.status;

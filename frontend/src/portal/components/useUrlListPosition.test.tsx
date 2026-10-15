@@ -46,7 +46,7 @@ describe('pageFrom', () => {
 });
 
 describe('useUrlListPosition', () => {
-  it('uses the default order while the address names none', () => {
+  it('uses the default order while the address does not name one', () => {
     const { result } = renderPosition('/list', '-paid_at');
     expect(result.current.sort).toEqual({ key: 'paid_at', direction: 'desc' });
   });

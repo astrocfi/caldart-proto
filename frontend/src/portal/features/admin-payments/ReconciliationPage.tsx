@@ -50,7 +50,7 @@ function laterOf(a: string, b: string): string {
   return a > b ? a : b;
 }
 
-/** The earlier of two ISO dates, a blank one counting as no bound at all. */
+/** The earlier of two ISO dates, a blank one counting as unbounded. */
 function earlierOf(a: string, b: string): string {
   if (a === '') return b;
   if (b === '') return a;
@@ -239,8 +239,8 @@ function columns(group: ReconciliationGroup, filters: FilterValues): Column<Reco
 
 /**
  * The order the server lists the rows in, as the arrow the table opens on: newest
- * period first, as the money overview runs, or none for the providers, which come in
- * the server's own order.
+ * period first, as the money overview runs.  The providers come in the server's own
+ * order, so their table opens without an arrow.
  */
 function defaultSort(group: ReconciliationGroup): { key: string; direction: 'desc' } | undefined {
   return group === 'provider' ? undefined : { key: 'period', direction: 'desc' };

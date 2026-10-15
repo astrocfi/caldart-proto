@@ -10,7 +10,7 @@
  * shows the members report's chosen columns, in the report's order, and a saved
  * set of columns applies to the screen as it does to the files.  It opens on the
  * report's default columns.  Name, Email, DART, Expires, Joined, and Profile updated
- * sort on the server; the other headings do not sort, and carry no arrow.  On a
+ * sort on the server; the other headings do not sort or carry an arrow.  On a
  * narrow screen the optional columns go first, then Email, then DART, while the
  * name, the membership status, and the expiry stay.
  *
@@ -19,7 +19,7 @@
  * so the export links leave it out.
  *
  * A DART leader reads the same list and downloads the same report, but the
- * member record is the account administrator's: for a leader there is no
+ * member record is the account administrator's: for a leader there isn't a
  * **New member** button, and a name opens the member check instead.  A leader whose
  * profile names a DART gets **Show my DART** in its place, which sets the DART filter
  * to theirs: their roster.  The button goes once it has done that, so the focus moves
@@ -67,7 +67,7 @@ const FILTER_BAR_LABEL = 'Filter members';
 /** The DART filter's own words, the box **Show my DART** leaves the focus in. */
 const DART_FILTER_LABEL = 'DART';
 
-/** The DART box of the filter bar, or the bar itself when it holds none. */
+/** The DART box of the filter bar, or the bar itself when it doesn't hold one. */
 function dartFilter(): HTMLElement | null {
   const bar = document.querySelector<HTMLElement>(
     `form[role="search"][aria-label="${FILTER_BAR_LABEL}"]`,
@@ -124,8 +124,8 @@ function MemberName({
 
 /**
  * The expiry cell: the date, **Never** for a lifetime member, **Friend** for a friend,
- * who pays no dues and so has no date, and **None yet** for a member who has not paid
- * their first dues, whose Status already says so in full.
+ * who doesn't pay dues and so doesn't have a date, and **None yet** for a member who
+ * has not paid their first dues, whose Status already says so in full.
  */
 function ExpiryText({ row }: { row: MemberRow }): JSX.Element {
   if (row.membership.status === 'none') return <span className="muted">None yet</span>;
@@ -146,7 +146,7 @@ function kindLabel(row: MemberRow): string {
 }
 
 /**
- * The certificate cell as the report prints it: blank for no certificate, and the
+ * The certificate cell as the report prints it: blank without a certificate, and the
  * airline transport pilot certificate as ATP, which keeps the column narrow.
  */
 function certificateText(certificate: MemberRow['pilot_certificate_type']): string {
@@ -154,7 +154,7 @@ function certificateText(certificate: MemberRow['pilot_certificate_type']): stri
   return certificate === 'atp' ? 'ATP' : certificateLabel(certificate);
 }
 
-/** Yes or No for a pilot's instrument rating, blank for somebody who is no pilot. */
+/** Yes or No for a pilot's instrument rating, blank for somebody who isn't a pilot. */
 function instrumentText(instrument: boolean | null): string {
   if (instrument === null) return '';
   return instrument ? 'Yes' : 'No';

@@ -20,7 +20,7 @@ export interface TableScroll {
 
 const AT_REST: TableScroll = { isOverflowing: false, hasMoreLeft: false, hasMoreRight: false };
 
-/** Sub-pixel layouts leave a fraction of a pixel over; anything less is no overflow. */
+/** Sub-pixel layouts leave a fraction of a pixel over; anything less doesn't count as overflow. */
 const SLACK_PX = 1;
 
 /** How `box` sits now. */

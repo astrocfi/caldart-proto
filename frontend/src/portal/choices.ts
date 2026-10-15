@@ -237,8 +237,9 @@ export const MEMBERSHIP_STATUS_LABELS: Record<MembershipState, string> = {
 };
 
 /**
- * True for a membership with nothing to renew because it never began: a friend, or an
- * account that chose to be a member and has not paid its first dues (`none`).
+ * True for a membership that doesn't have anything to renew because it never began: a
+ * friend, or an account that chose to be a member and has not paid its first dues
+ * (`none`).
  */
 export function isWithoutTerm(state: MembershipState): boolean {
   return state === 'friend' || state === 'none';
