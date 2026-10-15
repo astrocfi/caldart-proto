@@ -535,9 +535,10 @@ Email
    ``bounces+<id>.<signature>@caldart.example.org``, and the bounce check counts
    only reports returned to such an address (:ref:`email-bounces`).  Set it to the
    address of the bounce mailbox ``BOUNCE_IMAP_URL`` reads; the mailbox must accept
-   plus addresses, and the local part should be short, at most 28 characters, so
-   the signed address fits.  Bounce checking needs it as well as
-   ``BOUNCE_IMAP_URL``.
+   plus addresses.  It must be a bare address, with no display name, and its local
+   part at most 28 characters, so the signed address fits; ``manage.py check``
+   reports anything else as ``mail.E001`` or ``mail.E002``.  Bounce checking needs
+   it as well as ``BOUNCE_IMAP_URL``.
 
    :Both: empty, which sends the envelope from ``DEFAULT_FROM_EMAIL`` as well and
       leaves bounce checking off.

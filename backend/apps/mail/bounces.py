@@ -1,14 +1,16 @@
 """Bounce detection: read the bounce mailbox and mark what came back.
 
 Every message ``caldart.mail.send_templated`` sends while ``BOUNCE_ADDRESS`` is set goes
-out with that address, signed with the id of its :class:`~apps.mail.models.EmailLog`
-row, as its envelope sender (``caldart.mail.signed_bounce_address``), so a server that
-later refuses the message returns its report there.  :func:`check_bounces` reads the
-unseen messages in that mailbox over IMAP (``BOUNCE_IMAP_URL``), reads each as an RFC
-3464 delivery-status report (:func:`parse_report`), and for a report of a permanent
-failure addressed to a validly signed address marks that row **bounced** and flags the
-account whose current address it was.  A report addressed to anything else, the bare
-bounce address included, marks nothing: anybody can write one.
+out with that address, tagged with the id of its :class:`~apps.mail.models.EmailLog`
+row and signed over the id and the row's ``Message-ID``, as its envelope sender
+(``caldart.mail.signed_bounce_address``), so a server that later refuses the message
+returns its report there.  :func:`check_bounces` reads the unseen messages in that
+mailbox over IMAP (``BOUNCE_IMAP_URL``), reads each as an RFC 3464 delivery-status
+report (:func:`parse_report`), and for a report of a permanent failure addressed to a
+validly signed address marks that row **bounced** and, when the failure says the
+address itself is bad, flags the account whose current address it was.  A report
+addressed to anything else, the bare bounce address included, marks nothing: anybody
+can write one.
 
 The run is the shared scheduled-run shape: counts (``bounced``, ``unmatched``,
 ``ignored``) and one :class:`~caldart.runs.RunAction` per failure, and a dry run that
@@ -27,7 +29,7 @@ import logging
 import re
 import ssl
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from email.message import Message
 from email.parser import HeaderParser
 from email.utils import getaddresses
@@ -43,7 +45,7 @@ from django.views.decorators.debug import sensitive_variables
 from apps.accounts.models import User
 from apps.mail.models import EmailLog, EmailStatus
 from caldart import audit
-from caldart.mail import signed_log_id
+from caldart.mail import bounce_tag, bounce_tag_matches
 from caldart.runs import RunAction
 
 log = logging.getLogger(__name__)
@@ -80,10 +82,22 @@ DETAIL_MAX_LENGTH = 255
 DELIVERY_STATUS_TYPES = frozenset({"message/delivery-status", "message/global-delivery-status"})
 
 #: The headers a report's own addresses are read from, in this order: those the
-#: delivering server adds, as Postfix, Dovecot, Exim and the hosted mailboxes write
+#: delivering server adds, as Postfix, Dovecot, Exim, and the hosted mailboxes write
 #: them, then the ``To`` the reporting server wrote, which is the envelope sender the
 #: report returns to.
 ADDRESS_HEADERS = ("Delivered-To", "X-Original-To", "Envelope-To", "To")
+
+#: How old a sent message may be for a report of it to count.  A report arrives within
+#: minutes or, after a server's retries, a few days; a report of an older send counts
+#: as unmatched.
+REPORT_MAX_AGE = timedelta(days=30)
+
+#: The status codes of a failure that says the address itself is bad, so the account
+#: holding it is flagged: any ``5.1.x`` (no such mailbox, bad destination), and
+#: ``5.2.1`` (mailbox disabled).  Every other permanent failure, a content or policy
+#: refusal such as ``5.7.1``, ``5.6.x`` or ``5.3.4``, marks the message alone.
+ADDRESS_STATUS_PREFIX = "5.1."
+ADDRESS_STATUSES = frozenset({"5.2.1"})
 
 #: The action kinds a run records: a matched permanent failure, and one in a report
 #: not addressed to a validly signed address of a message that went out.
@@ -134,6 +148,11 @@ class FailedRecipient:
     def detail(self) -> str:
         """``"<status> <diagnostic>"``, cut to :data:`DETAIL_MAX_LENGTH` characters."""
         return f"{self.status} {self.diagnostic}".strip()[:DETAIL_MAX_LENGTH]
+
+    @property
+    def is_address_failure(self) -> bool:
+        """Whether the status says the address itself is bad: ``5.1.x`` or ``5.2.1``."""
+        return self.status.startswith(ADDRESS_STATUS_PREFIX) or self.status in ADDRESS_STATUSES
 
 
 @dataclass(frozen=True)
@@ -356,19 +375,24 @@ def check_bounces(*, dry_run: bool = False, actor: Model | str = audit.COMMAND_A
     unseen message of at most :data:`MAX_MESSAGE_BYTES` is fetched without marking it and
     read by :func:`parse_report`.  A report of a permanent failure is matched to the
     email log row named by the first signed bounce address among its ``addressed_to``
-    (``caldart.mail.signed_log_id``) that names a row the mail server did not refuse, and
-    counts as one bounce of that row's recipient whatever its failures name.  A report
-    with no such address, whether it was sent to the bare ``BOUNCE_ADDRESS``, carries a
-    wrong signature, or names an id no row has, matches nothing: each of its failures is
-    counted as unmatched and changes nothing.  Neither the original's ``Message-ID`` nor
-    the failure's recipient ever matches a report to a row.
+    (``caldart.mail.bounce_tag``) whose row exists, was not refused by the mail server,
+    was sent within :data:`REPORT_MAX_AGE`, and carries the ``Message-ID`` the signature
+    was made over (``caldart.mail.bounce_tag_matches``).  It counts as one bounce of that
+    row's recipient whatever its failures name.  A report with no such address, whether
+    it was sent to the bare ``BOUNCE_ADDRESS``, carries a wrong signature, names an id no
+    row has or one a restored database gave another message, or is about an older send,
+    matches nothing: each of its failures is counted as unmatched and changes nothing.
+    Neither the original's ``Message-ID`` nor the failure's recipient alone ever matches
+    a report to a row.
 
     A match marks the row ``bounced`` with ``bounced_at`` now and ``bounce_detail`` from
-    the failure naming the row's address, ignoring case, or else the report's first, and
-    flags the account whose current address is the one the row was sent to, ignoring
-    case, by setting its ``email_bounced_at`` and
-    ``email_bounce_detail``; an account that has moved to another address since is not
-    flagged.  Each message's writes are one savepoint: one that fails in the database is
+    the failure naming the row's address, ignoring case, or else the report's first.
+    When that failure says the address itself is bad
+    (:attr:`FailedRecipient.is_address_failure`), it also flags the account whose
+    current address is the one the row was sent to, ignoring case, by setting its
+    ``email_bounced_at`` and ``email_bounce_detail``; an account that has moved to
+    another address since is not flagged.  A content or policy refusal marks the row
+    alone.  Each message's writes are one savepoint: one that fails in the database is
     rolled back, logged by its message number alone, and counted as ignored, and the run
     carries on.  Each message read, recorded or not, is then marked seen, so the next
     run skips it.  A message the server will not hand over, or one too large to be a
@@ -507,7 +531,8 @@ def _record_isolated(report: DeliveryReport, number: str, run: BounceRun) -> Non
 
 def _record_report(report: DeliveryReport, run: BounceRun) -> None:
     """Match ``report`` to the row its signed address names; mark it unless rehearsing."""
-    row = _signed_row(report.addressed_to)
+    now = timezone.now()
+    row = _signed_row(report.addressed_to, now)
     if row is None:
         for failure in report.failures:
             run.unmatched += 1
@@ -521,28 +546,38 @@ def _record_report(report: DeliveryReport, run: BounceRun) -> None:
         (f for f in report.failures if f.address.lower() == row.to_email.lower()),
         report.failures[0],
     )
-    _mark(row, failure, timezone.now(), run)
+    _mark(row, failure, now, run)
 
 
-def _signed_row(addresses: tuple[str, ...]) -> EmailLog | None:
-    """The first unrefused row a validly signed address among ``addresses`` names."""
+def _signed_row(addresses: tuple[str, ...], now: datetime) -> EmailLog | None:
+    """The first row a signed address among ``addresses`` names and was signed for.
+
+    The row must exist, must not have been refused by the mail server, must have been
+    sent within :data:`REPORT_MAX_AGE` of ``now``, and its own ``Message-ID`` must be
+    the one the signature was made over, so an id a restored or reset database has
+    handed to another message since does not match.
+    """
     for address in addresses:
-        log_id = signed_log_id(address)
-        if log_id is None:
+        tag = bounce_tag(address)
+        if tag is None:
             continue
         row = (
             EmailLog.objects.select_related("user")
-            .filter(pk=log_id)
+            .filter(pk=tag.log_id, sent_at__gte=now - REPORT_MAX_AGE)
             .exclude(status=EmailStatus.FAILED)
             .first()
         )
-        if row is not None:
+        if row is not None and bounce_tag_matches(tag, row.message_id):
             return row
     return None
 
 
 def _mark(row: EmailLog, failure: FailedRecipient, now: datetime, run: BounceRun) -> None:
-    """Count ``row`` as bounced and, outside a rehearsal, mark it and flag its address."""
+    """Count ``row`` as bounced and, outside a rehearsal, mark it.
+
+    The account at the row's address is flagged too when ``failure`` says the address
+    itself is bad.
+    """
     run.bounced += 1
     run.actions.append(
         RunAction(
@@ -559,6 +594,8 @@ def _mark(row: EmailLog, failure: FailedRecipient, now: datetime, run: BounceRun
     row.bounced_at = now
     row.bounce_detail = failure.detail
     row.save(update_fields=["status", "bounced_at", "bounce_detail", "updated_at"])
+    if not failure.is_address_failure:
+        return
     User.objects.filter(email__iexact=row.to_email).update(
         email_bounced_at=now, email_bounce_detail=failure.detail, updated_at=now
     )

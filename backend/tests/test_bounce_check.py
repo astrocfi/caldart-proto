@@ -16,7 +16,7 @@ from datetime import date, timedelta
 from typing import Any
 
 import pytest
-from django.db import DataError
+from django.db import DataError, connection
 from django.utils import timezone
 from freezegun import freeze_time
 from pytest_django import Settings
@@ -25,7 +25,9 @@ from apps.accounts.models import User
 from apps.mail.bounces import (
     DISABLED_MESSAGE,
     MAX_MESSAGE_BYTES,
+    REPORT_MAX_AGE,
     BounceCheckError,
+    BounceRun,
     check_bounces,
 )
 from apps.mail.models import EmailLog, EmailStatus
@@ -71,7 +73,7 @@ def sent(gone: User) -> EmailLog:
 
 def _signed(row: EmailLog) -> str:
     """The signed bounce address ``row``'s message went out from."""
-    return signed_bounce_address(row.pk)
+    return signed_bounce_address(row.pk, row.message_id)
 
 
 @pytest.fixture
@@ -124,7 +126,7 @@ def test_any_address_header_the_mailbox_shows_may_carry_the_signed_address(
     fake_mailbox: FakeMailbox,
     bounce_report: BounceReport,
 ) -> None:
-    """``To``, ``Delivered-To`` or ``X-Original-To`` alone naming the row is enough."""
+    """``To``, ``Delivered-To``, or ``X-Original-To`` alone naming the row is enough."""
     fake_mailbox(bounce_report("hard_bounce", **{header: signed}))
 
     check_bounces()
@@ -195,67 +197,216 @@ def test_a_signed_row_needs_no_account_at_the_address(
     assert row.status == EmailStatus.BOUNCED
 
 
-def test_a_report_to_the_bare_bounce_address_marks_nothing(
-    sent: EmailLog, gone: User, fake_mailbox: FakeMailbox, bounce_report: BounceReport
-) -> None:
-    """A report anyone could write, about a recent send, changes no row and no account."""
-    fake_mailbox(bounce_report("no_original"))
+def _with_signature_changed(address: str) -> str:
+    """``address`` with its signature replaced by digits the site never made."""
+    signature = address.partition("@")[0].rpartition(".")[2]
+    return address.replace(signature, "0123456789abcdef")
 
-    run = check_bounces()
 
+#: The forged reports about ``sent``: one to the bare bounce address naming its
+#: recipient, one to the bare address carrying its Message-ID, one to its id under a
+#: made-up signature, and one genuinely signed for an id no row has.
+FORGERIES = ["bare-address", "message-id-alone", "bad-signature", "unknown-id"]
+
+
+@pytest.fixture(params=FORGERIES)
+def forged_run(
+    request: pytest.FixtureRequest,
+    sent: EmailLog,
+    signed: str,
+    fake_mailbox: FakeMailbox,
+    bounce_report: BounceReport,
+) -> BounceRun:
+    """The run that reads one forged report about ``sent``."""
+    reports = {
+        "bare-address": lambda: bounce_report("no_original"),
+        "message-id-alone": lambda: bounce_report("hard_bounce", message_id=sent.message_id),
+        "bad-signature": lambda: bounce_report(
+            "hard_bounce", envelope=_with_signature_changed(signed)
+        ),
+        "unknown-id": lambda: bounce_report(
+            "hard_bounce", envelope=signed_bounce_address(sent.pk + 1000, sent.message_id)
+        ),
+    }
+    fake_mailbox(reports[request.param]())
+    return check_bounces()
+
+
+def test_a_forged_report_leaves_the_row_sent(forged_run: BounceRun, sent: EmailLog) -> None:
+    """A report anybody could write changes no row."""
     sent.refresh_from_db()
+    assert sent.status == EmailStatus.SENT
+
+
+def test_a_forged_report_flags_nobody(forged_run: BounceRun, gone: User) -> None:
+    """A report anybody could write flags no account."""
     gone.refresh_from_db()
-    assert (run.bounced, sent.status, gone.email_bounced_at) == (0, EmailStatus.SENT, None)
+    assert gone.email_bounced_at is None
 
 
-def test_a_matching_message_id_without_a_signed_address_marks_nothing(
-    sent: EmailLog, gone: User, fake_mailbox: FakeMailbox, bounce_report: BounceReport
-) -> None:
-    """The original's Message-ID alone is no proof the report is genuine."""
-    fake_mailbox(bounce_report("hard_bounce", message_id=sent.message_id))
-
-    run = check_bounces()
-
-    sent.refresh_from_db()
-    gone.refresh_from_db()
-    assert (run.bounced, sent.status, gone.email_bounced_at) == (0, EmailStatus.SENT, None)
+def test_a_forged_report_counts_no_bounce(forged_run: BounceRun) -> None:
+    """A report anybody could write is not counted as bounced."""
+    assert forged_run.bounced == 0
 
 
-def test_a_bad_signature_marks_nothing(
-    sent: EmailLog, signed: str, fake_mailbox: FakeMailbox, bounce_report: BounceReport
-) -> None:
-    """The row's id under a signature the site did not make names no row."""
-    forged = signed.replace(signed.partition("@")[0].rpartition(".")[2], "0123456789abcdef")
-    fake_mailbox(bounce_report("hard_bounce", envelope=forged))
-
-    run = check_bounces()
-
-    sent.refresh_from_db()
-    assert (run.bounced, sent.status) == (0, EmailStatus.SENT)
+def test_a_forged_report_counts_as_unmatched(forged_run: BounceRun) -> None:
+    """Its one failure is counted as unmatched, so an operator sees it came in."""
+    assert forged_run.unmatched == 1
 
 
-def test_a_signed_id_no_row_has_marks_nothing(
-    sent: EmailLog, fake_mailbox: FakeMailbox, bounce_report: BounceReport
-) -> None:
-    """A genuine signature for an id the email log does not hold is unmatched."""
-    fake_mailbox(bounce_report("hard_bounce", envelope=signed_bounce_address(sent.pk + 1000)))
-
-    run = check_bounces()
-
-    sent.refresh_from_db()
-    assert (run.bounced, run.unmatched, sent.status) == (0, 1, EmailStatus.SENT)
-
-
-def test_a_signed_address_of_a_refused_send_marks_nothing(
+@pytest.fixture
+def refused_run(
     gone: User, fake_mailbox: FakeMailbox, bounce_report: BounceReport
-) -> None:
-    """A row the mail server refused never went out, so it cannot have bounced."""
+) -> tuple[EmailLog, BounceRun]:
+    """A row the mail server refused, and the run over a report to its signed address."""
     row = EmailLogFactory(user=gone, status=EmailStatus.FAILED, error="SMTPException")
     fake_mailbox(bounce_report("hard_bounce", envelope=_signed(row)))
+    return row, check_bounces()
 
-    run = check_bounces()
 
+def test_a_report_of_a_refused_send_is_unmatched(refused_run: tuple[EmailLog, BounceRun]) -> None:
+    """A row the mail server refused never went out, so it cannot have bounced."""
+    _row, run = refused_run
     assert run.unmatched == 1
+
+
+def test_a_report_of_a_refused_send_leaves_the_row_failed(
+    refused_run: tuple[EmailLog, BounceRun],
+) -> None:
+    """The refused row keeps reading ``failed``."""
+    row, _run = refused_run
+    row.refresh_from_db()
+    assert row.status == EmailStatus.FAILED
+
+
+def test_a_report_of_a_refused_send_flags_nobody(
+    refused_run: tuple[EmailLog, BounceRun], gone: User
+) -> None:
+    """The account at the refused row's address is not flagged."""
+    gone.refresh_from_db()
+    assert gone.email_bounced_at is None
+
+
+@pytest.fixture
+def reused(
+    gone: User, fake_mailbox: FakeMailbox, bounce_report: BounceReport
+) -> tuple[EmailLog, User]:
+    """An id a rewound sequence gave a second message, and a report about the first.
+
+    The first message, to Dana, is signed and deleted; the table's sequence is set back,
+    as restoring an older backup or resetting the database does, so the next message,
+    to Olga, gets the same id.  The report is then delivered to the first message's
+    signed address.  Answers Olga's row and account.
+    """
+    first = EmailLogFactory(user=gone)
+    address = _signed(first)
+    reused_id = first.pk
+    first.delete()
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT setval(pg_get_serial_sequence(%s, 'id'), %s, false)",
+            [EmailLog._meta.db_table, reused_id],
+        )
+    olga = UserFactory(email="olga@example.org")
+    second = EmailLogFactory(user=olga)
+    assert second.pk == reused_id
+    fake_mailbox(bounce_report("hard_bounce", envelope=address))
+    check_bounces()
+    return second, olga
+
+
+def test_a_report_to_a_reused_id_leaves_the_new_row_sent(reused: tuple[EmailLog, User]) -> None:
+    """The signature was made over the first message's Message-ID, not the second's."""
+    row, _olga = reused
+    row.refresh_from_db()
+    assert row.status == EmailStatus.SENT
+
+
+def test_a_report_to_a_reused_id_flags_nobody(reused: tuple[EmailLog, User]) -> None:
+    """The second message's recipient is not flagged by a report about the first."""
+    _row, olga = reused
+    olga.refresh_from_db()
+    assert olga.email_bounced_at is None
+
+
+@pytest.mark.parametrize(
+    ("age", "status"),
+    [
+        (REPORT_MAX_AGE - timedelta(minutes=1), EmailStatus.BOUNCED),
+        (REPORT_MAX_AGE + timedelta(minutes=1), EmailStatus.SENT),
+    ],
+    ids=["within-30-days", "older-than-30-days"],
+)
+def test_a_report_counts_only_for_a_send_of_the_last_30_days(
+    age: timedelta,
+    status: str,
+    gone: User,
+    fake_mailbox: FakeMailbox,
+    bounce_report: BounceReport,
+) -> None:
+    """A genuine report of a message sent more than 30 days ago marks nothing."""
+    row = EmailLogFactory(user=gone, sent_at=timezone.now() - age)
+    fake_mailbox(bounce_report("hard_bounce", envelope=_signed(row)))
+
+    check_bounces()
+
+    row.refresh_from_db()
+    assert row.status == status
+
+
+@pytest.mark.parametrize(
+    ("status", "flagged"),
+    [
+        ("5.1.1", True),
+        ("5.1.10", True),
+        ("5.2.1", True),
+        ("5.2.2", False),
+        ("5.3.4", False),
+        ("5.6.0", False),
+        ("5.7.1", False),
+    ],
+    ids=[
+        "no-such-user",
+        "recipient-not-found",
+        "mailbox-disabled",
+        "mailbox-full",
+        "message-too-big",
+        "bad-content",
+        "policy-refusal",
+    ],
+)
+def test_only_a_bad_address_flags_the_account(
+    status: str,
+    flagged: bool,
+    signed: str,
+    gone: User,
+    fake_mailbox: FakeMailbox,
+    bounce_report: BounceReport,
+) -> None:
+    """``5.1.x`` and ``5.2.1`` flag the address; content and policy refusals do not."""
+    fake_mailbox(bounce_report("hard_bounce", envelope=signed, status=status))
+
+    check_bounces()
+
+    gone.refresh_from_db()
+    assert (gone.email_bounced_at is not None) is flagged
+
+
+@pytest.mark.parametrize("status", ["5.2.2", "5.3.4", "5.6.0", "5.7.1"])
+def test_a_refusal_of_the_message_still_marks_its_row(
+    status: str,
+    sent: EmailLog,
+    signed: str,
+    fake_mailbox: FakeMailbox,
+    bounce_report: BounceReport,
+) -> None:
+    """A content or policy refusal marks the row bounced, with its detail."""
+    fake_mailbox(bounce_report("hard_bounce", envelope=signed, status=status))
+
+    check_bounces()
+
+    sent.refresh_from_db()
+    assert sent.status == EmailStatus.BOUNCED
 
 
 def test_an_unmatched_failure_flags_nobody(
@@ -458,7 +609,8 @@ def test_without_a_bounce_address_checking_is_off(
 
     run = check_bounces()
 
-    assert (run.enabled, fake.opened) == (False, None)
+    assert run.enabled is False
+    assert fake.opened is None
 
 
 def test_an_unreachable_mailbox_is_an_error_naming_the_host(fake_mailbox: FakeMailbox) -> None:

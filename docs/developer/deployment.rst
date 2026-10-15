@@ -1619,11 +1619,13 @@ Every hour at twenty past, with catch-up if the machine was off: each report it
 reads is marked read in the mailbox, so a late run reads what has arrived since
 and nothing twice.  It reads the bounce mailbox ``BOUNCE_IMAP_URL`` names over
 IMAPS, marks every email a permanent-failure report matches as bounced, and
-flags the address on its account; it needs the database and an outbound
-connection to the mailbox's IMAP server, from the same
-``/etc/caldart/caldart.env``.  With ``BOUNCE_IMAP_URL`` or ``BOUNCE_ADDRESS``
-empty, as the installer leaves them without ``--bounce-imap-url`` and
-``--bounce-address``, each run says bounce checking is off and exits cleanly; a mailbox it cannot reach or sign in to fails the unit.  Rehearse
+flags the address on its account when the report says the address is bad; it
+needs the database and an outbound connection to the mailbox's IMAP server, from
+the same ``/etc/caldart/caldart.env``.  With ``BOUNCE_IMAP_URL`` or
+``BOUNCE_ADDRESS`` empty, as the installer leaves them without
+``--bounce-imap-url`` and ``--bounce-address``, each run says bounce checking is
+off and exits cleanly; a mailbox it cannot reach or sign in to fails the unit.
+Rehearse
 it any time with ``sudo deploy/manage.sh check_bounces --dry-run``.  See
 :ref:`email-bounces` for setting up the mailbox and what a run marks.
 

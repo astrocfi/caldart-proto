@@ -160,7 +160,9 @@ def test_a_bounce_the_bounce_check_reads_later_marks_the_bulk_copy(
     entry = EmailLog.objects.get(message_id=copy.message_id)
     fake_mailbox(
         bounce_report(
-            "hard_bounce", recipient="bea@example.test", envelope=signed_bounce_address(entry.pk)
+            "hard_bounce",
+            recipient="bea@example.test",
+            envelope=signed_bounce_address(entry.pk, entry.message_id),
         )
     )
 

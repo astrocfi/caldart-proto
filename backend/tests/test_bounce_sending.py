@@ -16,7 +16,7 @@ from django.core.mail.backends.locmem import EmailBackend
 from pytest_django import Settings
 
 from apps.mail.models import EmailLog, EmailStatus
-from caldart.mail import MailRefusedError, send_templated, signed_bounce_address, signed_log_id
+from caldart.mail import MailRefusedError, bounce_tag, send_templated, signed_bounce_address
 
 pytestmark = pytest.mark.django_db
 
@@ -84,12 +84,13 @@ def test_without_a_bounce_address_the_envelope_is_the_from_address(
 def test_a_bounce_address_is_the_envelope_sender_signed_with_the_log_row(
     sender: Settings, email_template: str
 ) -> None:
-    """With ``BOUNCE_ADDRESS`` set, the envelope is it, signed with the row's id."""
+    """With ``BOUNCE_ADDRESS`` set, the envelope is it, signed for the row."""
     sender.BOUNCE_ADDRESS = BOUNCES
 
     message = _send(email_template)
 
-    assert message.from_email == signed_bounce_address(EmailLog.objects.get().pk)
+    row = EmailLog.objects.get()
+    assert message.from_email == signed_bounce_address(row.pk, row.message_id)
 
 
 def test_two_messages_go_from_different_signed_addresses(
@@ -101,7 +102,7 @@ def test_two_messages_go_from_different_signed_addresses(
     first = _send(email_template)
     second = _send(email_template)
 
-    assert signed_log_id(first.from_email) != signed_log_id(second.from_email)
+    assert bounce_tag(first.from_email) != bounce_tag(second.from_email)
 
 
 def test_a_refused_message_went_from_its_failed_rows_address(
@@ -120,7 +121,7 @@ def test_a_refused_message_went_from_its_failed_rows_address(
         _send(email_template)
 
     failed = EmailLog.objects.get(status=EmailStatus.FAILED)
-    assert envelopes == [signed_bounce_address(failed.pk)]
+    assert envelopes == [signed_bounce_address(failed.pk, failed.message_id)]
 
 
 def test_a_bounce_address_leaves_the_from_header_alone(

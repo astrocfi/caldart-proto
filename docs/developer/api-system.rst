@@ -406,8 +406,8 @@ Statuses: **200**; **401** when anonymous; **403** for every other role.
 Runs the bounce check immediately instead of waiting for the hourly timer: it
 reads the unseen messages in the bounce mailbox ``BOUNCE_IMAP_URL`` names, marks
 ``bounced`` every email whose signed bounce address a permanent-failure report was
-returned to, flags the address on the account that holds it, and marks each message
-read (:ref:`email-bounces`).
+returned to, flags the address on the account that holds it when the report says
+the address is bad, and marks each message read (:ref:`email-bounces`).
 ``system_admin`` only.  The body is optional; ``dry_run`` defaults to ``false``.
 
 .. code-block:: json
@@ -436,18 +436,21 @@ read (:ref:`email-bounces`).
 nothing is read and every count is zero.  ``bounced`` counts the reports matched to
 a sent email by the signed address they were returned to, each an action of kind
 ``bounced`` naming the recipient as the row recorded them, ``on`` the day the email
-was sent; ``unmatched`` counts the permanent failures in reports returned to no
-valid signed address of a sent email (the bare bounce address, a wrong signature,
-an id no row has, or a row the relay refused), each an action of kind
+was sent.  ``unmatched`` counts the permanent failures in reports returned to no
+valid signed address of an email sent in the last 30 days (the bare bounce address,
+a wrong signature, an id no row has or one the database has since given another
+email, an older send, or a row the relay refused), each an action of kind
 ``unmatched`` naming the report's ``Final-Recipient``, with an empty ``member``
-and a null ``on``, and none of them changes anything; ``ignored`` counts the messages read that reported
-no permanent failure at all (delays, temporary failures, auto-replies) or whose
-writes the database refused; ``skipped`` counts the messages left unread in the
-mailbox, one the server would not hand over or one larger than 1 MB.  ``detail``
-is the report's status code and diagnostic.  A dry run reads and matches exactly
-as a live one, with the mailbox opened read-only, but marks no email, flags no
-account and leaves every message unread.  The run is recorded in the audit log as ``bounces.run`` under the
-caller.
+and a null ``on``; none of them changes anything.  ``ignored`` counts the messages
+read that reported no permanent failure at all (delays, temporary failures,
+auto-replies) or whose writes the database refused, and ``skipped`` the messages
+left unread in the mailbox, one the server would not hand over or one larger than
+1 MB.  ``detail`` is the report's status code and diagnostic.  A bounce flags the
+account only when its status says the address is bad (``5.1.x`` or ``5.2.1``); a
+content or policy refusal marks the email alone.  A dry run reads and matches
+exactly as a live one, with the mailbox opened read-only, but marks no email, flags
+no account, and leaves every message unread.  The run is recorded in the audit log
+as ``bounces.run`` under the caller.
 
 A malformed ``BOUNCE_IMAP_URL``, or a mailbox that cannot be reached, signed in
 to, or read, answers ``400 {"detail": "<sentence>"}``: ``BOUNCE_IMAP_URL must be

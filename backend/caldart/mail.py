@@ -11,12 +11,12 @@ Because every email goes through :func:`send_templated`, it is also the one
 place that records what went out: each send writes an ``apps.mail.EmailLog``
 row, successful or refused, which is what the email log screen reads.  Each
 message carries a ``Message-ID`` stored on that row and, when ``BOUNCE_ADDRESS`` is
-set, goes out with an envelope sender signed with the row's id
-(:func:`signed_bounce_address`), which is how the bounce check
+set, goes out with an envelope sender tagged with the row's id and signed over the id
+and the ``Message-ID`` (:func:`signed_bounce_address`), which is how the bounce check
 (``apps.mail.bounces``) ties a returned report to its row and tells a genuine report
-from one anybody could write (:func:`signed_log_id`).  A ``List-Unsubscribe`` header a
-caller passes is written as itself, never as encoded words, so mail programs can read
-its links.
+from one anybody could write (:func:`bounce_tag`, :func:`bounce_tag_matches`).  A
+``List-Unsubscribe`` header a caller passes is written as itself, never as encoded
+words, so mail programs can read its links.
 
 A send raises :class:`MailRefusedError` when the mail server refuses the message or
 cannot be reached.  A caller that must answer whatever the server does -- a request
@@ -36,6 +36,7 @@ import logging
 import re
 import smtplib
 from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass
 from email.headerregistry import BaseHeader, HeaderRegistry, UnstructuredHeader
 from email.policy import EmailPolicy, Policy
 from email.utils import make_msgid, parseaddr
@@ -76,11 +77,32 @@ BOUNCE_SIGNATURE_SALT = "caldart.mail.bounce-address"
 #: leaves room in a local part's 64 for the bounce address's own.
 BOUNCE_SIGNATURE_LENGTH = 16
 
-#: The plus tag of a signed bounce address: an email log id and its signature.  The id
-#: is at most 18 digits, so it always fits the table's ``bigint`` key.
+#: The most digits an email log id in a signed bounce address may have, so the id
+#: always fits the table's ``bigint`` key.
+BOUNCE_ID_MAX_DIGITS = 18
+
+#: The longest local part ``BOUNCE_ADDRESS`` may have: an address's local part holds 64
+#: characters, and the tag (``+``, the id, ``.``, the signature) takes up to 36 of them.
+BOUNCE_LOCAL_PART_MAX_LENGTH = 64 - (1 + BOUNCE_ID_MAX_DIGITS + 1 + BOUNCE_SIGNATURE_LENGTH)
+
+#: The plus tag of a signed bounce address: an email log id and its signature.
 _SIGNED_TAG = re.compile(
-    rf"(?P<id>[1-9][0-9]{{0,17}})\.(?P<signature>[0-9a-f]{{{BOUNCE_SIGNATURE_LENGTH}}})"
+    rf"(?P<id>[1-9][0-9]{{0,{BOUNCE_ID_MAX_DIGITS - 1}}})"
+    rf"\.(?P<signature>[0-9a-f]{{{BOUNCE_SIGNATURE_LENGTH}}})"
 )
+
+
+@dataclass(frozen=True)
+class BounceTag:
+    """The plus tag of a signed bounce address, read but not yet verified.
+
+    ``log_id`` is the email log id the tag names and ``signature`` the hex digits
+    signed with it; :func:`bounce_tag_matches` says whether the signature is the one
+    the site gave that row.
+    """
+
+    log_id: int
+    signature: str
 
 
 class MailRefusedError(OSError):
@@ -194,10 +216,11 @@ def send_templated(
     renders both bodies.  Each entry of ``attachments`` is attached by filename,
     bytes and media type, which is how a receipt PDF rides along.  The message's
     ``From`` is ``DEFAULT_FROM_EMAIL``, and so is its envelope sender unless
-    ``BOUNCE_ADDRESS`` is set.  Then the envelope sender is that address signed with the
-    id of the email log row the send writes (:func:`signed_bounce_address`), the id
-    taken from the table's sequence before the hand-over, and a receiving server returns
-    an undeliverable message there.  The message carries a
+    ``BOUNCE_ADDRESS`` is set.  Then the envelope sender is that address tagged with the
+    id of the email log row the send writes and signed over the id and the message's
+    ``Message-ID`` (:func:`signed_bounce_address`), the id taken from the table's
+    sequence before the hand-over, and a receiving server returns an undeliverable
+    message there.  The message carries a
     fresh ``Message-ID`` on the domain of ``DEFAULT_FROM_EMAIL``, recorded on its email
     log row; ``message_id``, when given, is used instead, which is how a caller that
     must record the ``Message-ID`` before the hand-over (one from :func:`new_message_id`)
@@ -235,7 +258,7 @@ def send_templated(
     message_headers = {**(headers or {}), "Message-ID": message_id}
     log_id = _reserve_log_id() if settings.BOUNCE_ADDRESS else None
     envelope_sender = (
-        settings.DEFAULT_FROM_EMAIL if log_id is None else signed_bounce_address(log_id)
+        settings.DEFAULT_FROM_EMAIL if log_id is None else signed_bounce_address(log_id, message_id)
     )
     if log_id is not None:
         # Django sends the envelope from ``from_email`` and writes the header from a
@@ -385,34 +408,46 @@ def new_message_id() -> str:
     return make_msgid(domain=_message_id_domain())
 
 
-def signed_bounce_address(log_id: int) -> str:
-    """``BOUNCE_ADDRESS`` tagged with ``log_id`` and a signature over it.
+def bounce_address() -> str:
+    """``BOUNCE_ADDRESS`` as a bare address, without any display name, or ``""``.
 
-    The address is ``<local>+<log_id>.<signature>@<domain>``, from ``BOUNCE_ADDRESS``'s
+    ``CalDART bounces <bounces@caldart.example.org>`` reads as
+    ``bounces@caldart.example.org``; the system check ``mail.E001`` asks for the bare
+    form in the first place.
+    """
+    return parseaddr(settings.BOUNCE_ADDRESS)[1]
+
+
+def signed_bounce_address(log_id: int, message_id: str) -> str:
+    """:func:`bounce_address` tagged with ``log_id``, signed over it and ``message_id``.
+
+    The address is ``<local>+<log_id>.<signature>@<domain>``, from the bounce address's
     ``<local>@<domain>``, so a mailbox that accepts plus addresses delivers it to the
     bounce mailbox.  The signature is the first :data:`BOUNCE_SIGNATURE_LENGTH` hex
-    digits of an HMAC-SHA256 over the id, keyed with ``SECRET_KEY`` under
-    :data:`BOUNCE_SIGNATURE_SALT`; only the site can make one, and
-    :func:`signed_log_id` reads it back.
+    digits of an HMAC-SHA256 over ``"<log_id>:<message_id>"``, keyed with ``SECRET_KEY``
+    under :data:`BOUNCE_SIGNATURE_SALT`.  Only the site can make one, and because the
+    ``Message-ID`` is drawn at random for each message, a signature stays the row's own
+    even when a restored or reset database hands the same id to another row later.
     """
-    local, at, domain = settings.BOUNCE_ADDRESS.rpartition("@")
-    return f"{local}+{log_id}.{_bounce_signature(log_id, settings.SECRET_KEY)}{at}{domain}"
+    local, at, domain = bounce_address().rpartition("@")
+    signature = _bounce_signature(log_id, message_id, settings.SECRET_KEY)
+    return f"{local}+{log_id}.{signature}{at}{domain}"
 
 
-def signed_log_id(address: str) -> int | None:
-    """The email log id ``address`` was signed for, or ``None`` when it is not signed.
+def bounce_tag(address: str) -> BounceTag | None:
+    """The tag ``address`` carries when it is shaped as a signed bounce address.
 
-    ``address`` names an id only when it is :func:`signed_bounce_address` of that id:
-    ``BOUNCE_ADDRESS``'s own local part and domain, ignoring case, with a plus tag of
-    the id and a signature that matches it under ``SECRET_KEY`` or one of
-    ``SECRET_KEY_FALLBACKS``, so mail sent before the key was rotated still reads.  The
-    signature is compared in constant time.  The bare bounce address, an unsigned or
-    wrongly signed tag, another address, and any address at all while
-    ``BOUNCE_ADDRESS`` is empty answer ``None``.
+    It is one only on :func:`bounce_address`'s own local part and domain, ignoring case,
+    with a plus tag of an id of at most :data:`BOUNCE_ID_MAX_DIGITS` digits, a dot, and
+    :data:`BOUNCE_SIGNATURE_LENGTH` hex digits.  The bare bounce address, another
+    address, an unsigned tag, and any address at all while ``BOUNCE_ADDRESS`` is empty
+    answer ``None``.  Nothing is verified here: :func:`bounce_tag_matches` checks the
+    signature against the row the id names.
     """
-    if not settings.BOUNCE_ADDRESS:
+    configured = bounce_address().lower()
+    if not configured:
         return None
-    local, _at, domain = settings.BOUNCE_ADDRESS.lower().rpartition("@")
+    local, _at, domain = configured.rpartition("@")
     candidate_local, _at, candidate_domain = address.lower().rpartition("@")
     prefix = f"{local}+"
     if candidate_domain != domain or not candidate_local.startswith(prefix):
@@ -420,17 +455,29 @@ def signed_log_id(address: str) -> int | None:
     tag = _SIGNED_TAG.fullmatch(candidate_local.removeprefix(prefix))
     if tag is None:
         return None
-    log_id = int(tag["id"])
+    return BounceTag(log_id=int(tag["id"]), signature=tag["signature"])
+
+
+def bounce_tag_matches(tag: BounceTag, message_id: str) -> bool:
+    """Whether ``tag`` is signed for its id and ``message_id``, the row's ``Message-ID``.
+
+    The signature is compared in constant time against the one made under
+    ``SECRET_KEY`` and under each of ``SECRET_KEY_FALLBACKS``, so mail sent before the
+    key was rotated still reads while the old key is a fallback.
+    """
     keys = [settings.SECRET_KEY, *settings.SECRET_KEY_FALLBACKS]
     matched = [
-        hmac.compare_digest(tag["signature"], _bounce_signature(log_id, key)) for key in keys
+        hmac.compare_digest(tag.signature, _bounce_signature(tag.log_id, message_id, key))
+        for key in keys
     ]
-    return log_id if any(matched) else None
+    return any(matched)
 
 
-def _bounce_signature(log_id: int, key: str) -> str:
-    """The signature :func:`signed_bounce_address` gives ``log_id`` under ``key``."""
-    signature = salted_hmac(BOUNCE_SIGNATURE_SALT, str(log_id), secret=key, algorithm="sha256")
+def _bounce_signature(log_id: int, message_id: str, key: str) -> str:
+    """The signature :func:`signed_bounce_address` gives the row under ``key``."""
+    signature = salted_hmac(
+        BOUNCE_SIGNATURE_SALT, f"{log_id}:{message_id}", secret=key, algorithm="sha256"
+    )
     return signature.hexdigest()[:BOUNCE_SIGNATURE_LENGTH]
 
 

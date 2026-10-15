@@ -2,7 +2,7 @@
 
 ``apps.mail.bounces.parse_report`` turns one message from the bounce mailbox into the
 permanent failures it reports and the addresses it was delivered to, read from
-real-shaped Postfix, Gmail and Exchange reports under ``backend/tests/bounce_reports/``;
+real-shaped Postfix, Gmail, and Exchange reports under ``backend/tests/bounce_reports/``;
 ``parse_imap_url`` reads ``BOUNCE_IMAP_URL``.  See ``docs/developer/email.rst``,
 "Bounces".
 """
@@ -38,7 +38,7 @@ def test_a_hard_bounce_reports_its_recipient_status_and_diagnostic(
 
 
 def test_a_report_names_the_addresses_it_was_delivered_to(bounce_report: BounceReport) -> None:
-    """``Delivered-To``, ``X-Original-To`` and ``To`` are read in that order."""
+    """``Delivered-To``, ``X-Original-To``, and ``To`` are read in that order."""
     report = parse_report(
         bounce_report(
             "hard_bounce",

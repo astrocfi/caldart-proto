@@ -74,7 +74,7 @@ def test_the_run_answers_its_counts_and_actions(
 ) -> None:
     """The answer is ``{enabled, bounced, unmatched, ignored, actions}``."""
     fake_mailbox(
-        bounce_report("hard_bounce", envelope=signed_bounce_address(sent.pk)),
+        bounce_report("hard_bounce", envelope=signed_bounce_address(sent.pk, sent.message_id)),
         bounce_report("auto_reply"),
     )
 
@@ -109,7 +109,9 @@ def test_a_run_with_no_body_is_live(
     bounce_report: BounceReport,
 ) -> None:
     """``dry_run`` defaults to false, so the row is marked."""
-    fake_mailbox(bounce_report("hard_bounce", envelope=signed_bounce_address(sent.pk)))
+    fake_mailbox(
+        bounce_report("hard_bounce", envelope=signed_bounce_address(sent.pk, sent.message_id))
+    )
 
     system_admin_client.post(RUN_URL, {}, format="json")
 
@@ -173,7 +175,9 @@ def test_the_command_prints_the_run(
     sent: EmailLog, fake_mailbox: FakeMailbox, bounce_report: BounceReport
 ) -> None:
     """The command prints the counts, one line per bounce, and a closing tally."""
-    fake_mailbox(bounce_report("hard_bounce", envelope=signed_bounce_address(sent.pk)))
+    fake_mailbox(
+        bounce_report("hard_bounce", envelope=signed_bounce_address(sent.pk, sent.message_id))
+    )
     out = StringIO()
 
     call_command("check_bounces", "--dry-run", stdout=out)

@@ -1022,7 +1022,7 @@ def bounce_report() -> BounceReport:
     ``envelope`` is the address the report was returned to, as the mailbox shows it:
     the ``To`` the reporting server wrote and the ``Delivered-To`` (and, in the Postfix
     report, ``X-Original-To``) the delivering server added.  It defaults to the bare
-    :data:`FAKE_BOUNCE_ADDRESS`; ``to``, ``delivered_to`` and ``original_to`` set one
+    :data:`FAKE_BOUNCE_ADDRESS`; ``to``, ``delivered_to``, and ``original_to`` set one
     of those headers alone.
     """
 

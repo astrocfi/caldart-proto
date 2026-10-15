@@ -416,23 +416,31 @@ message over, and sends it from
 
    <local>+<id>.<signature>@<domain>
 
-where ``<local>@<domain>`` is ``BOUNCE_ADDRESS`` and ``<signature>`` the first 16
-hex digits of an HMAC-SHA256 over the id (``caldart.mail.signed_bounce_address``),
-keyed with ``SECRET_KEY`` through ``django.utils.crypto.salted_hmac`` under a salt
-of its own, ``caldart.mail.bounce-address``, so the signature stands for nothing
-else the site signs.  The tag adds at most 36 characters, which leaves an address's
-64-character local part room for a ``BOUNCE_ADDRESS`` local part of up to 28; keep it
-short, ``bounces`` say.  A sequence never hands out the same value twice, so an id
-taken by a send that never wrote its row belongs to no other row.
+where ``<local>@<domain>`` is ``BOUNCE_ADDRESS`` (a display name in the setting
+is left out) and ``<signature>`` the first 16 hex digits of an HMAC-SHA256 over
+``<id>:<Message-ID>`` (``caldart.mail.signed_bounce_address``), keyed with
+``SECRET_KEY`` through ``django.utils.crypto.salted_hmac`` under a salt of its own,
+``caldart.mail.bounce-address``, so the signature stands for nothing else the site
+signs.  The ``Message-ID`` is drawn at random for each message before the
+hand-over and stored on the row, so the signature belongs to that one message: a
+sequence restored with an older backup (``db_restore``) or restarted by
+``deploy/reset-database.sh`` can hand the same id to another message later, while
+``SECRET_KEY`` stays the same, and an address signed for the first never matches
+the second.  The tag adds at most 36 characters (an id of up to 18 digits), which
+leaves an address's 64-character local part room for a ``BOUNCE_ADDRESS`` local
+part of up to 28; ``manage.py check`` refuses a setting that is not a bare
+address (``mail.E001``) or whose local part is longer (``mail.E002``).
 
-``caldart.mail.signed_log_id`` reads the id back.  It accepts an address only when
-its local part and domain are ``BOUNCE_ADDRESS``'s own (ignoring case), its tag is
-an id and a signature, and the signature matches that id under ``SECRET_KEY`` or a
-key in ``SECRET_KEY_FALLBACKS``, compared in constant time
-(``hmac.compare_digest``); a report of mail sent before the key was rotated still
-reads while the old key is a fallback.  Nobody without the secret key can sign an
-address, and a signed address names one row only, so a member who reads the
-``Return-Path`` of their own message can at most report that message bounced.
+``caldart.mail.bounce_tag`` reads an address's tag: it is one only when the local
+part and domain are ``BOUNCE_ADDRESS``'s own (ignoring case) and the tag is an id
+and a signature.  The bounce check then loads the row the id names and asks
+``caldart.mail.bounce_tag_matches`` whether the signature was made for that id and
+the row's own ``Message-ID`` under ``SECRET_KEY`` or a key in
+``SECRET_KEY_FALLBACKS``, compared in constant time (``hmac.compare_digest``); a
+report of mail sent before the key was rotated still reads while the old key is a
+fallback.  Nobody without the secret key can sign an address, and a signed address
+names one message only, so a member who reads the ``Return-Path`` of their own
+message can at most report that message bounced.
 
 The bounce mailbox must therefore accept plus addresses: mail to
 ``bounces+anything@caldart.example.org`` must be delivered to
@@ -461,24 +469,30 @@ How it works
    to, as the mailbox shows it: the ``Delivered-To``, ``X-Original-To``, and
    ``Envelope-To`` headers the delivering server adds, then the ``To`` the
    reporting server wrote, which is the envelope sender the report was returned
-   to.  The first of those addresses that ``signed_log_id`` accepts and that names
-   a row the relay did not refuse is the match, and the report counts as one bounce
-   of that row's recipient, whatever address its ``Final-Recipient`` names.  A
-   report with no such address is *unmatched*, one count per failure, and changes
-   nothing: one sent to the bare ``BOUNCE_ADDRESS``, one whose signature is wrong,
-   and one naming an id no row has.  Neither the returned original's
+   to.  The match is the first of those addresses whose tag names a row that the
+   relay did not refuse, that was sent in the last 30 days (``REPORT_MAX_AGE`` in
+   ``apps/mail/bounces.py``), and whose ``Message-ID`` the signature was made over.
+   The report counts as one bounce of that row's recipient, whatever address its
+   ``Final-Recipient`` names.  A report with no such address is *unmatched*, one
+   count per failure, and changes nothing: one sent to the bare ``BOUNCE_ADDRESS``,
+   one whose signature is wrong, one naming an id no row has or one the database
+   has since given another message, and one about an older send.  Neither the returned original's
    ``Message-ID`` nor the ``Final-Recipient`` address ever matches a report to a
    row, since anybody can copy either into a forged one.
 5. A match turns the row's ``status`` to ``bounced`` with ``bounced_at`` and
    ``bounce_detail`` (the status code and the diagnostic text, cut to 255
    characters, from the failure naming the row's address, or else the report's
-   first), and flags the account whose *current* address is the one the row was
-   sent to: ``User.email_bounced_at`` and ``email_bounce_detail``.  An
+   first).  When that failure's status says the address itself is bad, any
+   ``5.1.x`` (no such mailbox, bad destination) or ``5.2.1`` (mailbox disabled),
+   it also flags the account whose *current* address is the one the row was sent
+   to: ``User.email_bounced_at`` and ``email_bounce_detail``.  An
    account that has moved to another address since is not flagged.  A row
    that is a copy of a bulk email (the purpose ``bulk_email``) is tied back to that
    copy as it is saved: the bulk email's recipient row with the same ``Message-ID``
    reads ``bounced`` with the same detail, and the bulk email's delivery report counts
-   it as bounced (:ref:`api-bulk-email-delivery`).
+   it as bounced (:ref:`api-bulk-email-delivery`).  Any other permanent failure, a content or
+   policy refusal such as ``5.7.1``, ``5.6.x``, or ``5.3.4``, or a full mailbox
+   (``5.2.2``), marks the row alone: the message was refused, not the address.
 6. Each message's writes are one database savepoint.  Header values have every
    control character, a NUL included, turned into a space before anything is
    stored, and a report whose writes the database still refuses is rolled back,
