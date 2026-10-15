@@ -212,6 +212,16 @@ The payment's owner only.
 
    {"payment_id": 413, "order_id": "5O190127TN364715T"}
 
+The order captured is always the one checkout recorded for the payment as its
+``provider_ref``.  ``order_id`` may be left out; one that is given must be
+PayPal's shape — upper-case letters and digits, at most 64 of them — or the
+request is a **400** keyed by ``order_id``:
+``{"order_id": ["That is not a PayPal order id."]}``.  An ``order_id`` naming any
+other order is a **400** with ``{"detail": "That PayPal order belongs to another
+payment."}``, and a payment PayPal never gave an order, such as a checkout that
+never reached PayPal, is a **400** with ``{"detail": "No PayPal order to
+capture."}``.  PayPal is not called in any of the three.
+
 Captures the order through Orders v2 and requires ``status == "COMPLETED"``,
 at least one completed capture, a captured total equal to ``amount_cents`` and
 the same currency.  ``custom_id`` is checked only when the capture carries one:
@@ -236,9 +246,11 @@ dashboard: the mismatch names the payment and both amounts, and the call that
 never completed names the payment and the amount at stake.
 
 Statuses: **200** for a completed capture and for a payment that had already
-settled; **400** for a missing field, a payment started with another
-provider (``{"payment_id": "That payment is not a paypal payment."}``), a
-capture PayPal did not complete, a mismatch, or PayPal being unreachable;
+settled; **400** for a missing field, an ``order_id`` that is not PayPal's shape
+or names another order, a payment with no order of its own, a payment started
+with another provider (``{"payment_id": "That payment is not a paypal
+payment."}``), a capture PayPal did not complete, a mismatch, or PayPal being
+unreachable;
 **401** when anonymous; **404** when the payment is not the caller's.
 
 ``POST /payments/mock/complete``

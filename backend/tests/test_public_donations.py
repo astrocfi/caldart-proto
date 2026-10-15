@@ -31,6 +31,7 @@ from apps.accounts.models import AccountKind, User
 from apps.cms.models import DonatePage, HomePage, StandardPage
 from apps.darts.models import Dart
 from apps.members.models import CALIFORNIA_COUNTIES, US_STATE_CHOICES, MemberProfile
+from apps.payments.api.serializers import PAYPAL_ORDER_ID_MESSAGE
 from apps.payments.donations import (
     DONATION_TOKEN_MAX_AGE,
     DONATION_TOKEN_SALT,
@@ -890,7 +891,7 @@ def test_a_paypal_gift_is_captured_with_its_token(
     settings.PAYPAL_CLIENT_ID = "client-id"
     settings.PAYPAL_CLIENT_SECRET = "client-secret"  # noqa: S105 - test fixture
     settings.PAYPAL_ENV = "sandbox"
-    payment = pending_gift(PaymentProvider.PAYPAL, "ORDER-GIFT")
+    payment = pending_gift(PaymentProvider.PAYPAL, "ORDERGIFT")
     respx.post(PAYPAL_OAUTH_URL).mock(
         return_value=httpx.Response(200, json={"access_token": "token", "expires_in": 3_600})
     )
@@ -900,11 +901,11 @@ def test_a_paypal_gift_is_captured_with_its_token(
         "custom_id": str(payment.pk),
         "amount": {"currency_code": "USD", "value": "100.00"},
     }
-    respx.post(f"{PAYPAL_ORDERS_URL}/ORDER-GIFT/capture").mock(
+    respx.post(f"{PAYPAL_ORDERS_URL}/ORDERGIFT/capture").mock(
         return_value=httpx.Response(
             201,
             json={
-                "id": "ORDER-GIFT",
+                "id": "ORDERGIFT",
                 "status": "COMPLETED",
                 "purchase_units": [{"payments": {"captures": [capture]}}],
             },
@@ -913,7 +914,7 @@ def test_a_paypal_gift_is_captured_with_its_token(
 
     response = api_client.post(
         PAYPAL_CAPTURE_URL,
-        {"payment_id": payment.pk, "token": donation_token(payment), "order_id": "ORDER-GIFT"},
+        {"payment_id": payment.pk, "token": donation_token(payment), "order_id": "ORDERGIFT"},
         format="json",
     )
 
@@ -923,6 +924,49 @@ def test_a_paypal_gift_is_captured_with_its_token(
         response.json()["membership"]["status"],
         [message.to for message in mail.outbox],
     ) == (200, "succeeded", "donor", [[DONOR_EMAIL]])
+
+
+def test_a_gift_capture_refuses_an_order_id_that_is_not_paypals_shape(
+    api_client: APIClient,
+) -> None:
+    """An order id carrying a path is refused by field, before PayPal is asked."""
+    payment = pending_gift(PaymentProvider.PAYPAL, "ORDERGIFT")
+
+    response = api_client.post(
+        PAYPAL_CAPTURE_URL,
+        {
+            "payment_id": payment.pk,
+            "token": donation_token(payment),
+            "order_id": "../../v2/payments/captures/CAPTURE1/refund",
+        },
+        format="json",
+    )
+
+    assert response.json() == {"order_id": [PAYPAL_ORDER_ID_MESSAGE]}
+
+
+@respx.mock
+def test_a_gift_paypal_never_ordered_is_not_captured(
+    api_client: APIClient, settings: Settings
+) -> None:
+    """A gift with no order of its own is refused rather than captured under another."""
+    settings.PAYPAL_CLIENT_ID = "client-id"
+    settings.PAYPAL_CLIENT_SECRET = "client-secret"  # noqa: S105 - test fixture
+    payment = pending_gift(PaymentProvider.PAYPAL, "")
+    respx.post(PAYPAL_OAUTH_URL).mock(
+        return_value=httpx.Response(200, json={"access_token": "token", "expires_in": 3_600})
+    )
+    route = respx.post(f"{PAYPAL_ORDERS_URL}/ORDERELSE/capture").mock(
+        return_value=httpx.Response(201, json={"id": "ORDERELSE", "status": "COMPLETED"})
+    )
+
+    api_client.post(
+        PAYPAL_CAPTURE_URL,
+        {"payment_id": payment.pk, "token": donation_token(payment), "order_id": "ORDERELSE"},
+        format="json",
+    )
+
+    assert route.call_count == 0
 
 
 # --------------------------------------------------------------------------
@@ -1049,7 +1093,7 @@ def test_a_full_paypal_checkout_writes_the_donors_details_after_capture(
     )
     respx.post(PAYPAL_ORDERS_URL).mock(
         return_value=httpx.Response(
-            201, json={"id": "ORDER-FULL-CHECKOUT", "status": "CREATED", "links": []}
+            201, json={"id": "ORDERFULLCHECKOUT", "status": "CREATED", "links": []}
         )
     )
 
@@ -1058,11 +1102,11 @@ def test_a_full_paypal_checkout_writes_the_donors_details_after_capture(
     body = started.json()
     payment = Payment.objects.get(pk=body["payment_id"])
 
-    respx.post(f"{PAYPAL_ORDERS_URL}/ORDER-FULL-CHECKOUT/capture").mock(
+    respx.post(f"{PAYPAL_ORDERS_URL}/ORDERFULLCHECKOUT/capture").mock(
         return_value=httpx.Response(
             201,
             json={
-                "id": "ORDER-FULL-CHECKOUT",
+                "id": "ORDERFULLCHECKOUT",
                 "status": "COMPLETED",
                 "purchase_units": [
                     {
@@ -1087,7 +1131,7 @@ def test_a_full_paypal_checkout_writes_the_donors_details_after_capture(
 
     response = api_client.post(
         PAYPAL_CAPTURE_URL,
-        {"payment_id": payment.pk, "token": body["token"], "order_id": "ORDER-FULL-CHECKOUT"},
+        {"payment_id": payment.pk, "token": body["token"], "order_id": "ORDERFULLCHECKOUT"},
         format="json",
     )
 

@@ -17,6 +17,7 @@ from __future__ import annotations
 import json
 import logging
 from typing import Any, TypedDict
+from urllib.parse import quote
 
 import httpx
 from django.conf import settings
@@ -89,6 +90,16 @@ def unavailable(call_name: str, exc: Exception) -> ProviderUnavailableError:
     """
     log.warning("PayPal %s failed: %s", call_name, type(exc).__name__)
     return ProviderUnavailableError(UNAVAILABLE_MESSAGE)
+
+
+def segment(value: str) -> str:
+    """``value`` escaped as one URL path segment, for an id spliced into a PayPal path.
+
+    Every character outside the unreserved set is percent-encoded, ``/`` included, so
+    the id can never name another resource: ``"A/../B"`` becomes ``"A%2F..%2FB"``,
+    and a ``?`` or a ``#`` cannot start a query or a fragment.
+    """
+    return quote(value, safe="")
 
 
 def credentials() -> tuple[str, str]:
@@ -378,12 +389,14 @@ class PayPalProvider(Provider):
     def confirm(self, payment: Payment, *, order_id: str = "", **kwargs: Any) -> bool:
         """Capture the order; ``COMPLETED`` for the right amount activates the term.
 
-        ``order_id`` defaults to the payment's own ``provider_ref``.  Returns
-        ``True`` once the term is activated, and ``True`` without calling PayPal
-        for a payment whose money already arrived -- succeeded, partly refunded, or
-        refunded -- so a second click is harmless and a refund is never undone.
-        Raises :class:`PaymentVerificationError` when there is no order to
-        capture, when the order belongs to another payment, when PayPal reports
+        The order captured is always the payment's own ``provider_ref``, the one
+        :meth:`start` recorded; ``order_id``, when given, has to name that order.
+        The answer is ``True`` once the term is activated, and ``True`` without
+        calling PayPal for a payment whose money already arrived -- succeeded,
+        partly refunded, or refunded -- so a second click is harmless and a refund
+        is never undone.
+        Raises :class:`PaymentVerificationError` when the payment holds no order of
+        its own, when ``order_id`` names another order, when PayPal reports
         anything but ``COMPLETED``, when it completes the order without a capture,
         and when the captured total, the currency or the capture's ``custom_id``
         disagrees with the payment.  Of those, a status other than ``COMPLETED``
@@ -396,14 +409,16 @@ class PayPalProvider(Provider):
             # A second click, a webhook that beat the browser back, or a refund since.
             return True
 
-        order_id = order_id or payment.provider_ref
-        if not order_id:
+        # Only the order PayPal gave this payment is ever captured: a payment that
+        # has none, such as an abandoned checkout, has nothing to capture.
+        if not payment.provider_ref:
             raise PaymentVerificationError("No PayPal order to capture.")
-        if payment.provider_ref and order_id != payment.provider_ref:
+        if order_id and order_id != payment.provider_ref:
             raise PaymentVerificationError("That PayPal order belongs to another payment.")
+        order_id = payment.provider_ref
 
         try:
-            order = call("POST", f"/v2/checkout/orders/{order_id}/capture")
+            order = call("POST", f"/v2/checkout/orders/{segment(order_id)}/capture")
         except ProviderUnavailableError:
             # The capture may have been taken before the connection died, so
             # this one needs reconciling rather than a silent retry.
@@ -465,7 +480,7 @@ class PayPalProvider(Provider):
         """
         answer = call(
             "POST",
-            f"/v2/payments/captures/{capture_id(payment)}/refund",
+            f"/v2/payments/captures/{segment(capture_id(payment))}/refund",
             json_body={
                 "amount": {
                     "currency_code": payment.currency.upper(),
@@ -550,7 +565,7 @@ class PayPalProvider(Provider):
         """
         if not payment.provider_ref:
             return None
-        return fees_from_order(call("GET", f"/v2/checkout/orders/{payment.provider_ref}"))
+        return fees_from_order(call("GET", f"/v2/checkout/orders/{segment(payment.provider_ref)}"))
 
     def record_refund(self, payment: Payment, resource: dict[str, Any]) -> Refund | None:
         """File a refund taken in PayPal's own dashboard against ``payment``.
@@ -689,10 +704,10 @@ class PayPalProvider(Provider):
         except PaymentVerificationError as exc:
             raise PaymentDeclinedError(str(exc) or DECLINED_MESSAGE) from exc
 
-        order_id = order.get("id")
+        order_id = str(order.get("id") or "")
         if order.get("status") != "COMPLETED":
             try:
-                order = call("POST", f"/v2/checkout/orders/{order_id}/capture")
+                order = call("POST", f"/v2/checkout/orders/{segment(order_id)}/capture")
             except PaymentVerificationError as exc:
                 raise PaymentDeclinedError(str(exc) or DECLINED_MESSAGE) from exc
 
@@ -708,7 +723,7 @@ class PayPalProvider(Provider):
             payment,
             wallet=PaymentWallet.PAYPAL,
             raw=order,
-            provider_ref=str(order_id or "") or payment.provider_ref,
+            provider_ref=order_id or payment.provider_ref,
         )
 
     def method_from_payment(self, payment: Payment) -> MandateMethod | None:

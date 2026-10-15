@@ -567,7 +567,11 @@ no SDK.  Three calls, in ``backend/apps/payments/providers/paypal.py``:
    (see :ref:`paypal-token-cache`);
 2. ``POST /v2/checkout/orders`` with ``intent=CAPTURE``, the server-computed
    amount, ``custom_id`` set to our payment id, and the CalDART brand name;
-3. ``POST /v2/checkout/orders/{id}/capture`` when the buyer approves.
+3. ``POST /v2/checkout/orders/{id}/capture`` when the buyer approves.  The
+   ``{id}`` is the order the second call created, read from the payment's
+   ``provider_ref``, never the id the browser posts back: that one only has to
+   match it.  Every id CalDART puts in a PayPal path is percent-encoded as a
+   single segment.
 
 .. _paypal-token-cache:
 
