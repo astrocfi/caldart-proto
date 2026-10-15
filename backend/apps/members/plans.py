@@ -2,7 +2,7 @@
 
 The table is what ``manage.py seed_plans``, the ``members`` data migration, and the demo
 seed all create from, so a site has its plans as soon as it is migrated, whether or not
-the demo data is ever loaded.  This module imports no model at import time, so a
+the demo data is ever loaded.  This module doesn't import a model at import time, so a
 migration may import it.
 """
 

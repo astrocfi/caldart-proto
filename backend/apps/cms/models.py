@@ -165,7 +165,7 @@ def ensure_members_only_collection() -> Collection:
 def collection_is_members_only(collection: Collection | None) -> bool:
     """``True`` for the ``Members only`` collection and every collection beneath it.
 
-    ``None`` -- a document with no collection -- is public.
+    ``None`` -- a document without a collection -- is public.
     """
     if collection is None:
         return False
@@ -189,8 +189,8 @@ class BasePage(Page):
     def body_headings(self) -> list[dict[str, str]]:
         """H2 headings in ``body``, for the "on this page" rail.
 
-        Each entry is ``{"text", "anchor"}``.  A page type with no ``body`` field,
-        and a body with no H2 heading block, both give an empty list.
+        Each entry is ``{"text", "anchor"}``.  A page type without a ``body`` field,
+        and a body without an H2 heading block, both give an empty list.
         """
         return stream_headings(getattr(self, "body", None))
 
@@ -201,8 +201,8 @@ class BasePage(Page):
 
 
 if TYPE_CHECKING:
-    # Wagtail ships no type information, so ``Page`` is untyped and a mixin that
-    # calls into it has nothing to check against.  The mixin is only ever combined
+    # Wagtail doesn't ship type information, so ``Page`` is untyped and a mixin that
+    # calls into it can't be checked against it.  The mixin is only ever combined
     # with ``BasePage``, and these are the two page methods it reaches through.
     class _MembersOnlyBase(models.Model):
         """Typing stand-in for the page class the mixin is combined with."""
@@ -262,7 +262,7 @@ class MembersOnlyMixin(_MembersOnlyBase):
         when Wagtail has not, since the page templates read it.
         """
         # Wagtail decorates the request with ``is_preview`` when it serves a page,
-        # and ships no type information for that.
+        # and doesn't ship type information for that.
         request.is_preview = getattr(request, "is_preview", False)  # type: ignore[attr-defined]
         context = self.get_context(request)
         context.update(members_wall_context(request.user))
@@ -490,8 +490,8 @@ class NewsIndexPage(BasePage):
         """Live child posts, newest first, less any the visitor cannot read.
 
         A members-only post is included only for a reader who passes
-        ``user_can_access_members_content``; a request that carries no user at all
-        is treated as anonymous.  Ties on the post date are broken by the newer
+        ``user_can_access_members_content``; a request that doesn't carry a user at
+        all is treated as anonymous.  Ties on the post date are broken by the newer
         primary key.
         """
         queryset: QuerySet[NewsPage] = (
@@ -609,7 +609,7 @@ class EventIndexPage(BasePage):
         """Wagtail's page context plus ``upcoming`` and one page of ``past`` events.
 
         Everything still ahead is listed in full -- a calendar that hid the
-        fourth event would be no use -- and what has already happened is
+        fourth event would be useless -- and what has already happened is
         paginated, ``EVENT_PAGE_SIZE`` to a page, with ``?page=`` choosing
         which.  Anything that is not a page number falls back to the first page
         and a number past the end to the last, because Django's paginator is
@@ -926,7 +926,7 @@ class SiteSettings(BaseSiteSetting):
     def get_theme(cls, request: RequestLike | None = None) -> str:
         """The active theme slug for ``request``'s site, one of ``THEME_SLUGS``.
 
-        Falls back to ``duty`` when the theme is blank and when there is no
+        Falls back to ``duty`` when the theme is blank and when there isn't a
         settings row yet.  Without a request, the default site's theme is used.
         """
         settings_obj = get_site_settings(request)
@@ -960,7 +960,7 @@ def members_only_pages(request: RequestLike | None = None) -> list[StandardPage 
     Standard pages come first, then news posts, each group in tree order.  Scoped
     to the requested site when there is one, so a second Wagtail site would never
     leak its members' area into another site's config.  Draft and privacy-
-    restricted pages are left out; the list is empty when there are none.
+    restricted pages are left out; the list is empty when there aren't any.
     """
     from wagtail.models import Site
 

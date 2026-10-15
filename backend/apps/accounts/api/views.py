@@ -168,7 +168,7 @@ def signed_in_user(request: Request) -> User:
     For handlers whose permission classes have already turned an anonymous caller
     away.  Raises ``NotAuthenticated`` if one reaches it anyway; the project's
     exception handler renders that as 401, where DRF alone would answer 403 because
-    session authentication offers no ``WWW-Authenticate`` challenge.
+    session authentication doesn't offer a ``WWW-Authenticate`` challenge.
     """
     user = request.user
     if isinstance(user, AnonymousUser):
@@ -187,7 +187,7 @@ class CsrfView(APIView):
         responses={204: OpenApiResponse(description="The CSRF cookie is set; no body.")},
     )
     def get(self, request: Request) -> Response:
-        """Answer 204 with no body, having set the CSRF cookie on the response.
+        """Answer 204 without a body, having set the CSRF cookie on the response.
 
         Open to anonymous callers: the SPA calls it once before its first unsafe
         request so it has a token to echo back.
@@ -209,7 +209,7 @@ class RegisterView(APIView):
         The body carries ``email``, ``password``, ``first_name``, ``last_name``, and
         ``kind`` (``member``, the default, or ``friend``).  Every address that parses is
         answered 202 ``{"detail": "We sent a message to <address>. Follow the link in it
-        to continue."}``, with nobody signed in, so the answer never says whether the
+        to continue."}``, and nobody is signed in, so the answer never says whether the
         address has an account.  What is done, and the message the address is mailed
         once the answer has gone, is :func:`apps.members.services.register_member`'s: a
         new account and its verification link, a donor's upgrade link, or word that the
@@ -269,7 +269,8 @@ class LoginView(APIView):
         same credentials to ``/auth/reactivate``.  An account a user administrator has
         blocked from reactivating is instead a 403 ``{"detail": "This account has been
         closed. Contact <organization name> to reopen it."}``, again only once the
-        password has matched, and carries no ``code``, so nothing offers reactivation.
+        password has matched, and doesn't carry a ``code``, so nothing offers
+        reactivation.
         A donor cannot sign in at all: whatever the password, the answer is the same
         400 as wrong credentials.
         """
@@ -395,15 +396,15 @@ class PasswordResetView(APIView):
 
         Open to anonymous callers and throttled under the ``auth_password_reset`` scope.
         An unregistered address, a donor's, or one a user administrator has blocked from
-        reactivating is answered 204 with no mail sent, so the endpoint cannot be used to
-        enumerate members.  A deactivated account is mailed the link, since completing
+        reactivating is answered 204, and no mail is sent, so the endpoint cannot be used
+        to enumerate members.  A deactivated account is mailed the link, since completing
         the reset reactivates it.  An account
         that has never set a password is mailed the link like any other.  A malformed
         address is a 400.  The message is rendered and sent only once the answer has gone
         (``caldart.mail.send_after_response``), so the time the request takes does not
         depend on whether there was anybody to mail.  A mail server that refuses the
-        message changes nothing: the failed send is in the email log, and the refusal is
-        logged.
+        message doesn't change anything: the failed send is in the email log, and the
+        refusal is logged.
         """
         serializer = PasswordResetSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -448,7 +449,7 @@ class PasswordResetConfirmView(APIView):
         A reset that replaces a password the account already had is audited as
         ``account.password_change`` with ``reset=true``, and the account's address is
         mailed a notice that the password was changed; setting the first password of an
-        account that had none, through an invitation or after an undone change of
+        account that didn't have one, through an invitation or after an undone change of
         address, is neither.
         """
         serializer = PasswordResetConfirmSerializer(data=request.data)
@@ -502,7 +503,7 @@ def deactivate(user: User) -> None:
     """Deactivate ``user`` at their own request, withdrawing everything that runs on.
 
     The account is refused or deactivated by ``deactivate_own_account`` first, so a
-    refusal changes nothing; then every mandate is canceled or discarded and every
+    refusal doesn't change anything; then every mandate is canceled or discarded and every
     term with time left is suspended.  Raises the ``DomainError`` a refusal raises.
     An account already inactive when its row is locked is left alone.
     """
@@ -519,9 +520,10 @@ def reactivate(user: User) -> bool:
     """Bring ``user``'s deactivated account back, with any membership still running.
 
     Kind and roles are untouched; each suspended term is active again, or expired if
-    it ran out meanwhile.  Canceled mandates stay canceled.  ``False``, changing
-    nothing, when the account is already active once its row is locked; ``True``
-    otherwise, when ``user`` is read again so the caller holds the account as stored.
+    it ran out meanwhile.  Canceled mandates stay canceled.  ``False``, without
+    changing anything, when the account is already active once its row is locked;
+    ``True`` otherwise, when ``user`` is read again so the caller holds the account as
+    stored.
     The block is read from the locked row, so an account blocked after ``user`` was
     loaded is refused: raises the ``DomainError`` ``reactivate_own_account`` raises.
     """
@@ -681,14 +683,14 @@ class EmailVerifyResendView(APIView):
 
         While a change of address is waiting, the link that completes it goes to the
         pending address once the answer has gone
-        (:func:`apps.accounts.email_change.send_email_change_link`, which sends nothing to
-        an address another account holds, the answer the same either way); otherwise a
+        (:func:`apps.accounts.email_change.send_email_change_link`, which never mails an
+        address another account holds, the answer the same either way); otherwise a
         verification link goes to the account's own address.  The answer is ``{"detail":
         "Verification message sent to <address>."}``, naming the address mailed.  A
-        verified address with no change waiting is a 400 with "Your email address is
+        verified address without a change waiting is a 400 with "Your email address is
         already verified." and nothing is mailed.  A mail server that refuses the message
-        changes nothing in the answer: the failed send is in the email log, and the
-        refusal is logged.  Throttled under the ``auth_verify_resend`` scope; an anonymous
+        doesn't change the answer: the failed send is in the email log, and the refusal
+        is logged.  Throttled under the ``auth_verify_resend`` scope; an anonymous
         caller gets 401.
         """
         user = signed_in_user(request)
@@ -697,7 +699,7 @@ class EmailVerifyResendView(APIView):
                 {"detail": f"Verification message sent to {user.pending_email}."},
                 status=status.HTTP_202_ACCEPTED,
             )
-            # After the answer, and sending nothing for an address another account
+            # After the answer, and never mailing an address another account
             # holds, so neither the answer nor its timing says which it was.
             send_after_response(
                 response,
@@ -772,8 +774,8 @@ class EmailChangeUndoView(APIView):
         password made unusable, and a password reset link mailed to the address.  The
         answer is ``{"email": <the account's address>, "taken": <bool>}``; ``taken`` is
         true when another account held the address so it could not be put back, and the
-        account was only secured.  A token that is forged, expired, for no account or a
-        donor's, spent by an earlier undo, or mailed to an address other than the one
+        account was only secured.  A token that is forged, expired, for an unknown account
+        or a donor's, spent by an earlier undo, or mailed to an address other than the one
         the account keeps for recovery is a 400 ``{"token": ["That link is invalid, has
         expired, or has been used."]}``.
         """
@@ -914,14 +916,14 @@ class AdminUserSendPasswordResetView(APIView):
 
         Restricted to ``user_admin``, and to ``system_admin`` by implication; anyone else
         gets 403 and an unknown ``pk`` gets 404.  Refused with a 400, in this order and
-        mailing nothing: a donor, who cannot sign in ("A donor cannot sign in, so no reset
-        email was sent."); your own account (:data:`SELF_RESET_REFUSED`); an account
-        holding administrative roles you do not hold (:data:`RESET_ROLES_REFUSED`, the
-        account-edit guard); and an account with nobody to mail, a deactivated one or one
-        with no email address ("That account is deactivated, so no reset email was
-        sent.").  Both the send and the refusals are recorded in the audit log, a refusal
-        with the reason ``donor_account``, ``own_account``, ``roles_not_held``, or
-        ``inactive_account``.  A mail server that refuses the message is a 503 with
+        without mailing anything: a donor, who cannot sign in ("A donor cannot sign in, so
+        no reset email was sent."); your own account (:data:`SELF_RESET_REFUSED`); an
+        account holding administrative roles you do not hold (:data:`RESET_ROLES_REFUSED`,
+        the account-edit guard); and an account without anyone to mail, a deactivated one
+        or one without an email address ("That account is deactivated, so no reset email
+        was sent.").  Both the send and the refusals are recorded in the audit log, a
+        refusal with the reason ``donor_account``, ``own_account``, ``roles_not_held``,
+        or ``inactive_account``.  A mail server that refuses the message is a 503 with
         ``MAIL_REFUSED``: the failed send is in the email log, the refusal is logged, and
         nothing is recorded in the audit log.
         """
@@ -990,14 +992,14 @@ class AdminUserRequireNewPasswordView(APIView):
         The answer is 200 ``{"detail": "The old password no longer works and every session
         is ended. A password reset email went to <address>."}``.  A deactivated account
         stays deactivated and is mailed the link, which reactivates it when its owner
-        chooses a password, as any reset does.  A blocked account is mailed nothing, since
+        chooses a password, as any reset does.  A blocked account isn't mailed, since
         its link would be refused, and the detail ends "The account is blocked from
         reactivating, so no reset email was sent."  A donor (a tombstone among them), your
         own account, and an account holding administrative roles you do not hold are each
-        a 400 ``{"detail": ...}`` and change nothing.  A mail server that refuses the
-        message is a 503 with :data:`CREDENTIAL_MAIL_REFUSED`: the password and sessions
-        stay as the action left them, the failed send is in the email log, and the refusal
-        is logged.
+        a 400 ``{"detail": ...}`` and don't change anything.  A mail server that refuses
+        the message is a 503 with :data:`CREDENTIAL_MAIL_REFUSED`: the password and
+        sessions stay as the action left them, the failed send is in the email log, and
+        the refusal is logged.
         """
         actor = signed_in_user(request)
         target = generics.get_object_or_404(User, pk=pk)
@@ -1018,7 +1020,7 @@ class AdminUserRequireNewPasswordView(APIView):
         elif user.reactivation_blocked:
             outcome = "The account is blocked from reactivating, so no reset email was sent."
         else:
-            outcome = "The account has no email address, so no reset email was sent."
+            outcome = "The account doesn't have an email address, so no reset email was sent."
         return Response({"detail": f"{CREDENTIAL_RESET_DONE} {outcome}"})
 
 
@@ -1078,7 +1080,8 @@ def _admin_user_action(request: Request, pk: int, action: AccountAction) -> Resp
     """Run ``action`` by the signed-in user on the account ``pk``, answering the record.
 
     200 with the ``/admin/users/{id}`` payload as it stands afterwards; a refusal is a
-    400 ``{"detail": <sentence>}`` and changes nothing; an unknown ``pk`` is a 404.
+    400 ``{"detail": <sentence>}`` and doesn't change anything; an unknown ``pk`` is a
+    404.
     """
     actor = signed_in_user(request)
     target = generics.get_object_or_404(User, pk=pk)
@@ -1196,7 +1199,7 @@ class AdminUserClearBounceView(APIView):
 
         For an address the user administrator has checked is good: ``email_bounced_at``
         and ``email_bounce_detail`` are emptied and the change is recorded as
-        ``account.bounce_cleared`` under the caller.  An account with no bounce recorded
+        ``account.bounce_cleared`` under the caller.  An account without a bounce recorded
         is answered as it stands and nothing is recorded.  The answer is the
         ``/admin/users/{id}`` payload afterwards; an unknown ``pk`` is a 404.
         Restricted to ``user_admin``, and to ``system_admin`` by implication.

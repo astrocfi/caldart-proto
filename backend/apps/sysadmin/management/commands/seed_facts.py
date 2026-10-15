@@ -41,9 +41,9 @@ from caldart.dates import format_display_date
 def _has_lapsed_insurance(aircraft: Aircraft) -> bool:
     """True when ``aircraft`` carries an expiration date that is already past.
 
-    An airframe with no expiration date on file is not lapsed: it has nothing on
-    file at all, which the portal says in those words rather than calling the
-    cover expired.
+    An airframe without an expiration date on file is not lapsed: its insurance
+    isn't on file at all, and the portal says so rather than calling the cover
+    expired.
     """
     if aircraft.insurance_expiration is None:
         return False
@@ -73,7 +73,7 @@ def _unverified_pilot() -> dict[str, str]:
     """A current member with a current medical, holding all three items, none verified.
 
     The member check reads such a member as not verified on all three items: each is
-    held, so none is left out as having nothing to verify.  Returns ``{"name"}``, and
+    held, so each one has something to verify.  Returns ``{"name"}``, and
     an empty name when nobody in the seed fits.
     """
     for user in User.objects.filter(profile__isnull=False).select_related("profile"):
@@ -95,10 +95,10 @@ def _subject(*, insured: bool | None, status: MembershipState) -> dict[str, str]
     somebody whose medical is current, whose pilot certificate, medical, and photo ID
     are all verified, and whose every listed aircraft is insured past the portal's
     warning window with its insurance verified (``True``), so the card is a GO showing
-    nothing but insured airplanes; somebody who lists an aircraft whose expiration
+    only insured airplanes; somebody who lists an aircraft whose expiration
     date has passed (``False``); or anybody at all (``None``).
     Returns ``{"name", "nNumber"}``, with an empty ``nNumber`` when the member
-    lists no aircraft, and empty strings when nobody in the seed fits -- the
+    doesn't list an aircraft, and empty strings when nobody in the seed fits -- the
     specs then fail on the name they were given, which says what is missing.
     """
     for user in User.objects.filter(profile__isnull=False).select_related("profile"):
@@ -127,7 +127,7 @@ def _auto_renewing_member() -> dict[str, str]:
 
     Returns ``{"name", "email", "methodLabel"}`` for the first member holding an
     active mandate whose next charge is still ahead of today, and empty strings
-    when the seed has none -- the specs then fail on the name they were given,
+    when the seed doesn't have one -- the specs then fail on the name they were given,
     which says what is missing.  A mandate already due today or overdue is
     skipped, so a renewal spec is never handed a member the daily scan is about
     to charge out from under it.
@@ -154,8 +154,8 @@ def _auto_renewing_member() -> dict[str, str]:
 def _paused_renewal_member() -> dict[str, str]:
     """A seeded member whose automatic renewal was paused after its retries ran out.
 
-    Returns ``{"name", "email"}``, and empty strings when the seed has no paused
-    mandate.
+    Returns ``{"name", "email"}``, and empty strings when the seed doesn't have a
+    paused mandate.
     """
     mandate = (
         RenewalMandate.objects.filter(status=MandateStatus.PAUSED)
@@ -171,9 +171,9 @@ def _paused_renewal_member() -> dict[str, str]:
 def _contribution_mandate_member() -> dict[str, str]:
     """A seeded life member whose standing authority charges a contribution alone.
 
-    Returns ``{"name", "email"}`` for the first active mandate that names no
-    plan, and empty strings when the seed has none -- the specs then fail on the
-    name they were given, which says what is missing.
+    Returns ``{"name", "email"}`` for the first active mandate that doesn't
+    name a plan, and empty strings when the seed doesn't have one -- the specs then
+    fail on the name they were given, which says what is missing.
     """
     mandate = (
         RenewalMandate.objects.filter(status=MandateStatus.ACTIVE, plan__isnull=True)
@@ -190,7 +190,7 @@ def _refunded_payment_member() -> dict[str, str]:
     """A seeded member whose payment was refunded in part, for the finance specs.
 
     Returns ``{"name", "email", "receiptNumber"}`` for the first partially
-    refunded payment, and empty strings when the seed refunded nothing -- the
+    refunded payment, and empty strings when the seed didn't refund anything -- the
     specs then fail on the name they were given, which says what is missing.
     """
     payment = (
@@ -217,12 +217,12 @@ def _registry() -> dict[str, Any]:
     """The registration the end-to-end spec picks by N-number, and the registry date.
 
     ``knownNNumber`` is the first valid registration, by N-number, that carries a year
-    and is on no register record, preferring one a corporation or an LLC holds;
+    and isn't on any register record, preferring one a corporation or an LLC holds;
     ``knownType``, ``knownYear``, and ``knownOwner`` are its type (``<make> <model>``),
     year, and registrant, which is what picking it fills in.  ``asOf`` is the local
     day the newest successful import finished, written ``MM/DD/YYYY`` as the screens
-    print it.  Each is empty (``knownYear`` ``null``) when the registry holds nothing
-    that fits.
+    print it.  Each is empty (``knownYear`` ``null``) when the registry doesn't hold
+    anything that fits.
     """
     candidates = (
         Registration.objects.filter(status=RegistrationStatus.VALID, year__isnull=False)
@@ -251,7 +251,7 @@ def seed_facts() -> dict[str, Any]:
     plans that are actually there.  ``leaderCheck`` names four members the
     leader check reads differently -- an insured pilot verified on every count, one
     whose aircraft insurance has lapsed, one whose membership has, and a current
-    pilot with a current medical and nothing verified (``unverifiedPilot``, a name
+    pilot with a current medical and every item unverified (``unverifiedPilot``, a name
     alone) -- so the specs assert on the seed rather than on names typed into them,
     which drift.
     ``manualPaymentCount`` is how many payments the seed recorded by hand, which
@@ -261,8 +261,8 @@ def seed_facts() -> dict[str, Any]:
     standing authority charges a contribution alone.  ``refundedPayment`` names a
     member whose payment was refunded in part, and the receipt number that payment
     carries, which is how a finance spec finds it in the list.  ``registry`` names a
-    registration on no register record, for the spec that picks it from the N-number
-    box, and the date the registry is as of (see :func:`_registry`).
+    registration that isn't on any register record, for the spec that picks it from
+    the N-number box, and the date the registry is as of (see :func:`_registry`).
     """
     return {
         "demoPassword": DEMO_PASSWORD,

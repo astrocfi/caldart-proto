@@ -174,9 +174,9 @@ MISSIONS_FLOWN: tuple[tuple[str, str], ...] = (
 )
 
 TAX_STATUS = (
-    "<p>CalDART has no paid employees. Dues and contributions are tax deductible under "
-    "IRC 501(c)(3) to the extent allowed by law, and members fly at their own expense as "
-    "volunteers.</p>"
+    "<p>CalDART doesn't have any paid employees. Dues and contributions are tax deductible "
+    "under IRC 501(c)(3) to the extent allowed by law, and members fly at their own expense "
+    "as volunteers.</p>"
 )
 
 
@@ -390,7 +390,7 @@ DART_INDEX = PageSpec(
         ),
         heading("Starting a new team"),
         rich(
-            "<p>If your airport has no DART, it takes four or five committed volunteers "
+            "<p>If your airport doesn't have a DART, it takes four or five committed volunteers "
             "to start one. Get in touch and a board member will send you the organizing "
             "handbook and introduce you to a nearby leader who has done it.</p>"
         ),
@@ -733,7 +733,7 @@ JOIN = PageSpec(
             "<li><b>Aircraft owners</b> carry liability insurance and record the carrier, "
             "limits and expiry date. Aircraft without current insurance are not "
             "dispatched.</li>"
-            "<li><b>Ground volunteers</b> need no certificate at all \u2014 only the "
+            "<li><b>Ground volunteers</b> don't need a certificate at all \u2014 only the "
             "willingness to turn up.</li>"
             "</ul>"
         ),
@@ -741,7 +741,7 @@ JOIN = PageSpec(
         rich(
             "<p>You create an account, fill in your profile, and pay by card, Apple Pay, "
             "Google Pay or PayPal. Your membership is active the moment the payment "
-            "clears \u2014 there is no waiting period and no approval queue. A DART leader "
+            "clears \u2014 there isn't a waiting period or an approval queue. A DART leader "
             "near you will be in touch about the next meeting.</p>"
         ),
         cta(
@@ -871,7 +871,7 @@ SPONSORS = PageSpec(
         rich(
             "<p>If your business serves general aviation in California and you would "
             "like to support a season of exercises, write to us. Sponsorship is "
-            "acknowledged on this page and in the newsletter; it buys no influence over "
+            "acknowledged on this page and in the newsletter; it doesn't buy any influence over "
             "who we fly for.</p>"
         ),
         cta("Talk to us about sponsorship", site_path("/contact/"), "secondary"),

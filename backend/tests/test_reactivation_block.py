@@ -54,7 +54,7 @@ ROLES_BLOCK = {
         "You cannot block or unblock an account that holds administrative roles you do not hold."
     )
 }
-DONOR_BLOCK = {"detail": "A donor has no portal account to block."}
+DONOR_BLOCK = {"detail": "A donor doesn't have a portal account to block."}
 
 
 def block_url(user: User, action: str = "block") -> str:

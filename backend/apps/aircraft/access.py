@@ -1,10 +1,10 @@
 """Who may use the aircraft register and keep aircraft on their profile.
 
-Aircraft are for current members.  A friend of CalDART pays no dues and has no aircraft;
-a member who has joined and not yet paid their first dues has none until they pay; and
-a member whose membership has expired keeps the aircraft on their profile but cannot
-see or change them until they renew.  The roles that check members and aircraft
-(``VERIFY_ROLES``, and ``system_admin``) use the register whatever their own
+Aircraft are for current members.  A friend of CalDART doesn't pay dues and doesn't have
+aircraft; a member who has joined and not yet paid their first dues doesn't have any until
+they pay; and a member whose membership has expired keeps the aircraft on their profile
+but cannot see or change them until they renew.  The roles that check members and
+aircraft (``VERIFY_ROLES``, and ``system_admin``) use the register whatever their own
 membership.
 
 Every aircraft endpoint a member reaches checks :class:`CanUseAircraft`, the profile

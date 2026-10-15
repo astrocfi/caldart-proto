@@ -77,7 +77,7 @@ class NNumberField(serializers.CharField):
 
         ``data`` is the raw value from the request body, which ``CharField`` coerces
         to a string and rejects when it is a mapping, a list or a boolean.  Raises a
-        validation error when normalization leaves nothing usable.
+        validation error when the value is blank after normalization.
         """
         # The stubs type `CharField.to_internal_value` as taking a `str`; the runtime
         # field also coerces an int or a float and rejects every other type itself.
@@ -114,8 +114,9 @@ def _read_only_choice(choices: list[tuple[str, str]]) -> serializers.ChoiceField
 class CoverageSerializer(serializers.Serializer[Any]):
     """Whether the coverage policy excludes an aircraft, and what the check says of it.
 
-    ``reason`` is blank when there is nothing to say, ``Category not recorded`` for an
-    aircraft with no category the policy does not otherwise exclude, and ``Not covered:
+    ``reason`` is blank when the check doesn't have anything to say, ``Category not
+    recorded`` for an aircraft without a category that the policy does not otherwise
+    exclude, and ``Not covered:
     <what> are excluded by <organization>'s policy`` for an excluded one.
     """
 
@@ -172,7 +173,7 @@ class AircraftTypeCreateSerializer(serializers.Serializer[AircraftType]):
     would be: ``make`` through ``display_make`` and ``model`` through
     ``display_model`` of its upper-cased form (``cessna aircraft co`` is ``Cessna``,
     ``t-51`` is ``T-51``).  ``seats`` (at least 1) and ``engines`` (at least 0) are
-    optional.  A name that normalizes to nothing -- ``display_make`` drops every word
+    optional.  A name that is blank after normalizing -- ``display_make`` drops every word
     of a make that is only a corporate suffix or punctuation, such as ``INC`` or a bare
     ``.`` -- is refused under that field with :data:`BLANK_NAME_MESSAGE`.  A make and
     model the vocabulary already holds, compared case-insensitively after that
@@ -228,7 +229,7 @@ class AircraftTypeCreateSerializer(serializers.Serializer[AircraftType]):
 class RegistrationSerializer(serializers.ModelSerializer[Registration]):
     """``GET /aircraft/registry/{n_number}``: one N-number as the registry holds it.
 
-    ``airworthiness`` is blank when the registry records no certificate.
+    ``airworthiness`` is blank when the registry doesn't record a certificate.
     """
 
     type = AircraftTypeSerializer(read_only=True)
@@ -578,7 +579,7 @@ class LeaderMembershipSerializer(serializers.Serializer[Any]):
     """The membership fields of the leader status card.
 
     ``status`` is the computed membership state, ``friend`` among them: a friend of
-    CalDART pays no dues, so ``expires_on`` and ``plan`` are null and the card's
+    CalDART doesn't pay dues, so ``expires_on`` and ``plan`` are null and the card's
     membership go/no-go is false, whatever terms the friend once held.
     """
 
@@ -672,7 +673,7 @@ class MemberVerificationSerializer(serializers.Serializer[Any]):
         return check_certificate_number(value)
 
     def validate_verified(self, value: list[str]) -> list[str]:
-        """Refuse a slug that names no item; return the slugs without repeats."""
+        """Refuse a slug that doesn't name an item; return the slugs without repeats."""
         for slug in value:
             if slug not in ITEM_LABELS:
                 raise serializers.ValidationError(f"Unknown item '{slug}'.")

@@ -45,8 +45,8 @@ class Command(BaseCommand):
     def handle(self, *args: Any, **options: Any) -> None:
         """Run the import and write its counts to stdout.
 
-        Raises ``CommandError`` when ``--import-id`` names no row, and when the import
-        fails, with the reason the row records.
+        Raises ``CommandError`` when ``--import-id`` doesn't name a row, and when the
+        import fails, with the reason the row records.
         """
         run: RegistryImport | None = None
         if options["import_id"] is not None:

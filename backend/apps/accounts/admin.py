@@ -23,15 +23,15 @@ ROLE_FIELDS: tuple[str, ...] = ("groups", "is_superuser", "is_staff", "user_perm
 admin.site.unregister(Group)
 
 
-# django-stubs types ModelAdmin as generic, but Django's own class carries no
+# django-stubs types ModelAdmin as generic, but Django's own class doesn't carry a
 # __class_getitem__ when the admin autodiscovery that imports this module runs, so
 # naming the model here would raise TypeError on startup.
 @admin.register(User)
 class UserAdmin(DjangoUserAdmin):  # type: ignore[type-arg]
     """Django admin for the accounts, listing and searching them by name and address.
 
-    No administrator chooses or sets anybody's password here: the change form shows
-    no password, the add form is closed (an account is added on the portal's New
+    No administrator chooses or sets anybody's password here: the change form doesn't
+    show a password, the add form is closed (an account is added on the portal's New
     member, which mails the person an invitation to choose their own), and the
     change-password page Django's own ``UserAdmin`` offers answers 403.
     """
@@ -115,5 +115,5 @@ class UserAdmin(DjangoUserAdmin):  # type: ignore[type-arg]
 
     @admin.display(description="roles")
     def role_list(self, obj: User) -> str:
-        """The account's role slugs, comma separated, or a dash when it holds none."""
+        """Role slugs, comma separated, or a dash for an account without a role."""
         return ", ".join(obj.roles) or "\u2014"

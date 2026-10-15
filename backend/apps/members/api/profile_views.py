@@ -1,6 +1,6 @@
 """Member self-service endpoints, including attaching and detaching aircraft.
 
-Every ``/me/...`` view works on ``request.user`` alone -- there is no object id
+Every ``/me/...`` view works on ``request.user`` alone -- there isn't an object id
 to tamper with, so the only permission check needed is "is anybody signed in".
 ``/darts`` and ``/plans`` are the two public catalogs the join wizard reads
 before the visitor has an account.
@@ -49,8 +49,8 @@ def get_or_create_profile(user: User) -> MemberProfile:
 
     Registration creates one, but a member imported or seeded
     without one must still be able to fill it in.  The row comes back with its
-    DART, aircraft, and the aircraft's types already fetched, so serializing it costs no
-    more queries.
+    DART, aircraft, and the aircraft's types already fetched, so serializing it doesn't
+    cost any more queries.
     """
     MemberProfile.objects.get_or_create(user=user)
     return (
@@ -102,7 +102,7 @@ class MyPaymentsView(APIView):
 
         A gift from the public donation page that has not settled is left out: anybody
         who knows the address can start one in the account's name, and until its money
-        arrives it is nothing the account holder did.
+        arrives it isn't anything the account holder did.
         """
         payments = (
             acting_user(request)
@@ -124,8 +124,8 @@ class MyProfileAircraftView(APIView):
         """200 with the caller's aircraft list once ``aircraft_id`` is attached.
 
         A body without an integer ``aircraft_id`` is a 400, and an id no
-        aircraft has is a 404.  Attaching an aircraft already attached changes
-        nothing and still answers 200.  The profile's ``profile_updated_at``
+        aircraft has is a 404.  Attaching an aircraft already attached doesn't
+        change anything and still answers 200.  The profile's ``profile_updated_at``
         is stamped either way.
         """
         serializer = AircraftAttachSerializer(data=request.data)
@@ -198,7 +198,7 @@ class MyKindFriendView(APIView):
         ``{"keep_contribution": ["This field is required."]}``.  True while a recurring
         donation is already active or paused is 400 ``{"keep_contribution": ["You
         already have a recurring donation. Change it on the Donate screen."]}``.  A
-        paused renewal's contribution stops with it and needs no answer.
+        paused renewal's contribution stops with it and doesn't need an answer.
         A lifetime member, a friend, and a donor are each a 400 ``{"detail": ...}``;
         nothing changes on any refusal.  An anonymous caller gets 401.
         """
@@ -218,9 +218,9 @@ class MyKindFriendView(APIView):
         """200 with the ``user`` payload once a pending change to friend is taken back.
 
         ``friend_on`` is cleared, so the caller stays a member; a renewal the change
-        canceled stays canceled.  With nothing pending -- no date, a date that has come,
-        or a caller who is a friend -- the answer is 400 ``{"detail": "You have no
-        pending change."}``.  An anonymous caller gets 401.
+        canceled stays canceled.  When nothing is pending -- no date, a date that has
+        come, or a caller who is a friend -- the answer is 400 ``{"detail": "You don't
+        have a pending change."}``.  An anonymous caller gets 401.
         """
         try:
             user = undo_become_friend(acting_user(request))

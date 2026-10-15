@@ -31,7 +31,7 @@ from caldart import audit
 from caldart.exceptions import DomainError
 
 #: Why :func:`require_new_password_for` refuses a donor, a tombstone included.
-DONOR_CREDENTIAL_REFUSED = "A donor cannot sign in, so there is no password to replace."
+DONOR_CREDENTIAL_REFUSED = "A donor cannot sign in, so there isn't a password to replace."
 
 #: Why it refuses the administrator's own account, which has its own page for this.
 SELF_CREDENTIAL_REFUSED = (
@@ -102,7 +102,7 @@ def block_for(actor: User, target: User) -> User:
     The block is refused first by :func:`apps.accounts.status.check_block`; an active
     account is then deactivated exactly as :func:`deactivate_for` does it, and the flag
     is set and recorded as ``account.block``.  Blocking an account already blocked
-    changes nothing.  Returns the account as stored.
+    doesn't change anything.  Returns the account as stored.
     """
     user = _locked(target)
     check_block(actor, user, blocked=True)
@@ -118,10 +118,10 @@ def block_for(actor: User, target: User) -> User:
 def require_new_password_for(actor: User, target: User) -> User:
     """Shut ``target``'s current password out on ``actor``'s behalf, ending its sessions.
 
-    Refused with ``DomainError``, in this order and changing nothing: a donor, a
-    tombstone among them (:data:`DONOR_CREDENTIAL_REFUSED`), the actor's own account
-    (:data:`SELF_CREDENTIAL_REFUSED`), and an account holding roles the actor does not
-    hold (:data:`CREDENTIAL_ROLES_REFUSED`).  Each is recorded at WARNING as
+    Refused with ``DomainError``, in this order and without changing anything: a
+    donor, a tombstone among them (:data:`DONOR_CREDENTIAL_REFUSED`), the actor's own
+    account (:data:`SELF_CREDENTIAL_REFUSED`), and an account holding roles the actor
+    does not hold (:data:`CREDENTIAL_ROLES_REFUSED`).  Each is recorded at WARNING as
     ``account.new_password`` with the reason ``donor_account``,
     ``own_account``, or ``roles_not_held``.
 
@@ -156,8 +156,8 @@ def unblock_for(actor: User, target: User) -> User:
     """Lift ``target``'s block, leaving the account deactivated for its owner to reopen.
 
     Refused by :func:`apps.accounts.status.check_block`; recorded as
-    ``account.unblock``.  Lifting a block that is not set changes nothing.  Returns the
-    account as stored.
+    ``account.unblock``.  Lifting a block that is not set doesn't change anything.
+    Returns the account as stored.
     """
     user = _locked(target)
     set_reactivation_blocked(actor, user, blocked=False)

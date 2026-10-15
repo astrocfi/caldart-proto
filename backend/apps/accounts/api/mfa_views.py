@@ -1,8 +1,8 @@
 """Two-factor sign-in endpoints: the code steps of signing in, and the Security card.
 
 The code steps (``/auth/login/mfa*``) finish a sign-in a right password started
-(``apps.accounts.api.sign_in.start_session``); they act on the pending sign-in in the
-caller's session and on nothing else.  The ``/auth/mfa*`` endpoints are the signed-in
+(``apps.accounts.api.sign_in.start_session``); they act only on the pending sign-in
+in the caller's session.  The ``/auth/mfa*`` endpoints are the signed-in
 person's own: turning two-factor sign-in on, replacing the backup codes, and turning it
 off.  Every endpoint that takes a code is throttled under ``auth_mfa``, and a wrong code
 counts against the address's lockout.
@@ -39,7 +39,7 @@ from apps.accounts.status import closed_account_message
 from apps.accounts.throttling import MfaThrottle
 from caldart.exceptions import DomainError, DomainValidationError
 
-#: What the code steps answer when there is no pending sign-in to finish: it expired,
+#: What the code steps answer when there isn't a pending sign-in to finish: it expired,
 #: took too many wrong codes, or was never started.
 SIGN_IN_EXPIRED = "Your sign-in has expired. Enter your email address and password again."
 
@@ -153,9 +153,9 @@ class LoginMfaEnrollView(APIView):
     def post(self, request: Request) -> Response:
         """Answer the secret, ``otpauth://`` address, and QR code for a new device.
 
-        Only a pending sign-in whose account has no device may call it.  The secret
-        waits in this session until the confirm step checks a code from it; calling
-        again replaces it.  Without such a pending sign-in the answer is the 400
+        Only a pending sign-in whose account doesn't have a device may call it.  The
+        secret waits in this session until the confirm step checks a code from it;
+        calling again replaces it.  Without such a pending sign-in the answer is the 400
         ``mfa_expired`` refusal.  Open to anonymous callers; throttled under
         ``auth_mfa``.
         """
@@ -219,7 +219,7 @@ def _with_code[T](request: Request, action: Callable[[User, str], T], otp: str) 
 
 
 def _refused(error: DomainError) -> Response:
-    """The 400 ``{"detail": <sentence>}`` a refusal naming no field is answered with."""
+    """The 400 ``{"detail": <sentence>}`` for a refusal that doesn't name a field."""
     return Response({"detail": error.message}, status=status.HTTP_400_BAD_REQUEST)
 
 

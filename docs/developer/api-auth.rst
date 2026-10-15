@@ -824,7 +824,7 @@ sign in to it, and reactivating restores the term the same way.
   WARNING as ``action=account.deactivate ... reason=system_admin_target``.
 * A donor cannot sign in and no session names one, so a donor reaches this endpoint
   only as an anonymous caller, answered 401.  The service behind it still refuses a
-  donor, with "A donor has no portal account to deactivate." recorded with
+  donor, with "A donor doesn't have a portal account to deactivate." recorded with
   ``reason=donor_account``, as a guard rather than a path anybody takes.
 
 Statuses: **204**; **400** for any refusal above, which doesn't change anything;
@@ -1537,7 +1537,7 @@ everything and mails a fresh link.
 
 Refused, without changing anything, in this order::
 
-    400 {"detail": "A donor cannot sign in, so there is no password to replace."}
+    400 {"detail": "A donor cannot sign in, so there isn't a password to replace."}
     400 {"detail": "You cannot require a new password for your own account. Use Change password instead."}
     400 {"detail": "You cannot require a new password for an account that holds administrative roles you do not hold."}
 
@@ -1619,7 +1619,7 @@ its sessions end and the reset is recorded.
 
 Refused with **400** ``{"detail": ...}``, without changing anything, in this order: a
 tombstone (the member record's sentence, :ref:`api-members-tombstone`), a donor
-("A donor has no portal account to reset."), your own account ("You cannot reset
+("A donor doesn't have a portal account to reset."), your own account ("You cannot reset
 your own two-factor sign-in. Turn it off or on yourself."), and an account
 holding the System administrator role, or a superuser's, when you are not a system
 administrator ("Only a system administrator can reset a system administrator's
@@ -1841,8 +1841,8 @@ Their password      You cannot require a new password for an account that holds
                     administrative roles you do not hold. (or *You cannot send a
                     password reset to an account that holds administrative roles
                     you do not hold.*)
-A donor             A donor has no portal account to deactivate. (or *to
-                    reactivate.*, or *to block.*)
+A donor             A donor doesn't have a portal account to deactivate. (or
+                    *to reactivate.*, or *to block.*)
 A blocked account   A user administrator has blocked this account from
                     reactivating. Allow reactivation on its user record first.
 No change           That account is already deactivated. (or *That account is

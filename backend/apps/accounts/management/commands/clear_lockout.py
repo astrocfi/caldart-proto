@@ -16,8 +16,8 @@ class Command(BaseCommand):
     fifteen-minute count of wrong passwords and codes and the day's count of wrong
     codes are both cleared, so the next sign-in is judged afresh.  The address is
     resolved as sign-in resolves it, so any spelling of an account's address clears
-    that account's counts; an address no account holds clears its own.  Changes
-    nothing else, and prints one line naming the address.
+    that account's counts; an address no account holds clears its own.  Doesn't
+    change anything else, and prints one line naming the address.
     """
 
     help = "Forget the failed sign-in attempts counted against --email."

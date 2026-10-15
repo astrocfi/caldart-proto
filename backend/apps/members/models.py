@@ -33,7 +33,7 @@ class PilotCertificateType(models.TextChoices):
 
 
 class MedicalType(models.TextChoices):
-    """The medical certificate a member holds, or ``NONE`` for none on file."""
+    """The medical certificate a member holds, or ``NONE`` when none is on file."""
 
     NONE = "none", "None"
     BASICMED = "basicmed", "BasicMed"
@@ -45,8 +45,8 @@ class MedicalType(models.TextChoices):
 class PhotoIdType(models.TextChoices):
     """The kind of photo ID a verifier has seen; nothing else about it is recorded.
 
-    ``NOT_PROVIDED`` is the default: nobody has shown a photo ID, so there is nothing to
-    verify.  A verifier who saw a document of a kind not listed records ``OTHER``.
+    ``NOT_PROVIDED`` is the default: nobody has shown a photo ID, so there isn't anything
+    to verify.  A verifier who saw a document of a kind not listed records ``OTHER``.
     """
 
     NOT_PROVIDED = "not_provided", "Not provided"
@@ -209,7 +209,7 @@ HAM_CALLSIGN_RE = re.compile(r"^(?:[KNW][A-Z]?|A[A-L])[0-9][A-Z]{1,3}$")
 #: What a callsign that is not in US format is answered with.
 HAM_CALLSIGN_MESSAGE = "Enter a US amateur radio callsign, such as W6ABC."
 
-#: The number of digits in a pilot certificate number, which holds nothing else.
+#: The number of digits in a pilot certificate number, which holds only digits.
 CERTIFICATE_NUMBER_DIGITS = 7
 
 #: A pilot certificate number: exactly ``CERTIFICATE_NUMBER_DIGITS`` digits.
@@ -306,7 +306,7 @@ class MemberProfile(TimestampedModel):
     aircraft = models.ManyToManyField(
         "aircraft.Aircraft", blank=True, related_name="pilots", verbose_name="planes commonly flown"
     )
-    #: A member who rents or borrows has no airframe to list, and a DART leader
+    #: A member who rents or borrows doesn't have an airframe to list, and a DART leader
     #: needs to know that is the reason rather than an empty profile.
     flies_rented_aircraft = models.BooleanField("flies rented or borrowed aircraft", default=False)
 
@@ -503,7 +503,7 @@ class MembershipStatusChoices(models.TextChoices):
     """The stored state of one ``Membership`` term.
 
     ``SUSPENDED`` is a term whose holder deactivated their own account while it still
-    had time to run.  It counts for nothing -- it never covers a day and never makes
+    had time to run.  It doesn't count -- it never covers a day and never makes
     anybody expired -- until the account is reactivated, when it becomes ``ACTIVE``
     again, or ``EXPIRED`` if it ran out in the meantime.  It still makes its holder a
     member for ``members.services.account_kind`` once it has started, so a deactivated
@@ -523,10 +523,10 @@ class MembershipState(models.TextChoices):
     ``members.services.membership_status`` works out from every term an account
     holds and from the account's effective kind (``members.services.account_kind``).
     ``CURRENT`` is a term covering today and ``EXPIRED`` a term that has started and
-    run out.  ``FRIEND`` is a friend of CalDART, who pays no dues and so is never
+    run out.  ``FRIEND`` is a friend of CalDART, who doesn't pay dues and so is never
     current and never expired, whatever terms they held as a member.  ``NONE`` is an
-    account that chose to be a member and holds no term that has started yet, such as
-    one an administrator created that has not paid: it is still a friend by
+    account that chose to be a member and doesn't hold a term that has started yet, such
+    as one an administrator created that has not paid: it is still a friend by
     ``account_kind`` (it owes the dues before it is anything more), but it reads *Not
     yet paid* rather than *Friend*, so a list never calls it a friend.  ``DONOR``
     is what a donor account reads, and a donor never appears in a member list.  These
@@ -590,7 +590,7 @@ class Membership(TimestampedModel):
         ]
 
     def __str__(self) -> str:
-        """The member, the plan name and the dates, with ``lifetime`` for no end."""
+        """The member, the plan name and the dates, with ``lifetime`` for an open end."""
         end = self.ends_on.isoformat() if self.ends_on else "lifetime"
         return f"{self.user} \u00b7 {self.plan.name} \u00b7 {self.starts_on.isoformat()}-{end}"
 

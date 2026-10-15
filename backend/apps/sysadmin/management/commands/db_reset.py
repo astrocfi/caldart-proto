@@ -33,7 +33,7 @@ class Command(BaseCommand):
         """Drop the public schema, migrate, and rebuild what every install needs.
 
         After ``migrate`` it creates the cache table (production keeps its cache in the
-        database; where no database cache is configured this does nothing), then seeds
+        database; where no database cache is configured this step is skipped), then seeds
         the roles and the membership plans, and with ``--seed`` the demo data and the
         example site.
 

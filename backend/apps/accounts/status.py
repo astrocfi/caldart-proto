@@ -41,8 +41,8 @@ STATUS_CHANGE_REFUSED = (
 SYSTEM_ADMIN_SELF_DEACTIVATION_REFUSED = (
     "A system administrator cannot deactivate their own account."
 )
-DONOR_SELF_DEACTIVATION_REFUSED = "A donor has no portal account to deactivate."
-DONOR_REACTIVATION_REFUSED = "A donor has no portal account to reactivate."
+DONOR_SELF_DEACTIVATION_REFUSED = "A donor doesn't have a portal account to deactivate."
+DONOR_REACTIVATION_REFUSED = "A donor doesn't have a portal account to reactivate."
 ALREADY_DEACTIVATED = "That account is already deactivated."
 ALREADY_ACTIVE = "That account is already active."
 REACTIVATION_BLOCKED_REFUSED = (
@@ -53,7 +53,7 @@ SELF_BLOCK_REFUSED = "You cannot block your own account."
 BLOCK_REFUSED = (
     "You cannot block or unblock an account that holds administrative roles you do not hold."
 )
-DONOR_BLOCK_REFUSED = "A donor has no portal account to block."
+DONOR_BLOCK_REFUSED = "A donor doesn't have a portal account to block."
 
 
 def closed_account_message() -> str:
@@ -73,8 +73,9 @@ def deactivate_own_account(user: User) -> None:
 
     A system administrator -- the role, or a Django superuser -- is refused with
     ``DomainError("A system administrator cannot deactivate their own account.")``, so
-    the site is never left without one by accident, and a donor, who has no portal
-    account, with ``DomainError("A donor has no portal account to deactivate.")``; each
+    the site is never left without one by accident, and a donor, who doesn't have a
+    portal account, with ``DomainError("A donor doesn't have a portal account to
+    deactivate.")``; each
     refusal is recorded at WARNING as ``account.deactivate`` with the reason
     ``system_admin_target`` or ``donor_account``.  Otherwise the account is saved
     inactive and the change is recorded as ``account.deactivate`` with
@@ -108,15 +109,15 @@ def deactivated_account(email: str, password: str) -> User | None:
     """The deactivated account ``email`` names, when ``password`` is its password.
 
     The address is compared case-insensitively.  ``None`` for an unknown address, an
-    active account, a donor's account, and a wrong password alike, so a caller can
-    say nothing that tells them apart.  A blocked account is returned like any other
-    deactivated one; the caller reads ``reactivation_blocked`` to tell its owner it is
-    closed.
+    active account, a donor's account, and a wrong password alike, so a caller
+    can't say anything that tells them apart.  A blocked account is returned like any
+    other deactivated one; the caller reads ``reactivation_blocked`` to tell its owner
+    it is closed.
     """
     user = User.objects.filter(email__iexact=email.strip(), is_active=False).first()
     if user is None or is_donor(user):
-        # Hash the password anyway, so an address with no deactivated account behind it
-        # takes as long to refuse as a deactivated account's wrong password.
+        # Hash the password anyway, so an address without a deactivated account behind
+        # it takes as long to refuse as a deactivated account's wrong password.
         User().set_password(password)
         return None
     if not user.check_password(password):
@@ -158,15 +159,15 @@ def reactivate_own_account(user: User) -> None:
 def deactivate_account(actor: User, target: User) -> None:
     """Clear ``target``'s active flag on ``actor``'s behalf, and end its sessions.
 
-    Refused with ``DomainError``, in this order and changing nothing: a donor ("A donor
-    has no portal account to deactivate."), the actor's own account ("You cannot
-    deactivate your own account."), an account holding two-factor roles the actor does not
-    hold ("You cannot activate or deactivate an account that holds administrative roles
-    you do not hold." -- which is how a system administrator's account is kept from anyone
-    but another system administrator), and an account already deactivated ("That account
-    is already deactivated.").  The first three are recorded at WARNING as
-    ``account.deactivate`` with the reasons ``donor_account``, ``self_deactivation``, and
-    ``roles_not_held``.
+    Refused with ``DomainError``, in this order and without changing anything: a donor
+    ("A donor doesn't have a portal account to deactivate."), the actor's own account
+    ("You cannot deactivate your own account."), an account holding two-factor roles the
+    actor does not hold ("You cannot activate or deactivate an account that holds
+    administrative roles you do not hold." -- which is how a system administrator's
+    account is kept from anyone but another system administrator), and an account
+    already deactivated ("That account is already deactivated.").  The first three are
+    recorded at WARNING as ``account.deactivate`` with the reasons ``donor_account``,
+    ``self_deactivation``, and ``roles_not_held``.
 
     Otherwise the account is saved inactive, recorded as ``account.deactivate`` under
     ``actor``, and raised as the ``account_deactivated`` event naming ``actor``, and
@@ -197,14 +198,15 @@ def deactivate_account(actor: User, target: User) -> None:
 def reactivate_account(actor: User, target: User) -> None:
     """Set ``target``'s active flag again on ``actor``'s behalf.
 
-    Refused with ``DomainError``, in this order and changing nothing: a donor ("A donor
-    has no portal account to reactivate."), an account holding two-factor roles the actor
-    does not hold ("You cannot activate or deactivate an account that holds administrative
-    roles you do not hold."), an account a user administrator has blocked from
-    reactivating ("A user administrator has blocked this account from reactivating. Allow
-    reactivation on its user record first."), and an account already active ("That account
-    is already active.").  The first three are recorded at WARNING as ``account.activate``
-    with the reasons ``donor_account``, ``roles_not_held``, and ``reactivation_blocked``.
+    Refused with ``DomainError``, in this order and without changing anything: a donor
+    ("A donor doesn't have a portal account to reactivate."), an account holding
+    two-factor roles the actor does not hold ("You cannot activate or deactivate an
+    account that holds administrative roles you do not hold."), an account a user
+    administrator has blocked from reactivating ("A user administrator has blocked this
+    account from reactivating. Allow reactivation on its user record first."), and an
+    account already active ("That account is already active.").  The first three are
+    recorded at WARNING as ``account.activate`` with the reasons ``donor_account``,
+    ``roles_not_held``, and ``reactivation_blocked``.
 
     Otherwise the account is saved active, recorded as ``account.activate`` under
     ``actor``, and raised as the ``account_reactivated`` event naming ``actor``, and an
@@ -237,8 +239,8 @@ def reactivate_account(actor: User, target: User) -> None:
 def check_block(actor: User, target: User, *, blocked: bool) -> None:
     """Refuse ``actor`` setting (``blocked``) or clearing ``target``'s block.
 
-    Raises ``DomainError``, in this order: a donor ("A donor has no portal account to
-    block."), the actor's own account ("You cannot block your own account."), and an
+    Raises ``DomainError``, in this order: a donor ("A donor doesn't have a portal account
+    to block."), the actor's own account ("You cannot block your own account."), and an
     account holding two-factor roles the actor does not hold ("You cannot block or unblock
     an account that holds administrative roles you do not hold.").  Each is recorded at
     WARNING as ``account.block`` or ``account.unblock`` with the reason ``donor_account``,
@@ -260,8 +262,8 @@ def check_block(actor: User, target: User, *, blocked: bool) -> None:
 def set_reactivation_blocked(actor: User, target: User, *, blocked: bool) -> bool:
     """Set or clear ``target``'s ``reactivation_blocked`` flag, and say whether it moved.
 
-    Raises what :func:`check_block` raises.  A flag already as asked is left alone,
-    records nothing, and returns False.  Otherwise the flag is saved and recorded as
+    Raises what :func:`check_block` raises.  A flag already as asked is left alone, isn't
+    recorded, and returns False.  Otherwise the flag is saved and recorded as
     ``account.block`` or ``account.unblock`` under ``actor``, and the return is True.
     Setting the flag does not deactivate the account: the caller deactivates an active
     account first.  Clearing it leaves the account deactivated, for its owner to bring
@@ -309,7 +311,7 @@ def end_sessions(user: User) -> int:
     The sessions live in the database (Django's default session engine), so each one
     is decoded and matched on the account id it carries.  Django already refuses a
     deactivated account on its next request; deleting the rows makes the end
-    immediate and leaves nothing behind to come back to life.
+    immediate and doesn't leave anything behind to come back to life.
     """
     signed_in = str(user.pk)
     ended = [

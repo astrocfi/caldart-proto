@@ -38,7 +38,7 @@ class ModelGetter(Protocol):
     Both the live app registry and the historical one a data migration carries
     answer this call, which is why the functions below take a registry rather than
     importing the models directly.  A historical model class is built at migration
-    time and has no static type, so the class comes back unchecked.
+    time and doesn't have a static type, so the class comes back unchecked.
     """
 
     def __call__(self, app_label: str, model_name: str) -> type[Any]:

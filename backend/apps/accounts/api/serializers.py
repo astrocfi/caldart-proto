@@ -78,7 +78,7 @@ class UserSerializer(serializers.ModelSerializer[User]):
 
     @extend_schema_field(serializers.ListField(child=serializers.ChoiceField(choices=ROLE_SLUGS)))
     def get_roles(self, obj: User) -> list[str]:
-        """The account's role slugs, in privilege order; empty when it holds none."""
+        """The account's role slugs, in privilege order; empty without a role."""
         return obj.roles
 
     @extend_schema_field(MembershipStatusSerializer)
@@ -98,8 +98,8 @@ class UserSerializer(serializers.ModelSerializer[User]):
     def get_profile_complete(self, obj: User) -> bool:
         """True when the account has a member profile and that profile is complete.
 
-        ``MemberProfile.is_complete`` is the one definition; an account with no profile
-        row at all is False.
+        ``MemberProfile.is_complete`` is the one definition; an account without a
+        profile row at all is False.
         """
         profile = getattr(obj, "profile", None)
         return bool(profile and profile.is_complete)
@@ -378,11 +378,11 @@ class AdminUserSerializer(UserSerializer):
     a ``system_admin`` may move ``system_admin``.  ``first_name``, ``last_name``, and
     ``email`` are read here and changed on the member record or by the person; a request
     carrying any of them, even unchanged, is refused 400 keyed on each one it carries,
-    with :data:`caldart.messages.USER_RECORD_ROLES_ONLY`, and changes nothing.  The
-    active flag and ``reactivation_blocked`` are read
+    with :data:`caldart.messages.USER_RECORD_ROLES_ONLY`, and doesn't change anything.
+    The active flag and ``reactivation_blocked`` are read
     here and changed only through the record's own actions (deactivate, reactivate,
     block, unblock).  ``email_bounced_at`` and ``email_bounce_detail`` say when and why
-    the bounce check last found the address bouncing, null and blank with no bounce
+    the bounce check last found the address bouncing, null and blank without a bounce
     known; they are changed only by the bounce check, a new or verified address, and
     the record's **Clear bounce** action.  ``two_factor_enabled`` is true while the
     account has a confirmed authenticator device; it changes only by its owner and the
@@ -442,7 +442,7 @@ class AdminUserSerializer(UserSerializer):
 
     @staticmethod
     def _profile_text(obj: User, field: str) -> str:
-        """The profile's ``field``, or a blank string when the account has no profile."""
+        """The profile's ``field``, or a blank string when the account lacks a profile."""
         profile = getattr(obj, "profile", None)
         text: str = getattr(profile, field) if profile is not None else ""
         return text
@@ -475,7 +475,7 @@ class AdminUserSerializer(UserSerializer):
         """True when the account has a confirmed authenticator device.
 
         Read from the ``two_factor_on`` annotation ``admin_user_queryset`` adds, so the
-        list costs no query per row; an account loaded without it is asked directly.
+        list doesn't cost a query per row; an account loaded without it is asked directly.
         """
         annotated = getattr(obj, "two_factor_on", None)
         if isinstance(annotated, bool):

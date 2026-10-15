@@ -17,7 +17,7 @@ def find_dart(request: HttpRequest) -> HttpResponseRedirect:
 
     Reads the DART's primary key from the ``dart`` query parameter and redirects
     to the live page for that team.  A missing, unparsable, or unknown value, and a
-    team with no published page, all fall back to the DART directory, and to the
+    team without a published page, all fall back to the DART directory, and to the
     site root when no directory is published.  The redirect is always to a page on
     this site, so the parameter cannot steer the reader elsewhere.
     """

@@ -90,7 +90,7 @@ class HealthView(APIView):
         counts the migrations on disk that are not applied, and is ``-1`` when
         ``db`` is not ``"ok"``; ``disk_free_mb`` is the free space on the backup
         directory's filesystem in whole mebibytes; ``last_backup`` is the
-        modification time of the newest dump, or ``null`` when there is none;
+        modification time of the newest dump, or ``null`` when there isn't one;
         ``version`` is the project version; ``debug`` reports whether the
         server runs with ``DEBUG`` on; and ``scheduled_jobs`` is what
         ``GET /system/jobs`` answers, or ``null`` when ``db`` is not ``"ok"`` or the
@@ -199,11 +199,11 @@ class RenewalRunView(APIView):
     def post(self, request: Request) -> Response:
         """Rehearse the scan and answer its counts, or start a live scan and answer 202.
 
-        The body takes ``dry_run``, defaulting to ``False``.  A dry run changes no
-        mandate, emails nobody and charges nobody, and runs inside the request: the
-        answer is 200 with ``{noticed, warned, charged, failed, paused, skipped,
-        actions}``, where ``actions`` names every member the run would email or
-        charge, and the rehearsal is recorded in the audit log with the caller as
+        The body takes ``dry_run``, defaulting to ``False``.  A dry run never
+        changes a mandate, emails anybody, or charges anybody, and runs inside the
+        request: the answer is 200 with ``{noticed, warned, charged, failed, paused,
+        skipped, actions}``, where ``actions`` names every member the run would email
+        or charge, and the rehearsal is recorded in the audit log with the caller as
         its actor.
 
         A live scan charges cards, and each charge waits on the provider, so it is
@@ -243,7 +243,7 @@ class RenewalScanView(APIView):
         ``finished_at`` stays null while the scan runs.  A scan still unfinished
         ``RENEWAL_STALE_MINUTES`` after it started has lost its process, and is
         closed here as failed with the error ``Did not finish.``.  Raises a 404
-        :class:`~rest_framework.exceptions.NotFound` when there is no such row.
+        :class:`~rest_framework.exceptions.NotFound` when the row doesn't exist.
         """
         scan = RenewalScan.objects.filter(pk=pk).first()
         if scan is None:
@@ -263,8 +263,8 @@ class StatementsRunView(APIView):
         """Run the sender and return its counts with status 200.
 
         The body takes ``dry_run``, defaulting to ``False``, and ``year``,
-        defaulting to the calendar year before today.  A dry run writes and
-        emails nothing and reports the accounts a live run would reach.  The
+        defaulting to the calendar year before today.  A dry run doesn't
+        write or email anything, and reports the accounts a live run would reach.  The
         answer is ``{year, sent, skipped, failed, actions}``, where ``actions``
         names every account the run emailed -- or, in a rehearsal, would have --
         and the caller is recorded as the actor on the ``statements.run`` audit

@@ -1,7 +1,7 @@
 """Notices to an account's owner: what was done to the account, or asked of its address.
 
-Two messages that carry no link anybody can use to change the account: the notice that
-a password was changed, so its owner can act if the change was not theirs, and the
+Two messages that don't carry a link anybody can use to change the account: the notice
+that a password was changed, so its owner can act if the change was not theirs, and the
 answer to somebody registering with an address that already has an account, which
 tells the address's owner how to sign in instead.  Each renders a pair of templates
 under ``templates/emails/`` through :func:`caldart.mail.send_templated`.
@@ -41,7 +41,8 @@ def send_password_changed_notice(user: User) -> None:
     forgot-password page (``/portal/forgot-password``) for an owner who did not make the
     change.  The context carries ``first_name``, ``email``, ``changed_at`` (now),
     ``forgot_url``, ``undo_url`` (``""`` here), ``site_url``, ``org_name`` and
-    ``contact_email``.  A donor, who holds no password, is sent nothing.
+    ``contact_email``.  A donor, who doesn't hold a password, isn't sent
+    anything.
 
     While the account keeps a recovery address after a change of address
     (``apps.accounts.email_change``), the same notice goes to that address too, carrying
@@ -108,7 +109,7 @@ def send_account_exists_notice(user: User, *, to: str | None = None) -> None:
     not the address the account signs in with -- it is one the account keeps as its
     recovery address after a change of address -- the state is :data:`RESERVED`
     instead, and the message points to the undo link sent about the change and to the
-    office rather than to signing in, since that address signs nothing in.
+    office rather than to signing in, since that address doesn't sign anything in.
     """
     name = org_name()
     address = to or user.email

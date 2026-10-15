@@ -1,6 +1,6 @@
 """Wagtail page forms that hide the restricted blocks.
 
-``raw_html`` is "website_admin only".  Wagtail has no per-block permission, so
+``raw_html`` is "website_admin only".  Wagtail doesn't have a per-block permission, so
 the page's ``base_form_class`` rebuilds the StreamField's block without the
 restricted children when the editing user is not entitled to them.  Wagtail
 hands the form the editing user as ``for_user``, which is the only hook that
@@ -61,7 +61,7 @@ class RestrictedBlocksPageForm(WagtailAdminPageForm):
         The form is unchanged for an editor who passes ``can_use_raw_html``.  For
         anybody else every StreamField on the form is rebuilt without its
         restricted child blocks, so the editor is never offered them; a field whose
-        block has none is left alone.
+        block doesn't have any is left alone.
         """
         super().__init__(*args, **kwargs)
         if can_use_raw_html(self.for_user):

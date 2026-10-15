@@ -4,24 +4,24 @@ Two sections, in this order: *People*, one row per checkable person with a profi
 holds at least one of a photo ID, a pilot certificate, and a medical, and *Aircraft
 insurance*, one row per aircraft in service with a policy on file.  An item nobody holds
 (a non-pilot's certificate, a medical of *None*, a photo ID of *Not provided*, insurance
-with no expiration) has nothing to verify, and a person who holds none of the three, like
-an aircraft with no policy, is never listed.  A person's row has a check column for each
-item, Photo ID, Certificate, and Medical in that order, each reading *Verified*, *Not
-verified*, or *Not provided* for an item the person does not hold.  Then what is on file,
-the medical's expiry (the policy's for an aircraft) in a column of its own, and when the
-record last changed.  The PDF draws each section under its own header: People under
-Name, DART, the three checks, Details, Expires, and Updated, and Aircraft insurance
-under N-number, Owner, Carrier, Expires, and Updated, with no check columns.  The CSV is
-one table under one header, the union of the two, so an aircraft's row leaves the three
-check cells blank and its N-number, owner, and carrier sit under *Name*, *DART or owner*,
-and *Details*.  The Section column is a default in the CSV, which has no headings, and
-left to the headings in the PDF; the three verification stamp columns (whether, by whom,
-and on which day) are there to choose, and off by default, since the default list is of
-rows with something nobody has verified.  The house style lives in ``caldart.reports``;
-this module decides which rows the report holds, how its two filters narrow them, and
-what each cell prints.  It lives in the aircraft app, which sits above the members app
-and already decides who the leader's member check can find, because it lists both people
-and aircraft.
+without an expiration) doesn't leave anything to verify, and a person who doesn't hold any
+of the three, like an aircraft without a policy, is never listed.  A person's row has a
+check column for each item, Photo ID, Certificate, and Medical in that order, each
+reading *Verified*, *Not verified*, or *Not provided* for an item the person does not
+hold.  Then what is on file, the medical's expiry (the policy's for an aircraft) in a
+column of its own, and when the record last changed.  The PDF draws each section under
+its own header: People under Name, DART, the three checks, Details, Expires, and
+Updated, and Aircraft insurance under N-number, Owner, Carrier, Expires, and Updated,
+without check columns.  The CSV is one table under one header, the union of the two, so
+an aircraft's row leaves the three check cells blank and its N-number, owner, and
+carrier sit under *Name*, *DART or owner*, and *Details*.  The Section column is a
+default in the CSV, which doesn't have headings, and left to the headings in the PDF;
+the three verification stamp columns (whether, by whom, and on which day) are there to
+choose, and off by default, since the default list is of rows with something nobody has
+verified.  The house style lives in ``caldart.reports``; this module decides which rows
+the report holds, how its two filters narrow them, and what each cell prints.  It lives
+in the aircraft app, which sits above the members app and already decides who the
+leader's member check can find, because it lists both people and aircraft.
 """
 
 from __future__ import annotations
@@ -53,7 +53,7 @@ INSURANCE_SECTION = "Aircraft insurance"
 #: Every section, in the order the report draws them.
 SECTIONS: tuple[str, ...] = (PEOPLE_SECTION, INSURANCE_SECTION)
 
-#: The line the PDF draws under a section with no rows.
+#: The line the PDF draws under an empty section.
 EMPTY_SECTION = "Nothing to show."
 
 #: ``?status=`` for the rows with an item not yet verified, the default.
@@ -198,7 +198,7 @@ PERSON_ITEMS: tuple[tuple[str, Callable[[MemberProfile], str]], ...] = (
 
 
 def _verified_by_name(row: VerificationRow) -> str:
-    """The latest verifier's display name, or a blank cell when there is none."""
+    """The latest verifier's display name, or a blank cell when there isn't one."""
     latest = row.latest
     return "" if latest is None or latest.verified_by is None else latest.verified_by.display_name
 
@@ -238,8 +238,8 @@ VERIFICATION_REPORT_COLUMNS: tuple[ReportColumn[VerificationRow], ...] = (
 _STAMP_KEYS: tuple[str, ...] = ("verified", "verified_by", "verified_on")
 
 #: The columns each section draws in the PDF, and the words it heads them with.  An
-#: aircraft has no check columns, and its Name, DART, and Details are its N-number, owner,
-#: and carrier.
+#: aircraft doesn't have check columns, and its Name, DART, and Details are its N-number,
+#: owner, and carrier.
 VERIFICATION_SECTION_COLUMNS: tuple[SectionColumns, ...] = (
     SectionColumns(
         title=PEOPLE_SECTION,
@@ -294,9 +294,9 @@ def checkable_profiles(dart: str) -> QuerySet[MemberProfile]:
     """The profiles of every checkable person, narrowed to ``dart`` when it is given.
 
     Checkable people are active members and friends (see
-    ``apps.aircraft.services.checkable_people``); an account without a profile has
-    nothing to verify.  The order is last name, first name, then address, and each
-    profile arrives with its account, its DART, and its three verifiers fetched.
+    ``apps.aircraft.services.checkable_people``); an account without a profile
+    doesn't have anything to verify.  The order is last name, first name, then address,
+    and each profile arrives with its account, its DART, and its three verifiers fetched.
     """
     profiles = MemberProfile.objects.filter(user__in=checkable_people()).select_related(
         "user", "dart", "certificate_verified_by", "medical_verified_by", "photo_id_verified_by"
@@ -309,9 +309,9 @@ def checkable_profiles(dart: str) -> QuerySet[MemberProfile]:
 def insured_aircraft(dart: str) -> QuerySet[Aircraft]:
     """Every aircraft in service with a policy on file, narrowed to ``dart``, by N-number.
 
-    A policy on file is an insurance expiration; without one there is nothing to verify.
-    An aircraft belongs to a DART through its pilots: ``dart`` keeps the aircraft that
-    some pilot on that DART flies, each once however many of them fly it.
+    A policy on file is an insurance expiration; without one there isn't anything to
+    verify.  An aircraft belongs to a DART through its pilots: ``dart`` keeps the aircraft
+    that some pilot on that DART flies, each once however many of them fly it.
     """
     aircraft = Aircraft.objects.filter(
         is_active=True, insurance_expiration__isnull=False
@@ -325,14 +325,14 @@ def insured_aircraft(dart: str) -> QuerySet[Aircraft]:
 def _profile_changed_at(profile: MemberProfile) -> datetime:
     """When ``profile``'s items were last changed: its last edit, else its creation.
 
-    A profile nobody has edited since it was made carries no ``profile_updated_at``,
+    A profile nobody has edited since it was made doesn't carry a ``profile_updated_at``,
     and what is on file has been there since the profile was created.
     """
     return profile.profile_updated_at or profile.created_at
 
 
 def _person_row(profile: MemberProfile) -> VerificationRow | None:
-    """``profile``'s row, or ``None`` when the person holds none of the three items.
+    """``profile``'s row, or ``None`` when the person doesn't hold any of the three items.
 
     The checks, and the details, name only the items held, in check-column order, and
     the expiry is the medical's, blank without a medical.

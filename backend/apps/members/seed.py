@@ -54,8 +54,8 @@ DARTS: tuple[tuple[str, str], ...] = (
 )
 
 
-#: The airports a seeded member's home airport falls back to when the DART has none,
-#: and the ones a secondary airport is drawn from.
+#: The airports a seeded member's home airport falls back to when the DART doesn't have
+#: any, and the ones a secondary airport is drawn from.
 SEED_AIRPORTS: tuple[str, ...] = ("SQL", "PAO", "LVK")
 
 #: The chance a seeded pilot has a secondary airport.  Most seeded members are
@@ -63,7 +63,7 @@ SEED_AIRPORTS: tuple[str, ...] = ("SQL", "PAO", "LVK")
 SECONDARY_AIRPORT_CHANCE = 0.4
 
 
-#: The one DART the seed puts nobody on, so the demo can show a team being
+#: The one DART the seed leaves empty, so the demo can show a team being
 #: deleted without unaffiliating anybody.  It keeps its public page.
 EMPTY_DART = "San Carlos"
 
@@ -98,8 +98,8 @@ HOW_HEARD: tuple[str, ...] = (
 )
 
 #: Membership targets and their weights, so the demo shows mixed statuses.
-#: ``unpaid`` is somebody who chose to join as a member and never paid, so holds
-#: no term and reads as a friend; ``friend`` is somebody who joined as a friend.
+#: ``unpaid`` is somebody who chose to join as a member and never paid, so doesn't hold
+#: a term and reads as a friend; ``friend`` is somebody who joined as a friend.
 MEMBERSHIP_TARGETS: tuple[tuple[str, int], ...] = (
     ("current", 18),
     ("expiring", 7),
@@ -116,7 +116,7 @@ RENEWAL_DUE_TODAY_COUNT = 2
 
 
 #: The seed behind each profile's photo ID, drawn from a generator of its own so the
-#: draw moves nothing else the seed generates.
+#: draw doesn't move anything else the seed generates.
 PHOTO_ID_SEED = 20260926
 
 #: The photo IDs a member shows, and their weights; *Not provided* is rare.
@@ -149,12 +149,12 @@ def _fixed_profile(
     """The fixed profile of a demo account left out of the shared random draws.
 
     A private pilot with a third-class medical good for :data:`FIXED_MEDICAL_DAYS`, the
-    first DART in :data:`DARTS` as home, and no secondary airport.  Its town is the next
-    one from ``towns``, the generator every seeded profile's town comes from.
+    first DART in :data:`DARTS` as home, and without a secondary airport.  Its town is the
+    next one from ``towns``, the generator every seeded profile's town comes from.
     ``index`` is the account's place in ``fixed_users``: it is added to the phone
     number and the certificate number so no two fixed profiles share either, and the
     first (the verifier) shows a driver's license while the rest, friends like most
-    seeded friends, have shown no photo ID.
+    seeded friends, haven't shown a photo ID.
     """
     dart = darts[0]
     return {
@@ -273,8 +273,8 @@ def _profile_defaults(
     number, ratings, hours, and a flight review, and roughly a quarter of pilots
     are given a medical that expired before ``today`` so the leader checks have
     something to fail on.  The DART is drawn from ``darts`` and supplies the
-    member's home airport -- never :data:`EMPTY_DART`, which the seed leaves with
-    nobody on it -- while ``towns`` supplies the town.  A pilot has a secondary
+    member's home airport -- never :data:`EMPTY_DART`, which the seed leaves
+    empty -- while ``towns`` supplies the town.  A pilot has a secondary
     airport with the chance :data:`SECONDARY_AIRPORT_CHANCE`, which comes to roughly
     one member in three (:func:`_secondary_airport`).
     ``certificate`` forces the pilot
@@ -388,7 +388,7 @@ def _assign_targets(rng: random.Random, ctx: dict[str, Any]) -> dict[int, str]:
 def _mark_friends(users: list[User], targets: dict[int, str]) -> None:
     """Store every user whose target is ``friend`` as a friend of CalDART.
 
-    A friend holds no terms, which the payments seed sees from the same target.
+    A friend doesn't hold any terms, which the payments seed sees from the same target.
     """
     for user in users:
         if targets.get(user.pk) == "friend":
@@ -407,7 +407,7 @@ def _renewal_seed_subjects(
     ``expired`` is returned for it to end further back, so its mandate takes the
     catch-up path instead.  Both are read off ``generated_users`` in order, so
     the choice is the same on every run of the same day.  The second answer is
-    ``None`` only if the weighted draw left no ``expired`` member, though the
+    ``None`` only if the weighted draw didn't leave an ``expired`` member, though the
     fixed random seed always leaves several.
     """
     expiring = [user for user in generated_users if targets.get(user.pk) == "expiring"]
@@ -425,8 +425,9 @@ def _seed_photo_ids_and_verification(profiles: list[MemberProfile], leader: User
     generator seeded with :data:`PHOTO_ID_SEED`, so it is the same on every run.
     Every member outside :data:`UNVERIFIED_POSITIONS` has each item they hold
     (:func:`~apps.members.verification.is_held`) verified by ``leader`` as of now, and
-    nothing they do not hold; every other profile has none, so re-seeding leaves the same
-    state however the previous run ended.  With no ``leader``, nothing is verified.
+    only those; no item on any other profile is verified, so re-seeding leaves the
+    same state however the previous run ended.  Without a ``leader``, nothing is
+    verified.
     """
     rng = random.Random(PHOTO_ID_SEED)  # noqa: S311 - demo data, not security-sensitive
     kinds = [kind for kind, _ in MEMBER_PHOTO_IDS]

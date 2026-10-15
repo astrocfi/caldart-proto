@@ -5,9 +5,9 @@ checked by an authority against the policy.  It is recorded on ``Aircraft`` as
 ``insurance_verified_at`` and ``insurance_verified_by``, and read through
 ``insurance_is_verified``, which is true when ``insurance_verified_at`` is set.  A write
 that changes the stored value of any insurance field clears the verification, whoever
-writes it; a write that changes nothing clears nothing.  Verified insurance whose
-expiration passes stays verified: currency and verification are two separate facts.
-Insurance with no expiration on file is no policy at all, and is never stamped.
+writes it; a write that doesn't change anything doesn't clear it.  Verified insurance
+whose expiration passes stays verified: currency and verification are two separate facts.
+Insurance without an expiration on file isn't a policy at all, and is never stamped.
 
 A holder of any role in ``apps.accounts.roles.VERIFY_ROLES`` may verify it, a system
 administrator and a superuser included.  A person's items (pilot certificate, medical,
@@ -46,8 +46,8 @@ def clear_stale_insurance(aircraft: Aircraft, moved_fields: list[str]) -> bool:
     (:func:`apps.aircraft.services.changed_fields`).  When any of them is in
     :data:`INSURANCE_FIELDS` and the insurance is verified, both verification columns
     are set to ``None`` and saved, and the answer is True.  Otherwise nothing is
-    written and the answer is False: a write that moved no insurance field, or one to
-    insurance that was not verified, clears nothing.
+    written and the answer is False: a write that didn't move an insurance field, or one
+    to insurance that was not verified, doesn't clear anything.
     """
     if not any(name in INSURANCE_FIELDS for name in moved_fields):
         return False
@@ -77,12 +77,12 @@ def verify_insurance(
 
     Then, when ``verified`` is true and the insurance is not verified, it is stamped
     with ``timezone.now()`` and ``actor``; verified insurance keeps its stamp.  When
-    ``verified`` is false, or the saved record has no ``insurance_expiration`` (no
-    policy on file, so nothing to verify), the insurance ends unverified.  The audit
-    log records ``aircraft.verify`` with ``verified`` (whether the insurance ends
-    verified), and when the verified state before the save differs from the state
-    after it, or the insurance was stamped anew, ``verification_changed`` is raised
-    once with ``aircraft``, ``verified`` and ``cleared`` as item labels, and
+    ``verified`` is false, or the saved record doesn't have an ``insurance_expiration``
+    (the policy isn't on file, so there isn't anything to verify), the insurance ends
+    unverified.  The audit log records ``aircraft.verify`` with ``verified`` (whether
+    the insurance ends verified), and when the verified state before the save differs
+    from the state after it, or the insurance was stamped anew, ``verification_changed``
+    is raised once with ``aircraft``, ``verified`` and ``cleared`` as item labels, and
     ``actor``.  Returns the saved aircraft.
 
     Locks the aircraft row with ``select_for_update`` before reading it, so a save

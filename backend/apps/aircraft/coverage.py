@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from apps.aircraft.models import AircraftCategory, AircraftCoveragePolicy, Airworthiness
 from caldart.org import org_details
 
-#: What an aircraft with no category recorded is answered with.  It is not excluded:
+#: What an aircraft without a recorded category is answered with.  It is not excluded:
 #: nobody can tell, so the check says so rather than guess.
 CATEGORY_NOT_RECORDED = "Category not recorded"
 
@@ -51,8 +51,8 @@ class Coverage:
     """One aircraft's answer: whether the policy excludes it, and what to say.
 
     ``reason`` is ``Not covered: <what> are excluded by <organization>'s policy`` for
-    an excluded aircraft, :data:`CATEGORY_NOT_RECORDED` for one with no category that
-    is not excluded, and blank otherwise.
+    an excluded aircraft, :data:`CATEGORY_NOT_RECORDED` for one without a category
+    that is not excluded, and blank otherwise.
     """
 
     excluded: bool
@@ -71,8 +71,8 @@ class CoverageRule:
         """The coverage of an aircraft with ``category`` and ``airworthiness``.
 
         Either one listed by the policy excludes the aircraft; when both are, the reason
-        names the category.  A blank value is never listed, so an aircraft with nothing
-        recorded is never excluded, and one with no category is answered with
+        names the category.  A blank value is never listed, so an aircraft without
+        either one recorded is never excluded, and one without a category is answered with
         :data:`CATEGORY_NOT_RECORDED` unless its airworthiness excludes it.
         """
         if category in self.excluded_categories:
@@ -94,8 +94,8 @@ class CoverageRule:
 def rule_for(policy: AircraftCoveragePolicy) -> CoverageRule:
     """The rule ``policy`` states, naming the organization from the site settings.
 
-    A policy that excludes nothing never names the organization, so the site settings
-    are read only when an exclusion could need them.
+    A policy that doesn't exclude anything never names the organization, so the site
+    settings are read only when an exclusion could need them.
     """
     excludes_any = len(policy.excluded_categories) + len(policy.excluded_airworthiness) > 0
     return CoverageRule(

@@ -126,10 +126,10 @@ STATUSES: dict[str, str] = {
     **dict.fromkeys(("D", "13", "16", "23", "27", "29"), RegistrationStatus.EXPIRED),
 }
 
-#: The ``TYPE-ACFT`` codes of the aircraft reference; a blank or any other code is
-#: no category.  The FAA's rotorcraft are helicopters (its gyroplanes have their own
-#: code), its two fixed-wing codes (single- and multi-engine) are airplanes, and its
-#: hybrid lift is powered lift.
+#: The ``TYPE-ACFT`` codes of the aircraft reference; a blank or any other code
+#: doesn't name a category.  The FAA's rotorcraft are helicopters (its gyroplanes have
+#: their own code), its two fixed-wing codes (single- and multi-engine) are airplanes,
+#: and its hybrid lift is powered lift.
 CATEGORIES: dict[str, str] = {
     "1": AircraftCategory.GLIDER,
     "2": AircraftCategory.BALLOON,
@@ -145,7 +145,7 @@ CATEGORIES: dict[str, str] = {
 }
 
 #: The airworthiness classification codes, the first character of ``CERTIFICATION``;
-#: a blank or any other character is no classification.  The characters after it
+#: a blank or any other character doesn't name a classification.  The characters after it
 #: (the operations a certificate allows) are not kept.
 AIRWORTHINESS: dict[str, str] = {
     "1": Airworthiness.STANDARD,
@@ -243,7 +243,7 @@ def parse_date(value: str) -> date | None:
 
 
 def _parse_int(value: str) -> int | None:
-    """The whole number ``value`` holds (``"004"`` is 4); ``None`` when it holds none."""
+    """The whole number in ``value`` (``"004"`` is 4), or ``None`` for anything else."""
     text = value.strip()
     return int(text) if text.isdigit() else None
 
@@ -264,7 +264,7 @@ def _rows(stream: IO[bytes], name: str, columns: tuple[str, ...]) -> Iterator[di
         header = [cell.strip() for cell in next(reader, [])]
         for column in columns:
             if column not in header:
-                raise RegistryFormatError(f"{name} has no {column} column.")
+                raise RegistryFormatError(f"{name} doesn't have a {column} column.")
         positions = {column: header.index(column) for column in columns}
         for row in reader:
             if not any(cell.strip() for cell in row):
@@ -403,7 +403,7 @@ def import_registry(
     :class:`ImportAlreadyRunningError` while another import runs, so the nightly timer
     and Run now can never overlap.  Its ``source`` is set to ``source``.  The source is
     opened -- downloaded first when it names an ``http`` or ``https`` URL -- before
-    anything commits, so a slow download holds no transaction open; the write phase
+    anything commits, so a slow download never holds a transaction open; the write phase
     that follows commits together: the aircraft types from the reference file,
     upserted by ``faa_code`` and never deleted; the hand-added types the FAA now lists,
     folded into the FAA's entry; unless ``types_only``, the registrations from the
@@ -440,9 +440,9 @@ def import_registry(
 
 
 def _claim_unattended_run(source: str) -> RegistryImport:
-    """Create the run row for a call with no ``run`` of its own, from ``source``.
+    """Create the run row for a call without a ``run`` of its own, from ``source``.
 
-    Guards the path :func:`start_import` does not: a call with no pre-written row, as
+    Guards the path :func:`start_import` does not: a call without a pre-written row, as
     the nightly timer makes through ``manage.py import_faa_registry`` without
     ``--import-id``.  Takes the same advisory lock :func:`start_import` takes before
     checking :func:`is_running`, so the timer and a Run now press can never both start
@@ -550,7 +550,7 @@ def registrant_display_name(name: str, registrant_type: str) -> str:
     A person's name, or co-owners', goes through :func:`caldart.casing.person_name`
     (``SMITH JOHN A`` reads ``Smith John A``); any other registrant's through
     :func:`caldart.casing.business_name` (``FOX FLYERS LLC`` reads ``Fox Flyers LLC``).
-    The aircraft form fills its owner's name from this, so a registry pick needs no
+    The aircraft form fills its owner's name from this, so a registry pick doesn't need
     retyping, while a name a person types is stored as typed.
     """
     if registrant_type in PERSON_REGISTRANTS:
@@ -589,7 +589,7 @@ def _write_registrations(rows: Iterator[RegistrationRow]) -> int:
     written += _flush_registrations(batch)
     Registration.objects.exclude(imported_at=stamp).delete()
     if skipped > 0:
-        log.warning("Registry import skipped %d registrations naming no known type.", skipped)
+        log.warning("Registry import skipped %d registrations whose type isn't known.", skipped)
     return written
 
 

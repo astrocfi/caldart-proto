@@ -248,7 +248,7 @@ def write_aliases() -> int:
     """Write an ``AircraftTypeAlias`` row for each alias of :data:`ALIASES` that resolves.
 
     Each alias is pointed at :func:`resolve_alias`'s type, replacing whatever it
-    pointed at before; an alias that resolves to nothing has its row removed, is
+    pointed at before; an alias that doesn't resolve has its row removed, is
     logged, and is skipped.  Returns the number of alias rows written.
     """
     written = 0
@@ -256,7 +256,12 @@ def write_aliases() -> int:
         target = resolve_alias(make, model_prefix)
         if target is None:
             AircraftTypeAlias.objects.filter(alias=alias).delete()
-            log.info("Alias %r names no aircraft type (%s %s); skipped.", alias, make, model_prefix)
+            log.info(
+                "Alias %r doesn't name an aircraft type (%s %s); skipped.",
+                alias,
+                make,
+                model_prefix,
+            )
             continue
         AircraftTypeAlias.objects.update_or_create(alias=alias, defaults={"type": target})
         written += 1

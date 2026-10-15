@@ -40,8 +40,8 @@ def heading_anchor(text: str) -> str:
     """The ``id`` a heading block renders with, and its "on this page" link.
 
     The heading text slugified and cut to 60 characters, so "Who we need" becomes
-    ``who-we-need``.  Text that slugifies to nothing, such as punctuation alone,
-    gives ``section``.
+    ``who-we-need``.  Text that slugifies to an empty string, such as punctuation
+    alone, gives ``section``.
     """
     return slugify(text)[:60] or "section"
 
@@ -166,7 +166,7 @@ class CTABlock(blocks.StructBlock):
         """The block's template context plus ``href``, where the button points.
 
         The chosen page's own URL wins.  The typed URL is used when no page is
-        chosen or the chosen page has no URL of its own, and ``#`` stands in when
+        chosen or the chosen page doesn't have a URL of its own, and ``#`` stands in when
         neither yields an address.
         """
         context: dict[str, Any] = super().get_context(value, parent_context=parent_context)

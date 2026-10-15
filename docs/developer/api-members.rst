@@ -869,7 +869,7 @@ reactivated.
 
 A donor doesn't hold a membership and becomes a member only by registering, so a
 grant to a donor is refused before anything is written or raised: **400**
-``{"detail": "A donor holds no membership, and becomes a member only by
+``{"detail": "A donor doesn't hold a membership, and becomes a member only by
 registering."}``, audited as ``membership.grant`` with ``reason=donor_account``.
 A tombstone, which is a donor too, is refused with its own sentence and
 ``reason=tombstone`` (:ref:`api-members-tombstone`).

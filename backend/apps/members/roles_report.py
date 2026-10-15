@@ -90,7 +90,7 @@ class RolesReportFilterSet(django_filters.FilterSet):
     ) -> QuerySet[MemberRow]:
         """Rows every word of ``value`` matches in the first name, last name, or email.
 
-        A blank or missing value narrows nothing.
+        A blank or missing value leaves the queryset alone.
         """
         for word in (value or "").split():
             queryset = queryset.filter(
@@ -103,7 +103,10 @@ class RolesReportFilterSet(django_filters.FilterSet):
     def filter_kind(
         self, queryset: QuerySet[MemberRow], name: str, value: str | None
     ) -> QuerySet[MemberRow]:
-        """Rows whose listed kind is ``value`` (``listed_kind_q``); blank narrows none."""
+        """Rows whose listed kind is ``value`` (``listed_kind_q``).
+
+        A blank or missing value leaves the queryset alone.
+        """
         if not value:
             return queryset
         return queryset.filter(listed_kind_q(value))
@@ -114,8 +117,8 @@ class RoleRow:
     """One role held by one account, with everything the columns read.
 
     ``role`` is the role's slug and ``role_label`` its name, which is also the title
-    of the section the row is drawn in.  ``profile`` is ``None`` for an account with
-    no profile, and every column that reads it is then blank.
+    of the section the row is drawn in.  ``profile`` is ``None`` for an account without
+    a profile, and every column that reads it is then blank.
     """
 
     role: str

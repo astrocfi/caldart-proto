@@ -118,7 +118,7 @@ def _seed_verification(aircraft: list[Aircraft], leader: User | None) -> None:
     """Verify, as ``leader``, the insurance of every aircraft outside the gaps.
 
     Positions in :data:`UNVERIFIED_POSITIONS` (of every ten) stay unverified, and so
-    does everything when there is no ``leader``.  Both columns are written every time,
+    does everything when ``leader`` is ``None``.  Both columns are written every time,
     so re-seeding leaves the same state however the previous run ended.
     """
     now = timezone.now()

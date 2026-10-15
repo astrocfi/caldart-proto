@@ -28,7 +28,7 @@ from caldart.exceptions import DomainError
 #: Refusals :func:`check_can_become_friend` and :func:`undo_become_friend` raise.
 LIFETIME_STAYS_MEMBER = "A lifetime member stays a member."
 ALREADY_FRIEND = "You are already a friend of CalDART."
-NO_PENDING_CHANGE = "You have no pending change."
+NO_PENDING_CHANGE = "You don't have a pending change."
 
 
 def due_conversions(today: date) -> list[User]:
@@ -47,7 +47,7 @@ def convert_due_friends(today: date | None = None) -> int:
     """Write down every conversion to friend whose day has come, and return how many.
 
     Each member whose ``friend_on`` is on or before ``today`` (the local date by
-    default) is stored as a friend with no pending date, and the change is recorded
+    default) is stored as a friend without a pending date, and the change is recorded
     as ``account.kind`` with ``to=friend`` and ``on=<friend_on>`` under ``command``,
     and raised as the ``became_friend`` event with ``how="lapsed"``.
     The daily reminder run calls this, so the stored kind catches up with the one
@@ -155,7 +155,7 @@ def expire_lapsed_memberships(on_date: date | None = None) -> int:
     Each account whose terms were flipped and that is no longer current on
     ``on_date`` raises one ``membership_expired`` event, with the account and the
     flipped term that ended last.  An account a later term still covers, such as a
-    renewal bought early, has not lost its membership and raises nothing.
+    renewal bought early, has not lost its membership and doesn't raise one.
     """
     on_date = on_date or timezone.localdate()
     lapsed = list(

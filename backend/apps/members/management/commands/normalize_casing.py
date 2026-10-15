@@ -67,8 +67,8 @@ class Command(BaseCommand):
         individual owner's only), or ``DART page <id>``, in that order of models and
         each in primary-key order, and the run ends with ``Changed <n> fields.``
         (``Would change`` under ``--dry-run``).  Only a row with a changed field is
-        written, and only its changed columns, by a queryset update that runs no
-        ``save()`` and moves no timestamp.  ``--dry-run`` writes nothing.
+        written, and only its changed columns, by a queryset update that doesn't run
+        ``save()`` or move a timestamp.  ``--dry-run`` doesn't write anything.
         """
         dry_run: bool = options["dry_run"]
         users = User.objects.order_by("pk")
