@@ -39,7 +39,8 @@ SELF_RESET_REFUSED = (
     "You cannot send a password reset to your own account. Use Change password instead."
 )
 RESET_ROLES_REFUSED = (
-    "You cannot send a password reset to an account that holds roles you do not hold."
+    "You cannot send a password reset to an account that holds "
+    "administrative roles you do not hold."
 )
 ROLES = "/api/v1/roles"
 

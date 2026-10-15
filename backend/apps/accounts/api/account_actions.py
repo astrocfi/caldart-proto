@@ -40,7 +40,8 @@ SELF_CREDENTIAL_REFUSED = (
 
 #: Why it refuses an account holding a role the administrator lacks.
 CREDENTIAL_ROLES_REFUSED = (
-    "You cannot require a new password for an account that holds roles you do not hold."
+    "You cannot require a new password for an account that holds "
+    "administrative roles you do not hold."
 )
 
 

@@ -44,7 +44,10 @@ SELF_REFUSED = {
     "detail": "You cannot require a new password for your own account. Use Change password instead."
 }
 ROLES_REFUSED = {
-    "detail": "You cannot require a new password for an account that holds roles you do not hold."
+    "detail": (
+        "You cannot require a new password for an account that holds "
+        "administrative roles you do not hold."
+    )
 }
 MAIL_REFUSED = {
     "detail": "The old password no longer works and every session is ended, but the mail "

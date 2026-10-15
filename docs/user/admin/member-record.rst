@@ -191,10 +191,10 @@ it themselves, by signing in or by resetting their password.
 Four refusals can appear:
 
 - *You cannot deactivate your own account.*
-- *You cannot activate or deactivate an account that holds roles you do not hold.*: the
-  account holds a two-factor role you lack (:doc:`../roles`), such as a treasurer's or a
-  system administrator's; a DART leader or a verifier is no obstacle. Ask a system
-  administrator, or a colleague who holds every two-factor role that account holds.
+- *You cannot activate or deactivate an account that holds administrative roles you do not
+  hold.*: the account holds a two-factor role you lack (:doc:`../roles`), such as a
+  treasurer's or a system administrator's; a DART leader or a verifier is no obstacle. Ask a
+  system administrator, or a colleague who holds every two-factor role that account holds.
 - *A user administrator has blocked this account from reactivating. Allow reactivation on
   its user record first.*: the card also says the account is blocked. Only a user
   administrator lifts the block, from the :doc:`user-record`.
@@ -206,9 +206,9 @@ Delete this member
 
 The card is for a duplicate, a spam sign-up, a test record, or a person who asks to be
 removed. The delete is permanent and takes the profile and every term with it. Type the
-person's email address into the box; **Delete member** stays disabled until it matches.
-Your own account, a system administrator's unless you are one, and one holding a two-factor
-role you lack (*You cannot delete an account that holds roles you do not hold.*) stay.
+person's email address into the box; **Delete member** stays disabled until it matches. Your
+own account, a system administrator's unless you are one, and one holding a two-factor role
+you lack stay (*You cannot delete an account that holds administrative roles you do not hold.*).
 
 Payments are the organization's financial record, so they are never deleted. The card says
 how many the person has, if any, and that they stay in the books under **Deleted member** and
@@ -240,11 +240,11 @@ it would only move the payments to another one, so the site refuses all of it, a
 If something looks wrong
 ========================
 
-*You cannot change the email address of an account that holds roles you do not hold.* means
-the record carries a two-factor role you lack; ask a system administrator, or a colleague who
-holds every two-factor role it holds. **Delete or deactivate** lists what its own refusals mean.
-*The end date cannot be before the start date.* means the end date you typed is too early,
-and *A membership cannot start after today.* that the start date is a day to come: leave
-it blank, or give today or an earlier day. *You cannot delete your own account.* and *Only
-a system administrator can delete a system administrator.* mean what they say. A granted
-term that starts later than you expected follows on from the current term.
+*You cannot change the email address of an account that holds administrative roles you do
+not hold.* means the record carries a two-factor role you lack; ask a system administrator,
+or a colleague who holds every two-factor role it holds. **Delete or deactivate** lists what
+its own refusals mean. *The end date cannot be before the start date.* means the end date
+you typed is too early, and *A membership cannot start after today.* that the start date is
+a day to come: leave it blank, or give today or an earlier day. *You cannot delete your own
+account.* and *Only a system administrator can delete a system administrator.* mean what
+they say. A granted term that starts later than you expected follows on from the current one.

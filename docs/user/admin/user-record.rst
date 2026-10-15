@@ -222,21 +222,21 @@ a system administrator. *You cannot give or take away a role you do not hold you
 the roles it names means the save moved a two-factor role you do not hold; put that box back
 and save, or ask a system administrator or somebody who holds the role. *You cannot change
 your own roles. Ask another administrator.* means just that. *You cannot activate or
-deactivate an account that holds roles you do not hold.*, *You cannot block or unblock an
-account that holds roles you do not hold.*, *You cannot send a password reset to an account
-that holds roles you do not hold.*, and *You cannot require a new password for an account
-that holds roles you do not hold.* mean the account holds a two-factor role you lack; ask a
-system administrator, or a colleague who holds every two-factor role that account holds.
-*That
-account is deactivated, so no reset email was sent.* means the account was deactivated while
-the page was open; reload and reactivate it first. *That account is already deactivated.*
-and *That account is already active.* mean somebody changed it while the page was open;
-reload the page. *The mail server did not accept the message. A system administrator can see
-the attempt on the Sent Emails page.* after **Send password reset** or **Resend verification
-message** means nothing was sent: the site could not hand the email to its mail server. A
-system administrator sees the attempt marked *Failed:* on **Sent emails**, with the reason;
-tell whoever runs the server, and press the button again once it is fixed. After **Require a
-new password** the message says the old password is shut out regardless; pressing it again
-sends a fresh link. If somebody still cannot see a page after you checked its role, ask them
-to reload the portal, and check that you pressed **Save changes**. Profiles, memberships,
-and payments are not on this screen; they belong to an account administrator.
+deactivate an account that holds administrative roles you do not hold.*, *You cannot block
+or unblock an account that holds administrative roles you do not hold.*, *You cannot send a
+password reset to an account that holds administrative roles you do not hold.*, and *You
+cannot require a new password for an account that holds administrative roles you do not
+hold.* mean the account holds a two-factor role you lack; ask a system administrator, or a
+colleague who holds every two-factor role that account holds. *That account is deactivated,
+so no reset email was sent.* means the account was deactivated while the page was open;
+reload and reactivate it first. *That account is already deactivated.* and *That account is
+already active.* mean somebody changed it while the page was open; reload the page. *The
+mail server did not accept the message. A system administrator can see the attempt on the
+Sent Emails page.* after **Send password reset** or **Resend verification message** means
+nothing was sent: the site could not hand the email to its mail server. A system
+administrator sees the attempt marked *Failed:* on **Sent emails**, with the reason; tell
+whoever runs the server, and press the button again once it is fixed. After **Require a new
+password** the message says the old password is shut out regardless; pressing it again sends
+a fresh link. If somebody still cannot see a page after you checked its role, ask them to
+reload the portal, and check that you pressed **Save changes**. Profiles, memberships, and
+payments are not on this screen; they belong to an account administrator.

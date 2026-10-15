@@ -709,8 +709,8 @@ Statuses:
   member's payments in the books and cannot be changed."}``.
 * **403** — one of the three other refusals, as ``{"detail": "..."}``: "You cannot
   delete your own account.", "Only a system administrator can delete a
-  system administrator.", or "You cannot delete an account that holds roles you do
-  not hold."
+  system administrator.", or "You cannot delete an account that holds administrative
+  roles you do not hold."
 * **404** — no account has that id.
 
 .. _api-members-tombstone:
