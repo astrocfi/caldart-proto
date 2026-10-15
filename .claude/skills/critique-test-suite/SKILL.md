@@ -174,7 +174,7 @@ Apply these criteria when reviewing each test file and each test case.
 
 ### 21. Logging assertions
 
-- **`caplog` usage:** Code that logs errors, warnings, or important info (e.g. the payment providers) should have tests verifying log output via `caplog`. Note `log.error()` or `log.warning()` calls that have no corresponding `caplog` assertion in tests.
+- **`caplog` usage:** Code that logs errors, warnings, or important info (e.g. the payment providers) should have tests verifying log output via `caplog`. Note `log.error()` or `log.warning()` calls that don't have a corresponding `caplog` assertion in tests.
 - **Log level verification:** When testing logged output, verify the message is at the expected level (e.g. an error condition logs at `ERROR`, not `INFO`). Note tests that check message text but not level.
 - **Absence of logging:** Some code paths should explicitly *not* produce warnings or errors during normal operation. Note where this is important but untested.
 
@@ -189,7 +189,7 @@ Apply these criteria when reviewing each test file and each test case.
 
 - **Complex output:** Functions that return large dicts, serialized formats (JSON, CSV), or rendered output (PDF reports, emails) are hard to assert inline. Note where snapshot testing (e.g. `syrupy`) would be more maintainable than dozens of field-level assertions.
 - **Golden file management:** If snapshot or golden files exist, check: are they committed to the repo? Is there a CI step to detect stale snapshots? Note missing update procedures.
-- **Over-use:** Snapshot tests can become "approve and forget." Note if snapshots are used extensively but there is no evidence of intentional review on change.
+- **Over-use:** Snapshot tests can become "approve and forget." Note if snapshots are used extensively but nothing shows an intentional review on change.
 
 ## Output: Report Format
 

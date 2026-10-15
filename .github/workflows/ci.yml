@@ -106,7 +106,7 @@ jobs:
 
       # The portal's types are checked against the OpenAPI description the DRF
       # serializers generate, so every frontend target regenerates it first.
-      # Generation reads the code alone and needs no database.
+      # Generation reads the code alone and doesn't need a database.
       - name: Install uv
         uses: astral-sh/setup-uv@v5
         with:
@@ -173,7 +173,7 @@ jobs:
     env:
       # `make e2e` resets and seeds this database itself, and pins every
       # setting its server needs (DEBUG, SECRET_KEY, ALLOWED_HOSTS, …), so
-      # this job deliberately supplies nothing but the database it creates
+      # this job deliberately supplies only the database it creates
       # below and somewhere to put the server log.
       E2E_DATABASE_URL: postgres://caldart:caldart@localhost:5432/caldart_e2e
       DATABASE_URL: postgres://caldart:caldart@localhost:5432/caldart
@@ -255,7 +255,7 @@ jobs:
     env:
       # `make e2e` resets and seeds this database itself, and pins every
       # setting its server needs (DEBUG, SECRET_KEY, ALLOWED_HOSTS, …), so
-      # this job deliberately supplies nothing but the database it creates
+      # this job deliberately supplies only the database it creates
       # below and somewhere to put the server log.
       E2E_DATABASE_URL: postgres://caldart:caldart@localhost:5432/caldart_e2e
       DATABASE_URL: postgres://caldart:caldart@localhost:5432/caldart

@@ -77,13 +77,13 @@ Compare against project rules (`.claude/rules/python.md`). Check:
 - Cohesion: modules/classes with a single responsibility; clear boundaries.
 - Extensibility: adding features without editing many files (e.g. the payment provider registry in `apps/payments/providers/`); use of hooks, registries, or strategy-style patterns where appropriate.
 - Configuration access: settings read through `django.conf.settings`, with environment variables read only in `caldart/settings/`.
-- Documentation quality: README accuracy (make targets, demo accounts, URLs); docs build health (`make docs`, `sphinx-build -n -W`); the hand-written API reference (`docs/developer/api-*.rst`) matches each app's `api/urls.py` and serializers; the docs agree with the code and cite no plan (`CLAUDE.md`).
+- Documentation quality: README accuracy (make targets, demo accounts, URLs); docs build health (`make docs`, `sphinx-build -n -W`); the hand-written API reference (`docs/developer/api-*.rst`) matches each app's `api/urls.py` and serializers; the docs agree with the code and don't cite a plan (`CLAUDE.md`).
 
 **Evidence**: Import structure, example functions or classes. Compare `docs/developer/api-*.rst` against the URLconfs and serializers. Check README commands against the Makefile.
 
 ### 7. Security and robustness
 
-- Permissions: every endpoint enforces the permission matrix in `docs/developer/api-reference.rst` through its DRF permission classes, plus the object-level rules on the API pages. Note views with no explicit permission classes or with `AllowAny`.
+- Permissions: every endpoint enforces the permission matrix in `docs/developer/api-reference.rst` through its DRF permission classes, plus the object-level rules on the API pages. Note views without explicit permission classes or with `AllowAny`.
 - Input validation: external input (request data, uploads, webhooks, management-command arguments, env) validated at boundaries (DRF serializers, forms); amounts and roles computed on the server.
 - CSRF and sessions: session authentication with the CSRF token flow in `docs/developer/api-reference.rst`; note `csrf_exempt` outside payment webhooks.
 - Webhooks: payment webhook signatures verified where configured; handlers idempotent.
@@ -125,7 +125,7 @@ Compare against project rules (`.claude/rules/python.md`). Check:
 
 ## Output template
 
-Use this structure for the report. Omit sections with no findings; keep each item concise with location and suggested direction.
+Use this structure for the report. Omit sections without findings; keep each item concise with location and suggested direction.
 
 ```markdown
 # Codebase analysis: [project or path]

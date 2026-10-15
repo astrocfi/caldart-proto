@@ -110,13 +110,13 @@ Apply these criteria to the documentation set. Map each finding to the rule file
   public site, grouped by who uses it: `member/` (screens every signed-in person has, and the
   public site as a visitor sees it), `admin/` (a DART leader and the user, account, and system
   administrators), `finance/` (the treasurer), and `website/` (the website administrator's
-  Wagtail editing screens). Each group directory holds an `index.rst` of a title, one or two
-  sentences, and a toctree, and no other prose. Root pages are `index`, `quick-start`,
+  Wagtail editing screens). Each group directory holds an `index.rst` of only a title, one or two
+  sentences, and a toctree. Root pages are `index`, `quick-start`,
   `overview`, `roles`, and `faq`. A page's slug (its path under `docs/user/` without the
   extension) is the **Help** button's target in `frontend/src/portal/help.ts`'s `HELP_PAGES`
   and the `:doc:` target every other page uses to reach it.
-- **Required content per page:** self-contained for a reader who lands on it from **Help** with
-  no other context — what the screen is for, then what you see, what you can do, and what
+- **Required content per page:** self-contained for a reader who lands on it from **Help**
+  without any other context — what the screen is for, then what you see, what you can do, and what
   happens next, closing with an "If something looks wrong" paragraph. No page exceeds 250
   lines; a screen with several tabs or states splits across more than one page. `roles.rst`
   names every screen a role reaches, in bold, linked to its page; `faq.rst` answers link to the

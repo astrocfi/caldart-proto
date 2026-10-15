@@ -86,8 +86,8 @@ Class notes, chosen by the slice's class:
 
 Each one follows its concern across the whole repository, using the ledger
 (`<scratch dir>/ledger.json`) to find the relevant files, and reads them in full. Launch all
-of them unless the brief shows a concern cannot apply (for example, no webhooks and no
-outbound calls), and say in the report which were skipped and why.
+of them unless the brief shows a concern cannot apply (for example, the repository doesn't
+receive webhooks or make outbound calls), and say in the report which were skipped and why.
 
 ```text
 <shared preamble>
@@ -138,4 +138,4 @@ read in full.
 ```
 
 Keep each finding to the fields above. Do not paste code longer than three lines. If there
-are no findings, write "None" under Findings and still list the controls you verified.
+aren't any findings, write "None" under Findings and still list the controls you verified.

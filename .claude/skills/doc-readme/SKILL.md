@@ -38,10 +38,10 @@ jargon.
 6. **Everyday commands** — the make targets a contributor runs daily (tests, lint, checks,
    docs, end-to-end tests, audits, reset, backup), one line each, ending with `make help`.
 7. **Documentation** — how to build the docs locally (`make docs`) and where the output lands
-   (`docs/_build/html/index.html`). There is no hosted copy.
+   (`docs/_build/html/index.html`). The docs aren't hosted anywhere.
 8. **Contributing** — a pointer to where the contribution conventions live: `CLAUDE.md` and the
    "Before you open a pull request" section of `docs/developer/setup.rst`.
-9. **License** — the license name linking to the license file. While the repository has no
+9. **License** — the license name linking to the license file. While the repository doesn't have a
    license file, say plainly that the code is not licensed for redistribution.
 
 Sections specific to this repository (end-to-end tests, the repository layout) may follow

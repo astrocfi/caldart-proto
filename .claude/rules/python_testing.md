@@ -67,7 +67,7 @@ pytest is configured under `[tool.pytest.ini_options]`; do not add separate `pyt
 `setup.cfg` files.
 
 - `--strict-markers` and `--strict-config` are on, so an unregistered marker or a config typo
-  fails fast instead of silently doing nothing. Register every custom marker in a `markers`
+  fails fast instead of being silently ignored. Register every custom marker in a `markers`
   table with a one-line description.
 - Warnings are errors (`filterwarnings = ["error"]`). Fix a warning that comes from our own
   code. Add a narrowly-scoped `ignore::` / `default::` entry after `"error"` ONLY for a warning

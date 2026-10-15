@@ -17,25 +17,25 @@ Use this when you need concrete examples for a dimension or wording guidance. Th
 - **Finding**: A module calls `logging.basicConfig()` at import time. **Evidence**: `backend/apps/<app>/example.py` line 5. **Suggestion**: Remove it; use a module-level `log = logging.getLogger(__name__)` and leave handler configuration to Django's `LOGGING` setting.
 
 **Best practices – error messages**
-- **Finding**: Exceptions raised with no context: `raise ValueError("invalid input")`. **Evidence**: `backend/apps/<app>/services.py` lines 30, 55. **Suggestion**: Include the actual value and constraint: `raise ValueError(f"amount must be positive, got {amount}")`.
+- **Finding**: Exceptions raised without context: `raise ValueError("invalid input")`. **Evidence**: `backend/apps/<app>/services.py` lines 30, 55. **Suggestion**: Include the actual value and constraint: `raise ValueError(f"amount must be positive, got {amount}")`.
 - **Finding**: Callers cannot tell a misconfigured provider from a declined payment because both raise `RuntimeError`. **Evidence**: grep for `raise RuntimeError` under `apps/payments/`. **Suggestion**: Raise the domain exceptions (`ProviderNotConfiguredError`, `PaymentVerificationError`) so the API can answer 400 vs 402/409 appropriately.
 
 **Best practices – encoding and I/O**
 - **Finding**: `open()` calls omit `encoding`; relies on platform default. **Evidence**: `backend/apps/<app>/management/commands/example.py` lines 18, 42. **Suggestion**: Add `encoding='utf-8'` (or the appropriate encoding) to all `open()` calls.
 
 **Types**
-- **Finding**: Service functions in `apps/<app>/services.py` have no parameter or return annotations, although other apps' services are annotated. **Evidence**: `def` lines without `->` in that module. **Suggestion**: Annotate them the next time they change, as the `python` rule requires for new and modified code.
+- **Finding**: Service functions in `apps/<app>/services.py` don't have parameter or return annotations, although other apps' services are annotated. **Evidence**: `def` lines without `->` in that module. **Suggestion**: Annotate them the next time they change, as the `python` rule requires for new and modified code.
 
 **Testing**
-- **Finding**: Coverage is ~45% for `apps/<app>/`; the CSV export has no direct tests. **Evidence**: `uv run --with pytest-cov pytest --cov=backend --cov-report=term-missing`; no `backend/tests/test_<app>_exports.py`. **Suggestion**: Add tests for the export's content and filters; aim for ≥90%.
+- **Finding**: Coverage is ~45% for `apps/<app>/`; the CSV export doesn't have direct tests. **Evidence**: `uv run --with pytest-cov pytest --cov=backend --cov-report=term-missing`; no `backend/tests/test_<app>_exports.py`. **Suggestion**: Add tests for the export's content and filters; aim for ≥90%.
 - **Finding**: No test checks that a `member` is refused the admin list endpoint. **Evidence**: `backend/tests/test_<app>_api.py` covers only the allowed role. **Suggestion**: Parametrize allow/deny over every role in the permission matrix (`docs/developer/api-reference.rst`).
 
 **Performance**
-- **Finding**: The member list endpoint issues one query per row for the member's DART and current membership. **Evidence**: the serializer's method fields in `apps/<app>/api/serializers.py`; the queryset in the view has no `select_related`. **Suggestion**: Add `select_related` / `prefetch_related` to the queryset and pin the count with `django_assert_num_queries` in a test.
+- **Finding**: The member list endpoint issues one query per row for the member's DART and current membership. **Evidence**: the serializer's method fields in `apps/<app>/api/serializers.py`; the queryset in the view doesn't use `select_related`. **Suggestion**: Add `select_related` / `prefetch_related` to the queryset and pin the count with `django_assert_num_queries` in a test.
 - **Finding**: A PDF export loads every payment into memory before rendering. **Evidence**: `backend/apps/<app>/reports.py` `export_pdf()`. **Suggestion**: Iterate the queryset with `.iterator()` or paginate the rendering.
 
 **Performance – concurrency and thread safety**
-- **Finding**: Module-level mutable cache `_cache = {}` is written from multiple functions with no locking. **Evidence**: `backend/apps/<app>/example.py` line 8 and functions `register()`, `lookup()`. **Suggestion**: Protect with `threading.Lock`, move the cache to Django's cache framework, or document that it is safe only under single-threaded workers.
+- **Finding**: Module-level mutable cache `_cache = {}` is written from multiple functions without locking. **Evidence**: `backend/apps/<app>/example.py` line 8 and functions `register()`, `lookup()`. **Suggestion**: Protect with `threading.Lock`, move the cache to Django's cache framework, or document that it is safe only under single-threaded workers.
 
 **Maintainability**
 - **Finding**: `os.environ` is read directly in five modules outside `caldart/settings/`. **Evidence**: grep for `os.environ` / `env(` under `backend/apps/`. **Suggestion**: Read each variable once in settings and import it from `django.conf.settings`.
@@ -45,7 +45,7 @@ Use this when you need concrete examples for a dimension or wording guidance. Th
 - **Finding**: The README lists a make target the Makefile no longer defines. **Evidence**: `README.rst` "Everyday commands" vs `make help`. **Suggestion**: Keep the README's command list in step with the Makefile.
 
 **Security**
-- **Finding**: An endpoint declares no `permission_classes` and relies on the project default. **Evidence**: `backend/apps/<app>/api/views.py` `ExampleView`. **Suggestion**: Declare the permission classes the permission matrix requires, and add allow/deny tests.
+- **Finding**: An endpoint doesn't declare `permission_classes` and relies on the project default. **Evidence**: `backend/apps/<app>/api/views.py` `ExampleView`. **Suggestion**: Declare the permission classes the permission matrix requires, and add allow/deny tests.
 - **Finding**: Subprocess is invoked with `shell=True` and a user-supplied file name. **Evidence**: `backend/apps/<app>/management/commands/example.py` line 67. **Suggestion**: Use list form of arguments and avoid `shell=True`; resolve and validate the path.
 
 **Dependencies**
@@ -59,7 +59,7 @@ Use this when you need concrete examples for a dimension or wording guidance. Th
 - **Finding**: Stale `[tool.black]` section remains in `pyproject.toml` after migration to Ruff. **Evidence**: `pyproject.toml` line 45. **Suggestion**: Remove the `[tool.black]` section; Ruff format replaces Black.
 
 **Technical debt**
-- **Finding**: 40+ TODO comments with no issue links or owners. **Evidence**: `grep -r TODO backend`. **Suggestion**: Link TODOs to issues, or triage and remove obsolete ones.
+- **Finding**: 40+ TODO comments without issue links or owners. **Evidence**: `grep -r TODO backend`. **Suggestion**: Link TODOs to issues, or triage and remove obsolete ones.
 - **Finding**: An app has six migrations that each adjust one field of a model added in the first. **Evidence**: `backend/apps/<app>/migrations/`. **Suggestion**: Regenerate a single migration for the model, per the prototype's no-backwards-compatibility policy (`CLAUDE.md`).
 
 **Deployment and configuration**

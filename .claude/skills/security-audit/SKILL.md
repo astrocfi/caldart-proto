@@ -43,7 +43,7 @@ agent instruction files (`CLAUDE.md`, `AGENTS.md`, `.claude/rules/*.md`, `.curso
 data handling, configuration, or deployment. A documented permission matrix is the
 specification the access-control reviewer compares the code against. Cite a standard by
 file name when a finding violates it, and report a standard that is itself insecure. When
-the repository has no security standard, use the OWASP ASVS (level 2), the OWASP Top 10,
+the repository doesn't have a security standard, use the OWASP ASVS (level 2), the OWASP Top 10,
 and the OWASP API Security Top 10 as the baseline.
 
 ## Workflow
@@ -129,7 +129,7 @@ report's Coverage section with the reason.
   hold; lower the confidence of what cannot be settled from the code.
 - Follow the reviewers' leads that no other reviewer settled.
 - Look for chains: two modest findings that together give an attacker more (an open
-  redirect plus a token in the URL, a stored XSS plus no `HttpOnly` cookie) become one
+  redirect plus a token in the URL, a stored XSS plus a cookie without `HttpOnly`) become one
   finding at the combined priority.
 - Assign final priorities with the rubric below, then number the findings `SEC-001`,
   `SEC-002`, ... by priority, then category.
@@ -170,7 +170,7 @@ Each finding also carries a **confidence** (Confirmed, Likely, Needs verificatio
 ## Report template
 
 Keep it concise: one short block per finding, no code longer than three lines, no scanner
-dumps. Omit a category's findings block when it has none, but keep its heading with one line
+dumps. Omit a category's findings block when it doesn't have any, but keep its heading with one line
 saying what was checked.
 
 ```markdown

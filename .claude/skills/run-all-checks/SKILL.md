@@ -168,7 +168,7 @@ All checks pass when:
 - `tsc --noEmit` and `eslint --max-warnings 0` → no output, exit 0
 - `prettier --check` → All matched files use Prettier code style!
 - `pytest` and `vitest` → all tests pass, no warnings
-- `manage.py check --fail-level WARNING` → System check identified no issues
+- `manage.py check --fail-level WARNING` → System check identified no issues <!-- wording:ignore -->
 - `makemigrations --check --dry-run` → No changes detected
 - `npm run build` → exit 0
 - `sphinx-build -n -W` → build succeeded, exit 0
