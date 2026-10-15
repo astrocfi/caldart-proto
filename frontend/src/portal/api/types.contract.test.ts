@@ -138,6 +138,7 @@ import type {
   EnrolledSignIn,
   MailDeliveryCheck,
   MailDeliveryFinding,
+  MandateKind,
   MandateProvider,
   MandateStatus,
   ManualMethod,
@@ -192,6 +193,7 @@ import type {
   RenewalScan,
   RenewalSettleOutcome,
   RenewalSettleRequest,
+  RenewalSettleResult,
   RunAction,
   RenewalSetupRequest,
   RenewalSetupResponse,
@@ -296,6 +298,7 @@ const navKind: Matches<NavKind, Schemas['NavKindEnum']> = true;
 const paymentKind: Matches<PaymentKind, Schemas['PaymentKindEnum']> = true;
 const mandateProvider: Matches<MandateProvider, Schemas['MandateProviderEnum']> = true;
 const mandateStatus: Matches<MandateStatus, Schemas['MandateStatusEnum']> = true;
+const mandateKind: Matches<MandateKind, Schemas['MandateKindEnum']> = true;
 const renewalOutcome: Matches<RenewalOutcome, Schemas['RenewalOutcomeEnum']> = true;
 const manualMethod: Matches<ManualMethod, Schemas['ManualMethodEnum']> = true;
 const bulkEmailRecipientStatus: Matches<
@@ -456,6 +459,7 @@ const renewalScan: Matches<RenewalScan, Schemas['RenewalScan']> = true;
 const renewalSettle: Matches<RenewalSettleRequest, Schemas['RenewalSettleRequest']> = true;
 const renewalSettleOutcome: Matches<RenewalSettleOutcome, Schemas['RenewalSettleOutcomeEnum']> =
   true;
+const renewalSettleResult: Matches<RenewalSettleResult, Schemas['RenewalSettleResult']> = true;
 const renewalPatch: Matches<RenewalPatchRequest, Schemas['PatchedRenewalPatchRequest']> = true;
 const runAction: Matches<RunAction, Schemas['RunAction']> = true;
 
@@ -623,6 +627,7 @@ const assertions: readonly true[] = [
   paymentKind,
   mandateProvider,
   mandateStatus,
+  mandateKind,
   renewalOutcome,
   manualMethod,
   bulkEmailRecipientStatus,
@@ -752,6 +757,7 @@ const assertions: readonly true[] = [
   renewalScan,
   renewalSettle,
   renewalSettleOutcome,
+  renewalSettleResult,
   renewalPatch,
   runAction,
   leaderSearch,
@@ -870,6 +876,7 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'PaymentKindEnum',
   'MandateProviderEnum',
   'MandateStatusEnum',
+  'MandateKindEnum',
   'RenewalOutcomeEnum',
   'ManualMethodEnum',
   'BulkEmailRecipientStatusEnum',
@@ -995,6 +1002,7 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'RenewalScan',
   'RenewalSettleRequest',
   'RenewalSettleOutcomeEnum',
+  'RenewalSettleResult',
   'PatchedRenewalPatchRequest',
   'RunAction',
   'LeaderSearchResult',

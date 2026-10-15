@@ -6,7 +6,13 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
-import type { Paginated, RenewalAttempt, RenewalMandate, ReportColumn } from '@/portal/api/types';
+import type {
+  Paginated,
+  RenewalAttempt,
+  RenewalMandate,
+  RenewalSettleResult,
+  ReportColumn,
+} from '@/portal/api/types';
 import { RenewalsPage } from './RenewalsPage';
 
 const ACTIVE: RenewalMandate = {
@@ -77,6 +83,7 @@ const CANCELED: RenewalMandate = {
 const REFUSED: RenewalAttempt = {
   id: 87,
   mandate_id: 13,
+  mandate_kind: 'renewal',
   membership_id: 455,
   payment_id: null,
   user_id: 35,
@@ -331,6 +338,32 @@ describe('RenewalsPage', () => {
 
     await screen.findByRole('row', { name: /03\/15\/2026/ });
     expect(screen.getAllByRole('button', { name: /^Settle the charge for/ })).toHaveLength(1);
+  });
+
+  it('keeps the member’s phone and address on screen once a charge is closed as failed', async () => {
+    const closed: RenewalSettleResult = {
+      ...IN_DOUBT,
+      in_doubt: false,
+      outcome: 'failed',
+      user_email: 'ben@example.org',
+      user_phone: '415-555-0142',
+      member_emailed: true,
+    };
+    server.use(
+      ...renewalHandlers([], [IN_DOUBT], record()),
+      http.post(`${API}/admin/renewals/attempts/88/settle`, () => HttpResponse.json(closed)),
+    );
+    renderWithProviders(<RenewalsPage />);
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Settle the charge for Ben Ortiz' }),
+    );
+    await userEvent.click(
+      screen.getByLabelText('I searched the dashboard and didn’t find a payment for this invoice'),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Close as failed' }));
+
+    expect(await screen.findByRole('link', { name: '415-555-0142' })).toBeInTheDocument();
   });
 
   it('tells the administrator when a mandate refuses to be turned off', async () => {

@@ -8,21 +8,27 @@
  * paid** with the provider's capture id, which renews the member's term and emails
  * them as any charge does; or, once the treasurer has checked that they didn't find
  * a payment, **No payment found**, which lets the next run charge it again, or **Close
- * as failed**, which doesn't charge it and pauses the member's automatic renewal.
+ * as failed**, which doesn't charge it, pauses the member's automatic renewal or
+ * recurring donation, and emails them that it is paused. The panel asks the treasurer
+ * to get in touch with the member too, and hands the answer to a closed charge, which
+ * carries the member's phone number and address, to `onClosed`.
  */
 import { useState } from 'react';
 import type { ChangeEvent, JSX } from 'react';
 
-import type { RenewalAttempt, RenewalSettleOutcome } from '@/portal/api/types';
+import type { RenewalAttempt, RenewalSettleOutcome, RenewalSettleResult } from '@/portal/api/types';
 import { ConfirmButton } from '@/portal/components/ConfirmButton';
 import { DateText } from '@/portal/components/DateText';
 import { Field } from '@/portal/components/Field';
 import { Money } from '@/portal/components/Money';
 import { useToast } from '@/portal/components/Toast';
+import { MANDATE_KIND_LABELS } from './labels';
 import { useSettleAttempt } from './reports-api';
 
 export interface SettleChargeButtonProps {
   attempt: RenewalAttempt;
+  /** Called with the settle call's answer once the charge is closed as failed. */
+  onClosed: (result: RenewalSettleResult) => void;
 }
 
 /** The id a renewal charge's order carries at PayPal, to search its dashboard for. */
@@ -31,7 +37,7 @@ export function renewalInvoiceId(paymentId: number): string {
 }
 
 /** Records a charge held in doubt as paid, releases it, or closes it as failed. */
-export function SettleChargeButton({ attempt }: SettleChargeButtonProps): JSX.Element {
+export function SettleChargeButton({ attempt, onClosed }: SettleChargeButtonProps): JSX.Element {
   const [reference, setReference] = useState('');
   const [isNothingFound, setIsNothingFound] = useState(false);
   const settle = useSettleAttempt();
@@ -46,22 +52,24 @@ export function SettleChargeButton({ attempt }: SettleChargeButtonProps): JSX.El
   };
 
   // Rejects when the request fails, so the panel stays open with the answer still in it.
-  const answer = (outcome: RenewalSettleOutcome, done: string): Promise<unknown> =>
+  const answer = (
+    outcome: RenewalSettleOutcome,
+    handleDone: (result: RenewalSettleResult) => void,
+  ): Promise<unknown> =>
     settle
       .mutateAsync({
         attemptId: attempt.id,
         body: outcome === 'paid' ? { outcome, reference: reference.trim() } : { outcome },
       })
-      .then(
-        () => toast.show(done, 'success'),
-        (error: unknown) => {
-          toast.show(
-            error instanceof Error ? error.message : 'That charge could not be settled.',
-            'error',
-          );
-          throw error;
-        },
-      );
+      .then(handleDone, (error: unknown) => {
+        toast.show(
+          error instanceof Error ? error.message : 'That charge could not be settled.',
+          'error',
+        );
+        throw error;
+      });
+
+  const confirm = (message: string): void => toast.show(message, 'success');
 
   const name = attempt.user_name;
   return (
@@ -74,20 +82,22 @@ export function SettleChargeButton({ attempt }: SettleChargeButtonProps): JSX.El
         {
           label: 'Record as paid',
           disabled: reference.trim() === '',
-          onChoose: () => answer('paid', `The charge for ${name} is recorded.`),
+          onChoose: () => answer('paid', () => confirm(`The charge for ${name} is recorded.`)),
         },
         {
           label: 'No payment found',
           disabled: !isNothingFound,
           onChoose: () =>
-            answer('released', `The charge for ${name} will be taken on the next run.`),
+            answer('released', () =>
+              confirm(`The charge for ${name} will be taken on the next run.`),
+            ),
         },
         {
           label: 'Close as failed',
           variant: 'danger',
           disabled: !isNothingFound,
-          onChoose: () =>
-            answer('failed', `The charge for ${name} is closed and their renewal is paused.`),
+          // The page reports a closed charge, keeping the member's phone and address on screen.
+          onChoose: () => answer('failed', onClosed),
         },
       ]}
     >
@@ -121,8 +131,10 @@ export function SettleChargeButton({ attempt }: SettleChargeButtonProps): JSX.El
         searched the dashboard and didn&rsquo;t find a payment for this invoice
       </label>
       <p className="muted">
-        No payment found lets the next run charge it again; Close as failed doesn&rsquo;t charge it
-        again and pauses {name}&rsquo;s automatic renewal. Either needs the search confirmed.
+        No payment found lets the next run charge it again. Close as failed doesn&rsquo;t charge it
+        again and pauses {name}&rsquo;s {MANDATE_KIND_LABELS[attempt.mandate_kind].toLowerCase()}.
+        They are emailed that it is paused; please get in touch with them too. Either needs the
+        search confirmed.
       </p>
     </ConfirmButton>
   );

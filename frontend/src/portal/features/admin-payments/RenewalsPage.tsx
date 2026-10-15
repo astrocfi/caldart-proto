@@ -10,8 +10,10 @@
  * status, by kind, and by a search, held in the address like every finance tab's
  * filters, and their column chooser drives the table and the renewals report's CSV
  * and PDF together.  Turning a mandate off asks first, because the member is
- * emailed about it.
+ * emailed about it.  Closing a charge as failed leaves a note above the charges asking the
+ * treasurer to get in touch with the member, until it is dismissed.
  */
+import { useState } from 'react';
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -21,6 +23,7 @@ import type {
   RenewalAttempt,
   RenewalMandate,
   RenewalOutcome,
+  RenewalSettleResult,
   ReportColumn,
 } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
@@ -41,6 +44,7 @@ import { CADENCE_LABELS } from '@/portal/features/payments/labels';
 import { reportExportUrl } from '@/portal/reports/api';
 import { REPORTS, listFilters } from '@/portal/reports/definitions';
 import type { FilterField } from '@/portal/reports/types';
+import { ClosedChargeNotice } from './ClosedChargeNotice';
 import { FinanceTabs } from './FinanceTabs';
 import { SettleChargeButton } from './SettleChargeButton';
 import { MANDATE_KIND_LABELS, MANDATE_STATUS_LABELS, declineReason } from './labels';
@@ -233,6 +237,8 @@ export function RenewalsPage(): JSX.Element {
   );
   const attempts = useRenewalAttempts(outcome, attemptPage);
   const cancel = useCancelMandate();
+  // The charge last closed as failed, whose member the treasurer is asked to contact.
+  const [closedCharge, setClosedCharge] = useState<RenewalSettleResult | null>(null);
   const exportParams = { ...filters, columns: choice.chosen };
 
   // A change of filter returns the renewals to their first page; the charges keep theirs.
@@ -354,7 +360,7 @@ export function RenewalsPage(): JSX.Element {
       width: ACTIONS_MIN_WIDTH,
       render: (row) =>
         row.in_doubt ? (
-          <SettleChargeButton attempt={row} />
+          <SettleChargeButton attempt={row} onClosed={(result) => setClosedCharge(result)} />
         ) : (
           <span className="muted">&mdash;</span>
         ),
@@ -420,6 +426,9 @@ export function RenewalsPage(): JSX.Element {
 
       <section className="stack">
         <h2 className="period-table__title">Recent charges</h2>
+        {closedCharge === null ? null : (
+          <ClosedChargeNotice result={closedCharge} onDismiss={() => setClosedCharge(null)} />
+        )}
         <DataTable
           singleLine
           columns={attemptColumns}

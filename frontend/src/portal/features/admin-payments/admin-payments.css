@@ -50,6 +50,16 @@
   font-weight: var(--weight-semibold);
 }
 
+/* What Close as failed did, above the charges, with a rule like a stat tile's. */
+.settle-result {
+  padding-left: var(--space-4);
+  border-left: 2px solid var(--color-primary);
+}
+
+.settle-result p {
+  margin: 0;
+}
+
 /* Month / Year toggle. */
 .segmented {
   display: inline-flex;

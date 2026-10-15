@@ -1380,6 +1380,8 @@ export interface RenewalEnvelope {
 export interface RenewalAttempt {
   id: number;
   mandate_id: number;
+  /** What the charge's mandate charges for: a renewal, a recurring donation, or both. */
+  mandate_kind: MandateKind;
   /** The term the charge renews; null for a recurring donation. */
   membership_id: number | null;
   payment_id: number | null;
@@ -1416,6 +1418,18 @@ export type RenewalSettleOutcome = 'paid' | 'released' | 'failed';
 export interface RenewalSettleRequest {
   outcome: RenewalSettleOutcome;
   reference?: string;
+}
+
+/**
+ * The answer to `POST /admin/renewals/attempts/{id}/settle`: the attempt as it stands, and
+ * how to reach the member, so a treasurer who closed the charge can get in touch.
+ */
+export interface RenewalSettleResult extends RenewalAttempt {
+  user_email: string;
+  /** The phone number on the member's profile, or an empty string when they don't have one. */
+  user_phone: string;
+  /** Whether the member is sent an email about this answer once it has gone. */
+  member_emailed: boolean;
 }
 
 /** `POST /me/renewal/setup` and `POST /me/donation/setup`. */

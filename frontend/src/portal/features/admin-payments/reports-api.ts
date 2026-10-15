@@ -23,6 +23,7 @@ import type {
   RenewalMandate,
   RenewalOutcome,
   RenewalSettleRequest,
+  RenewalSettleResult,
 } from '@/portal/api/types';
 import { formatMonth } from '@/portal/components/DateText';
 import type { StatusTone } from '@/portal/components/StatusDot';
@@ -138,11 +139,15 @@ export interface SettleAttemptInput {
  * charges it again.  A charge recorded as paid renews a term and takes a payment, so
  * both the renewals and the payments are read again.
  */
-export function useSettleAttempt(): UseMutationResult<RenewalAttempt, unknown, SettleAttemptInput> {
+export function useSettleAttempt(): UseMutationResult<
+  RenewalSettleResult,
+  unknown,
+  SettleAttemptInput
+> {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ attemptId, body }: SettleAttemptInput) =>
-      api.post<RenewalAttempt>(`/admin/renewals/attempts/${attemptId}/settle`, body),
+      api.post<RenewalSettleResult>(`/admin/renewals/attempts/${attemptId}/settle`, body),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['admin', 'renewals'] });
       void queryClient.invalidateQueries({ queryKey: ['admin', 'payments'] });
