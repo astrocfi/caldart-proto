@@ -40,7 +40,7 @@ Endpoints
 anybody has signed in.  Everything under ``/admin/`` needs ``account_admin``;
 ``system_admin`` passes every role check, so a system administrator has them
 too.  An unauthenticated request gets **401**, an authenticated one without
-the role **403**, and an unsafe method with no ``X-CSRFToken`` **403** before
+the role **403**, and an unsafe method without an ``X-CSRFToken`` **403** before
 either check.
 
 

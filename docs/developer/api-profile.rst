@@ -6,13 +6,13 @@ The member self-service half of the API, plus the pair of endpoints that
 attach an aircraft to the member's profile and detach it (the rest of the
 aircraft API is in :doc:`api-aircraft`), and the street-address suggestions the
 profile form offers as it is typed into.  Every ``/me/...`` endpoint acts on the
-signed-in user and no one else; ``/darts`` and ``/plans`` are public so the
+signed-in user alone; ``/darts`` and ``/plans`` are public so the
 join wizard can render before the visitor has an account.
 
 Conventions are the ones in :doc:`api-reference`: session authentication,
 ``X-CSRFToken`` on unsafe methods, ISO-8601 dates, DRF error bodies.  An
 unauthenticated request to a protected endpoint returns **401**, not 403 —
-unless it is an unsafe method carrying no CSRF token, which is refused with
+unless it is an unsafe method without a CSRF token, which is refused with
 **403** before the permission check.  Both answers are the same on every
 ``/me/...`` endpoint and are not repeated in the status lists below.
 
@@ -34,12 +34,12 @@ Endpoint                                     Methods                  Who
 ``/api/v1/addresses/suggest``                ``GET``                  any signed-in user
 ===========================================  =======================  ===============
 
-There is no role check beyond authentication: the resource *is* the caller,
-so there is no id to tamper with.  A member with no ``MemberProfile`` row
-gets an empty one created on first read or first attach, which keeps
-accounts created outside the registration flow usable.  A method outside the
-column above is a **405** — ``DELETE /me/profile`` among them, because a member
-may empty their profile but not remove it.
+These endpoints don't check a role beyond authentication: the resource *is* the
+caller, so there isn't an id to tamper with.  A member without a ``MemberProfile``
+row gets an empty one created on first read or first attach, which keeps accounts
+created outside the registration flow usable.  A method outside the column above
+is a **405** — ``DELETE /me/profile`` among them, because a member may empty their
+profile but not remove it.
 
 
 ``GET /me/profile``
@@ -47,7 +47,7 @@ may empty their profile but not remove it.
 
 Returns the account's ``first_name`` and ``last_name`` and every ``MemberProfile``
 field except the admin-only ``notes`` and ``how_heard``, creating an empty profile
-row first if the account has none.
+row first if the account doesn't have one.
 
 .. code-block:: json
 
@@ -138,7 +138,7 @@ and the photo ID, each as ``{verified, verified_by, verified_at}``: whether an
 authority has checked the item against the document, the display name of the
 account that did, and when.  Both are ``null`` while the item is unverified.
 Only the member check verifies an item (:doc:`verification`); a member cannot
-verify their own, and a body that sends ``verification`` changes nothing.
+verify their own, and a body that sends ``verification`` doesn't change anything.
 
 Statuses:
 
@@ -200,18 +200,18 @@ stored profile in the ``GET`` shape above.
 A write that moves a field a verified item covers clears that item: a new
 ``pilot_certificate_type`` or ``certificate_number`` clears the certificate, a
 new ``medical_type`` or ``medical_expiration`` the medical, and a new
-``photo_id_type`` the photo ID.  A field resent at its stored value clears
-nothing, and ratings, the flight review, and hours are not verified at
-all.  The same holds for ``PUT``.  The clearing raises no event of its own;
+``photo_id_type`` the photo ID.  A field resent at its stored value doesn't clear
+anything, and ratings, the flight review, and hours are not verified at all.  The
+same holds for ``PUT``.  The clearing doesn't raise an event of its own;
 ``profile_changed`` below already names the fields (:doc:`verification`).
 
 The write that makes an incomplete profile complete is the join wizard's
-profile step finishing: it raises the ``signed_up`` event with the account and
-the chosen DART, and nothing else.  Any other ``PUT`` or ``PATCH`` to a complete
-profile that moves a field's value, a name included, raises the
-``profile_changed`` event with the labels of those fields and no actor (:doc:`notification-events`).  One that
-resends what is stored, or leaves an incomplete profile incomplete, raises
-nothing.
+profile step finishing: it raises only the ``signed_up`` event, with the account
+and the chosen DART.  Any other ``PUT`` or ``PATCH`` to a complete profile that
+moves a field's value, a name included, raises the ``profile_changed`` event with
+the labels of those fields and without an actor (:doc:`notification-events`).  One
+that resends what is stored, or leaves an incomplete profile incomplete, doesn't
+raise an event.
 
 Statuses:
 
@@ -285,8 +285,8 @@ Field                        Rule
                              order is kept.
 ``photo_id_type``            One of the six kinds above.
 ``medical_expiration``       Optional, whatever ``medical_type`` is.
-``certificate_number``       Optional, whatever ``pilot_certificate_type`` is; seven
-                             digits and nothing else if given.
+``certificate_number``       Optional, whatever ``pilot_certificate_type`` is;
+                             exactly seven digits if given.
 ===========================  ===========================================================
 
 A rejection is a normal DRF 400, keyed on the field it belongs to:
@@ -493,7 +493,7 @@ Statuses:
 * **400** — ``{"detail": "You have no pending change."}`` when ``friend_on`` is
   null, when its day has come, or when the caller is a friend.
 
-There is no endpoint for becoming a member: a friend pays for a plan at
+Becoming a member doesn't have an endpoint of its own: a friend pays for a plan at
 ``/portal/membership/join``, and ``activate_term`` makes them a member when the
 payment succeeds.
 
@@ -503,8 +503,8 @@ payment succeeds.
 
 The caller's payments, newest first, unpaginated.  A gift started on the public
 donation page with the caller's address that has not settled is left out: anybody who
-knows the address can start one, and until its money arrives it is nothing the caller
-did (:doc:`api-payments`).
+knows the address can start one, and until its money arrives it isn't something the
+caller did (:doc:`api-payments`).
 
 .. code-block:: json
 
@@ -571,7 +571,7 @@ Street addresses matching what a member has typed into the profile form's
 county at once.  The server forwards the query to Geoapify's autocomplete
 endpoint with the key from ``GEOAPIFY_API_KEY``; the browser never talks to
 Geoapify, the key never appears in a response, and the Content-Security-Policy
-needs no Geoapify origin.  Results are limited to the United States and biased
+doesn't need a Geoapify origin.  Results are limited to the United States and biased
 toward California, so in-state matches come first.
 
 Query parameters:
@@ -597,13 +597,13 @@ Up to five suggestions, in Geoapify's order.  ``label`` is the whole address on
 one line, for the list under the box; the other five fields are the profile
 fields a pick fills, each in the profile's own terms:
 
-* ``address_line1`` is the house number and street.  A Geoapify result with no
+* ``address_line1`` is the house number and street.  A Geoapify result without a
   street, such as a whole city, is not offered.
-* ``city`` is the city, or the town, village, or hamlet when Geoapify names no
-  city.
+* ``city`` is the city, or the town, village, or hamlet when Geoapify doesn't
+  name a city.
 * ``state`` is a two-letter code the profile stores, or empty.
 * ``postal_code`` is the five-digit ZIP code, with any ZIP+4 extension dropped,
-  or empty when Geoapify's postcode holds no five digits.
+  or empty when Geoapify's postcode doesn't hold five digits.
 * ``county`` is one of the fifty-eight California counties the profile offers,
   with Geoapify's trailing "County" (or leading "City and County of") removed,
   or empty when the state is not ``CA`` or the county is not one of them.
@@ -627,6 +627,9 @@ Each account is throttled on its own under ``ADDRESS_SUGGEST_THROTTLE_RATE``
 Statuses:
 
 * **200** — the list above, possibly empty.
+
+  .. wording:ignore-next-line
+
 * **400** — ``q`` is over 200 characters, reported as
   ``{"q": ["Ensure this field has no more than 200 characters."]}``.
 * **429** — the caller has asked for more suggestions than the rate allows.

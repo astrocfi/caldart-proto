@@ -70,7 +70,7 @@ Every subscription, unpaginated, ordered by address:
 ``recipient_user`` is the account the notifications go to, or ``null`` for an
 address outside CalDART, whose ``recipient_name`` is then blank.
 ``recipient_email`` is stored in lower case.  ``events`` are the event slugs, in
-catalog order.  A subscription whose ``is_active`` is false is sent nothing.
+catalog order.  A subscription whose ``is_active`` is false isn't sent anything.
 ``created_by_name`` is blank once the account that set it up is gone.
 
 ``POST /notifications/subscriptions``

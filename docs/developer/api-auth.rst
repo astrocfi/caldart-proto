@@ -12,19 +12,19 @@ Conventions
 ===========
 
 **Session authentication.**  The portal and the API are same-origin, so the
-browser's session cookie is the credential; there is no token to store.
+browser's session cookie is the credential; there isn't a token to store.
 ``caldart.authentication.CsrfEnforcingSessionAuthentication`` is the only
 authentication class configured.
 
 **CSRF.**  Every unsafe method needs an ``X-CSRFToken`` header, including the
 anonymous ones on this page: register, login and its two-factor steps, logout,
 the two password-reset endpoints, and the email-verify endpoint all refuse a POST
-that carries no token.  Call
-``GET /api/v1/auth/csrf`` whenever you have no ``csrftoken`` cookie to echo;
+that doesn't carry a token.  Call
+``GET /api/v1/auth/csrf`` whenever you don't have a ``csrftoken`` cookie to echo;
 the SPA's ``api/client.ts`` does this automatically before every POST, PUT,
 PATCH, or DELETE that finds the cookie missing.
 
-**401, not 403, for anonymous callers.**  Session authentication has no
+**401, not 403, for anonymous callers.**  Session authentication doesn't have a
 ``WWW-Authenticate`` challenge, so DRF would normally answer 403.
 ``caldart.exceptions.caldart_exception_handler`` rewrites that to 401, which is
 what the contract promises and what the SPA keys "sign in again" off.  A 403
@@ -48,7 +48,7 @@ usual ``{count, next, previous, results}`` envelope.
 before they answer.  When the mail server refuses the message, or cannot be
 reached, the attempt is recorded as a failed send in the email log
 (:doc:`email`), and the refusal is logged on the ``caldart.mail`` logger, by the
-transport's class and SMTP code with no traceback or address, which production
+transport's class and SMTP code, without a traceback or an address, which production
 mails to ``ADMIN_EMAILS``
 (:doc:`configuration`).  What the caller is told depends on who asked:
 
@@ -66,7 +66,7 @@ mails to ``ADMIN_EMAILS``
 * A send the user administrator asks for by name,
   ``POST /admin/users/{id}/send-password-reset`` or
   ``POST /admin/users/{id}/send-email-verification``, answers **503** and
-  records nothing in the audit log, so the administrator knows the message did
+  doesn't record anything in the audit log, so the administrator knows the message did
   not go:
 
   .. code-block:: json
@@ -91,12 +91,12 @@ queued for the commit.
 
 **Mail sent after the answer.**  ``POST /auth/password/reset`` and
 ``POST /auth/register`` must not take longer for an address that has an account than
-for one that has none, so they render and send their message only once the answer
+for one that doesn't, so they render and send their message only once the answer
 has gone: ``caldart.mail.send_after_response`` adds the send to the response's
 closers, which Django runs when the WSGI server closes the response after writing it.
 The send runs through ``send_logging_refusal``, so a refusal is logged as above; any
-other error, a template that does not render included, has no answer left to turn
-into a 500, so it is logged at ERROR on ``caldart.mail`` with its traceback.  The
+other error, a template that does not render included, doesn't have an answer left to
+turn into a 500, so it is logged at ERROR on ``caldart.mail`` with its traceback.  The
 test client closes every response it makes, so a test reads the outbox as usual.
 
 
@@ -157,8 +157,8 @@ Every endpoint that returns an account returns the same object:
 
 ``profile_complete``
    True when the member profile has ``phone``, ``address_line1``, ``city``,
-   ``state``, ``postal_code``, and ``pilot_certificate_type`` filled in.  False when there is
-   no profile at all.  The portal holds a reader whose profile is incomplete at the
+   ``state``, ``postal_code``, and ``pilot_certificate_type`` filled in.  False when there isn't
+   a profile at all.  The portal holds a reader whose profile is incomplete at the
    join wizard's profile step (see `How the portal uses this`_).
 
 ``email_verified``
@@ -210,7 +210,7 @@ Authentication
 ``GET /auth/csrf``
 ------------------
 
-Issues a ``csrftoken`` cookie and answers with no body at all.  Open to
+Issues a ``csrftoken`` cookie and answers without a body at all.  Open to
 anyone; it is the one call a client makes before it can send an unsafe method.
 
 Statuses: **204**, for anybody.
@@ -222,8 +222,8 @@ Registers an address for a member's or a friend's account, and answers the same 
 whoever holds it, so the endpoint cannot be used to find out who has an account.
 ``email``, ``password``, ``first_name``, and ``last_name`` are required; ``kind``
 is ``member`` (the default) or ``friend``.  Nobody is signed in.  Every address that
-parses is answered **202** with this body, which echoes the address posted and
-nothing else:
+parses is answered **202** with this body, which echoes only the address
+posted:
 
 .. code-block:: json
 
@@ -254,7 +254,7 @@ raised yet: the join wizard asks for the DART at its profile step, and the
 **A donor.**  When the address belongs to a donor (:ref:`kinds of account
 <account-kinds>`), no second account is made: the gifts on that account are not
 shown to anyone who has not proved the address is theirs.  The posted ``password``
-is not used: the donor's account keeps no usable password and gets a profile, and
+is not used: the donor's account keeps an unusable password and gets a profile, and
 the address is mailed a link, worded as a request to open a portal account, that
 carries the names and the ``kind`` posted.  Following the link
 (`POST /auth/email/verify`_) asks for a password and completes the upgrade: the
@@ -274,7 +274,7 @@ forgot-password page, and told that signing in offers a fresh verification link
 while the address is unverified; a deactivated one is told that signing in and
 pressing **Reactivate my account**, or choosing a new password, brings it back; one
 a user administrator has closed (:ref:`api-reactivation-block`) is told to contact
-the organization, and given no link.
+the organization and isn't given a link.
 
 Rejections, all 400, judged from the body alone, so they read the same whoever holds
 the address:
@@ -294,8 +294,8 @@ the address:
    that does not parse is *Enter an email address, such as name@example.org.*
 
 Statuses: **202** for every address that parses; **400** for any rejection above;
-**429** when the ``auth_register`` throttle is exhausted.  A refused message changes
-nothing in the answer (:ref:`refused sends <api-refused-send>`).
+**429** when the ``auth_register`` throttle is exhausted.  A refused message doesn't
+change the answer (:ref:`refused sends <api-refused-send>`).
 
 ``POST /auth/login``
 --------------------
@@ -330,11 +330,11 @@ sign-in (:ref:`api-two-factor`).
   ``POST /auth/reactivate`` (:ref:`api-deactivation`).
 * **403** ``{"detail": "This account has been closed. Contact CalDART to reopen
   it."}`` — the password matched, but a user administrator has blocked the
-  account from reactivating (:ref:`api-reactivation-block`).  It carries no
-  ``code``, so the portal shows the sentence and offers no reactivation; the
+  account from reactivating (:ref:`api-reactivation-block`).  It doesn't carry a
+  ``code``, so the portal shows the sentence and doesn't offer reactivation; the
   organization's name comes from the site settings.
 
-A donor cannot sign in at all.  A donor's account holds no usable password, and
+A donor cannot sign in at all.  A donor's account doesn't hold a usable password, and
 even one that somehow does is answered with the same 400 as wrong credentials.
 The refusal is made by the authentication backend
 (``apps.accounts.backends.AccountBackend``), so it holds for every way into a
@@ -357,7 +357,7 @@ address is locked out.
 ``POST /auth/logout``
 ---------------------
 
-Ends the session and answers with no body.  Safe to call when nobody is signed
+Ends the session and answers without a body.  Safe to call when nobody is signed
 in: the answer is the same either way, so a client can sign out without first
 working out whether it is signed in.
 
@@ -426,36 +426,36 @@ The sign-in
 A right password for an account that needs a second factor does **not** start a
 session.  ``POST /auth/login`` (and ``POST /auth/reactivate`` -- every endpoint that
 signs somebody in goes through ``apps.accounts.api.sign_in.start_session``; a
-registration signs nobody in) stores
+registration doesn't sign anybody in) stores
 a *pending sign-in* in the caller's session and answers **200** with what is still
-owed, and nothing about the account:
+owed, without anything about the account:
 
 .. code-block:: json
 
    {"mfa": "verify"}
 
 ``verify`` asks for a code; ``enroll`` means the account must use a second factor
-and has no device yet, so it sets one up first.  The pending sign-in holds the
+and doesn't have a device yet, so it sets one up first.  The pending sign-in holds the
 account's id, a fingerprint of its password (the session auth hash), when it
 started, how many wrong codes it has taken, and whether its owner has been warned
 of one.  It is refused, and cleared, five minutes after the password step, after the
 fifth wrong code, once the password has changed, and once the account can no longer
 sign in (a donor, blocked from reactivating, or deactivated).  It lives in the
 session of the browser that gave the password, so a code posted from anywhere else
-finishes nothing.  Storing it changes the session's key first
+doesn't finish anything.  Storing it changes the session's key first
 (``cycle_key``), so a key somebody planted in the browser before the password was
 typed never carries the pending sign-in: whoever holds the old key can neither give
 the code nor enroll a device on it.  Signing in at the end changes the key again.
 
-``POST /auth/reactivate`` for an account that needs a second factor reactivates
-nothing yet: the account stays deactivated, and its pending sign-in is marked
+``POST /auth/reactivate`` for an account that needs a second factor doesn't
+reactivate anything yet: the account stays deactivated, and its pending sign-in is marked
 ``reactivate``, the one case in which a pending sign-in may name a deactivated
 account.  The code step then reactivates it (as ``/auth/reactivate`` does for any
 other account) and signs it in, in one transaction; a block set in between refuses
 it with the closed sentence and a **403**.  A password alone therefore never brings a
 staff account back.
 
-The code steps act on the pending sign-in and on nothing else:
+The code steps act only on the pending sign-in:
 
 ``POST /auth/login/mfa``
    ``{"otp": "123456"}`` -- an authenticator code or a backup code.  A right code
@@ -478,7 +478,7 @@ The code steps act on the pending sign-in and on nothing else:
 
    ``qr_svg`` is the QR code of ``otpauth_uri``, drawn on the server by ``segno``
    as an SVG document; ``secret`` is for typing in by hand.  Calling again replaces
-   the secret this session holds and no other: each browser confirms only the secret
+   only the secret this session holds: each browser confirms only the secret
    it was shown, so a second sign-in at this step cannot spoil the first one's.  An
    account that already has a confirmed device is never offered this: a password
    alone cannot replace a working device.
@@ -506,7 +506,7 @@ Each code step answers:
   that far.  ``{"otp": ["Enter the code from your authenticator app, or a backup
   code."]}`` answers an empty one;
 * **400** ``{"detail": "Your sign-in has expired. Enter your email address and
-  password again.", "code": "mfa_expired"}`` when there is no pending sign-in to
+  password again.", "code": "mfa_expired"}`` when there isn't a pending sign-in to
   finish -- none was started, it expired, it took its fifth wrong code (that code
   is answered so), the password changed, or it is at the other step;
 * **429** when the address is locked out (:ref:`api-login-lockout`), which also
@@ -531,7 +531,7 @@ session for it again.
 
 ``apps.accounts.middleware.MfaSessionMiddleware``, installed right after
 ``AuthenticationMiddleware``, signs out (``django.contrib.auth.logout``) every
-session of an account that needs a second factor and carries no mark for it,
+session of an account that needs a second factor and doesn't carry a mark for it,
 before the view runs, and the request carries on anonymous.  That covers a session
 from before two-factor sign-in, a session whose account was given a required role
 after it signed in, a session whose account's owner turned two-factor sign-in on
@@ -544,7 +544,7 @@ The admin sites
 ---------------
 
 The Wagtail admin, the Django admin, and the public site's private pages share
-the portal's session and serve no login form of their own, so there is one way to
+the portal's session and don't serve a login form of their own, so there is one way to
 sign in.  ``/admin/login/``, ``/django-admin/login/``, and Wagtail's
 ``/_util/login/`` (``caldart.views.admin_login_redirect``) redirect to the portal's
 sign-in, ``LOGIN_URL``, carrying ``?next=`` only when it is a path on this site --
@@ -554,7 +554,7 @@ request's host -- and dropping it otherwise.  ``WAGTAILADMIN_LOGIN_URL`` and
 admin or a private page refuses straight there, with the page as ``next``.  Every
 password is changed in the portal as well: ``/django-admin/password_change/``
 (``caldart.views.portal_password_change``) redirects to the portal's Change
-password, and the Django admin sets no other account's password.
+password, and the Django admin doesn't set any other account's password.
 
 Everything that sends a reader to the sign-in names ``next`` as a full site path:
 the portal's guard and links a route under the portal's base (``/portal/admin/users``),
@@ -641,7 +641,7 @@ Passwords
 ``POST /auth/password/change``
 ------------------------------
 
-Replaces the signed-in account's own password and answers with no body.
+Replaces the signed-in account's own password and answers without a body.
 Requires a session.
 
 .. code-block:: json
@@ -659,7 +659,7 @@ authenticator app.
 The new password is written only while the stored one is still the one the
 request checked ``current_password`` against.  When something else replaced it
 in the meantime (another change, a reset, or ``create_admin`` clearing it), the
-change writes nothing, leaves the session alone, and answers **401** with
+change doesn't write anything: it leaves the session alone and answers **401** with
 ``{"detail": "This account's password was changed elsewhere. Sign in again."}``.
 
 The change is audited as ``action=account.password_change actor=12 target=12
@@ -680,7 +680,7 @@ Statuses: **204**; **400** for either rejection above or a missing field;
 ``POST /auth/password/reset``
 -----------------------------
 
-Mails a reset link to the address, and answers with no body **whatever
+Mails a reset link to the address, and answers without a body **whatever
 happens**.  Whether the address is registered or has never been seen, the
 answer is identical: the endpoint must not be usable to enumerate members.  A malformed address is still a 400, since that
 is a client bug rather than an answer about the database.
@@ -689,7 +689,7 @@ is a client bug rather than an answer about the database.
 
    {"email": "marta.reyes@example.org"}
 
-A donor is mailed nothing, since a donor cannot sign in, and neither is an
+A donor isn't mailed anything, since a donor cannot sign in, and neither is an
 account a user administrator has blocked from reactivating
 (:ref:`api-reactivation-block`).  When there is an account of any other kind,
 active or deactivated,
@@ -720,7 +720,7 @@ is exhausted.
 ``POST /auth/password/reset/confirm``
 -------------------------------------
 
-Spends a reset link: sets the password it authorizes, and answers with no
+Spends a reset link: sets the password it authorizes, and answers without a
 body.
 
 .. code-block:: json
@@ -755,7 +755,7 @@ refuses it the same way and rolls the whole reset back.
 A reset that replaces a password the account already had is audited as
 ``account.password_change`` with ``reset=true``, and the address is mailed the same
 *your password was changed* notice as ``POST /auth/password/change``, once the reset
-commits.  Setting the first password of an account that had none, from an
+commits.  Setting the first password of an account that didn't have one, from an
 invitation or after an undone change of address (`POST /auth/email/undo`_), is
 neither audited nor reported.
 
@@ -783,20 +783,20 @@ as ``friend``; the reminder scan leaves suspended terms out altogether.
 ``POST /auth/deactivate``
 -------------------------
 
-Deactivates the signed-in account and ends its session, answering with no body.
+Deactivates the signed-in account and ends its session, answering without a body.
 
 .. code-block:: json
 
    {"current_password": "..."}
 
 In one transaction, holding a lock on the account's row so that a second,
-concurrent request waits and then finds the account already inactive and does
-nothing:
+concurrent request waits and then finds the account already inactive and doesn't
+do anything:
 
-#. a system administrator or a donor is refused (below), which changes nothing;
+#. a system administrator or a donor is refused (below), which doesn't change anything;
    otherwise ``is_active`` is cleared (and any change of address still waiting
    dropped), ``account.deactivate`` is recorded with
-   ``self_service=true``, and the ``account_deactivated`` event is raised with no
+   ``self_service=true``, and the ``account_deactivated`` event is raised without an
    actor (``accounts.status.deactivate_own_account``);
 #. every active or paused renewal mandate — automatic renewal or recurring
    donation — is canceled by ``payments.renewals.mandates.cancel_mandate`` with the
@@ -827,7 +827,7 @@ sign in to it, and reactivating restores the term the same way.
   donor, with "A donor has no portal account to deactivate." recorded with
   ``reason=donor_account``, as a guard rather than a path anybody takes.
 
-Statuses: **204**; **400** for any refusal above, which changes nothing;
+Statuses: **204**; **400** for any refusal above, which doesn't change anything;
 **401** when anonymous.
 
 ``POST /auth/reactivate``
@@ -847,7 +847,7 @@ case-insensitively).  The account's row is locked for the transaction, so of two
 concurrent requests the second finds the account active and is refused.  Then:
 
 #. ``is_active`` is set, ``account.activate`` is recorded with
-   ``self_service=true``, and the ``account_reactivated`` event is raised with no
+   ``self_service=true``, and the ``account_reactivated`` event is raised without an
    actor; the kind and the roles are exactly as they were;
 #. each suspended term becomes ``active`` when it is lifetime or ends on or after
    today, so the membership resumes through its original date, and ``expired``
@@ -917,7 +917,7 @@ before it takes effect (`Changing the address`_).
 
 Follows a link mailed to prove an address: a verification link, or the link that
 completes a change of address.  Open to anonymous callers, because the mail client
-may open the link in a browser that has no session.
+may open the link in a browser that doesn't have a session.
 
 .. code-block:: json
 
@@ -953,10 +953,10 @@ password form and posts again::
 
 A password Django's validators reject is a ``400 {"password": [...]}``, and nothing
 changes either.  ``password`` is ignored for every other link, and nobody is signed
-in.  A donor's link that carries no upgrade is refused like a forged one.
+in.  A donor's link that doesn't carry an upgrade is refused like a forged one.
 
 A link that completes a change of address is described under `Changing the
-address`_.  Following any link a second time answers 200 again and changes nothing.
+address`_.  Following any link a second time answers 200 again and doesn't change anything.
 Every way a link can be unusable — a forged or mangled token, one older than the
 timeout, a deactivated or deleted account, an address the account no longer holds,
 a change of address since replaced or undone — returns the same
@@ -966,7 +966,7 @@ whose new address another account has taken meanwhile is
 nothing changes.
 
 Statuses: **200**; **400** for an unusable token, a missing field, or a donor's
-link with no password or a rejected one; **429** when the ``auth_verify`` throttle
+link without a password or with a rejected one; **429** when the ``auth_verify`` throttle
 is exhausted.
 
 ``POST /auth/email/resend``
@@ -974,7 +974,7 @@ is exhausted.
 
 Mails the signed-in account a fresh link.  No body.  While a change of address is
 waiting, the link that completes it goes to ``pending_email`` once the answer has gone
-(``apps.accounts.email_change.send_email_change_link``, which sends nothing to an
+(``apps.accounts.email_change.send_email_change_link``, which doesn't send anything to an
 address another account holds, the answer the same either way); otherwise a
 verification link goes to the account's own address.  The answer names the address:
 
@@ -982,12 +982,12 @@ verification link goes to the account's own address.  The answer names the addre
 
    {"detail": "Verification message sent to marta.reyes@example.org."}
 
-A verified address with no change waiting is refused, and nothing is mailed::
+A verified address without a change waiting is refused, and nothing is mailed::
 
     400 {"detail": "Your email address is already verified."}
 
 Statuses: **202**, also when the mail server refuses the message
-(:ref:`refused sends <api-refused-send>`); **400** for a verified address with no
+(:ref:`refused sends <api-refused-send>`); **400** for a verified address without a
 change waiting; **401** when anonymous; **429** when the ``auth_verify_resend``
 throttle is exhausted.
 
@@ -1007,7 +1007,7 @@ whole flow.
    ``action=account.email_change_request actor=<who asked> target=<id>``.  Nothing
    about signing in changes: the account keeps its ``email``, its verification and
    its password.  An address equal to the current one, compared case-insensitively,
-   is no change at all.  Otherwise the account-edit guard (:ref:`account-edit-guard`)
+   isn't a change at all.  Otherwise the account-edit guard (:ref:`account-edit-guard`)
    runs first; then the account's own request is refused while it keeps a recovery
    address (below); then an address another account holds, or keeps as its recovery
    address (``apps.accounts.services.address_taken``), is refused with *Another
@@ -1016,7 +1016,7 @@ whole flow.
    ``/auth/me``, resent by ``/auth/email/resend``, the old address told) except that
    no link is ever mailed to an address another account holds, so that a session
    cannot be used to find out who has an account.  An account administrator's own
-   address is not changed on the member record, which asks for no password: that is
+   address is not changed on the member record, which doesn't ask for a password: that is
    refused against ``email`` with *Change your own address from Change email, which
    asks for your password.*
    ``POST /auth/email/change`` below asks for the account itself, and
@@ -1042,8 +1042,8 @@ whole flow.
 #. **The notice.**  The recovery address, while the account keeps one, or else the
    current address when it is verified, is mailed *your email address is changing*
    (``templates/emails/email_change_notice.{txt,html}``), naming the new address and
-   carrying a link that undoes the change.  An address nobody has verified is told
-   nothing: it may belong to somebody else entirely, who must not be handed a link
+   carrying a link that undoes the change.  An address nobody has verified isn't
+   told anything: it may belong to somebody else entirely, who must not be handed a link
    that takes the account.
 #. **Completing.**  Following the link (`POST /auth/email/verify`_) works only while
    the account is active, still holds the address the token names, still waits for
@@ -1058,7 +1058,7 @@ whole flow.
    old address (:doc:`notification-events`).  The answer's ``changed`` is true.  An
    address another account took meanwhile, checked first and caught again as the
    unique constraint's ``IntegrityError`` when two complete at once, is a 400 and
-   changes nothing; completing takes the address lock registration and the donation
+   doesn't change anything; completing takes the address lock registration and the donation
    checkout take (``accounts.services.lock_address``), so neither makes an account
    with the address meanwhile.  Sessions are left alone.
 #. **The recovery address.**  A completed change keeps the verified address it left
@@ -1133,7 +1133,7 @@ address>, "at": <when it was made>}, salt="accounts.email-change-undo")``, the
 addresses as they were stored.  It is good for
 ``apps.accounts.email_change.EMAIL_CHANGE_UNDO_TIMEOUT`` seconds, seven days.  The
 portal's page posts the token only when the visitor presses **Undo the change**, so a
-mail scanner that opens the link changes nothing.
+mail scanner that opens the link doesn't change anything.
 
 .. code-block:: json
 
@@ -1180,7 +1180,7 @@ account's own address cannot change again meanwhile, they cannot be sent one.
 
 * **400** ``{"token": ["That link is invalid, has expired, or has been used."]}`` —
   a forged or mangled token, one older than seven days, one spent by an earlier
-  undo, one for no account or a donor's, or one mailed to another address than the
+  undo, one for a missing account or a donor's, or one mailed to another address than the
   recovery address the account keeps.
 
 Statuses: **200**; **400** as above or for a missing field; **429** when the
@@ -1259,13 +1259,13 @@ the bounce check last found the address bouncing, as an ISO datetime, or ``null`
 while no bounce is known, and ``email_bounce_detail`` that report's status code and
 diagnostic, or ``""`` (:ref:`email-bounces`).  ``two_factor_enabled`` is true
 while the account has a confirmed authenticator device (:ref:`api-two-factor`),
-read from an ``Exists`` annotation so the page costs no query per row, and
+read from an ``Exists`` annotation so the page doesn't cost a query per row, and
 ``can_reset_two_factor`` is true when the caller may reset it
 (:ref:`api-reset-two-factor`), which the user record reads to gray its button out.
 ``phone``, ``dart`` (the DART's
 name), ``city``, ``county``, and ``home_airport`` (the home airport's identifier) are
 read from the profile for the columns the Roles list can show; each is
-``""``, and ``dart`` is ``null``, for an account with no profile or no DART.
+``""``, and ``dart`` is ``null``, for an account without a profile or without a DART.
 
 .. code-block:: json
 
@@ -1299,7 +1299,7 @@ Parameter          Effect
 ``is_active``      ``true`` / ``false``.
 ``kind``           ``member``, ``friend``, or ``donor``, as stored.  An
                    unknown kind is a 400.  This list is where a donor's
-                   account is found; donors appear in no member list.
+                   account is found; donors don't appear in any member list.
 ``email_bounced``  ``true`` keeps the accounts whose address has a bounce
                    recorded, ``false`` the rest.
 ``ordering``       One of ``last_name``, ``first_name``, ``email``,
@@ -1325,7 +1325,7 @@ deactivation set one aside).  ``assignable_roles`` lists the role slugs the call
 grant or take away on this account, in privilege order, under the rules of
 ``PATCH`` below (``accounts.services.assignable_roles``): every slug for a system
 administrator, the unguarded roles plus the guarded ones the caller holds for anybody
-else, and none at all on the caller's own account.  The user record grays out every
+else, and an empty list on the caller's own account.  The user record grays out every
 other box.  ``PATCH`` and the account status actions below answer in this shape too;
 the list leaves the three out, since each costs a query per row or depends on the
 caller and the row together.
@@ -1376,7 +1376,7 @@ never the user administrator's, and the two flags change only through the
 account status actions (:ref:`api-account-status`).
 
 A **Deleted member <id>** tombstone, which keeps a deleted account's payments,
-takes no edit at all: the view refuses any body with **400** ``{"detail": "This
+can't be edited at all: the view refuses any body with **400** ``{"detail": "This
 record keeps a deleted member's payments in the books and cannot be changed."}``
 before the serializer runs, as the member record does
 (:ref:`api-members-tombstone`).
@@ -1425,12 +1425,12 @@ saved:
 
 A system administrator, a Django superuser among them, holds every role, so may move
 any of them.  ``member``, ``verifier``, and ``dart_leader`` are open to every caller of
-the endpoint, on any account; a guarded role the target keeps is no obstacle.
+the endpoint, on any account; a guarded role the target keeps doesn't stand in the way.
 
 **Nobody changes their own roles**, a system administrator included.  A write that
 would change the caller's own role list is a **403**, audited with
 ``reason=own_account``, and nothing is saved; resending the list the caller already
-holds is no change and answers 200:
+holds isn't a change and answers 200:
 
 .. code-block:: json
 
@@ -1443,7 +1443,7 @@ with ``reason=own_account``, ``system_admin_role``, or ``roles_not_held``.  A wr
 that goes through is audited as ``account.roles`` with the slugs ``added`` and
 ``removed`` and raises ``roles_changed`` (:doc:`notification-events`).  The Django
 admin shows ``groups``, ``is_superuser``, ``is_staff``, and ``user_permissions``
-read-only, and offers no group screens at all (``Group`` is unregistered), so roles
+read-only, and doesn't offer group screens at all (``Group`` is unregistered), so roles
 change only through ``accounts.services.update_account``: this endpoint, the member
 check's verifier toggle, and ``create_admin``.  A role write locks the account's row
 first, so two role writes to one account run one after the other.
@@ -1459,17 +1459,17 @@ unknown id; **405** for ``PUT`` and ``DELETE``.
 
 Sends the same email as ``/auth/password/reset``, but this one reports what
 happened, because the caller is a trusted administrator rather than an
-anonymous visitor.  There is no request body.
+anonymous visitor.  There isn't a request body.
 
 .. code-block:: json
 
    {"detail": "Password reset email sent to marta.reyes@example.org."}
 
-An account with nobody to mail is refused::
+An account that can't be mailed is refused::
 
     400 {"detail": "That account is deactivated, so no reset email was sent."}
 
-Two accounts have nobody to mail: a deactivated one, and one that holds no
+Two accounts can't be mailed: a deactivated one, and one that doesn't hold an
 email address.  Both are refused with that one sentence, so a caller who sees
 it on an active account should check the address on the member record.  Three
 more are refused first, in this order, each with a sentence of its own: a donor, who
@@ -1489,7 +1489,7 @@ naming the Sent emails page, and nothing is recorded in the audit log
 (:ref:`refused sends <api-refused-send>`).
 
 Statuses: **200** when the mail went out; **400** for an account that is
-deactivated, holds no email address, is a donor's, is the caller's own, or holds
+deactivated, doesn't hold an email address, is a donor's, is the caller's own, or holds
 roles the caller does not hold; **401** when anonymous;
 **403** without ``user_admin``; **404** for an unknown id; **503** when the mail
 server refused the message.  This endpoint is not
@@ -1511,7 +1511,7 @@ email goes to the address the account holds now, sent with
 name>: choose a new password``, and its bodies say that an administrator has required
 a new password, that the old one no longer works and every session was ended, and that
 nobody can sign in until the link is used, in place of the self-service wording that
-says the password has not changed.  Afterwards the old password signs nobody in,
+says the password has not changed.  Afterwards the old password doesn't sign anybody in,
 ``/auth/reactivate`` refuses it, and every reset link made before is spent, because
 Django's reset token is built from the password hash.  A password change or reset
 already in flight is refused too, since ``accounts.services.replace_password`` writes
@@ -1529,13 +1529,13 @@ record first.
 The active flag and the reactivation block are left alone.  A deactivated account stays
 deactivated and is mailed the link all the same: confirming it at
 ``/auth/password/reset/confirm`` sets the new password and reactivates the account, as
-any reset of a deactivated account does.  A blocked account is mailed nothing, since
+any reset of a deactivated account does.  A blocked account isn't mailed anything, since
 the confirmation would refuse its link, and the answer's second sentence reads "The
 account is blocked from reactivating, so no reset email was sent."  Once the block is
 lifted, the owner asks for a reset themselves.  Requiring a new password again repeats
 everything and mails a fresh link.
 
-Refused, changing nothing, in this order::
+Refused, without changing anything, in this order::
 
     400 {"detail": "A donor cannot sign in, so there is no password to replace."}
     400 {"detail": "You cannot require a new password for your own account. Use Change password instead."}
@@ -1593,7 +1593,7 @@ Clears the bounce the bounce check recorded against the account's address
 body.  ``email_bounced_at`` and ``email_bounce_detail`` are emptied, the change is
 recorded in the audit log as ``action=account.bounce_cleared actor=<admin>
 target=<id>``, and the answer is the user payload as it stands afterwards.  An
-account with no bounce recorded is answered unchanged, and nothing is recorded.
+account without a bounce recorded is answered unchanged, and nothing is recorded.
 The flag comes back if the next message to the address bounces too.
 
 Statuses: **200** with the user payload; **401** when anonymous; **403** without
@@ -1614,10 +1614,10 @@ history entry, and once it commits the person is mailed a notice
 (``mfa_reset``).  The answer is the user payload as it stands afterwards, with
 ``two_factor_enabled`` false.  The person sets two-factor sign-in up again at
 their next sign-in, which insists on it when a role requires it
-(:ref:`api-two-factor`).  An account with nothing set up is reset all the same:
+(:ref:`api-two-factor`).  An account without anything set up is reset all the same:
 its sessions end and the reset is recorded.
 
-Refused with **400** ``{"detail": ...}``, changing nothing, in this order: a
+Refused with **400** ``{"detail": ...}``, without changing anything, in this order: a
 tombstone (the member record's sentence, :ref:`api-members-tombstone`), a donor
 ("A donor has no portal account to reset."), your own account ("You cannot reset
 your own two-factor sign-in. Turn it off or on yourself."), and an account
@@ -1680,7 +1680,7 @@ Four endpoints change whether an account can sign in.  None takes a body, and
 each answers 200 with the user payload above as it stands afterwards.  Each runs
 in one transaction holding a lock on the account's row
 (``accounts.api.account_actions``), so two administrators acting at once take
-turns.  A refusal is a 400 ``{"detail": "<sentence>"}`` and changes nothing; the
+turns.  A refusal is a 400 ``{"detail": "<sentence>"}`` and doesn't change anything; the
 sentences are listed under :ref:`account-edit-guard`.
 
 ``POST /admin/users/{id}/deactivate``
@@ -1709,8 +1709,8 @@ sentences are listed under :ref:`account-edit-guard`.
 ``POST /admin/users/{id}/block``
    Sets ``reactivation_blocked`` (:ref:`api-reactivation-block`), recorded as
    ``account.block``.  An active account is deactivated first, exactly as
-   ``/deactivate`` does it.  Blocking an account already blocked changes
-   nothing.  Refused for your own account, a donor, and an account holding administrative roles
+   ``/deactivate`` does it.  Blocking an account already blocked doesn't
+   change anything.  Refused for your own account, a donor, and an account holding administrative roles
    you do not hold.
 
 ``POST /admin/users/{id}/unblock``
@@ -1740,8 +1740,8 @@ deactivated.  While it is set:
 
 * ``POST /auth/login`` and ``POST /auth/reactivate`` answer the right password
   with 403 ``{"detail": "This account has been closed. Contact CalDART to
-  reopen it."}`` and no ``code``; a wrong password still gets the ordinary 400;
-* ``POST /auth/password/reset`` mails nothing, and answers 204 as for any
+  reopen it."}`` without a ``code``; a wrong password still gets the ordinary 400;
+* ``POST /auth/password/reset`` doesn't mail anything, and answers 204 as for any
   address;
 * ``POST /auth/password/reset/confirm`` refuses a link mailed before the block
   with the same sentence under ``token``;
@@ -1809,10 +1809,10 @@ off the target: the only roles that protect an account are the guarded ones, whi
 they can neither grant nor take away without holding them.  An account holding one
 stays out of their reach by either route.  Against an account
 administrator the guard is absolute in one request as well as two, because
-``PATCH /admin/members/{user_id}`` has no ``roles`` field at all.
+``PATCH /admin/members/{user_id}`` doesn't have a ``roles`` field at all.
 
 An address that is not a real change, such as the stored one resent in another case,
-asks for nothing, whoever sends it: the stored address stays exactly as it was.  A
+doesn't ask for anything, whoever sends it: the stored address stays exactly as it was.  A
 real change the guard allows is a request, which the new address's owner completes
 (`Changing the address`_).
 
@@ -1858,8 +1858,8 @@ Every refusal but the last also writes one WARNING record to the audit log
 
     action=account.update actor=12 target=3 fields=email reason=roles_not_held
 
-Account ids, field names and a reason slug only: no address, and nothing else
-that identifies a person.  A refused role change reads
+Account ids, field names, and a reason slug only, never an address or anything
+else that identifies a person.  A refused role change reads
 ``action=account.roles ... reason=own_account``, ``system_admin_role``, or
 ``roles_not_held``; a refused status action
 reads ``action=account.deactivate``, ``account.activate``, ``account.block`` or
@@ -1909,7 +1909,7 @@ Scope                    Default                    Environment variable
 calls that ask a provider about a gift, ``POST /donations/stripe/confirm`` and
 ``POST /donations/paypal/capture``.  The calls that read a gift or complete a mock
 one are proven by the signed token that checkout answers (see
-:doc:`api-payments`) and ask no provider, so they are not counted.  The signed-in
+:doc:`api-payments`) and don't ask a provider, so they are not counted.  The signed-in
 payment endpoints are limited per account instead (:ref:`configuration-payment-limits`).
 
 A scope mapped to ``None`` — or missing from the dict — is inert.
@@ -1921,7 +1921,7 @@ An exceeded throttle is DRF's usual **429** with a ``Retry-After`` header.
 
 ``auth_mfa`` covers the code steps of signing in and the signed-in two-factor
 endpoints alike; a pending sign-in also ends after five wrong codes.  The Wagtail
-and Django admins serve no login form to throttle: both send the reader to the
+and Django admins don't serve a login form to throttle: both send the reader to the
 portal's sign-in (:ref:`api-two-factor`).
 
 .. _api-login-lockout:
@@ -1968,8 +1968,8 @@ pair at ``0`` turns that count off (:ref:`configuration-login-lockout`).
 guessing wrong every fifteen minutes, whoever owns it; that is the price of a limit
 no spread of client addresses escapes.  The owner is mailed, and waits for the window
 to pass, or asks a system administrator, who lifts the lockout at once with
-``manage.py clear_lockout --email ADDRESS``; it forgets both counts and changes
-nothing else.  ``reset_two_factor`` clears them too, and so does ``create_admin`` when
+``manage.py clear_lockout --email ADDRESS``; it forgets both counts and leaves
+everything else alone.  ``reset_two_factor`` clears them too, and so does ``create_admin`` when
 it takes an existing account back, along with the account's authenticator device and
 backup codes.
 
@@ -1983,7 +1983,7 @@ How the portal uses this
 ``useLoginMfaEnrollConfirm``, ``useRegister``, ``useLogout``, ``usePasswordChange``,
 ``usePasswordResetRequest``, ``usePasswordResetConfirm``, ``useEmailVerify``,
 ``useResendVerification``, ``useEmailChange``, and ``useEmailChangeUndo`` for the
-mutations.  ``useRegister`` touches no cache, since nobody is signed in: the join
+mutations.  ``useRegister`` doesn't touch any cache, since nobody is signed in: the join
 wizard's account step shows **Check your email** for every address.
 ``useEmailChange`` seeds ``['auth', 'me']`` with the answer, whose ``pending_email``
 the Change email screen, the join wizard's verify step, and the member and user records
@@ -2023,7 +2023,7 @@ except ``/change-email``, sends a reader who has not finished joining
 (``isOnboarded`` in ``features/join/steps.ts``, true for a verified account with
 ``admin_created``) to ``/join/verify``,
 ``/join/profile``, or ``/join/pay``, whichever they still owe; the portal chrome
-draws no rail for them (see :doc:`architecture`).
+doesn't draw a rail for them (see :doc:`architecture`).
 The guards wait for ``GET /auth/me`` to settle first, so a slow answer never
 flashes the sign-in page at somebody who is in fact signed in.
 ``RequireOnboarded`` also waits while ``GET /auth/me`` is being refetched, since
@@ -2082,7 +2082,7 @@ Tests
 
 ``backend/tests/test_account_admin_passwords.py``
    The Django admin's accounts pages: no password on the change form, the add form
-   and the change-password page closed, and a posted password changing nothing.
+   and the change-password page closed, and a posted password not changing anything.
 
 ``backend/tests/test_user_history.py``
    Which changes write an ``AccountChange`` row and under whom, and the history

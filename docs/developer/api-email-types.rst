@@ -43,7 +43,7 @@ Endpoints
 ``/email-types/sendable`` and ``/me/email-preferences`` answer every signed-in
 caller.  ``/admin/members/{id}/email-preferences`` needs ``account_admin``, which a
 ``system_admin`` passes too.  An unauthenticated request gets **401**, an
-authenticated one without the role **403**, and an unsafe method with no
+authenticated one without the role **403**, and an unsafe method without an
 ``X-CSRFToken`` **403** before either check.  None is paginated: each list is a
 handful of rows.
 
@@ -89,7 +89,7 @@ Field                  Rule
 ``name``               Required, at most 60 characters.  A name another type holds,
                        ignoring case, or one whose slug another type's name already
                        makes (*Mission!* beside *Mission*), is refused with
-                       *Another email type already has this name.*  A name with no
+                       *Another email type already has this name.*  A name without a
                        letter or digit is refused with *Use at least one letter or
                        digit in the name.*  On a ``PUT`` the type's own name is never
                        counted against it.  The Mission type (slug ``mission``) keeps
@@ -153,8 +153,8 @@ type a mission callout may go as.
 
 One row per type that allows opting out, in the types' order, with whether the
 caller has turned it off.  A type that does not allow opting out is not listed,
-whatever the caller chose while it did.  A new account has no opt-out recorded, so
-every ``opted_out`` starts ``false``.
+whatever the caller chose while it did.  A new account doesn't have an opt-out recorded,
+so every ``opted_out`` starts ``false``.
 
 .. code-block:: json
 
@@ -190,7 +190,7 @@ list leaves out is left alone.  The answer is **200** with every preference, as
 Each real change is recorded with the source ``profile`` and audited as
 ``email.opt_out`` or ``email.opt_in``, naming the caller as the actor and the
 target, the type as ``email_type``, and the ``source``.  Asking for the state the
-caller is already in changes nothing and writes no audit line.  A type that does
+caller is already in doesn't change anything or write an audit line.  A type that does
 not exist or does not allow opting out is a **400** ``{"email_type": ["That email
 type does not exist, or cannot be turned off."]}``, a list that names one type twice
 is a **400** ``{"email_type": ["Name each email type once."]}``, and in both cases

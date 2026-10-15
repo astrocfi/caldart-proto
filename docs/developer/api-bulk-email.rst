@@ -50,12 +50,12 @@ The email
 ``POST /bulk-email/drafts``
 ---------------------------
 
-Opens a draft for the caller.  The caller's oldest empty draft (no subject, no
-message, nobody in its batch) is handed back with **200**; without one a fresh
+Opens a draft for the caller.  The caller's oldest empty draft (its subject,
+message, and batch all empty) is handed back with **200**; without one a fresh
 draft is made, with the caller as its sender, and answered with **201**.  Either
 way the body is the email, as ``GET /bulk-email/{id}`` answers it, recording the
-DART a DART leader sends to.  No body is taken.  A DART leader whose profile names
-no DART is **403** *Your profile names no DART, so there is nobody to send to. Set
+DART a DART leader sends to.  No body is taken.  A DART leader whose profile doesn't
+name a DART is **403** *Your profile names no DART, so there is nobody to send to. Set
 your DART on My profile.*, and no draft is made.
 
 ``GET /bulk-email/drafts``
@@ -156,11 +156,11 @@ One email, with everything the compose and Sent screens show:
     "message_html": "<!doctype html>\n<html lang=\"en\">..."}
 
 ``email_type`` is the id of the email's type and ``email_type_name`` its name; a
-fresh draft has none, ``null`` and blank.  ``dart_name`` is the DART a DART leader's
+fresh draft doesn't have a type, so they are ``null`` and blank.  ``dart_name`` is the DART a DART leader's
 email goes to, blank for CalDART management's: while the email can still change it
 is the sender's DART as it is now, and once it has started sending the DART it went
 to.  ``sender_notice`` is blank unless the email can still change and its sender is
-a DART leader whose profile names no DART, when it reads *This email belongs to
+a DART leader whose profile doesn't name a DART, when it reads *This email belongs to
 <name>, whose profile names no DART, so nobody can be added.*, naming the sender, for
 whoever opens it; the compose screen shows it in place of the filters.  ``reply_to``
 is where replies to the email go, blank for ``default_reply_to``, the default for
@@ -210,8 +210,8 @@ valid email address."]}``.
 
 ``is_callout`` true makes the email a mission callout: its answers close two days
 ahead, rounded up to the half hour, unless ``closes_at`` is given too, and its type
-becomes Mission when the caller may send that type, or none when the caller may not and
-it was another.  False makes it an ordinary email again.  ``closes_at`` is when a callout's answers close, a time given without an
+becomes Mission when the caller may send that type, or is cleared when the caller may
+not and it was another.  False makes it an ordinary email again.  ``closes_at`` is when a callout's answers close, a time given without an
 offset read in the site's time zone; it is ignored for an email that is not a callout,
 and a time not after now is **400** ``{"closes_at": ["Choose a time in the
 future."]}``.  A queued callout cannot be changed so that its answers would close
@@ -260,14 +260,14 @@ is.
 
 The draft is the caller's own, made afresh even when the caller has an empty draft
 already, with the email's ``subject``, ``body`` (its images are links, so they come
-too), and ``reply_to``, and its ``email_type`` when the caller may send that type, else
-none.  It records the DART the caller may send to, as ``POST /bulk-email/drafts``
+too), and ``reply_to``, and its ``email_type`` only when the caller may send that
+type.  It records the DART the caller may send to, as ``POST /bulk-email/drafts``
 does: a DART leader duplicates only their own emails (any other id is **404**), their
-copy goes to their own DART alone, and one whose profile names no DART is **403**
-with *Your profile names no DART, so there is nobody to send to. Set your DART on My
+copy goes to their own DART alone, and one whose profile doesn't name a DART is
+**403** with *Your profile names no DART, so there is nobody to send to. Set your DART on My
 profile.*
-A mission callout's copy is a callout too, ``is_callout`` true, with no answers and
-its answers closing two days ahead (:ref:`api-bulk-email-callouts`).
+A mission callout's copy is a callout too, ``is_callout`` true, without any answers
+and with its answers closing two days ahead (:ref:`api-bulk-email-callouts`).
 ``copy_recipients`` may be left out, and is false then: the batch starts empty.
 True copies everybody in the email's batch whose account still exists as one add
 labeled ``Copied from "<subject>"``, each a fresh ``batched`` row with the account's
@@ -299,10 +299,10 @@ The filters are ``MemberAdminFilterSet``'s, the filter set of
 and friend, never a donor.  An add takes the member list's filters by name:
 ``kind``, ``search``, ``status``, ``certificate``, ``medical``, ``dart``,
 ``county``, ``role``, and ``expiring_within``, with the values the list takes.  A
-blank value narrows nothing, so a filter bar may send every key.  The list's own
+blank value doesn't narrow anything, so a filter bar may send every key.  The list's own
 ``include_inactive`` is not one of them: deactivated accounts are always added, and
-always skipped.  Nor is ``ordering``, which sorts the list and chooses nobody: it
-is refused as any unknown name is.
+always skipped.  Nor is ``ordering``, which sorts the list and doesn't choose anybody:
+it is refused as any unknown name is.
 
 A DART leader's email adds only inside the sender's DART, whoever presses **Add to
 batch** (:ref:`api-bulk-email-dart-leaders`).
@@ -367,7 +367,7 @@ in the order above:
 An add's ``label`` is its filters in words, as the member list's filter bar names
 them: a kind as the filter bar offers it (*Members only*, *Friends only*), a DART by
 its name, a role by its label, a choice by the filter's label for
-it, and ``Everybody`` for an add with no filter.  An add that was not made with
+it, and ``Everybody`` for an add without a filter.  An add that was not made with
 filters keeps the name it was given then: ``Group: Board`` for a saved group
 (``group`` is its id, null once the group is deleted), and ``Copied from "Spring
 newsletter"`` for the people **Duplicate** copied.  A row's ``name``, ``email``,
@@ -406,7 +406,7 @@ is not one of the available choices."]}}``.  For a DART leader's email, a ``dart
 other than the sender's DART's id, a DART's name included, is **400**
 ``{"filters": {"dart": ["You can only send to your own DART."]}}``.  Once the email
 has started sending the answer is **409**, and so is an add to the email of a DART
-leader whose profile names no DART, with the sentence ``sender_notice`` carries.
+leader whose profile doesn't name a DART, with the sentence ``sender_notice`` carries.
 
 ``GET /bulk-email/{id}/batch/matches``
 --------------------------------------
@@ -414,8 +414,8 @@ leader whose profile names no DART, with the sentence ``sender_notice`` carries.
 Who the filters choose, before anybody is added: the compose screen's search.  The
 query parameters are the filters ``POST /bulk-email/{id}/batch/add`` takes in its
 body (``?kind=friend&dart=3,7``), with the shared ``page`` and ``page_size``.  The
-filters are held to a DART leader's DART exactly as an add holds them, and nothing is
-stored.  **200** with one page of the people, in the order an add puts them, and how
+filters are held to a DART leader's DART exactly as an add holds them, and the search
+isn't stored.  **200** with one page of the people, in the order an add puts them, and how
 many in all:
 
 .. code-block:: json
@@ -427,11 +427,11 @@ many in all:
 
 ``will_receive`` and ``reason`` say whether the person would be sent a copy and why
 not, as a batch row says it, with a second account at an address already matched
-skipped as a duplicate.  Whether the person is in the batch already plays no part.
+skipped as a duplicate.  Whether the person is in the batch already doesn't matter.
 A refused filter is **400** under ``filters``, as for an add; a DART leader's search
 naming any other DART, or several, is **400** ``{"filters": {"dart": ["You can only
 send to your own DART."]}}``; and a search on the email of a leader whose profile
-names no DART is **409**.
+doesn't name a DART is **409**.
 
 ``DELETE /bulk-email/{id}/batch/{rid}``
 ---------------------------------------
@@ -489,8 +489,8 @@ reschedules it.  A refusal is **400** keyed by the field:
   email. Choose another type.* when the type's senders no longer include the
   caller's roles.
 - ``batch``: *Nobody in the batch can receive this email. Add people to the
-  batch.*, or, for a DART leader's email whose sender's profile names no DART,
-  *This email belongs to <name>, whose profile names no DART, so nobody can be
+  batch.*, or, for a DART leader's email whose sender's profile doesn't name a
+  DART, *This email belongs to <name>, whose profile names no DART, so nobody can be
   added.*, naming the sender.
 - ``confirm_count``: *Type the number of people this email goes to.* when it is
   missing, or *The batch has changed: it now holds 52 people. Type the new
@@ -510,7 +510,7 @@ above do not already name, such as a ``Reply-To`` address that is not valid, is
    {"checks": [{"code": "reply_to", "level": "error",
                 "message": "Replies would go to operations, which is not a valid email address. Change the Reply-To address under What it says."}]}
 
-Warnings never stop a send, and the send fetches no link.  A queued email keeps
+Warnings never stop a send, and the send doesn't fetch any link.  A queued email keeps
 the ``Reply-To`` its copies will carry in ``reply_to``: the one it names, or the
 default as it is at that moment.  The background sender resolves it once more as
 the send starts, and falls back to ``DEFAULT_FROM_EMAIL``'s address when nothing
@@ -523,7 +523,7 @@ scheduled.
 ``POST /bulk-email/{id}/cancel``
 --------------------------------
 
-Takes a queued email back to a draft, its batch and content intact, with no
+Takes a queued email back to a draft, its batch and content intact, without a
 ``start_at``: **200** with the email.  A draft is answered unchanged.  Once the
 sender has ever started it, **409** *This email has started sending.*, which
 includes an email **Send the rest** queued again.  Any CalDART management member
@@ -540,7 +540,7 @@ name, and the email ``stopped``.  A ``queued`` email **Send the rest** queued
 again stops at once the same way.  Any other email is **409** *This email is not
 sending.*  One ``bulk_email.stop`` audit line names the caller and the copies kept
 back, written when the stop takes effect; a stop that arrived after the last copy
-had gone records nothing, and the email reads ``sent``.
+had gone isn't recorded, and the email reads ``sent``.
 
 ``POST /bulk-email/{id}/resume``
 --------------------------------
@@ -551,8 +551,8 @@ its account's name and address as they are now, and a deleted or deactivated acc
 a missing, invalid, or bounced address, an opt-out of the type, a person outside a
 DART leader's DART, or, in a callout's reminder round, a person who has answered since
 makes it ``skipped`` with that reason.  The rest go back to
-``pending`` and the email is queued to start now, with no undo window.  **200** with
-the email.  Nobody already sent a copy is sent another.  The email keeps its
+``pending`` and the email is queued to start now, without an undo window.  **200**
+with the email.  Nobody already sent a copy is sent another.  The email keeps its
 ``started_at``, so it stays read-only (:ref:`the edit rule <bulk-email-edit-rule>`).
 An email that is not ``stopped`` is **409** *Only a stopped email can send the
 rest.*  One ``bulk_email.resume`` audit line names the caller, the number of copies
@@ -577,7 +577,7 @@ finishes any email left ``sending``, then starts and sends every queued email wh
 ``start_at`` has come (:doc:`bulk-email`), but for at most 45 seconds, inside the
 proxy's limit on a request.  An email still going then is left ``sending`` for the
 timer's next run.  ``system_admin`` only.  No body
-is taken; there is no dry run, because the sender sends only what CalDART
+is taken; there isn't a dry run, because the sender sends only what CalDART
 management has already pressed **Send** on.  The run is recorded as a run of the
 ``bulk-email`` job under the caller (:ref:`api-system-jobs`); one that found the
 sender busy, or didn't have an email due, replaces the job's previous such record.
@@ -598,7 +598,7 @@ sender busy, or didn't have an email due, replaces the job's previous such recor
        "on": null, "amount_cents": null, "detail": "Refused by the mail server"}]}
 
 ``busy`` is true when another run of the sender was working, and this one then
-did nothing.  ``emails`` counts the emails worked on, ``sent`` and ``failed`` the
+didn't do anything.  ``emails`` counts the emails worked on, ``sent`` and ``failed`` the
 copies tried, and ``skipped`` the people set aside as each email started.
 ``out_of_time`` is true when the 45 seconds ran out with copies still to send, and
 ``remaining`` counts them.  Each action is one copy: ``kind`` is ``sent`` or ``failed``, and ``detail`` the subject
@@ -612,9 +612,9 @@ DART leaders
 ============
 
 A DART leader sends bulk email to the members and friends of one DART: the DART on
-their own member profile.  The ``dart_leader`` role names no DART of its own, so a
-leader whose profile names none has nobody to send to, and when a leader's profile
-DART changes, the people their emails reach change with it from then on.
+their own member profile.  The ``dart_leader`` role doesn't name a DART of its own,
+so a leader whose profile doesn't name one can't send to anybody, and when a leader's
+profile DART changes, the people their emails reach change with it from then on.
 ``apps.bulk_email.senders`` holds the rule: ``sender_context`` says what one account
 may send to, and ``dart_limit`` what one email may go to, which is its sender's,
 whoever is working on it, so CalDART management changing a leader's email stays
@@ -624,8 +624,8 @@ inside that DART too.  The server keeps the limit whatever the client sends:
   DART, and refuses any other;
 - anybody in the batch whose profile is not in the sender's DART is skipped with
   *Not in your DART*, so a person who moves to another DART after being added, or a
-  row that reached the batch any other way, receives nothing;
-- **Send** refuses the email of a leader whose profile names no DART, and the
+  row that reached the batch any other way, doesn't receive anything;
+- **Send** refuses the email of a leader whose profile doesn't name a DART, and the
   background sender checks again when it starts the send, returning the email unsent
   when the leader's DART has changed so that nobody in the batch is in it, and again
   before every copy, so **Send the rest** and a resumed run skip anybody outside the
@@ -652,12 +652,12 @@ Who the caller may send to.  **200**:
 ``is_management`` is true for CalDART management and a system administrator, who
 send to everyone, with ``dart`` null and ``dart_name`` blank.  For a DART leader
 ``dart`` and ``dart_name`` are the DART on their profile.  ``can_send`` is false for
-a leader whose profile names no DART, and ``reason`` then says *Your profile names no
+a leader whose profile doesn't name a DART, and ``reason`` then says *Your profile names no
 DART, so there is nobody to send to. Set your DART on My profile.*; it is blank
 otherwise.  The compose screen shows that sentence in place of the form, and names a
 leader's DART as a fixed value in place of the DART filter; the Drafts and scheduled
 screen shows it too.  ``default_reply_to`` is where replies to the caller's email go
-when they choose no Reply-To address: ``BULK_EMAIL_REPLY_TO``, or the caller's own
+when they don't choose a Reply-To address: ``BULK_EMAIL_REPLY_TO``, or the caller's own
 address when that setting is blank.  The template form names it under its
 **Reply-To** field.
 
@@ -675,7 +675,7 @@ before it goes, and **Send me a test** mails the sender a copy of it
 --------------------------------
 
 What the checks find in the email as it is saved.  No body is taken.  **200** with
-every finding, the errors first; an empty list when there is nothing to say:
+every finding, the errors first; an empty list when the checks don't find anything:
 
 .. code-block:: json
 
@@ -691,7 +691,7 @@ the sender may send past.  ``code`` names the kind:
 Code                Level     When
 ==================  ========  ========================================================
 ``no_subject``      error     the subject is blank: *Write a subject.*
-``no_body``         error     the message reads as no text: *Write the message.*
+``no_body``         error     the message's text is empty: *Write the message.*
 ``unfillable``      error     a token in the subject or the message cannot be filled
                               in, worded as a save refuses it
 ``reply_to``        error     the ``Reply-To`` the copies would carry is blank or not
@@ -701,7 +701,7 @@ Code                Level     When
                               receive the email, counted with their values now
 ``placeholder``     warning   the subject or the message still says ``TODO``,
                               ``XXX``, ``lorem ipsum``, or ``[insert``, case ignored
-``image_alt``       warning   pictures with no description (``alt``), counted
+``image_alt``       warning   pictures without a description (``alt``), counted
 ``image_wide``      warning   pictures wider than ``BULK_EMAIL_IMAGE_MAX_WIDTH``, by
                               the ``width`` the message gives them or the width an
                               upload was stored at, counted
@@ -738,7 +738,7 @@ differs, starting ``[Test]``.  No body is taken.  **200**:
    {"to": "pat@example.org"}
 
 ``to`` is the caller's own address, the only one a test goes to.  Every call sends
-one more copy.  A test adds nobody to the batch and counts toward nothing; it is in
+one more copy.  A test doesn't add anybody to the batch or count toward anything; it is in
 the email log under the purpose ``bulk_email_test`` (:doc:`email`), naming the
 caller's account.  An email the checks find errors in is **400** with the errors
 under ``checks``, as ``send`` answers it, and nothing is sent.  A mail server that
@@ -758,7 +758,7 @@ joins that later picture to the send.  Every save of an email log row of the
 ``bulk_email`` purpose reaches a ``post_save`` receiver, and a row that reads
 ``bounced`` marks the recipient row that went out with the same ``Message-ID``, if it
 still reads ``sent``, as ``bounced``, its ``reason`` the report's ``bounce_detail``
-(or *The receiving mail server refused it* when the report gave none), and moves the
+(or *The receiving mail server refused it* when the report didn't give one), and moves the
 email's count from ``sent_count`` to ``bounced_count``.  A row already ``bounced`` is
 left alone, so a report read twice counts once.  The counts are moved in the
 database, and the sender adds to its own counts there too, so a bounce read while
@@ -778,8 +778,8 @@ already queued in this retry, is ``skipped`` with *Sent a later copy instead*, s
 person whose first copy and reminder both failed is sent one copy, the reminder.  A
 failed reminder (``round`` above 0) whose person has answered the callout since is
 ``skipped`` with *Answered the callout*.  Every other failed copy goes back to
-``pending`` with its reason cleared.  All of them leave ``failed_count``.  The email is queued to start now, with
-no undo window, as **Send the rest** queues it.  No body is taken.  **200** with the
+``pending`` with its reason cleared.  All of them leave ``failed_count``.  The email is queued to start now, without
+an undo window, as **Send the rest** queues it.  No body is taken.  **200** with the
 email, ``queued`` with the retry in ``retries``.  The background sender then sends
 those copies alone, each filled in with the person's values as they are then, and
 checks once more that the sender may send the type and that nobody has turned it
@@ -827,7 +827,7 @@ The copy is for the caller, not its recipient, so it is inert as the preview is
 (``render_copy``'s ``inert``): the footer keeps its words, but its unsubscribe link
 carries ``render.PREVIEW_STAND_IN`` where a signed token goes, and no token that could
 turn the recipient's email off is in either body.  The message ``GET /bulk-email/{id}`` answers as
-``message_html`` carries nobody's link either.  A row of another email is **404**, and a
+``message_html`` doesn't carry anybody's link either.  A row of another email is **404**, and a
 row whose copy was never tried (skipped, stopped, or not sent yet) **409** *This person
 was not sent a copy.*
 
@@ -861,8 +861,8 @@ An email is the reader's when one of its recipient rows names their account and 
 received.  Each is shown as the reader's own copy, filled in from the values stored
 on their own row when it went, never from their profile as it is now and never from
 anybody else's row.  Only bulk email is here, never a receipt, a reminder, or any
-other mail about the person's own account, and there is no way to show an email to
-anybody it was not sent to.  An email CalDART management has hidden is neither
+other mail about the person's own account, and an email can't be shown to anybody it
+was not sent to.  An email CalDART management has hidden is neither
 listed nor opened.
 
 Every copy's footer links here, *View this email in your browser*, to
@@ -898,8 +898,8 @@ in place of the copy; it is blank for any other email.
 One email, as the caller's own copy: the fields above, plus ``html``, the whole HTML
 email, and ``text``, the plain-text one, as ``render.render_copy`` rebuilds them from
 the caller's row, with the caller's own live unsubscribe link, as their email had it.
-The portal draws ``html`` in a frame sandboxed to popups that leave the sandbox, with
-no scripts, no forms, and no same-origin access, and puts ``<base target="_blank">``
+The portal draws ``html`` in a frame sandboxed to popups that leave the sandbox,
+without scripts, forms, or same-origin access, and puts ``<base target="_blank">``
 at its head, so the email's links open in a new tab; the Sent page's message and a
 copy on the delivery report are drawn the same way.  An email the caller did not receive, and one hidden from Messages,
 is **404**.
@@ -949,7 +949,7 @@ callout.  ``closes_at`` is when the answers close, ``closed_at`` when
 **Close now** closed it sooner, and ``is_open`` whether it takes answers now.
 ``counts`` counts the people the callout reached by answer: ``reached`` everybody a
 copy of any round went to (``sent``, or ``bounced`` afterwards) and anybody who
-answered, and ``no_answer`` those of them with no answer.
+answered, and ``no_answer`` those of them without an answer.
 
 ``GET /bulk-email/callouts/{id}``
 ---------------------------------
@@ -992,8 +992,8 @@ skipped.  The portal reads this every half minute while the callout is open.
 
 The answers as a CSV download, ``caldart-callout-<id>-answers.csv``, one line per
 person in the order above, with the columns ``Name``, ``Email``, ``Answer`` (in words,
-blank for none), ``Note``, ``Answered at`` (``MM/DD/YYYY at h:mm AM`` in the site's time
-zone, blank for none), ``DART``, ``Home airport``, ``Aircraft`` (the N-numbers,
+blank when there isn't one), ``Note``, ``Answered at`` (``MM/DD/YYYY at h:mm AM`` in the
+site's time zone, blank when there isn't one), ``DART``, ``Home airport``, ``Aircraft`` (the N-numbers,
 separated by commas), and ``Go/no-go`` (``GO`` or ``NO-GO``).
 
 ``POST /bulk-email/callouts/{id}/remind``
@@ -1009,7 +1009,7 @@ addresses of everybody who has answered counted as already sent: a missing, inva
 or bounced address, an opt-out of the type,
 somebody outside a DART leader's DART, and an address somebody who answered shares
 are ``skipped`` with that reason.  The rest are queued, and the email is queued to
-start now, with no undo window; the background sender fills each copy in with the
+start now, without an undo window; the background sender fills each copy in with the
 person's values as they are then.  **200** with the callout, the round in
 ``reminders``.  A refusal is **409**, and nothing changes:
 
@@ -1031,14 +1031,15 @@ round has gone.  A reminder's copies can be read one by one
 ``POST /bulk-email/callouts/{id}/close``
 ----------------------------------------
 
-**Close now**: the callout takes no more answers from now, and every answer link reads
+**Close now**: the callout doesn't take any more answers from now, and every answer
+link reads
 *This callout has closed*.  A round of copies queued and not started yet, a round of
 reminders or the rest of a stopped send, is called off: each of its copies becomes
 ``skipped`` with *Callout closed*, and the email reads ``sent`` again.  A round being
-sent stops before its next copy, and **Send the rest** afterwards sends nothing: the
-background sender skips every copy of a callout whose answers have closed, when it
-starts the email and before each copy, so a timer that runs past ``closes_at`` sends
-nothing either.  No body is taken.  **200** with the callout, ``is_open``
+sent stops before its next copy, and **Send the rest** afterwards doesn't send
+anything: the background sender skips every copy of a callout whose answers have
+closed, when it starts the email and before each copy, so a timer that runs past
+``closes_at`` doesn't send anything either.  No body is taken.  **200** with the callout, ``is_open``
 false and ``closed_at`` and ``closed_by`` set.  A callout already closed, by **Close
 now** or by its ``closes_at``, is **409** *This callout has closed.*  One
 ``callout.close`` audit line names the caller.
@@ -1047,29 +1048,29 @@ The answer page
 ---------------
 
 ``/mail/callout/<token>`` is outside the API: a page in the public site's shell, which
-needs no sign-in, served by ``apps.bulk_email.views.callout_answer``.  The token names
-the callout and the person, signed with the salt ``bulk_email.callout``, and has no age
-limit of its own.
+doesn't need a sign-in, served by ``apps.bulk_email.views.callout_answer``.  The token
+names the callout and the person, signed with the salt ``bulk_email.callout``, and
+doesn't have an age limit of its own.
 
 - ``GET`` shows the callout's subject and message as the person's copy had them, the
   three answers, the one ``?answer=available``, ``limited``, or ``unavailable`` names
   chosen (else the person's current answer), a note field, and **Send answer**.  It
-  records nothing.
+  doesn't record anything.
 - ``POST`` with ``answer`` and ``note`` (form fields) records the answer, or changes
   the person's earlier one, and answers **200** with the answer as recorded.  No
   answer, or one that is not a kind, is **400** with the form and *Choose one of the
   three answers.*  The view is CSRF-exempt: the signed token is the authorization.
 - Once the callout has closed both answer **200** with *This callout has closed.* and
-  record nothing, and so do both for an account since deactivated, with *This link no
-  longer works*.
+  don't record anything, and the same holds for an account since deactivated, with
+  *This link no longer works*.
 - One link may send at most ``CALLOUT_ANSWER_THROTTLE_RATE`` answers (10 an hour
   unless :doc:`configuration` says otherwise); past it a ``POST`` is **429**, says to
-  try again later, and records nothing.  A token that was changed, signed for another purpose, or names a
+  try again later, and doesn't record anything.  A token that was changed, signed for another purpose, or names a
   callout or an account since deleted is **400** with *This link does not work*.
 
 A new answer, or a change of answer, raises the ``callout_answer`` event
 (:doc:`notification-events`) and writes one ``callout.answer`` audit line; a change to
-the note alone is saved and raises neither, so editing a note emails nobody.
+the note alone is saved and raises neither, so editing a note doesn't email anybody.
 
 
 .. _api-bulk-email-rich-text:
@@ -1078,7 +1079,7 @@ Rich text and recipient fields
 ==============================
 
 The portal's editor writes a message as HTML (:ref:`the editor <architecture-rich-text>`),
-and the server trusts none of it: the message is sanitized when it is saved, and
+and the server doesn't trust any of it: the message is sanitized when it is saved, and
 again whenever a copy is built, for a preview or a send.  ``bulk_email.richtext``
 and ``bulk_email.fields`` hold what the server does with that HTML,
 ``bulk_email.render`` builds each copy, and the endpoints below serve the editor and
@@ -1097,8 +1098,8 @@ carry, with nh3:
 - a link's ``href`` must be an absolute ``http``, ``https``, or ``mailto``
   address, and an image's ``src`` an absolute ``http`` or ``https`` one.  Any
   other address, ``javascript:``, ``data:``, or a relative path among them, is
-  removed and leaves the tag without it, since a relative address means nothing
-  in a mail program;
+  removed and leaves the tag without it, since a relative address doesn't mean
+  anything in a mail program;
 - ``width`` and ``height`` must be whole numbers of pixels, and comments are
   removed.
 
@@ -1107,7 +1108,7 @@ anywhere, a link's address included once the address is absolute:
 ``https://caldart.org/join?dart={dart_name}`` keeps its token, while a link
 whose whole address is ``{email}`` is relative and loses it.
 
-The answer is well formed, and sanitizing it again changes nothing.
+The answer is well formed, and sanitizing it again doesn't change it.
 
 **The plain-text part.**  ``richtext.html_to_text`` writes the same message as
 plain text: each paragraph and heading a block of its own, blocks separated by
@@ -1140,10 +1141,10 @@ Token                    Label                Value
 =======================  ===================  =========================================
 
 The status, plan, and expiration are ``members.services.membership_of``'s.
-A person with no value for a field, such as an account with no profile and so
-no DART, gets an empty value.  A token may name a fallback for an empty value,
+A person without a value for a field, such as an account without a profile and so
+without a DART, gets an empty value.  A token may name a fallback for an empty value,
 ``{first_name|friend}``.  A token's name is lower-case letters, digits, and
-underscores, starting with a letter, and its fallback is plain text with no
+underscores, starting with a letter, and its fallback is plain text without a
 brace, bar, angle bracket, or line break.  Anything else in braces is not a
 token and arrives as written, including Django's template syntax: ``{{ x }}``,
 ``{{x}}``, and ``{% y %}`` are never evaluated, because filling in a token is a
@@ -1196,13 +1197,13 @@ as it is, a line break in a value read as a space.  The
 preheader is the start of the plain text.  When the sender tries a copy it reads the
 person's values for the fields the message uses, as they are at that moment
 (``render.fill_values``), and stores them on the row as ``values``, token to value,
-such as ``{"first_name": "Pat", "expiration": "04/30/2026"}``; a message that fills
-in nothing stores ``{}``, and a deleted account fills every field in empty.
+such as ``{"first_name": "Pat", "expiration": "04/30/2026"}``; a message that doesn't
+fill in any field stores ``{}``, and a deleted account fills every field in empty.
 ``render.render_copy(bulk, recipient)`` builds a copy from those stored values, so
 a copy rebuilt later reads as it went, whatever happened to the profile since, and
 puts the link to the email on the recipient's **Email to me** page above its footer
 (:ref:`api-bulk-email-messages`).  The preview carries that link too, as the copy
-will; a test copy carries none, since it is nobody's message.
+will; a test copy doesn't carry one, since it isn't anybody's message.
 
 
 ``GET /bulk-email/fields``
@@ -1238,7 +1239,7 @@ checks it and keeps it:
   every frame (the canvas times the frame count), or it is refused with *This
   image is too big to use in an email. Choose a smaller one.*.  Both are checked
   from the file's headers before any pixel is decoded, so a few kilobytes of GIF
-  holding hundreds of one-pixel frames on a huge canvas costs nothing to refuse.
+  holding hundreds of one-pixel frames on a huge canvas is cheap to refuse.
   A canvas Pillow itself treats as a decompression bomb (over about 89 million
   pixels) gets the same answer;
 - an image wider than ``BULK_EMAIL_IMAGE_MAX_WIDTH`` (1200 pixels) is scaled
@@ -1268,9 +1269,9 @@ reason under ``image``.
 Every copy of an email links to its images by that URL rather than carrying
 them, so a send to hundreds of people stays small, and the image must stay
 reachable without signing in for as long as a sent email may be read: a mail
-program fetches it with no session.  The web server serves ``/media/`` straight
+program fetches it without a session.  The web server serves ``/media/`` straight
 off disk to anybody, and only ``/media/documents/`` is refused
-(:doc:`deployment`), so ``/media/bulk-email/`` needs nothing of its own.  In
+(:doc:`deployment`), so ``/media/bulk-email/`` doesn't need anything of its own.  In
 development Django serves ``/media/`` while ``DEBUG`` is on, which it is under
 ``make run``.  An image is never deleted by the site.
 
@@ -1301,7 +1302,7 @@ through are those who receive a copy, in the order the send goes.  **200**:
 
 ``html`` is the whole HTML email and ``text`` the plain-text one, each ending with
 the footer as the person's copy reads; for a type recipients may turn off, its
-unsubscribe link is inert, the page's address with no signed token
+unsubscribe link is inert, the page's address without a signed token
 (``render.inert_unsubscribe_url``), so a preview never unsubscribes anyone.  ``position`` is the person's
 place, from 1, among the ``count`` people who receive a copy, and
 ``previous_id`` and ``next_id`` are the rows either side, null at either end.
@@ -1342,7 +1343,7 @@ Every template, by name ignoring case.  Unpaginated: CalDART keeps a handful.
      "created_at": "2026-04-01T09:00:00-07:00",
      "updated_at": "2026-04-05T10:30:00-07:00"}]
 
-``email_type`` is null and ``email_type_name`` blank for a template with no type,
+``email_type`` is null and ``email_type_name`` blank for a template without a type,
 including one whose type has been deleted.  ``reply_to`` is blank for the default.
 ``created_by`` is who saved it, blank once that account is deleted.
 
@@ -1423,7 +1424,7 @@ kinds (:ref:`choices <choices-group-kind>`):
     A list of member list filter sets, each as **Add to batch** takes them.  Every use
     runs them afresh, so the group follows membership as it changes: its people are
     everybody any set chooses, deactivated accounts included as an add includes
-    them, and nobody while it has no set.
+    them, and the group is empty while it doesn't have a set.
 
 The models are ``RecipientGroup``, ``RecipientGroupMember``, and
 ``RecipientGroupFilter`` (:ref:`data-model-bulk-email`).  These endpoints are CalDART
@@ -1453,7 +1454,7 @@ Every group, by name ignoring case.  Unpaginated.
 
 ``count`` is how many people the group holds now, a live group's sets run afresh.
 ``filter_sets`` are a live group's sets in order, each named as an add's filters are;
-a fixed group has none.  A set's ``needs_fixing`` is true when the member list no
+a fixed group doesn't have any.  A set's ``needs_fixing`` is true when the member list no
 longer accepts it as stored, such as a ``dart`` whose DART has been deleted; the
 group's ``needs_fixing`` is then true and its ``count`` null, and its people, their
 CSV, and its add to a batch are refused with *This group's filters need fixing.*
@@ -1508,7 +1509,7 @@ fixing is **409** *This group's filters need fixing.*, here and for the CSV.
 -------------------------------------------
 
 The same people as a CSV download named after the group, ``caldart-group-<slug>.csv``
-with the slug of its name (``caldart-group-<id>.csv`` for a name with no letter or
+with the slug of its name (``caldart-group-<id>.csv`` for a name without a letter or
 digit), with the columns ``Name``, ``Email``, ``Kind``, and ``DART``.
 
 ``POST /bulk-email/groups/{id}/members``
@@ -1545,7 +1546,7 @@ group's.
 The members and friends to offer while adding somebody to a fixed group:
 ``?search=able`` runs the member list's own search, by name or address, and answers
 at most ten, in surname order, deactivated accounts included; a blank search answers
-nobody.
+an empty list.
 
 .. code-block:: json
 
@@ -1574,14 +1575,14 @@ Saves the compose screen's search as a group:
 ``{"name": "Hangar crew", "kind": "fixed", "filters": {"county": "Marin"}}``, the name
 checked as ``POST /bulk-email/groups`` checks it, and ``filters`` taken and refused as
 ``POST /bulk-email/{id}/batch/add`` takes them, held to a DART leader's DART the same
-way.  The batch plays no part, so a search can always be saved.  **201** with the
+way.  The batch doesn't matter, so a search can always be saved.  **201** with the
 group, audited as ``recipient_group.create`` like a group made empty.
 
 - A ``fixed`` group holds every account the filters match now, whether or not each
-  would receive the email, deactivated ones included.  A search matching nobody saves
-  an empty group.
+  would receive the email, deactivated ones included.  A search that doesn't match
+  anybody saves an empty group.
 - A ``live`` group holds the filters, blank ones dropped, as its one filter set, so it
   matches afresh each time it is used.
 
-A refused filter is **400** under ``filters``; an email whose DART leader names no
-DART is **409**.
+A refused filter is **400** under ``filters``; an email whose DART leader doesn't name
+a DART is **409**.

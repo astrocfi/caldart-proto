@@ -195,12 +195,12 @@ Backups and restores
 --------------------
 
 The registrations are not backed up.  Every dump carries the
-``aircraft_registration`` table's schema and none of its rows
+``aircraft_registration`` table's schema but leaves out its rows
 (:ref:`backup-registry`), because the FAA publishes them afresh every night.
 The aircraft types, their aliases, and the ``RegistryImport`` log are backed up
 with everything else.
 
-So a restored database has a full import log and no registrations.
+So a restored database has a full import log and an empty registrations table.
 ``registry.as_of()`` answers ``None`` whenever the registrations table is empty,
 whatever the log says, so the register's header, the N-number lookup, and
 ``GET /aircraft/registry`` all say the registry has not been imported yet rather
@@ -240,7 +240,7 @@ characters or shorter as the FAA writes it (``172S``, ``PA-28-181``, ``SR22``,
 *Skyhawk*, ``EUROFOX`` is *Eurofox*).
 
 Add a manufacturer to ``MAKE_NAMES`` when its FAA spellings would otherwise read
-as two names, or as a corporate name nobody uses.
+as two names, or as a corporate name that nobody uses.
 
 
 Aliases and search
@@ -254,7 +254,7 @@ to a display make and the start of a display model: ``c172`` and ``skyhawk`` to
 to (*Aeropro*, ``Eurofox``).  At the end of every import ``write_aliases()``
 points each alias at the type whose display make matches and whose display
 model starts with the prefix, the shortest model when several do, and writes an
-``AircraftTypeAlias`` row; an alias that names no type is logged and skipped.
+``AircraftTypeAlias`` row; an alias that doesn't name a type is logged and skipped.
 
 ``search_types(q)`` in ``apps/aircraft/types.py`` is the search behind
 ``GET /aircraft/types`` and the aircraft type picker.  The query is lower-cased
@@ -329,7 +329,7 @@ account administrator adds one from the type picker's **New aircraft type**, whi
 calls ``POST /aircraft/types`` (:doc:`api-aircraft`): the names are normalized
 as the registry's are, the type is marked ``is_custom``, and its code is
 ``CUSTOM-<id>``.  A make and model already listed is refused, and so is a name
-that normalizes to nothing — a corporate suffix alone, such as ``Inc.``, or bare
+that normalizes to an empty string — a corporate suffix alone, such as ``Inc.``, or bare
 punctuation.
 
 When the FAA later lists a type with the same display make and model, compared

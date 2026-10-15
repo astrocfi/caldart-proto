@@ -165,20 +165,20 @@ and answers with what it did.  ``system_admin`` only.  The body is optional;
 kind, ``member`` and ``email`` who it went to, and ``on`` the day their term runs
 out.  A live run lists what it sent; a dry run lists what it would have sent, so
 an operator can read who is about to be written to before letting the scan write
-to them.  ``amount_cents`` is always ``null`` here, because a reminder moves no
-money.
+to them.  ``amount_cents`` is always ``null`` here, because a reminder doesn't
+move money.
 
 ``sent`` counts the reminders the run mailed and ``skipped`` those it decided
 against — a member who has already had that stage, or whose membership renews
-itself.  ``skipped_by_reason`` breaks that number down, with one entry per
-reason that occurred and nothing for a reason that did not: the keys are
+itself.  ``skipped_by_reason`` breaks that number down, with an entry only for
+each reason that occurred: the keys are
 ``already_sent``, ``inactive_user``, ``no_email``, ``lifetime``, ``auto_renew``
 and ``renewed``.  ``failed`` counts the sends the mail server refused, which
 are in neither of the other two counts and are logged at ERROR with the ids;
 between them the three numbers say why a thin run was thin.
 
-A dry run writes nothing at all: no email, no log rows and no membership status
-flips.  Its ``sent`` is therefore a count of candidates, not of outcomes: every
+A dry run doesn't write anything at all: it doesn't send email, add log rows, or
+flip a membership status.  Its ``sent`` is therefore a count of candidates, not of outcomes: every
 member the scan would try to mail lands in it, including ones a live run would
 end up recording as a failure, or as skipped because a concurrent run got there
 first.  The breakdown per stage is what ``manage.py send_renewal_reminders``
@@ -227,13 +227,13 @@ with the report's title and formats in ``detail``, and kind ``roster`` names a
 person checked to receive a DART's roster, with the DART in ``detail``.  ``on``
 and ``amount_cents`` are always ``null``.  ``skipped_by_reason`` holds one entry
 per reason that occurred: ``not_permitted`` (the subscription's account may no
-longer read the report, so it was paused), ``no_recipients`` (a DART with nobody
-checked who has an address) and ``no_email`` (one checked person without an
+longer read the report, so it was paused), ``no_recipients`` (a DART where nobody
+checked has an address), and ``no_email`` (one checked person without an
 address).  ``failed`` counts the emails the mail server refused, and the reports
 the stored filters could no longer build; each of them stays due.
 
-A dry run writes nothing: no email, no pause, no stamp, and no date moves on.  The
-caller is the actor on the ``reports.run`` audit line.
+A dry run doesn't write anything: it doesn't send email, pause a subscription, or
+stamp a send, and no date moves on.  The caller is the actor on the ``reports.run`` audit line.
 
 Statuses: **200**; **400** when ``dry_run`` is not a boolean; **401** when
 anonymous; **403** for any other role.
@@ -293,9 +293,9 @@ reminder run's ``failed`` count reports it as well.
 
 ``user_id``, ``user_name``
    ``user_id`` is the account the email concerned, ``null`` for a message sent
-   to an address with no account behind it and for one whose account has since
+   to an address without an account behind it and for one whose account has since
    been deleted.  ``user_name`` is the recipient's name as it was at send
-   time -- a DART contact's own name, for example, which needs no account --
+   time -- a DART contact's own name, for example, which doesn't need an account --
    falling back to the linked account's current name when that was not
    recorded, and empty when neither names anybody.
 
@@ -362,7 +362,7 @@ Statuses: **200**; **400** for an unknown ``status`` or an unparseable date;
 
 One email of the log, the object a row of ``GET /system/emails`` is, with the same
 fields and values; the Sent emails screen opens it on a page of its own.  The log
-keeps no copy of a message's body, which for a password reset or a verification
+doesn't keep a copy of a message's body, which for a password reset or a verification
 email would hold a working link: what was said is the template's, named by
 ``purpose``, and a message that belongs to a record carries ``link`` to the page that
 shows it, such as a bulk email's on **Sent**.  ``system_admin`` only, as the log is.
@@ -439,20 +439,20 @@ the address is bad, and marks each message read (:ref:`email-bounces`).
 nothing is read and every count is zero.  ``bounced`` counts the reports matched to
 a sent email by the signed address they were returned to, each an action of kind
 ``bounced`` naming the recipient as the row recorded them, ``on`` the day the email
-was sent.  ``unmatched`` counts the permanent failures in reports returned to no
+was sent.  ``unmatched`` counts the permanent failures in reports not returned to a
 valid signed address of an email sent in the last 30 days (the bare bounce address,
 a wrong signature, an id no row has or one the database has since given another
 email, an older send, or a row the relay refused), each an action of kind
 ``unmatched`` naming the report's ``Final-Recipient``, with an empty ``member``
 and a null ``on``; none of them changes anything.  ``ignored`` counts the messages
-read that reported no permanent failure at all (delays, temporary failures,
+read that didn't report a permanent failure at all (delays, temporary failures,
 auto-replies) or whose writes the database refused, and ``skipped`` the messages
 left unread in the mailbox, one the server would not hand over or one larger than
 1 MB.  ``detail`` is the report's status code and diagnostic.  A bounce flags the
 account only when its status says the address is bad (``5.1.x`` or ``5.2.1``); a
 content or policy refusal marks the email alone.  A dry run reads and matches
-exactly as a live one, with the mailbox opened read-only, but marks no email, flags
-no account, and leaves every message unread.  The run is recorded in the audit log
+exactly as a live one, with the mailbox opened read-only, but doesn't mark an email
+or flag an account, and leaves every message unread.  The run is recorded in the audit log
 as ``bounces.run`` under the caller.
 
 A malformed ``BOUNCE_IMAP_URL``, or a mailbox that cannot be reached, signed in
@@ -498,7 +498,7 @@ the same report (:ref:`deploy-mail-dns`).
 ``warn`` (it works but is weak or could not be judged), or ``fail``.  ``detail`` says
 in plain words what the record is for and what was found, and ``fix`` what to ask
 whoever manages the domain's DNS or the server for; ``fix`` is blank on a ``pass``.
-``domain`` is the domain of ``DEFAULT_FROM_EMAIL``, blank when that address has none,
+``domain`` is the domain of ``DEFAULT_FROM_EMAIL``, blank when that address doesn't have one,
 in which case ``findings`` holds the one failing line that says so.
 
 The lookups run inside the request and wait at most three seconds each, and the
@@ -553,7 +553,7 @@ what is running.
 
 ``last_backup``
    The modification time of the newest dump, or ``null`` when the directory
-   holds none.
+   doesn't hold one.
 
 ``version``
    The ``[project] version`` from ``pyproject.toml``, falling back to the
@@ -638,7 +638,7 @@ the file name.
 
 Statuses: **200**; **401** when anonymous; **403** for every other role;
 **404** for a name that is not a backup file name, and for one that is but
-matches no file.
+doesn't match a file.
 
 ``POST /system/renewals/run``
 -----------------------------
@@ -647,8 +647,8 @@ Runs the automatic-renewal scan immediately instead of waiting for the 06:30
 timer: it schedules the charges for terms running out, sends the advance
 notices, charges the renewals due, and retries or pauses the ones the provider
 refused.  The body is optional and ``dry_run`` defaults to ``false``; a dry run
-changes no mandate, emails nobody and charges nobody, and is itself recorded in
-the audit log.
+doesn't change a mandate, email anyone, or charge anyone, and is itself recorded
+in the audit log.
 
 A dry run answers 200 with the body below.  A live run is started in its own
 process, so a slow provider cannot cut it off mid-charge, and answers 202 with its
@@ -726,10 +726,10 @@ sent that year's statement.  The body is optional; ``dry_run`` defaults to
 ``actions`` names the account behind every statement the run sent, with the
 year's net total — given, less anything refunded — as ``amount_cents``; ``on``
 is always ``null``, since a statement concerns a year rather than a day.  A
-dry run writes and emails nothing, and reports the accounts and totals a live
+dry run doesn't write or email anything, and reports the accounts and totals a live
 run would reach.  ``skipped`` counts an account that already holds a
 ``YearStatement`` for the year; ``failed`` counts an address the mail server
-refused and an account with no address on file.
+refused and an account without an address on file.
 
 The full description of who is sent one and when is on :doc:`statements`.
 
@@ -743,8 +743,8 @@ other role.
 --------------------------------------
 
 Starts the FAA registry import now instead of waiting for the nightly timer.
-``system_admin`` only.  It takes no body and has no dry run: the import changes
-nothing but the aircraft types and the registrations.  Unlike the other run-now
+``system_admin`` only.  It doesn't take a body or offer a dry run: the import
+changes only the aircraft types and the registrations.  Unlike the other run-now
 endpoints it does not wait for the job: the import downloads about 70 MB, so it
 runs as ``manage.py import_faa_registry --import-id <id>`` in a process of its
 own, started in a new session with the server's output as its own, and the
@@ -906,7 +906,7 @@ Site
 The chrome the portal needs before it knows who is asking: the organization
 name, the active theme, the contact address, the same navigation the
 server-rendered site shows, and the members-only pages this caller may open.
-It is the one API call the SPA makes with no session, so it is ``AllowAny``.
+It is the one API call the SPA makes without a session, so it is ``AllowAny``.
 
 .. code-block:: json
 
@@ -939,7 +939,7 @@ See :doc:`cms` for that test and for where the settings come from.
 
 Before ``migrate`` has created the site settings row, ``org_name`` falls back
 to ``CalDART``, ``theme`` to ``duty`` and ``contact_email`` to an empty
-string; a settings row with no theme chosen falls back to ``duty`` too.
+string; a settings row without a theme chosen falls back to ``duty`` too.
 
 Statuses: **200**, for anybody.
 
@@ -949,7 +949,7 @@ Tests
 
 ``backend/tests/test_reminders_api.py``
    The role matrix on both reminder endpoints, the log filters, and that a dry
-   run writes nothing while still counting the candidates it found.
+   run doesn't write anything while still counting the candidates it found.
 
 ``backend/tests/test_mail_log.py``
    The funnel writing one row per send, a refused send recorded and re-raised,
@@ -966,8 +966,8 @@ Tests
    that ``members_pages`` is empty for a caller who may not read them.
 
 ``backend/tests/test_year_statements.py``
-   Who counts as a giver in a year, the run's counts and actions, a dry run
-   writing nothing, a rerun sending nothing twice, the command, and the
+   Who counts as a giver in a year, the run's counts and actions, a dry run not
+   writing anything, a rerun never sending a statement twice, the command, and the
    endpoint's role matrix.
 
 ``backend/tests/test_system_registry_import.py``

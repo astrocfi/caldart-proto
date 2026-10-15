@@ -12,8 +12,8 @@ reports, served by :doc:`api-reports`.
 Every endpoint here is guarded by ``IsFinance`` — the ``treasurer`` and
 ``account_admin`` roles, with ``system_admin`` passing as it does everywhere —
 except ``GET /admin/payments/donors``, the treasurer's own, which an account
-administrator does not reach.  A ``treasurer`` reaches the finance area and
-nothing else; in particular they do not read ``/admin/members/*``, which
+administrator does not reach.  A ``treasurer`` reaches only the finance area;
+in particular they do not read ``/admin/members/*``, which
 carries medical and certificate data.  Checkout, the provider confirmations and
 the webhooks are in :doc:`api-payments`; general API conventions — session
 authentication, the CSRF header, pagination, error shapes — are in
@@ -28,8 +28,8 @@ Shared query parameters
 
 The list, the summary and the payments report read one parameter set, so they
 refuse the same input the same way, with the complaint keyed by the parameter it came
-from.  An empty parameter narrows nothing, which is what lets the filter bar
-send every one of them on every request.
+from.  An empty parameter doesn't narrow the list, which is what lets the filter
+bar send every one of them on every request.
 
 ===============  ====================================================
 Parameter        Meaning
@@ -107,8 +107,8 @@ Paginated (``?page=&page_size=``, default 25, max 200), newest money first.
    }
 
 ``kind`` is read from the payment: ``membership`` when it names a plan and
-gives nothing beyond it, ``contribution`` when it names no plan, ``both`` when
-it does the two at once.  ``paid_on`` is the ledger date — ``received_on`` for
+doesn't give anything beyond it, ``contribution`` when it doesn't name a plan,
+``both`` when it does the two at once.  ``paid_on`` is the ledger date — ``received_on`` for
 a payment recorded by hand, the local date of ``completed_at`` for every other
 provider, and ``null`` while the payment has not completed.  ``membership`` is
 the term the payment bought, or ``null``; ``renewal_attempt`` is the automatic
@@ -116,8 +116,8 @@ charge it came from, or ``null`` when a person paid it.  ``user_is_tombstone``
 is true when the payer is the **Deleted member <id>** account that keeps a
 deleted account's payments (:ref:`api-members-delete`): the portal offers a
 **Member record** link to the payer's ``/admin/members/{user_id}`` for a
-reader holding ``account_admin``, and none for such an account, whose record
-refuses every change.  ``raw``, the
+reader holding ``account_admin``, and doesn't offer one for such an account,
+whose record refuses every change.  ``raw``, the
 provider's own payload, is never in the API.
 
 Datetimes carry the site's own offset rather than ``Z``: DRF renders them in
@@ -134,7 +134,7 @@ Statuses: **200**; **400** for an unusable filter or ``?ordering=`` value;
 ``?group=`` defaults to ``month``, and the filters above apply.  **Only money
 that arrived counts**: a pending or failed attempt was never revenue, while a
 payment since refunded was, and is reported with what went back.  Oldest period
-first; periods with nothing in them are omitted.
+first; empty periods are omitted.
 
 .. code-block:: json
 
@@ -149,8 +149,8 @@ first; periods with nothing in them are omitted.
 site's time zone.  ``refunded_cents`` counts a refund against the period the
 *payment* arrived in, which is the question an income statement asks; the
 reconciliation table below dates refunds differently, and deliberately.
-``by_provider`` omits providers with nothing in that period, so it is safe to
-iterate but not to index blindly.
+``by_provider`` omits a provider without any money in that period, so it is safe
+to iterate but not to index blindly.
 
 Statuses: **200**; **400** for an unusable filter or ``group``; **401** when
 anonymous; **403** without a finance role.
@@ -287,7 +287,7 @@ Parameter          Effect
 ``from``, ``to``   ``YYYY-MM-DD``, bounding the ledger date a gift counts by.
 =================  ============================================================
 
-``user_id`` is the donor's account id.  A donor is on no member list, so the
+``user_id`` is the donor's account id.  A donor isn't on any member list, so the
 Donors tab links each name to the member record, ``/admin/members/{user_id}``
 (:doc:`api-members`), for a reader who also holds ``account_admin``; that
 record's ``DELETE`` deletes a donor.  ``is_tombstone`` is true for the
@@ -343,8 +343,8 @@ authority, an automatic renewal or a recurring donation, and ``null`` for a
 member with neither.  ``statement_years`` names the years the member can download a
 contribution statement for — a year qualifies when at least one payment
 carrying a contribution arrived in it — newest first.  ``user.is_tombstone`` is
-true for a **Deleted member <id>** account, whose ledger the portal heads with no
-**Member record** link.
+true for a **Deleted member <id>** account, whose ledger the portal heads without
+a **Member record** link.
 
 Statuses: **200**; **401** when anonymous; **403** without a finance role;
 **404** for an unknown member.
@@ -374,7 +374,7 @@ webhook.
 ``reconciled_on`` records the caller in ``reconciled_by``; clearing it clears
 that name too.  Each field that really changes writes its own audit record,
 ``payment.reconcile`` or ``payment.note``, so resending an unchanged value
-records nothing.  A body naming neither field is refused:
+doesn't record anything.  A body naming neither field is refused:
 
 .. code-block:: json
 
@@ -416,8 +416,8 @@ not settled yet:
 A provider that is unconfigured or unreachable is refused the same way, with
 its own sentence, so "no answer yet" and "could not ask" read differently.
 
-Statuses: **200**; **400** when the provider has nothing to report or could not
-be asked; **401** when anonymous; **403** without a finance role; **404** for an
+Statuses: **200**; **400** when the provider doesn't have a fee to report or
+could not be asked; **401** when anonymous; **403** without a finance role; **404** for an
 unknown id.
 
 
@@ -439,7 +439,7 @@ ignoring case, so a check made out to "Marta Reyes" can be searched for as it
 is written.
 Rows read by surname then first name, and at most ten come back, so a one-letter
 term answers a page rather than the register.  A blank or absent ``search``
-answers an empty list: a form nobody has typed in asks for nobody.  A deactivated
+answers an empty list: a form nobody has typed in doesn't ask for anyone.  A deactivated
 account, a deleted member's tombstone included, never comes back.
 
 Statuses: **200**; **401** when anonymous; **403** without a finance role.
@@ -476,7 +476,7 @@ recorded as ``payment.record``.
 Statuses: **201**; **400** keyed by the field at fault — an unknown ``method``,
 a ``received_on`` later than tomorrow, a ``reference`` another recorded payment
 carries, a ``plan`` that is not active, or a plan and contribution that come to
-nothing; **401** when anonymous; **403** without a finance role; **404** for an
+zero; **401** when anonymous; **403** without a finance role; **404** for an
 unknown member.
 
 

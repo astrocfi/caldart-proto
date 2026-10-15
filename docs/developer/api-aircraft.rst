@@ -8,7 +8,7 @@ the aircraft report, served by :doc:`api-reports` and described in
 :doc:`reports`.  Conventions from :doc:`api-reference` apply throughout — session
 authentication, ``X-CSRFToken`` on unsafe methods, DRF error bodies, and
 ``401`` (not ``403``) for an unauthenticated request that reaches the
-permission check.  An unsafe method with no CSRF token is refused with ``403``
+permission check.  An unsafe method without a CSRF token is refused with ``403``
 before it, signed in or not.  Those two answers are the same on every endpoint
 below and are not repeated in the status lists.
 
@@ -31,8 +31,8 @@ membership has expired are refused with::
 
     403 {"detail": "Aircraft are for members with a current membership."}
 
-An expired member's aircraft stay attached to their profile: ``/me/profile`` lists
-none while the membership is expired, and lists them again once it is renewed; an
+An expired member's aircraft stay attached to their profile: ``/me/profile`` leaves
+them out while the membership is expired, and lists them again once it is renewed; an
 administrator's member record shows them throughout.  The ``user`` payload's
 ``can_use_aircraft`` carries the same answer, so the portal hides the aircraft
 screens the server would refuse.
@@ -137,7 +137,7 @@ registry does not say), ``category`` (blank when the registry does not say,
 always for a hand-added type), and ``is_custom``, true for a type an account
 administrator added by hand.  ``make`` and ``model`` repeat the type's display
 names, so every screen that prints them reads one spelling.  The type is
-joined to the page's query, so it costs nothing per row.
+joined to the page's query, so it doesn't cost a query per row.
 
 ``insurance_is_current`` and ``insurance_summary`` are model properties, not
 columns: the summary reads ``No insurance on file`` when neither a liability
@@ -146,7 +146,7 @@ an authority has checked the insurance against the policy: ``verified``, the
 display name of the account that verified it, and when, both ``null`` while it
 is unverified (:doc:`verification`).  Verified insurance whose expiry passes
 stays verified; currency and verification are two separate facts.  The
-verifier is joined to the page's query, so naming one costs nothing per row.  ``created_by`` is the id of the member
+verifier is joined to the page's query, so naming one doesn't cost a query per row.  ``created_by`` is the id of the member
 who added the record, or ``null`` for an airframe the seed created.
 ``updated_at`` is when the record was last written, by anybody.
 
@@ -162,7 +162,7 @@ excludes the aircraft: ``excluded``, and ``reason``, the words the aircraft
 check prints.  An excluded aircraft's reason reads ``Not covered: helicopters
 are excluded by CalDART's policy``, naming the category that matched (or the
 airworthiness, when only that matched) and the organization from the site
-settings.  An aircraft with no category that is not otherwise excluded reads
+settings.  An aircraft without a category that is not otherwise excluded reads
 ``Category not recorded``, and every other reason is blank.  The policy is read
 once per response, however many aircraft it carries.  The short form embedded
 in profiles and the member check's status card carries ``category``,
@@ -207,7 +207,7 @@ Parameter            Meaning
 
 Ordering goes through ``NullsLastOrderingFilter``, which does two things.
 Postgres sorts ``NULL`` first on a descending order, which would put every
-airplane with no policy at the top of "latest expiry", so empty values are
+airplane without a policy at the top of "latest expiry", so empty values are
 pushed to the bottom in both directions.  And every ordering ends in the
 primary key: sorting by a column many rows share — ``make``, or the expiry
 date a whole club renews on — otherwise leaves ties in an undefined order, and
@@ -218,7 +218,7 @@ Statuses:
 * **200** — the page of rows.
 * **400** — ``owner_type`` or ``insurance`` carried a value outside its choice
   list, or ``expiring_within`` was not a number.  An unrecognized ``ordering``
-  falls back to ``n_number`` and an unrecognized ``is_active`` narrows nothing;
+  falls back to ``n_number`` and an unrecognized ``is_active`` doesn't narrow the list;
   neither is refused.
 
 ``POST /aircraft``
@@ -250,7 +250,7 @@ by the client, and ``updated_at`` is the clock's.
 ``n_number`` is required and stored normalized.  ``type_id`` is required: the
 id of an entry of the aircraft types, which ``GET /aircraft/types`` finds.
 ``make``, ``model``, ``type``, and ``coverage`` are read-only and a body naming
-them changes nothing.  ``category`` and ``airworthiness`` are optional choices
+them doesn't change anything.  ``category`` and ``airworthiness`` are optional choices
 and may be blank.  The three money fields are integer cents and must be ``>= 0``, and
 everything else is optional.
 
@@ -259,7 +259,7 @@ Statuses:
 * **201** — the stored record, in the row shape above.
 * **400** — a missing or blank ``n_number``; a missing, ``null``, or unknown
   ``type_id``, refused with ``{"type_id": ["Pick the aircraft type from the
-  list."]}``; a registration that normalizes to nothing, refused with ``{"n_number": ["Enter
+  list."]}``; a registration that normalizes to an empty string, refused with ``{"n_number": ["Enter
   a registration, for example N12345."]}``; a registration already on file,
   refused with ``{"n_number": ["An aircraft with this N-number is already on
   file."]}``; or a negative money field, refused with ``Enter an amount of $0
@@ -334,7 +334,7 @@ disagree.  The Aircraft check draws each pilot's name and ``go_no_go`` alone; th
 aircraft record's own pilot list adds the email address and the membership state.
 ``aircraft_pilots()`` fetches them in one query, with
 the membership annotations aboard (see :ref:`membership-status-sql`), so a
-popular airplane costs no more than a rarely-flown one.
+popular airplane doesn't cost more than a rarely-flown one.
 
 ``updated_by`` is the account that last wrote the record, as ``{"id", "name"}``,
 or ``null`` for one nobody has written since the seed created it.
@@ -374,7 +374,7 @@ not read it.
 
 ``system_admin`` (and any superuser) passes every check, through
 ``accounts.permissions.user_has_any_role``.  An airplane created by the seed
-has ``created_by = None`` and so belongs to nobody: only an administrator can
+has ``created_by = None`` and so doesn't belong to anybody: only an administrator can
 change it.  A refusal carries the sentence the permission sets — "Only the
 member who added this aircraft, or an administrator, can change it." for a
 write, and "Only an account administrator can delete an aircraft." for a
@@ -415,9 +415,9 @@ the same response shape as ``PUT``.
 A ``PUT`` or ``PATCH`` that moves any insurance field — ``insurance_carrier``,
 ``insurance_policy_number``, the three money fields, or
 ``insurance_expiration`` — clears a verified insurance in the same transaction,
-whoever writes it; one that moves no insurance field, or resends one at its
-stored value, leaves the verification alone.  The clearing raises no event of
-its own: ``aircraft_changed`` already names the columns
+whoever writes it; one that doesn't move an insurance field, or resends one at its
+stored value, leaves the verification alone.  The clearing doesn't raise an event
+of its own: ``aircraft_changed`` already names the columns
 (:doc:`notification-events`).
 
 .. code-block:: json
@@ -476,7 +476,7 @@ it and which columns they touched.
 
 ``kind`` is ``created`` or ``updated``.  ``fields`` names the columns the write
 moved and is empty on a ``created`` entry, where the whole record is the change,
-and on a save that altered nothing.  ``changed_by`` is ``null`` for a change no
+and on a save that didn't alter anything.  ``changed_by`` is ``null`` for a change no
 signed-in account made.  The list is unpaginated: an aircraft has few changes.
 Every write through ``POST /aircraft``, ``PUT``, and ``PATCH`` adds one entry
 and stamps ``updated_at`` and ``updated_by`` on the record, and deleting the
@@ -503,7 +503,7 @@ included on the same terms.
 Statuses:
 
 * **200** — the matching record.
-* **400** — ``n_number`` missing or normalizing to nothing, answered
+* **400** — ``n_number`` missing or normalizing to an empty string, answered
   ``{"n_number": "Enter a registration, for example N12345."}``.
 * **404** — the register has never seen that registration.
 
@@ -569,7 +569,7 @@ Statuses:
 
 * **201** — the type added.
 * **400** — ``make`` or ``model`` missing or blank, a number out of range, a
-  name that normalizes to nothing (a corporate suffix alone, or bare
+  name that normalizes to an empty string (a corporate suffix alone, or bare
   punctuation) answered under that field
   ``{"make": ["Enter a name, not only a corporate suffix or punctuation."]}``,
   or a make and model already listed (compared case-insensitively, after the
@@ -621,14 +621,14 @@ by its N-number; the aircraft form's N-number box searches with
 ``non_citizen_corporation``, ``non_citizen_co_owned``, and ``unknown``;
 ``status`` is one of ``valid``, ``pending``, ``revoked``, ``expired``, and
 ``other``; ``airworthiness`` is a classification as on the register, blank when
-the registry records no certificate.  ``year``, ``certificate_issued_on``, and ``expires_on`` are null
+the registry doesn't record a certificate.  ``year``, ``certificate_issued_on``, and ``expires_on`` are null
 when the registry leaves them blank.  ``imported_at`` is when the import that
 wrote the row ran.
 
 Statuses:
 
 * **200** — the registration.
-* **400** — ``n_number`` normalizing to nothing, answered
+* **400** — ``n_number`` normalizing to an empty string, answered
   ``{"n_number": "Enter a registration, for example N12345."}``.
 * **404** — the registry does not hold it, answered
   ``{"detail": "No registration for N12345 in the registry."}``.
@@ -666,9 +666,9 @@ At most eight registrations come back, in N-number order, each in the shape
      }
    ]
 
-A ``q`` shorter than two characters after normalizing (``N`` alone, or none at
-all) answers an empty list rather than an error, so the box may ask on every
-keystroke.  The prefix match is served by the ``varchar_pattern_ops`` index
+A ``q`` shorter than two characters after normalizing (``N`` alone, or an
+empty ``q``) answers an empty list rather than an error, so the box may ask on
+every keystroke.  The prefix match is served by the ``varchar_pattern_ops`` index
 Django builds for the unique ``n_number`` (:doc:`aircraft-registry`).
 
 Statuses:
@@ -700,8 +700,8 @@ database* panel read it; that page polls it every five seconds while ``running``
    }
 
 ``as_of`` is when the newest successful import finished, null before one has
-and null whenever the registry holds no registration, as after a restore from a
-backup, which leaves the registrations out (:ref:`registry-backups`).
+and null whenever the registry doesn't hold any registrations, as after a restore
+from a backup, which leaves the registrations out (:ref:`registry-backups`).
 ``running`` is true while an import has started, not finished, and started less
 than ``REGISTRY_IMPORT_STALE_MINUTES`` ago.  ``last`` is the newest import of any
 outcome, null before the first: ``finished_at`` is null while it runs, ``ok``
@@ -769,8 +769,8 @@ of the ``members.services`` membership summary; a member who has never paid read
 ``go_no_go`` is computed by the same rule the status card uses, so a leader
 reads the verdict off the list and opens the card for the detail rather than
 for the answer: ``verified`` is true when the member holds a pilot certificate, a
-medical, and a photo ID and all three are verified.  A member with no profile row
-is a no-go on every count.
+medical, and a photo ID and all three are verified.  A member without a profile
+row is a no-go on every count.
 
 Every field comes from the row the search already fetched: the membership
 summary rides along as annotations (see :ref:`membership-status-sql`) and the
@@ -869,14 +869,14 @@ verified.  Insurance is
 reported per airplane and never folded into ``go_no_go``, because a member
 may be current in one airplane and not another.
 
-A user with no ``MemberProfile`` — an account created by a user administrator
+A user without a ``MemberProfile`` — an account created by a user administrator
 before the member has filled anything in — is handled rather than 500ing:
 empty phone, ``dart: null``, certificate ``none``, medical ``none``, photo ID
 ``not_provided``, nothing verified, no aircraft, and ``go_no_go.medical`` and
 ``go_no_go.verified`` false.  ``membership`` is unaffected,
-because it is computed from the account's membership terms and a profile plays
-no part in it: a member with a current term and no profile reads ``status:
-"current"`` and ``go_no_go.membership`` true.
+because it is computed from the account's membership terms and a profile doesn't
+play a part in it: a member with a current term but without a profile reads
+``status: "current"`` and ``go_no_go.membership`` true.
 
 Statuses:
 
@@ -907,25 +907,25 @@ items that should be verified after the save — ``certificate``, ``medical``,
 
 #. the fields go through ``members.services.update_member`` under the caller,
    which raises ``profile_changed`` and clears every verified item whose fields
-   moved; a body with no field leaves the profile, and ``profile_updated_at``,
-   alone;
+   moved; a body without any of these fields leaves the profile, and
+   ``profile_updated_at``, alone;
 #. each listed item not yet verified is stamped with the time and the caller,
    and one already verified keeps its stamp, so re-verifying names whoever
    verified it first; an item the saved profile does not hold (a certificate or
    medical of ``none``, a photo ID of ``not_provided``) ends unverified even when
-   listed, since there is nothing to verify;
+   listed, since there isn't anything to verify;
 #. the audit log records ``member.verify`` with ``verified`` (the items stamped)
    and ``cleared`` (the items verified before and not after), by slug;
 #. when either list is not empty, ``verification_changed`` is raised once, with
    ``user``, ``verified`` and ``cleared`` as item labels, and ``actor``
-   (:doc:`notification-events`).  A save that changes no item's state raises
-   nothing.
+   (:doc:`notification-events`).  A save that doesn't change an item's state
+   doesn't raise it.
 
 A change and its re-verification may come together: a new
 ``medical_expiration`` with ``medical`` in ``verified`` clears the medical and
 stamps it again under the caller.  Self-verification is allowed; nothing
-compares the caller with the member.  The profile is created if the account has
-none.
+compares the caller with the member.  The profile is created if the account
+doesn't have one.
 
 ``certificate_number`` and ``medical_expiration`` are optional whatever the
 certificate and the medical, as on the profile.  A ``certificate_number`` that is
@@ -958,10 +958,10 @@ or a ``system_admin`` — not a ``verifier`` or an ``account_admin``.
 ``verifier`` added or removed and writes it through
 ``accounts.services.update_account``, so the change is audited as
 ``account.roles`` and raised as ``roles_changed``, the member's other roles are
-kept, and a list that changes nothing writes nothing.  ``update_account``'s role
-rules apply (:doc:`api-auth`): nobody changes their own roles, and a role-less Django
-superuser's role list is a system administrator's to write, since rebuilding it would
-take the superuser flag away.  ``verifier`` is not a guarded role, so the target's
+kept, and a list that leaves the roles as they are doesn't write anything.
+``update_account``'s role rules apply (:doc:`api-auth`): nobody changes their own
+roles, and a role-less Django superuser's role list is a system administrator's to
+write, since rebuilding it would take the superuser flag away.  ``verifier`` is not a guarded role, so the target's
 other roles, two-factor ones included, never stand in the way.  A user administrator
 can grant the role from ``PATCH /admin/users/{id}`` too.
 
@@ -969,10 +969,11 @@ Statuses:
 
 * **200** — the status card, whose ``is_verifier`` reads the result.
 * **400** — ``verifier`` missing or not a boolean; or, from a caller who is not a
-  system administrator, a target that is a superuser with no ``system_admin`` role
-  group: ``{"roles": ["Only a system administrator can grant or take away the System
+  system administrator, a target that is a superuser without the ``system_admin``
+  role group: ``{"roles": ["Only a system administrator can grant or take away the System
   administrator role."]}``.
-* **403** — the caller holds none of the three roles, or the target is the caller:
+* **403** — the caller doesn't hold any of the three roles, or the target is the
+  caller:
   ``{"detail": "You cannot change your own roles. Ask another administrator."}``.
 * **404** — no account has that ``user_id``, or it is a donor or deactivated.
 
@@ -988,7 +989,7 @@ reason (less its ``Not covered:`` prefix), whatever its insurance.
 Statuses:
 
 * **200** — the matching record, ``pilots`` included.
-* **400** — ``n_number`` missing or normalizing to nothing, answered
+* **400** — ``n_number`` missing or normalizing to an empty string, answered
   ``{"n_number": "Enter a registration, for example N12345."}``.
 * **404** — the register has never seen that registration.
 
@@ -1014,12 +1015,12 @@ history row, ``aircraft.update``, ``aircraft_changed`` when a column moved, and
 the clearing of a verification the change made stale); then the insurance is
 stamped with the time and the caller when ``verified`` is true and it is not
 yet verified (verified insurance keeps its stamp), or cleared when ``verified``
-is false or the saved record has no ``insurance_expiration``, which is no policy
-to verify.  The audit log records ``aircraft.verify`` with whether the insurance
+is false or the saved record doesn't have an ``insurance_expiration``, since
+without one there isn't a policy to verify.  The audit log records ``aircraft.verify`` with whether the insurance
 ends verified, and
 ``verification_changed`` is raised once, with ``aircraft``, ``verified`` and
 ``cleared`` as item labels and ``actor``, when the insurance was stamped or
-cleared; a save that changes nothing raises nothing.
+cleared; a save that doesn't change anything doesn't raise it.
 
 Statuses:
 
@@ -1049,8 +1050,8 @@ anyone who may use aircraft; My aircraft reads its ``note``.
      "note": "Helicopters are not covered; talk to your DART leader before offering one."
    }
 
-Before a system administrator has written one, the policy excludes nothing
-and its note is blank.
+Before a system administrator has written one, the policy doesn't exclude
+anything and its note is blank.
 
 Statuses:
 
