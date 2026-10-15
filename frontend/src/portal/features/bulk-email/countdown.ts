@@ -55,7 +55,7 @@ export function formatDuration(seconds: number): string {
 /**
  * The seconds left until `iso`, read again once a second; null without a time.
  *
- * @param iso the moment counted down to, or null for none.
+ * @param iso the moment counted down to, or null without one.
  */
 export function useSecondsUntil(iso: string | null): number | null {
   const [now, setNow] = useState(() => new Date());

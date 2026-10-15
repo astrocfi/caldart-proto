@@ -143,7 +143,7 @@ describe('GroupDetailPage, a fixed group', () => {
     expect([headers[0], headers.at(-1)]).toEqual(['Name', 'Remove']);
   });
 
-  it('has no filters to change', async () => {
+  it("doesn't have filters to change", async () => {
     answerGroup(makeGroup(), []);
     renderGroup(5);
     await screen.findByRole('heading', { name: 'People' });
@@ -224,7 +224,7 @@ describe('GroupDetailPage, a live group', () => {
     );
   });
 
-  it('offers no download while its filters find nobody', async () => {
+  it("doesn't offer a download while its filters don't match anyone", async () => {
     answerGroup({ ...MARIN, count: 0, filter_sets: [] }, []);
     renderGroup(6);
     await screen.findByRole('heading', { name: 'Who it finds now' });
@@ -232,7 +232,7 @@ describe('GroupDetailPage, a live group', () => {
     expect(screen.queryByRole('link', { name: 'Download list' })).toBeNull();
   });
 
-  it('lists whoever its filters find now, with no way to add one person', async () => {
+  it('lists whoever its filters find now, without a way to add one person', async () => {
     answerGroup(MARIN, [makeGroupPerson()]);
     renderGroup(6);
     expect(await screen.findByRole('heading', { name: 'Who it finds now' })).toBeVisible();

@@ -19,7 +19,7 @@ import { useRecipientCopy } from './deliveryApi';
 import './delivery.css';
 import { resultLabel } from './status';
 
-/** What the dialog says when the copy cannot be shown and the server gave no reason. */
+/** What the dialog says when the copy cannot be shown and the server didn't give a reason. */
 const FALLBACK_ERROR = 'This copy could not be shown. Try again in a moment.';
 
 export interface CopyDialogProps {

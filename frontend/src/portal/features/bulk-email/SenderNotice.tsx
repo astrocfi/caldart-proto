@@ -2,11 +2,11 @@
  * Why the signed-in sender cannot send bulk email, in place of the compose form.
  *
  * A DART leader sends to the DART on their own profile, so a leader whose profile
- * names no DART has nobody to send to. The notice says so and links to My profile,
- * where the DART is set. It shows nothing for a sender who can send. The same boxed
- * notice stands on the Dashboard and on every Bulk Email screen a DART leader opens; the
- * Dashboard, where nothing else says what is being sent, words it for itself
- * (`DASHBOARD_NO_DART`).
+ * doesn't name a DART doesn't have anyone to send to. The notice says so and links to
+ * My profile, where the DART is set. It doesn't show anything for a sender who can
+ * send. The same boxed notice stands on the Dashboard and on every Bulk Email screen a
+ * DART leader opens; the Dashboard, where nothing else says what is being sent, words it
+ * for itself (`DASHBOARD_NO_DART`).
  */
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
@@ -37,9 +37,9 @@ export function SenderNotice({ sender, message }: SenderNoticeProps): JSX.Elemen
 }
 
 /**
- * The Dashboard's notice for the signed-in person, worded for a screen that says nothing
- * else about bulk email.  Only a DART leader can be without a DART to send
- * to, so nobody else is asked, and the notice shows nothing until the answer comes.
+ * The Dashboard's notice for the signed-in person, worded for a screen that doesn't say
+ * anything else about bulk email.  Only a DART leader can be without a DART to send to,
+ * so nobody else is asked, and the notice doesn't show anything until the answer comes.
  */
 export function OwnSenderNotice(): JSX.Element | null {
   const { roles } = useAuth();

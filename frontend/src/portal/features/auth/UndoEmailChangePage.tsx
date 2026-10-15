@@ -6,7 +6,10 @@ import { useEmailChangeUndo } from '@/portal/auth/useAuth';
 import { Button, ButtonLink } from '@/portal/components/Button';
 import { AuthShell } from './AuthShell';
 
-/** What the server says about every unusable undo link, shown too for a link with no token. */
+/**
+ * What the server says about every unusable undo link, shown too for a link missing its
+ * token.
+ */
 const INVALID_LINK = 'That link is invalid, has expired, or has been used.';
 
 /**
@@ -15,7 +18,7 @@ const INVALID_LINK = 'That link is invalid, has expired, or has been used.';
  *
  * Undoing ends every session of the account and stops its password from working, so
  * the page asks first and posts the token only when the visitor presses **Undo the
- * change**: a mail scanner that opens the link undoes nothing.  It then says what was
+ * change**: a mail scanner that opens the link doesn't undo anything.  It then says what was
  * done and sends the visitor to sign in once they have chosen a new password from the
  * link the server mails.  When the previous address could not be put back, because
  * another account holds it, the account is closed instead, and the page says so and

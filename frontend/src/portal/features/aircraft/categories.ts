@@ -33,7 +33,7 @@ export const AIRWORTHINESS_LABELS: Record<Airworthiness, string> = {
 
 export const AIRWORTHINESS_VALUES = Object.keys(AIRWORTHINESS_LABELS) as Airworthiness[];
 
-/** What the aircraft check says of an aircraft with no category. */
+/** What the aircraft check says of an aircraft without a category. */
 const CATEGORY_NOT_RECORDED = 'Category not recorded';
 
 /** What a blank category or airworthiness reads as. */

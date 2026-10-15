@@ -126,7 +126,7 @@ describe('MessageCard', () => {
     expect(screen.getByRole('button', { name: 'Send me a test' })).toBeEnabled();
   });
 
-  it('offers no test once the email cannot change', () => {
+  it("doesn't offer a test once the email cannot change", () => {
     answerFields();
     renderWithProviders(<Card isEditable={false} />);
     expect(screen.queryByRole('button', { name: 'Send me a test' })).toBeNull();

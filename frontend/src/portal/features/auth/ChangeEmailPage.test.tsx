@@ -63,7 +63,7 @@ describe('<ChangeEmailPage/>', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows no waiting change when there is none', async () => {
+  it("doesn't show a waiting change when there isn't one", async () => {
     renderPage();
 
     await screen.findByText(/Your sign-in address is member@example\.org\./);

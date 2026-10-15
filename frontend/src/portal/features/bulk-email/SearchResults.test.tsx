@@ -74,7 +74,7 @@ describe('the search on Who gets it', () => {
     expect(calls.adds).toEqual([{ filters: { kind: 'friend' } }]);
   });
 
-  it('offers no add while nobody matches', async () => {
+  it("doesn't offer an add while nobody matches", async () => {
     const state = draftState();
     state.matches = makeMatches([]);
     answerBulkEmail(state);
@@ -94,7 +94,9 @@ describe('the search on Who gets it', () => {
     const calls = answerBulkEmail(state);
     const user = userEvent.setup();
     renderCompose(state);
-    await screen.findByText('With no filters chosen, this is every member and friend: 12 people.');
+    await screen.findByText(
+      'When no filter is chosen, this is every member and friend: 12 people.',
+    );
     const pages = screen.getByRole('navigation', { name: 'Pages of matching people' });
     await user.click(within(pages).getByRole('button', { name: /Next/ }));
     await waitFor(() => expect(calls.searches.at(-1)).toBe('page=2&page_size=10'));
@@ -124,7 +126,7 @@ describe('the search on Who gets it', () => {
 describe('matchSentence', () => {
   it('names the DART a leader is held to when no filter is chosen', () => {
     expect(matchSentence(3, true, 'Marin')).toBe(
-      'With no filters chosen, this is every member and friend of the Marin DART: 3 people.',
+      'When no filter is chosen, this is every member and friend of the Marin DART: 3 people.',
     );
   });
 

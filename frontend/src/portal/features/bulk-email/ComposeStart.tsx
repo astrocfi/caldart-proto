@@ -2,8 +2,8 @@
  * `/bulk-email/compose`: Compose in the menu. It opens the sender's one empty
  * draft, or makes a fresh one, and moves on to that draft's compose screen at
  * `/bulk-email/compose/:id`, so a sender who presses Compose twice is not left
- * with two empty drafts. A DART leader whose profile names no DART is told why
- * there is nobody to send to instead.
+ * with two empty drafts. A DART leader whose profile doesn't name a DART is told why
+ * there isn't anyone to send to instead.
  */
 import { useCallback, useEffect, useRef } from 'react';
 import type { JSX } from 'react';

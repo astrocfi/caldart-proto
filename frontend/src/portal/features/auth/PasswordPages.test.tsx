@@ -62,7 +62,7 @@ describe('ForgotPasswordPage', () => {
 describe('ResetPasswordPage', () => {
   const LINK = '/reset-password?uid=MQ&token=abc-123';
 
-  it('refuses a link with no uid or token', async () => {
+  it('refuses a link without a uid or token', async () => {
     renderWithProviders(<ResetPasswordPage />, { route: '/reset-password' });
     expect(await screen.findByText(/that link is incomplete/i)).toBeInTheDocument();
   });

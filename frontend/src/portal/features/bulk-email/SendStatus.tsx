@@ -29,7 +29,7 @@ export const STOPPING_MESSAGE = 'Stopping. Nobody else will be sent a copy.';
 /** What the screen says once Send the rest has been pressed. */
 export const RESUMED_MESSAGE = 'The rest will start sending within a minute.';
 
-/** What a failed action says when the server gave no sentence of its own. */
+/** What a failed action says when the server didn't give a sentence of its own. */
 const FALLBACK_ERROR = "The email wasn't changed. Try again in a moment.";
 
 /** The sentence an action's failure shows. */
@@ -64,7 +64,7 @@ function Countdown({ email, canAct = true }: StatusProps): JSX.Element {
   const cancel = useBulkEmailAction('cancel');
   const toast = useToast();
 
-  // Canceling is the undo itself and loses nothing, so it acts at once.
+  // Canceling is the undo itself and doesn't lose anything, so it acts at once.
   const handleCancel = (): void => {
     cancel.mutate(email.id, {
       onSuccess: () => toast.show(CANCELED_MESSAGE, 'success'),

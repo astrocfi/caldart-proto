@@ -9,7 +9,7 @@ import type { RoleSlug } from '@/portal/api/types';
 import { OwnSenderNotice, SenderNotice } from './SenderNotice';
 
 describe('SenderNotice', () => {
-  it('says why a DART leader with no DART cannot send', () => {
+  it('says why a DART leader without a DART cannot send', () => {
     renderWithProviders(<SenderNotice sender={NO_DART_SENDER} />);
     expect(screen.getByRole('status')).toHaveTextContent(
       'Your profile names no DART, so there is nobody to send to.',
@@ -24,7 +24,7 @@ describe('SenderNotice', () => {
     );
   });
 
-  it('shows nothing for a sender who can send', () => {
+  it("doesn't show anything for a sender who can send", () => {
     const { container } = renderWithProviders(<SenderNotice sender={LEADER_SENDER} />);
     expect(container).toBeEmptyDOMElement();
   });
@@ -38,12 +38,12 @@ describe('OwnSenderNotice', () => {
     return renderWithProviders(<OwnSenderNotice />);
   }
 
-  it('tells a DART leader with no DART, wherever it is shown', async () => {
+  it('tells a DART leader without a DART, wherever it is shown', async () => {
     renderFor(['member', 'dart_leader']);
     expect(await screen.findByRole('link', { name: 'Open My profile' })).toBeInTheDocument();
   });
 
-  it('shows nothing to a DART leader who has a DART', async () => {
+  it("doesn't show anything to a DART leader who has a DART", async () => {
     const calls: string[] = [];
     const record = ({ request }: { request: Request }) => calls.push(request.url);
     server.events.on('request:end', record);
@@ -53,7 +53,7 @@ describe('OwnSenderNotice', () => {
     expect(screen.queryByRole('status')).toBeNull();
   });
 
-  it('asks nothing about a member who sends no bulk email', async () => {
+  it("doesn't ask about a member who doesn't send bulk email", async () => {
     const calls: string[] = [];
     const record = ({ request }: { request: Request }) => calls.push(request.url);
     server.events.on('request:start', record);

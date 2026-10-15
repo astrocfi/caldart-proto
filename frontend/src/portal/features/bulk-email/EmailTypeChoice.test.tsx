@@ -38,7 +38,7 @@ describe('EmailTypeChoice', () => {
     expect(screen.getAllByRole('radio').map((radio) => radio.getAttribute('value'))).toEqual(['3']);
   });
 
-  it('says so when a callout has no Mission type the sender may send', async () => {
+  it('says so when the sender may not send the Mission type a callout goes as', async () => {
     server.use(
       http.get(`${API}/email-types/sendable`, () =>
         HttpResponse.json([{ ...SENDABLE_TYPES[0], is_mission: false }]),
@@ -126,14 +126,12 @@ describe('EmailTypeChoice', () => {
     expect(screen.queryByRole('radio')).not.toBeInTheDocument();
   });
 
-  it('says so when the sender may send no type', async () => {
+  it('says so when the sender may not send any type', async () => {
     server.use(http.get(`${API}/email-types/sendable`, () => HttpResponse.json([])));
     renderChoice(null);
 
     expect(
-      await screen.findByText(
-        'There is no type of email you may send. Ask a system administrator.',
-      ),
+      await screen.findByText('You may not send any type of email. Ask a system administrator.'),
     ).toBeInTheDocument();
   });
 });

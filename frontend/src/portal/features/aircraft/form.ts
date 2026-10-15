@@ -72,7 +72,7 @@ export function emptyAircraftValues(nNumber = ''): AircraftFormValues {
 /**
  * A liability limit for its box: blank when none is recorded.  The register stores a
  * missing limit as 0, and a box that comes back reading 0 after it was left blank
- * reads as a limit of nothing.
+ * reads as a zero limit.
  */
 function limitToDollars(cents: number): string {
   return cents === 0 ? '' : centsToDollars(cents);

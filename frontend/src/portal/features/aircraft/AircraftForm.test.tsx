@@ -187,7 +187,7 @@ describe('<AircraftForm/> N-number typeahead', () => {
     expect(screen.getByLabelText('Year')).toHaveValue('1999');
   });
 
-  it('offers no Look up button', () => {
+  it("doesn't offer a Look up button", () => {
     renderForm();
     expect(screen.queryByRole('button', { name: 'Look up' })).toBeNull();
   });
@@ -251,7 +251,7 @@ describe('<AircraftForm/> leaving a box', () => {
     vi.useRealTimers();
   });
 
-  it('says nothing about an N-number box left without typing', async () => {
+  it("doesn't complain about an N-number box left without typing", async () => {
     const { user } = renderForm();
     await user.click(nNumberBox());
     await user.tab();

@@ -22,7 +22,7 @@ import { EmailFrame } from '@/portal/components/EmailFrame';
 import { useBulkEmailPreview } from './richTextApi';
 import './preview.css';
 
-/** What the preview says when it cannot be shown and the server gave no reason. */
+/** What the preview says when it cannot be shown and the server didn't give a reason. */
 const FALLBACK_ERROR = 'The preview could not be shown. Try again in a moment.';
 
 /**

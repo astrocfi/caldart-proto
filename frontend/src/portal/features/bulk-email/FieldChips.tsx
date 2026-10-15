@@ -45,7 +45,7 @@ function pieces(text: string): Piece[] {
  * read-only chip: *Hello First name, or friend*.
  */
 export function FieldText({ text }: { text: string }): JSX.Element {
-  // Words without a field need no catalog, so a list of them asks for none.
+  // Words without a field don't need the catalog, so a list of them doesn't ask for it.
   if (pieces(text).every((piece) => 'text' in piece)) return <>{text}</>;
   return <ChipText text={text} />;
 }
@@ -109,7 +109,7 @@ const NOT_WORDS = new Set(['STYLE', 'SCRIPT', 'TITLE']);
  * The whole HTML email `html` with each recipient field token in its words drawn as a
  * chip (`labels` names them, as `useFieldLabels` answers), and the chip's style put at
  * its head, for showing in `EmailFrame`.  Tokens in a style, a script, an attribute, or
- * a link's address are left as they are, and an email with none in its words comes
+ * a link's address are left as they are, and an email without any in its words comes
  * back unchanged.
  */
 export function withFrameChips(html: string, labels: ReadonlyMap<string, string> | null): string {

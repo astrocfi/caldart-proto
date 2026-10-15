@@ -66,7 +66,7 @@ describe('MessagesVisibility', () => {
     expect(screen.getByText(/Its history here is unchanged\.$/)).toBeVisible();
   });
 
-  it('offers nothing to a sender who is not CalDART management', () => {
+  it("doesn't offer anything to a sender who is not CalDART management", () => {
     renderLine({}, ['dart_leader']);
     expect(screen.queryByRole('button', { name: 'Hide from Email to me' })).toBeNull();
   });

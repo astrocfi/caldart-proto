@@ -34,7 +34,7 @@ describe('ComposeStart', () => {
     expect([router.state.location.pathname, opens]).toEqual(['/bulk-email/compose/12', 1]);
   });
 
-  it('tells a DART leader with no DART why, instead of opening a draft', async () => {
+  it('tells a DART leader without a DART why, instead of opening a draft', async () => {
     let opens = 0;
     answerSender(NO_DART_SENDER);
     server.use(

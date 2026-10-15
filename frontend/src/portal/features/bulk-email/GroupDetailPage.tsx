@@ -48,7 +48,7 @@ import {
 } from './reuseApi';
 import { kindLabel, people } from './status';
 
-/** What a failed request says when the server gave no sentence of its own. */
+/** What a failed request says when the server didn't give a sentence of its own. */
 const FALLBACK_ERROR = "The group wasn't changed. Try again in a moment.";
 
 /** What a filter set the member list no longer accepts says beside itself. */
@@ -145,7 +145,7 @@ function FiltersCard({ group }: { group: RecipientGroup }): JSX.Element {
         press <strong>Add these filters</strong>.
       </p>
       {group.filter_sets.length === 0 ? (
-        <p>This group has no filters yet, so it holds nobody.</p>
+        <p>This group doesn&apos;t have any filters yet, so nobody is in it.</p>
       ) : (
         <ul className="bulk-email__choices">
           {group.filter_sets.map((filterSet) => (
@@ -189,7 +189,7 @@ function FiltersCard({ group }: { group: RecipientGroup }): JSX.Element {
         </Button>
       </div>
       {added === null ? null : <p role="status">{`Added the filters ${added}.`}</p>}
-      <p className="muted">With no filters chosen, this adds every member and friend.</p>
+      <p className="muted">When no filter is chosen, this adds every member and friend.</p>
       {failure === null ? null : (
         <p className="field__error" role="alert">
           {failure instanceof ApiError ? failure.message : FALLBACK_ERROR}

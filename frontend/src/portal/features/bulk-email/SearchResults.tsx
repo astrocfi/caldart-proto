@@ -64,7 +64,7 @@ export function SearchResults({
 }
 
 /**
- * What a search comes to: `12 people match these filters.`, or, with no filter
+ * What a search comes to: `12 people match these filters.`, or, when no filter is
  * chosen, that it takes in every member and friend (of the DART, for a DART leader).
  *
  * @param count how many people the search matches.
@@ -78,7 +78,7 @@ export function matchSentence(count: number, isUnfiltered: boolean, dartName: st
       dartName === ''
         ? 'every member and friend'
         : `every member and friend of the ${dartName} DART`;
-    return `With no filters chosen, this is ${everybody}: ${people(count)}.`;
+    return `When no filter is chosen, this is ${everybody}: ${people(count)}.`;
   }
   return count === 1 ? '1 person matches these filters.' : `${count} people match these filters.`;
 }

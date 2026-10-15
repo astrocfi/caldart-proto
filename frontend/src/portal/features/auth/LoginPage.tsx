@@ -88,8 +88,8 @@ type Step = 'password' | 'verify' | 'enroll';
  * `?email=` when it is given.
  *
  * An account that needs a second factor is then asked for a code from its
- * authenticator app or a backup code, or, when it must use one and has none, is taken
- * through setting one up and saving its backup codes; only then is it signed in.
+ * authenticator app or a backup code, or, when it must use one and doesn't have one, is
+ * taken through setting one up and saving its backup codes; only then is it signed in.
  *
  * A deactivated account whose password matched is offered reactivation: the same
  * credentials go to `POST /auth/reactivate`, which signs the person in the same way.

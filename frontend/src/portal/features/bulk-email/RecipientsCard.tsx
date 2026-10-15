@@ -17,8 +17,9 @@
  * line saying what it did. A change to the batch of a
  * scheduled email takes it back to the drafts, and the screen says so. A DART
  * leader's email goes to one DART only: the DART filter gives way to that DART,
- * named as a fixed value, and the search matches people of that DART only. While that leader's profile names no DART, nobody can be
- * added, and the card says so, naming the leader, in place of the filters.
+ * named as a fixed value, and the search matches people of that DART only. While that
+ * leader's profile doesn't name a DART, nobody can be added, and the card says so,
+ * naming the leader, in place of the filters.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent, JSX } from 'react';

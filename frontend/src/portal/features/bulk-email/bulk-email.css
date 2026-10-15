@@ -1,6 +1,6 @@
 /*
  * The bulk email screens.  The message fieldset only groups the subject and the
- * message so a started send can hold them still at once; it draws nothing.
+ * message so a started send can hold them still at once; it doesn't draw anything.
  */
 
 .bulk-email__fieldset {
@@ -132,7 +132,7 @@
   flex-basis: 100%;
 }
 
-/* Holds a list screen's form for its keyboard handling and draws nothing itself, so
+/* Holds a list screen's form for its keyboard handling and doesn't draw anything itself, so
  * the page's spacing between cards is as it would be without it. */
 .bulk-email__form-slot {
   display: contents;

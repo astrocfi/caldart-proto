@@ -49,7 +49,7 @@ describe('CalloutFields', () => {
     expect(toggle).toHaveAccessibleDescription(CALLOUT_HINT);
   });
 
-  it('asks for no close time while the email is not a callout', () => {
+  it("doesn't ask for a close time while the email is not a callout", () => {
     renderFields(false);
 
     expect(screen.queryByRole('group', { name: 'Answers close' })).not.toBeInTheDocument();
@@ -102,7 +102,7 @@ describe('CalloutFields', () => {
     expect(screen.getByText(/answers close 04\/09\/2026 at 8:30 AM Pacific time/)).toBeVisible();
   });
 
-  it('shows nothing for a sent email that is not a callout', () => {
+  it("doesn't show anything for a sent email that is not a callout", () => {
     renderFields(false, false);
 
     expect(screen.queryByText(/Mission callout/)).not.toBeInTheDocument();

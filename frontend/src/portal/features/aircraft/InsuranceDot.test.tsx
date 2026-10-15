@@ -24,7 +24,7 @@ describe('InsuranceDot in a column of dates', () => {
     },
   );
 
-  it('says no insurance is on file when there is no date', () => {
+  it('says "No insurance on file" when the expiry date is missing', () => {
     render(
       <InsuranceDot
         aircraft={{ insurance_is_current: false, insurance_expiration: null }}

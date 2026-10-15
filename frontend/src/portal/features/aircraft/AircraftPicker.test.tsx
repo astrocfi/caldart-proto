@@ -329,7 +329,7 @@ describe('AircraftPicker', () => {
     expect(handleSelect).toHaveBeenCalledWith(found);
   });
 
-  it('adds nothing on Enter while the search found several', async () => {
+  it("doesn't add anything on Enter while the search found several", async () => {
     const user = setupUser();
     server.use(...searchOnly([makeAircraft(), makeAircraft({ id: 2, n_number: 'N172AB' })]));
     const handleSelect = vi.fn();
@@ -342,7 +342,7 @@ describe('AircraftPicker', () => {
     expect(handleSelect).not.toHaveBeenCalled();
   });
 
-  it('says nothing about choosing a result before a search has found one', () => {
+  it("doesn't mention choosing a result before a search has found one", () => {
     renderWithProviders(<AircraftPicker onSelect={() => {}} />);
 
     expect(screen.queryByText(/to add it to your list/i)).not.toBeInTheDocument();

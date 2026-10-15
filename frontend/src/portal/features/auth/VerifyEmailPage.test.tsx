@@ -217,7 +217,7 @@ describe('<VerifyEmailPage/>', () => {
       ).toBeInTheDocument();
     });
 
-    it('shows no complaint before a password is chosen', async () => {
+    it("doesn't show a complaint before a password is chosen", async () => {
       donorLink();
       renderPage();
 
@@ -260,7 +260,7 @@ describe('<VerifyEmailPage/>', () => {
     });
   });
 
-  it('refuses a link with no token without asking the server', async () => {
+  it('refuses a link missing its token without asking the server', async () => {
     let asked = false;
     server.use(
       http.post(`${API}/auth/email/verify`, () => {
