@@ -41,6 +41,7 @@ from apps.mail.links import log_links
 from apps.mail.models import EmailLog
 from apps.mail.purposes import purpose_labels
 from apps.mail.reports import order_email_log
+from apps.sysadmin.recording import recorded_request_run
 from caldart.pagination import StandardPagination
 
 
@@ -164,16 +165,25 @@ class BounceRunView(APIView):
         ``BOUNCE_IMAP_URL`` is empty.  The caller is recorded as the actor on the
         ``bounces.run`` audit record.  A malformed ``BOUNCE_IMAP_URL``, or a mailbox that
         cannot be reached, opened or read, is a 400 ``{"detail": <sentence>}`` naming the
-        host and never the password.
+        host and never the password.  A real run is recorded as a run of the ``bounces``
+        job under the caller, failed with that sentence when the mailbox cannot be read.
         """
         payload = BounceRunRequestSerializer(data=request.data)
         payload.is_valid(raise_exception=True)
-        try:
-            run = check_bounces(
-                dry_run=payload.validated_data["dry_run"], actor=signed_in_user(request)
-            )
-        except BounceCheckError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        actor = signed_in_user(request)
+        if payload.validated_data["dry_run"]:
+            try:
+                run = check_bounces(dry_run=True, actor=actor)
+            except BounceCheckError as exc:
+                return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(BounceRunResultSerializer(run.as_dict()).data)
+        with recorded_request_run("bounces", started_by=actor) as record:
+            try:
+                run = check_bounces(dry_run=False, actor=actor)
+            except BounceCheckError as exc:
+                record.fail(str(exc))
+                return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            record.write(run.as_lines())
         return Response(BounceRunResultSerializer(run.as_dict()).data)
 
 

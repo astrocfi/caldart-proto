@@ -15,6 +15,7 @@ from typing import Any
 from django.core.management.base import BaseCommand
 
 from apps.bulk_email.job import run_sender
+from apps.sysadmin.recording import mark_idle
 
 
 class Command(BaseCommand):
@@ -23,8 +24,15 @@ class Command(BaseCommand):
     help = "Send every bulk email whose start time has come."
 
     def handle(self, *args: Any, **options: Any) -> None:
-        """Run the sender and print its summary, then one line per copy tried."""
+        """Run the sender and print its summary, then one line per copy tried.
+
+        A run that didn't find a bulk email to work on, or found another run working, says
+        so to ``manage.py run_job`` (:func:`~apps.sysadmin.recording.mark_idle`), which
+        keeps only the newest such record.
+        """
         run = run_sender()
+        if run.busy or run.emails == 0:
+            mark_idle()
         for line in run.as_lines():
             self.stdout.write(line)
         if run.busy:

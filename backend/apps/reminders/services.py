@@ -155,6 +155,20 @@ class ReminderRun:
             "actions": [action.as_dict() for action in self.actions],
         }
 
+    def problem(self) -> str:
+        """Why the run counts as failed, or ``""`` when every email went.
+
+        A run that could not send some of its emails fails, naming how many, so
+        ``manage.py`` exits non-zero and the run's record reads failed.
+        """
+        if self.failed == 0:
+            return ""
+        plural = "" if self.failed == 1 else "s"
+        return (
+            f"{self.failed} reminder{plural} could not be sent; "
+            "the scan log names the member and membership ids"
+        )
+
     def as_lines(self) -> list[str]:
         """Human-readable summary, one fact per line, then one line per reminder."""
         lines = [

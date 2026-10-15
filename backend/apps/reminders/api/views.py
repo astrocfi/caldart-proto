@@ -30,6 +30,7 @@ from apps.reminders.api.serializers import (
 )
 from apps.reminders.models import ReminderKind, ReminderLog, ReminderSchedule
 from apps.reminders.services import send_renewal_reminders
+from apps.sysadmin.recording import recorded_request_run
 
 
 class ReminderLogFilterSet(django_filters.FilterSet):
@@ -118,11 +119,18 @@ class ReminderRunView(APIView):
         one ``actions`` entry naming each member a reminder went to, or -- in a
         dry run -- would have gone to. ``request.user`` is recorded as the
         audit actor; raises ``PermissionDenied`` if it is somehow anonymous, which
-        ``IsSystemAdmin`` never lets through.
+        ``IsSystemAdmin`` never lets through.  A real run is recorded as a run of the
+        ``reminders`` job under the caller, failed when any reminder could not be sent.
         """
         if not request.user.is_authenticated:
             raise PermissionDenied
         payload = ReminderRunRequestSerializer(data=request.data)
         payload.is_valid(raise_exception=True)
-        run = send_renewal_reminders(dry_run=payload.validated_data["dry_run"], actor=request.user)
+        if payload.validated_data["dry_run"]:
+            run = send_renewal_reminders(dry_run=True, actor=request.user)
+        else:
+            with recorded_request_run("reminders", started_by=request.user) as record:
+                run = send_renewal_reminders(dry_run=False, actor=request.user)
+                record.write(run.as_lines())
+                record.fail(run.problem())
         return Response(ReminderRunResultSerializer(run.as_dict()).data, status=status.HTTP_200_OK)

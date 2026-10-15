@@ -103,4 +103,4 @@ class HealthSerializer(serializers.Serializer[dict[str, Any]]):
     last_backup = serializers.DateTimeField(allow_null=True)
     version = serializers.CharField()
     debug = serializers.BooleanField()
-    scheduled_jobs = JobStatusSerializer(many=True)
+    scheduled_jobs = JobStatusSerializer(many=True, allow_null=True)

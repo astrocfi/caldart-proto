@@ -12,9 +12,11 @@ Documentation=file:///opt/caldart/caldart/docs/developer/deployment.rst
 [Timer]
 Unit=caldart-bounces.service
 
-# At 20 minutes past every hour, in the system timezone -- a minute no daily
+# At 20 minutes past every hour, in Pacific time -- a minute no daily
 # job starts at.
-OnCalendar=*-*-* *:20:00
+# The zone is the site's TIME_ZONE, so the timer fires on the site's clock
+# whatever time zone the server is set to.
+OnCalendar=*-*-* *:20:00 America/Los_Angeles
 
 # If the machine was off or suspended at the trigger, run as soon as it comes
 # back rather than waiting for the next hour.

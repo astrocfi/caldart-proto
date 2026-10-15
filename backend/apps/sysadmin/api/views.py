@@ -10,10 +10,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from django.db.models import QuerySet
+from django.db.models import Q, QuerySet
 from django.http import FileResponse
 from django.utils import timezone
-from drf_spectacular.utils import OpenApiResponse, extend_schema
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework import status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.generics import ListAPIView, RetrieveAPIView
@@ -50,8 +50,12 @@ from apps.sysadmin.api.serializers import (
 )
 from apps.sysadmin.jobs import JOBS_BY_KEY, job_statuses
 from apps.sysadmin.models import JobRun
+from apps.sysadmin.recording import recorded_request_run
 from caldart import audit
 from caldart.reports import download_responses
+
+#: The one ``?outcome=`` a job's runs list takes: the runs that failed or stopped.
+OUTCOME_FAILED = "failed"
 
 #: The media type a database dump is served with.
 BACKUP_MEDIA_TYPE = "application/gzip"
@@ -89,7 +93,8 @@ class HealthView(APIView):
         modification time of the newest dump, or ``null`` when there is none;
         ``version`` is the project version; ``debug`` reports whether the
         server runs with ``DEBUG`` on; and ``scheduled_jobs`` is what
-        ``GET /system/jobs`` answers, or empty when ``db`` is not ``"ok"``.
+        ``GET /system/jobs`` answers, or ``null`` when ``db`` is not ``"ok"`` or the
+        record of runs can't be read.
         """
         return Response(HealthSerializer(services.health()).data)
 
@@ -263,13 +268,23 @@ class StatementsRunView(APIView):
         answer is ``{year, sent, skipped, failed, actions}``, where ``actions``
         names every account the run emailed -- or, in a rehearsal, would have --
         and the caller is recorded as the actor on the ``statements.run`` audit
-        record.
+        record.  A real run is recorded as a run of the ``statements`` job under the
+        caller, with ``--year`` as its options, failed when any email could not be sent.
         """
         payload = StatementsRunRequestSerializer(data=request.data)
         payload.is_valid(raise_exception=True)
         data = payload.validated_data
         year = data["year"] if data["year"] is not None else timezone.localdate().year - 1
-        run = send_year_statements(year, dry_run=data["dry_run"], actor=_actor(request))
+        actor = _actor(request)
+        if data["dry_run"]:
+            run = send_year_statements(year, dry_run=True, actor=actor)
+        else:
+            with recorded_request_run(
+                "statements", started_by=actor, arguments=["--year", str(year)]
+            ) as record:
+                run = send_year_statements(year, dry_run=False, actor=actor)
+                record.write(run.as_lines())
+                record.fail(run.problem())
         return Response(StatementsRunResultSerializer(run.as_dict()).data)
 
 
@@ -323,20 +338,47 @@ class JobListView(APIView):
 class JobRunListView(ListAPIView[JobRun]):
     """``GET /system/jobs/{job}/runs`` -- one job's recorded runs, newest first.
 
-    Paginated; each row is a run without its output.  Answers 404 with
-    ``No such scheduled job.``
-    for a ``job`` that is not a key of the table of jobs.
+    Paginated; each row is a run without its output.  ``?outcome=failed`` keeps the
+    runs that failed or stopped.  Answers 404 with ``No such scheduled job.`` for a
+    ``job`` that is not a key of the table of jobs, and 400 on ``outcome`` for any other
+    value of it.
     """
 
     permission_classes = [IsSystemAdmin]
     serializer_class = JobRunSerializer
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "outcome",
+                str,
+                enum=[OUTCOME_FAILED],
+                description="Keep the runs that failed or stopped.",
+            )
+        ]
+    )
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        """The page of runs; see the class docstring."""
+        return super().get(request, *args, **kwargs)
+
     def get_queryset(self) -> QuerySet[JobRun]:
         """The runs of the job the URL names, newest first, with who started them."""
-        job = self.kwargs["job"]
-        if job not in JOBS_BY_KEY:
+        key = self.kwargs["job"]
+        if key not in JOBS_BY_KEY:
             raise NotFound("No such scheduled job.")
-        return JobRun.objects.filter(job=job).select_related("started_by")
+        runs = (
+            JobRun.objects.filter(job=key).select_related("started_by").defer("output", "traceback")
+        )
+        outcome = self.request.query_params.get("outcome", "")
+        if outcome == "":
+            return runs
+        if outcome != OUTCOME_FAILED:
+            raise ValidationError({"outcome": [f"Choose {OUTCOME_FAILED}, or leave it out."]})
+        stale = timezone.now() - JOBS_BY_KEY[key].stale_after
+        return runs.filter(
+            Q(outcome=JobRun.Outcome.FAILED)
+            | Q(outcome=JobRun.Outcome.RUNNING, started_at__lt=stale)
+        )
 
     def get_serializer_context(self) -> dict[str, Any]:
         """The standard context plus ``now``, so every row is judged at one moment."""
@@ -346,7 +388,7 @@ class JobRunListView(ListAPIView[JobRun]):
 class JobRunDetailView(RetrieveAPIView[JobRun]):
     """``GET /system/jobs/runs/{id}`` -- one recorded run with its whole output.
 
-    Answers 404 for an id no run has, including one pruned for its age.
+    Answers 404 when the id isn't a run's, as for a run pruned for its age.
     """
 
     permission_classes = [IsSystemAdmin]

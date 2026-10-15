@@ -18,7 +18,8 @@ class JobRun(models.Model):
     interleaved in the order it wrote them, cut to its last
     :data:`~apps.sysadmin.recording.OUTPUT_LIMIT` characters with ``output_truncated``
     set when it ran longer.  ``error`` is a failed run's message, and ``traceback``
-    the traceback of an unexpected exception.
+    the traceback of an unexpected exception.  ``idle`` marks a run that succeeded
+    without finding anything to do; a job keeps only its newest idle run.
     """
 
     class Outcome(models.TextChoices):
@@ -45,6 +46,7 @@ class JobRun(models.Model):
     output_truncated = models.BooleanField(default=False)
     error = models.TextField(blank=True)
     traceback = models.TextField(blank=True)
+    idle = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["-started_at", "-id"]

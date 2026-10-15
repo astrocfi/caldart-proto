@@ -22,6 +22,7 @@ from apps.payments.models import RenewalScan
 from apps.payments.renewals.background import STOPPED_WITH_AN_ERROR, close_scan, finish_scan
 from apps.payments.renewals.charge import charges_in_doubt
 from apps.payments.renewals.scan import RenewalsBusyError, run_auto_renewals
+from apps.sysadmin.recording import skip_record
 from caldart import audit
 
 log = logging.getLogger(__name__)
@@ -68,7 +69,9 @@ class Command(BaseCommand):
 
         A live scan that finds another one already running does nothing, prints why,
         writes a WARNING ``renewals.run`` audit record with the reason
-        ``run_in_progress``, closes its row with that message, and exits cleanly.
+        ``run_in_progress``, closes its row with that message, and exits cleanly; run
+        through ``manage.py run_job``, it doesn't leave a job record, since the scan
+        under way keeps its own.
 
         After the scan, if any charge was refused, or after a live scan any charge is
         held in doubt waiting for a treasurer, ``CommandError`` is raised naming how
@@ -102,6 +105,8 @@ class Command(BaseCommand):
             audit.refuse(audit.RENEWALS_RUN, actor=actor, reason=audit.REASON_RUN_IN_PROGRESS)
             if scan is not None:
                 close_scan(scan, error=str(exc))
+            # The scan already under way keeps its own record of the run.
+            skip_record()
             self.stdout.write(self.style.WARNING(str(exc)))
             return
         except Exception:

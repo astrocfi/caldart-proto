@@ -24,7 +24,7 @@ class Command(BaseCommand):
         With ``--json``, writes the report as ``GET /system/health`` answers it, as
         indented JSON; otherwise writes one ``label   value`` line per field, with a
         missing value shown as an em dash, and then one line per scheduled job naming
-        it and its state.
+        it and its state, or ``scheduled jobs  unknown`` when they can't be read.
         """
         report = health()
         if options["json"]:
@@ -35,5 +35,9 @@ class Command(BaseCommand):
                 continue
             label = key.replace("_", " ")
             self.stdout.write(f"{label:<20} {value if value is not None else '\u2014'}")
-        for status in report["scheduled_jobs"]:
+        statuses = report["scheduled_jobs"]
+        if statuses is None:
+            self.stdout.write(f"{'scheduled jobs':<20} unknown")
+            return
+        for status in statuses:
             self.stdout.write(f"{status.job.label:<28} {status.state.value}")

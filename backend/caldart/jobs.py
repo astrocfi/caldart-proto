@@ -3,8 +3,8 @@
 A **Run now** that cannot finish inside the request, such as a live renewal scan or an
 FAA registry import, starts the job's command in a child process.  It goes through
 ``manage.py run_job`` (``apps.sysadmin``), so the run is recorded as the timer's runs
-are, naming the system administrator who pressed the button.  This module names no app,
-so an app on any layer may build the command line.
+are, naming the system administrator who pressed the button.  This module doesn't
+name an app, so an app on any layer may build the command line.
 """
 
 from __future__ import annotations

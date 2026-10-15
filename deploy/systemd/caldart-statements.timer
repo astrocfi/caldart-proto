@@ -12,10 +12,12 @@ Documentation=file:///opt/caldart/caldart/docs/developer/deployment.rst
 [Timer]
 Unit=caldart-statements.service
 
-# 06:45 on January 15th every year, in the system timezone -- well after the
+# 06:45 on January 15th every year, in Pacific time -- well after the
 # other three daily jobs, and late enough into the new year that every
 # provider has settled the prior December's payments.
-OnCalendar=*-01-15 06:45:00
+# The zone is the site's TIME_ZONE, so the timer fires on the site's clock
+# whatever time zone the server is set to.
+OnCalendar=*-01-15 06:45:00 America/Los_Angeles
 
 # If the machine was off or suspended at the trigger, run as soon as it comes
 # back rather than waiting a whole year.

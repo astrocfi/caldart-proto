@@ -47,6 +47,7 @@ from apps.reports.services import (
     send_rosters_now,
     send_subscription_now,
 )
+from apps.sysadmin.recording import recorded_request_run
 from caldart.reports import (
     CSV_MEDIA_TYPE,
     PDF_MEDIA_TYPE,
@@ -328,11 +329,16 @@ class ReportRunView(APIView):
         """200 with the run result of sending every subscription and roster that is due.
 
         With ``dry_run`` true nothing is sent or changed and the result names who would
-        be sent what.  The caller is the audit actor.
+        be sent what.  The caller is the audit actor.  A real run is recorded as a run of
+        the ``reports`` job under the caller, failed when any email could not be sent.
         """
         payload = ReportRunRequestSerializer(data=request.data)
         payload.is_valid(raise_exception=True)
-        run = run_scheduled_reports(
-            dry_run=payload.validated_data["dry_run"], actor=acting_user(request)
-        )
+        actor = acting_user(request)
+        if payload.validated_data["dry_run"]:
+            return run_response(run_scheduled_reports(dry_run=True, actor=actor))
+        with recorded_request_run("reports", started_by=actor) as record:
+            run = run_scheduled_reports(dry_run=False, actor=actor)
+            record.write(run.as_lines())
+            record.fail(run.problem())
         return run_response(run)

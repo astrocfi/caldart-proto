@@ -10,6 +10,7 @@ from __future__ import annotations
 import io
 import logging
 import os
+import signal
 import sys
 from collections.abc import Callable, Iterator
 from datetime import date, timedelta
@@ -22,12 +23,21 @@ from django.db import DatabaseError
 from django.utils import timezone
 
 from apps.accounts.models import User
+from apps.bulk_email.job import SenderRun
+from apps.bulk_email.management.commands import send_bulk_emails as bulk_command
 from apps.mail.bounces import DISABLED_MESSAGE, BounceRun
 from apps.mail.management.commands import check_bounces as check_bounces_command
+from apps.payments.management.commands import run_auto_renewals as renewals_command
+from apps.payments.renewals.scan import RenewalsBusyError
 from apps.sysadmin import recording
 from apps.sysadmin.models import JobRun
 from apps.sysadmin.recording import OUTPUT_LIMIT, RETENTION, OutputCapture
-from apps.sysadmin.services import BackupFile, prune_backups
+from apps.sysadmin.services import (
+    RESTORED_MID_RUN,
+    BackupFile,
+    close_restored_runs,
+    prune_backups,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -148,7 +158,7 @@ def test_started_by_names_the_administrator(system_admin: User) -> None:
 
 
 def test_started_by_an_unknown_user_is_refused_unrecorded() -> None:
-    """A ``--started-by`` naming nobody is an error, and nothing is recorded."""
+    """A ``--started-by`` that doesn't name a user is refused, and nothing is recorded."""
     with pytest.raises(CommandError, match="No user 999999"):
         call_command("run_job", "--started-by", "999999", "check_bounces")
     assert JobRun.objects.count() == 0
@@ -316,7 +326,7 @@ def test_a_command_error_keeps_its_exit_status() -> None:
 
 
 def test_a_command_error_keeps_its_message() -> None:
-    """The error's text is the record's ``error``, with no traceback."""
+    """The error's text is the record's ``error``, and its traceback stays blank."""
     with pytest.raises(CommandError):
         call_command("run_job", "send_renewal_reminders", "--today", "bogus")
     run = _only_run()
@@ -468,10 +478,53 @@ def test_db_backup_prunes_after_the_dump(
     assert f"Deleted {old.name}, more than 30 days old" in capsys.readouterr().out
 
 
-def test_db_backup_refuses_negative_prune_days(backup_dir: Path) -> None:
-    """A negative ``--prune-days`` is an error before any dump is taken."""
-    with pytest.raises(CommandError, match="--prune-days must be zero or more, not -1"):
-        call_command("db_backup", "--prune-days", "-1")
+@pytest.fixture
+def fresh_dump(backup_dir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Make ``db_backup`` write a fresh, empty dump without a database server."""
+    monkeypatch.setattr(
+        "apps.sysadmin.management.commands.db_backup.create_backup",
+        lambda name: _fresh_backup(backup_dir),
+    )
+
+
+@pytest.mark.usefixtures("fresh_dump")
+@pytest.mark.parametrize("days", ["0", "-1"])
+def test_db_backup_refuses_to_prune_under_a_day(backup_dir: Path, days: str) -> None:
+    """A ``--prune-days`` under 1 is an error, raised after the dump."""
+    with pytest.raises(CommandError, match=f"--prune-days must be at least 1, not {days}"):
+        call_command("db_backup", "--prune-days", days)
+
+
+@pytest.mark.usefixtures("fresh_dump")
+def test_a_refused_prune_keeps_the_dump_it_wrote(backup_dir: Path) -> None:
+    """The night's dump is taken even when ``--prune-days`` is refused."""
+    with pytest.raises(CommandError):
+        call_command("db_backup", "--prune-days", "0")
+    assert (backup_dir / "caldart-20261015-033000.sql.gz").exists()
+
+
+@pytest.mark.usefixtures("fresh_dump")
+def test_db_backup_refuses_a_prune_days_that_is_not_a_number(backup_dir: Path) -> None:
+    """A ``--prune-days`` that isn't a whole number is an error after the dump."""
+    with pytest.raises(CommandError, match="--prune-days must be a whole number, not 'thirty'"):
+        call_command("db_backup", "--prune-days", "thirty")
+
+
+@pytest.mark.usefixtures("fresh_dump")
+def test_an_empty_prune_days_keeps_every_dump(
+    backup_dir: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """An empty ``--prune-days``, as an unset variable gives, keeps every dump."""
+    old = _dump(backup_dir, "caldart-20260101-033000.sql.gz", timedelta(days=400))
+    call_command("db_backup", "--prune-days", "")
+    assert old.exists()
+    assert "--prune-days is empty, so every dump is kept." in capsys.readouterr().err
+
+
+def test_prune_backups_refuses_zero_days(backup_dir: Path) -> None:
+    """``prune_backups`` keeps at least a day, so a dump just written always stays."""
+    with pytest.raises(ValueError, match="days must be at least 1, not 0"):
+        prune_backups(0)
 
 
 def test_the_backup_job_records_its_prune(
@@ -491,3 +544,162 @@ def _fresh_backup(backup_dir: Path) -> BackupFile:
     """A fresh dump in ``backup_dir``, standing in for ``create_backup``."""
     path = _dump(backup_dir, "caldart-20261015-033000.sql.gz", timedelta(0))
     return BackupFile(name=path.name, path=path, size_bytes=0, created_at=timezone.now())
+
+
+# ------------------------------------------------------------- what run_job refuses
+@pytest.mark.parametrize("flag", ["-h", "--help"])
+def test_run_job_refuses_help(flag: str) -> None:
+    """Asking a job for its help is refused, unrecorded."""
+    with pytest.raises(CommandError, match=r"use manage\.py check_bounces --help"):
+        call_command("run_job", "check_bounces", flag)
+    assert JobRun.objects.count() == 0
+
+
+def test_a_refused_option_exits_with_status_two() -> None:
+    """An option the command's parser refuses exits 2, as the command alone does."""
+    with pytest.raises(CommandError) as raised:
+        call_command("run_job", "check_bounces", "--bogus")
+    assert raised.value.returncode == 2
+
+
+def test_a_refused_option_is_recorded_with_status_two() -> None:
+    """The refused run's record reads failed with exit status 2 and the parser's words."""
+    with pytest.raises(CommandError):
+        call_command("run_job", "check_bounces", "--bogus")
+    run = _only_run()
+    assert (run.outcome, run.exit_status) == (JobRun.Outcome.FAILED, 2)
+    assert "unrecognized arguments: --bogus" in run.error
+
+
+# ------------------------------------------------------------------- SIGTERM
+@pytest.fixture
+def sigterm_handler() -> Iterator[None]:
+    """Put back whatever ``SIGTERM`` handler the test process had."""
+    previous = signal.getsignal(signal.SIGTERM)
+    yield
+    signal.signal(signal.SIGTERM, previous)
+
+
+@pytest.fixture
+def kills(monkeypatch: pytest.MonkeyPatch) -> list[tuple[int, int]]:
+    """Record the signals the wrapper sends itself, instead of sending them."""
+    sent: list[tuple[int, int]] = []
+    monkeypatch.setattr(os, "kill", lambda pid, signum: sent.append((pid, signum)))
+    return sent
+
+
+def _sigterm() -> None:
+    """A bounce check body that is sent ``SIGTERM``, as systemd sends at a timeout."""
+    signal.raise_signal(signal.SIGTERM)
+
+
+@pytest.mark.usefixtures("sigterm_handler", "kills")
+def test_sigterm_is_recorded_as_stopped_by_the_server(
+    fake_bounces: Callable[[Callable[[], None]], None],
+) -> None:
+    """A run ``SIGTERM`` stops reads failed, exit status 143, stopped by the server."""
+    fake_bounces(_sigterm)
+    with pytest.raises(SystemExit):
+        call_command("run_job", "check_bounces")
+    run = _only_run()
+    assert (run.outcome, run.exit_status, run.error) == (
+        JobRun.Outcome.FAILED,
+        143,
+        "Stopped by the server before it finished.",
+    )
+
+
+@pytest.mark.usefixtures("sigterm_handler")
+def test_sigterm_ends_the_process_by_the_same_signal(
+    fake_bounces: Callable[[Callable[[], None]], None], kills: list[tuple[int, int]]
+) -> None:
+    """After the record, the wrapper sends itself ``SIGTERM`` with the default handler."""
+    fake_bounces(_sigterm)
+    with pytest.raises(SystemExit):
+        call_command("run_job", "check_bounces")
+    assert kills == [(os.getpid(), signal.SIGTERM)]
+
+
+@pytest.mark.usefixtures("sigterm_handler", "kills")
+def test_sigterm_still_exits_143_if_the_signal_is_survived(
+    fake_bounces: Callable[[Callable[[], None]], None],
+) -> None:
+    """Should the process outlive its own signal, ``SystemExit`` carries status 143."""
+    fake_bounces(_sigterm)
+    with pytest.raises(SystemExit) as raised:
+        call_command("run_job", "check_bounces")
+    assert raised.value.code == 143
+
+
+# ------------------------------------------------------------- what is kept
+def test_nul_characters_are_left_out_of_the_record(
+    fake_bounces: Callable[[Callable[[], None]], None],
+) -> None:
+    """A NUL in the output, which Postgres text refuses, is dropped from the record."""
+    fake_bounces(_writes("before\x00after\n"))
+    call_command("run_job", "check_bounces")
+    assert "beforeafter" in _only_run().output
+
+
+def test_nul_characters_are_left_out_of_the_error(
+    fake_bounces: Callable[[Callable[[], None]], None],
+) -> None:
+    """A NUL in an exception's message is dropped from ``error`` and the traceback."""
+    fake_bounces(_raises("bad\x00byte"))
+    with pytest.raises(RuntimeError):
+        call_command("run_job", "check_bounces")
+    assert _only_run().error == "RuntimeError: badbyte"
+
+
+def test_a_scan_that_finds_another_under_way_leaves_no_record(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A renewal scan that finds a live one running stops, and it isn't recorded."""
+
+    def busy(**kwargs: object) -> None:
+        raise RenewalsBusyError("An automatic renewal run is already under way.")
+
+    monkeypatch.setattr(renewals_command, "run_auto_renewals", busy)
+    call_command("run_job", "run_auto_renewals")
+    assert JobRun.objects.count() == 0
+
+
+def test_an_idle_bulk_run_is_marked_idle() -> None:
+    """A bulk sender run without a bulk email to work on is recorded as idle."""
+    call_command("run_job", "send_bulk_emails")
+    assert _only_run().idle is True
+
+
+def test_a_job_keeps_only_its_newest_idle_run() -> None:
+    """A second idle run replaces the first."""
+    call_command("run_job", "send_bulk_emails")
+    call_command("run_job", "send_bulk_emails")
+    assert JobRun.objects.filter(job="bulk-email").count() == 1
+
+
+def test_a_run_that_did_something_is_kept_beside_the_idle_one(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Only idle runs replace each other; a run that sent mail stays."""
+    call_command("run_job", "send_bulk_emails")
+    monkeypatch.setattr(bulk_command, "run_sender", lambda: SenderRun(emails=1, sent=3))
+    call_command("run_job", "send_bulk_emails")
+    monkeypatch.undo()
+    call_command("run_job", "send_bulk_emails")
+    assert sorted(JobRun.objects.values_list("idle", flat=True)) == [False, True]
+
+
+# ------------------------------------------------------------- a restore
+def test_a_restore_closes_the_runs_its_dump_caught_under_way() -> None:
+    """A run still marked running after a restore is closed as failed, with the reason."""
+    JobRun.objects.create(job="backup")
+    assert close_restored_runs() == 1
+    run = _only_run()
+    assert (run.outcome, run.error) == (JobRun.Outcome.FAILED, RESTORED_MID_RUN)
+
+
+def test_a_restore_leaves_finished_runs_alone() -> None:
+    """A finished run keeps its outcome through a restore."""
+    JobRun.objects.create(job="backup", outcome=JobRun.Outcome.SUCCEEDED, exit_status=0)
+    close_restored_runs()
+    assert _only_run().outcome == JobRun.Outcome.SUCCEEDED

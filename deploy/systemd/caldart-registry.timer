@@ -12,9 +12,11 @@ Documentation=file:///opt/caldart/caldart/docs/developer/deployment.rst
 [Timer]
 Unit=caldart-registry.service
 
-# 04:30 every day, in the system timezone -- after the FAA publishes the
+# 04:30 every day, in Pacific time -- after the FAA publishes the
 # night's copy, and well before the reports, renewals, and reminders jobs.
-OnCalendar=*-*-* 04:30:00
+# The zone is the site's TIME_ZONE, so the timer fires on the site's clock
+# whatever time zone the server is set to.
+OnCalendar=*-*-* 04:30:00 America/Los_Angeles
 
 # If the machine was off or suspended at the trigger, run as soon as it comes
 # back rather than waiting a whole day.

@@ -14,7 +14,9 @@ Unit=caldart-backup.service
 
 # 03:30, before the FAA registry import at 04:30 and the jobs that write mail
 # and payments from 06:00, so each morning starts from a fresh dump.
-OnCalendar=*-*-* 03:30:00
+# The zone is the site's TIME_ZONE, so the timer fires on the site's clock
+# whatever time zone the server is set to.
+OnCalendar=*-*-* 03:30:00 America/Los_Angeles
 
 # If the machine was off at 03:30, take the missed backup as soon as it comes
 # back rather than skipping the night.

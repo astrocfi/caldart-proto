@@ -5,7 +5,9 @@
 ``manage.py run_job``, the name the website gives it, the timer's ``OnCalendar=``
 expression, how late a run may start before the job counts as overdue, and how long
 a run may go on before it counts as stopped.  A test holds the table to the timer
-and service files, so the two cannot drift apart.
+and service files, so the two cannot drift apart.  Every timer names the site's time
+zone, ``TIME_ZONE``, so a timer fires at the same moment the table expects whatever
+time zone the server itself is set to.
 
 :func:`job_statuses` reads each job's latest :class:`~apps.sysadmin.models.JobRun`
 against its schedule, for the **Scheduled jobs** health check and ``GET /system/jobs``.
@@ -17,7 +19,9 @@ import re
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
+from zoneinfo import ZoneInfo
 
+from django.conf import settings
 from django.db.migrations.recorder import MigrationRecorder
 from django.utils import timezone
 
@@ -44,7 +48,7 @@ JOBS: tuple[Job, ...] = (
         key="backup",
         command="db_backup",
         label="Nightly backup",
-        on_calendar="*-*-* 03:30:00",
+        on_calendar="*-*-* 03:30:00 America/Los_Angeles",
         grace=timedelta(hours=2),
         stale_after=timedelta(hours=2),
     ),
@@ -52,7 +56,7 @@ JOBS: tuple[Job, ...] = (
         key="registry",
         command="import_faa_registry",
         label="FAA aircraft data load",
-        on_calendar="*-*-* 04:30:00",
+        on_calendar="*-*-* 04:30:00 America/Los_Angeles",
         grace=timedelta(hours=2),
         stale_after=timedelta(hours=1),
     ),
@@ -60,7 +64,7 @@ JOBS: tuple[Job, ...] = (
         key="reports",
         command="send_scheduled_reports",
         label="Scheduled reports",
-        on_calendar="*-*-* 06:00:00",
+        on_calendar="*-*-* 06:00:00 America/Los_Angeles",
         grace=timedelta(hours=2),
         stale_after=timedelta(hours=1),
     ),
@@ -68,7 +72,7 @@ JOBS: tuple[Job, ...] = (
         key="renewals",
         command="run_auto_renewals",
         label="Automatic renewal charges",
-        on_calendar="*-*-* 06:30:00",
+        on_calendar="*-*-* 06:30:00 America/Los_Angeles",
         grace=timedelta(hours=2),
         stale_after=timedelta(hours=1),
     ),
@@ -76,7 +80,7 @@ JOBS: tuple[Job, ...] = (
         key="statements",
         command="send_year_statements",
         label="Year-end statements",
-        on_calendar="*-01-15 06:45:00",
+        on_calendar="*-01-15 06:45:00 America/Los_Angeles",
         grace=timedelta(hours=2),
         stale_after=timedelta(hours=1),
     ),
@@ -84,7 +88,7 @@ JOBS: tuple[Job, ...] = (
         key="reminders",
         command="send_renewal_reminders",
         label="Renewal reminder emails",
-        on_calendar="*-*-* 07:00:00",
+        on_calendar="*-*-* 07:00:00 America/Los_Angeles",
         grace=timedelta(hours=2),
         stale_after=timedelta(hours=1),
     ),
@@ -92,7 +96,7 @@ JOBS: tuple[Job, ...] = (
         key="bounces",
         command="check_bounces",
         label="Bounce check",
-        on_calendar="*-*-* *:20:00",
+        on_calendar="*-*-* *:20:00 America/Los_Angeles",
         grace=timedelta(minutes=30),
         stale_after=timedelta(minutes=30),
     ),
@@ -100,7 +104,7 @@ JOBS: tuple[Job, ...] = (
         key="bulk-email",
         command="send_bulk_emails",
         label="Bulk email sender",
-        on_calendar="*-*-* *:*:00",
+        on_calendar="*-*-* *:*:00 America/Los_Angeles",
         grace=timedelta(minutes=10),
         # The unit doesn't set a timeout: a large send runs as long as its pacing takes.
         stale_after=timedelta(hours=12),
@@ -117,8 +121,11 @@ JOBS_BY_COMMAND: dict[str, Job] = {job.command: job for job in JOBS}
 #: different processes, so a run that starts this much before a trigger still counts.
 CLOCK_SLACK = timedelta(minutes=1)
 
-#: The ``OnCalendar=`` forms the table uses: ``*-MM-DD hh:mm:ss`` with any field ``*``.
-ON_CALENDAR = re.compile(r"^(\*)-(\*|\d{2})-(\*|\d{2}) (\*|\d{2}):(\*|\d{2}):(\d{2})$")
+#: The ``OnCalendar=`` forms the table uses: ``*-MM-DD hh:mm:ss`` with any field ``*``,
+#: then the time zone the timer fires in.
+ON_CALENDAR = re.compile(
+    r"^(\*)-(\*|\d{2})-(\*|\d{2}) (\*|\d{2}):(\*|\d{2}):(\d{2})(?: ([A-Za-z_/+-]+))?$"
+)
 
 #: How far back :func:`previous_trigger` looks: a little over the longest interval.
 LOOKBACK_DAYS = 400
@@ -180,16 +187,19 @@ def run_outcome(run: JobRun, now: datetime | None = None) -> str:
     return run.outcome
 
 
-def _calendar_fields(on_calendar: str) -> list[int | None]:
-    """The month, day, hour, minute, and second of an ``OnCalendar=`` value.
+def _calendar_fields(on_calendar: str) -> tuple[list[int | None], ZoneInfo]:
+    """The month, day, hour, minute, and second of an ``OnCalendar=`` value, and its zone.
 
-    ``None`` stands for a ``*``.  Raises ``ValueError`` for any other form, so a
-    table entry the schedule cannot read fails at once.
+    ``None`` stands for a ``*``.  The zone is the one the value names, or the site's
+    ``TIME_ZONE`` when it doesn't name one.  Raises ``ValueError`` for any other form,
+    so a table entry the schedule cannot read fails at once.
     """
     match = ON_CALENDAR.fullmatch(on_calendar)
     if match is None:
         raise ValueError(f"Not an OnCalendar form this table reads: {on_calendar!r}")
-    return [None if part == "*" else int(part) for part in match.groups()[1:]]
+    *parts, zone = match.groups()[1:]
+    fields = [None if part == "*" else int(part) for part in parts]
+    return fields, ZoneInfo(zone or settings.TIME_ZONE)
 
 
 def _latest_at_or_before(options: list[list[int]], limit: list[int]) -> list[int] | None:
@@ -215,13 +225,12 @@ def _latest_at_or_before(options: list[list[int]], limit: list[int]) -> list[int
 def previous_trigger(on_calendar: str, moment: datetime) -> datetime | None:
     """The last time at or before ``moment`` that the ``OnCalendar=`` value fires.
 
-    A timer fires in the server's own time zone, which may differ from the site's, so
-    the wall clock is read in the system's local time and the answer converted back to
-    an aware time in UTC.  ``None`` when the value has not fired in the last
-    :data:`LOOKBACK_DAYS` days.
+    The wall clock is read in the time zone the value names, as systemd reads it, and
+    the answer is an aware time in UTC.  ``None`` when the value has not fired in the
+    last :data:`LOOKBACK_DAYS` days.
     """
-    month, day, hour, minute, second = _calendar_fields(on_calendar)
-    wall = datetime.fromtimestamp(moment.timestamp())
+    (month, day, hour, minute, second), zone = _calendar_fields(on_calendar)
+    wall = moment.astimezone(zone).replace(tzinfo=None)
     times = [
         list(range(24)) if hour is None else [hour],
         list(range(60)) if minute is None else [minute],
@@ -237,8 +246,9 @@ def previous_trigger(on_calendar: str, moment: datetime) -> datetime | None:
         clock = _latest_at_or_before(times, limit)
         if clock is None:
             continue
-        local = datetime(date.year, date.month, date.day, clock[0], clock[1], clock[2])
-        return datetime.fromtimestamp(local.timestamp(), tz=UTC)
+        hour_, minute_, second_ = clock[0], clock[1], clock[2]
+        local = datetime(date.year, date.month, date.day, hour_, minute_, second_, tzinfo=zone)
+        return local.astimezone(UTC)
     return None
 
 
@@ -284,17 +294,23 @@ def job_statuses(now: datetime | None = None) -> list[JobStatus]:
     after its ``stale_after`` is ``stopped``; one still inside it is ``running``.  A
     job whose latest run succeeded is ``overdue`` when its timer fired at least
     ``grace`` ago and no run started since, naming that trigger as ``missed_at``, and
-    ``ok`` otherwise.  A job with no run at all is ``never_run``, with ``missed_at``,
-    when such a trigger falls after :func:`recording_since`, and ``waiting`` before.
-    A run started with **Run now** counts the same as one the timer started.
+    ``ok`` otherwise.  A job that hasn't run at all is ``never_run``, with
+    ``missed_at``, when such a trigger falls after :func:`recording_since`, and
+    ``waiting`` before.  A run started with **Run now** counts the same as one the
+    timer started.  Each job's latest run is one lookup on the job's index, without
+    its output.
     """
     moment = now or timezone.now()
     since = recording_since()
-    # DISTINCT ON keeps the first row of each job in this order: its latest run.
-    runs = (
-        JobRun.objects.select_related("started_by")
-        .order_by("job", "-started_at", "-id")
-        .distinct("job")
+    return [_job_status(job, latest_run(job.key), moment, since) for job in JOBS]
+
+
+def latest_run(key: str) -> JobRun | None:
+    """The job ``key``'s newest run, without its output and traceback, or ``None``."""
+    return (
+        JobRun.objects.filter(job=key)
+        .select_related("started_by")
+        .defer("output", "traceback")
+        .order_by("-started_at", "-id")
+        .first()
     )
-    latest = {run.job: run for run in runs}
-    return [_job_status(job, latest.get(job.key), moment, since) for job in JOBS]

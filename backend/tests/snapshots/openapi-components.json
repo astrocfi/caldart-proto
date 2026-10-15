@@ -2157,7 +2157,7 @@
       "disk_free_mb": "integer",
       "last_backup": "string(date-time)|null",
       "pending_migrations": "integer",
-      "scheduled_jobs": "array<ref:JobStatus>",
+      "scheduled_jobs": "array<ref:JobStatus>|null",
       "version": "string"
     },
     "required": [

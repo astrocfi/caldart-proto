@@ -12,11 +12,14 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from django.db import connection
 from django.utils import timezone
+from pytest_django import Settings
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.accounts.roles import SYSTEM_ADMIN
+from apps.mail.bounces import IMAP_URL_FORM
 from apps.sysadmin.jobs import JOBS, JOBS_BY_KEY
 from apps.sysadmin.models import JobRun
 from tests.conftest import role_matrix
@@ -204,7 +207,7 @@ def test_one_run_carries_its_output(admin_client: APIClient, a_failed_run: JobRu
 
 
 def test_a_missing_run_is_not_found(admin_client: APIClient) -> None:
-    """An id no run has answers 404."""
+    """An id that isn't a run's answers 404."""
     assert admin_client.get(run_url(999_999)).status_code == 404
 
 
@@ -222,3 +225,119 @@ def test_health_reports_a_failed_job(
     body = admin_client.get(HEALTH_URL).json()
     row = next(row for row in body["scheduled_jobs"] if row["job"] == "renewals")
     assert row["last_run"]["error"] == a_failed_run.error
+
+
+def test_health_reads_the_jobs_as_unknown_while_their_table_is_missing(
+    admin_client: APIClient, backup_dir: Path
+) -> None:
+    """Before the record's migration is applied, health answers, with the jobs unknown."""
+    with connection.schema_editor() as editor:
+        editor.delete_model(JobRun)
+    response = admin_client.get(HEALTH_URL)
+    assert (response.status_code, response.json()["scheduled_jobs"]) == (200, None)
+
+
+# ----------------------------------------------------------- the outcome filter
+def test_the_failed_filter_keeps_failed_and_stopped_runs(
+    admin_client: APIClient, a_failed_run: JobRun
+) -> None:
+    """``?outcome=failed`` lists the failed run and the stopped one, newest first."""
+    stale = JOBS_BY_KEY["renewals"].stale_after
+    stopped = JobRun.objects.create(
+        job="renewals", started_at=timezone.now() - stale - timedelta(minutes=1)
+    )
+    JobRun.objects.create(job="renewals", outcome=JobRun.Outcome.SUCCEEDED, exit_status=0)
+    JobRun.objects.create(job="renewals")
+    body = admin_client.get(runs_url("renewals"), {"outcome": "failed"}).json()
+    assert [row["id"] for row in body["results"]] == [a_failed_run.pk, stopped.pk]
+
+
+def test_another_outcome_filter_is_refused(admin_client: APIClient) -> None:
+    """Any other ``outcome`` answers 400 naming the one it takes."""
+    response = admin_client.get(runs_url("renewals"), {"outcome": "succeeded"})
+    assert (response.status_code, response.json()) == (
+        400,
+        {"outcome": ["Choose failed, or leave it out."]},
+    )
+
+
+# ----------------------------------------------- a real Run now in the request
+REMINDERS_RUN_URL = "/api/v1/system/reminders/run"
+STATEMENTS_RUN_URL = "/api/v1/system/statements/run"
+BOUNCES_RUN_URL = "/api/v1/system/bounces/run"
+BULK_RUN_URL = "/api/v1/system/bulk-email/run"
+
+
+def _only_run() -> JobRun:
+    """The one run recorded."""
+    runs = list(JobRun.objects.all())
+    assert len(runs) == 1
+    return runs[0]
+
+
+def test_a_real_reminder_run_now_is_recorded_under_the_caller(
+    admin_client: APIClient, system_admin: User
+) -> None:
+    """A real **Run now** of the reminders is recorded, started by the caller."""
+    admin_client.post(REMINDERS_RUN_URL, {"dry_run": False}, format="json")
+    run = _only_run()
+    assert (run.job, run.started_by, run.outcome) == (
+        "reminders",
+        system_admin,
+        JobRun.Outcome.SUCCEEDED,
+    )
+
+
+def test_a_practice_run_now_leaves_no_record(admin_client: APIClient) -> None:
+    """A practice run doesn't change anything, so it isn't recorded."""
+    admin_client.post(REMINDERS_RUN_URL, {"dry_run": True}, format="json")
+    assert JobRun.objects.count() == 0
+
+
+def test_a_real_run_now_keeps_what_the_run_reports(admin_client: APIClient) -> None:
+    """The record's output is the lines the command would print."""
+    admin_client.post(STATEMENTS_RUN_URL, {"dry_run": False, "year": 2025}, format="json")
+    assert "2025" in _only_run().output
+
+
+def test_a_statements_run_now_records_its_year(admin_client: APIClient) -> None:
+    """The year a statements run sent for is its ``--year`` option."""
+    admin_client.post(STATEMENTS_RUN_URL, {"dry_run": False, "year": 2025}, format="json")
+    assert _only_run().arguments == "--year 2025"
+
+
+def test_a_failing_bounce_run_now_is_recorded_failed(
+    admin_client: APIClient, settings: Settings
+) -> None:
+    """A mailbox the check can't read fails the run with the check's own sentence."""
+    settings.BOUNCE_IMAP_URL = "not-a-url"
+    settings.BOUNCE_ADDRESS = "bounces@caldart.example.org"
+    response = admin_client.post(BOUNCES_RUN_URL, {"dry_run": False}, format="json")
+    run = _only_run()
+    assert response.status_code == 400
+    assert (run.outcome, run.exit_status, run.error) == (
+        JobRun.Outcome.FAILED,
+        1,
+        IMAP_URL_FORM,
+    )
+
+
+def test_a_quiet_bulk_run_now_is_recorded_idle(admin_client: APIClient) -> None:
+    """A **Run now** of the bulk sender without anything to send keeps one idle record."""
+    admin_client.post(BULK_RUN_URL)
+    admin_client.post(BULK_RUN_URL)
+    assert list(JobRun.objects.values_list("job", "idle")) == [("bulk-email", True)]
+
+
+def test_a_real_run_now_clears_a_failed_job(admin_client: APIClient, system_admin: User) -> None:
+    """After a failed statements run, a real Run now that succeeds reads the job well."""
+    JobRun.objects.create(
+        job="statements",
+        started_at=timezone.now() - timedelta(hours=1),
+        outcome=JobRun.Outcome.FAILED,
+        exit_status=1,
+        error="1 statement email could not be sent",
+    )
+    admin_client.post(STATEMENTS_RUN_URL, {"dry_run": False, "year": 2025}, format="json")
+    row = next(row for row in admin_client.get(JOBS_URL).json() if row["job"] == "statements")
+    assert row["last_run"]["outcome"] == "succeeded"

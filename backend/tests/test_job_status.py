@@ -1,7 +1,7 @@
 """Whether each scheduled job runs as it should, and the table that says when it should.
 
-The schedule is read in the server's own time zone, so every test here runs with the
-process's local time zone set to the site's, ``America/Los_Angeles``.
+Every timer names the site's time zone, so the schedule is read in that zone whatever
+the server's own is; one test runs with the process's local time zone set to UTC.
 """
 
 from __future__ import annotations
@@ -18,6 +18,7 @@ from zoneinfo import ZoneInfo
 import pytest
 from django.core.management import call_command
 from django.db.migrations.recorder import MigrationRecorder
+from pytest_django import Settings
 
 from apps.accounts.models import User
 from apps.sysadmin.jobs import JOBS, JOBS_BY_KEY, Job, JobState, job_statuses, previous_trigger
@@ -37,11 +38,11 @@ TIMEOUT_LINE = re.compile(r"^TimeoutStartSec=(\d+)$", re.MULTILINE)
 EXEC_START_LINE = re.compile(r"^ExecStart=(.+)$", re.MULTILINE)
 
 
-@pytest.fixture(autouse=True)
-def pacific_server() -> Iterator[None]:
-    """Run the test with the process's local time zone set to Pacific time."""
+@pytest.fixture
+def utc_server() -> Iterator[None]:
+    """Run the test with the process's local time zone set to UTC, as many servers are."""
     with pytest.MonkeyPatch.context() as patch:
-        patch.setenv("TZ", "America/Los_Angeles")
+        patch.setenv("TZ", "UTC")
         time.tzset()
         yield
     # The context has put TZ back; read it again so later tests see the original zone.
@@ -87,6 +88,11 @@ def state_of(key: str, now: datetime) -> JobState:
         ("*-*-* *:*:00", pacific(2026, 10, 15, 9, 41), pacific(2026, 10, 15, 9, 41)),
         ("*-01-15 06:45:00", pacific(2026, 10, 15), pacific(2026, 1, 15, 6, 45)),
         ("*-01-15 06:45:00", pacific(2026, 1, 15, 6, 44), pacific(2025, 1, 15, 6, 45)),
+        (
+            "*-*-* 06:30:00 UTC",
+            pacific(2026, 10, 15, 9),
+            datetime(2026, 10, 15, 6, 30, tzinfo=UTC),
+        ),
     ],
     ids=[
         "daily-later-that-day",
@@ -97,6 +103,7 @@ def state_of(key: str, now: datetime) -> JobState:
         "every-minute",
         "yearly-later-that-year",
         "yearly-a-minute-before",
+        "a-zone-of-its-own",
     ],
 )
 def test_the_previous_trigger_is_the_latest_firing_at_or_before(
@@ -104,6 +111,20 @@ def test_the_previous_trigger_is_the_latest_firing_at_or_before(
 ) -> None:
     """``previous_trigger`` reads the wall clock the timer reads."""
     assert previous_trigger(on_calendar, moment) == expected
+
+
+@pytest.mark.usefixtures("utc_server")
+def test_a_utc_server_reads_the_schedule_on_the_sites_clock() -> None:
+    """On a server set to UTC, the daily trigger is still 06:30 Pacific time."""
+    trigger = previous_trigger(JOBS_BY_KEY["renewals"].on_calendar, pacific(2026, 10, 15, 9))
+    assert trigger == pacific(2026, 10, 15, 6, 30)
+
+
+@pytest.mark.usefixtures("utc_server")
+def test_a_utc_server_judges_a_morning_run_on_time() -> None:
+    """A run at 06:31 Pacific is on time at 10:00 Pacific, on a server set to UTC."""
+    a_run("renewals", pacific(2026, 10, 15, 6, 31))
+    assert state_of("renewals", NOW) == JobState.OK
 
 
 def test_the_previous_trigger_follows_daylight_saving() -> None:
@@ -149,6 +170,13 @@ def test_the_table_matches_the_timer(job: Job) -> None:
 
 
 @pytest.mark.parametrize("job", JOBS, ids=[job.key for job in JOBS])
+def test_every_timer_fires_in_the_sites_time_zone(job: Job, settings: Settings) -> None:
+    """Each ``OnCalendar=`` names ``TIME_ZONE``, so it fires on the site's clock."""
+    (value,) = ON_CALENDAR_LINE.findall(_timer(job))
+    assert value.endswith(f" {settings.TIME_ZONE}")
+
+
+@pytest.mark.parametrize("job", JOBS, ids=[job.key for job in JOBS])
 def test_the_service_runs_the_command_through_run_job(job: Job) -> None:
     """The service's one ``ExecStart=`` runs the job's command through ``run_job``."""
     (line,) = EXEC_START_LINE.findall(_service(job))
@@ -157,7 +185,7 @@ def test_the_service_runs_the_command_through_run_job(job: Job) -> None:
 
 @pytest.mark.parametrize("job", JOBS, ids=[job.key for job in JOBS])
 def test_a_run_reads_as_stopped_only_after_systemd_would_stop_it(job: Job) -> None:
-    """``stale_after`` is no shorter than the unit's ``TimeoutStartSec=``."""
+    """``stale_after`` is at least as long as the unit's ``TimeoutStartSec=``."""
     timeouts = [int(value) for value in TIMEOUT_LINE.findall(_service(job))]
     assert timeouts
     assert timedelta(seconds=timeouts[0]) <= job.stale_after
@@ -225,13 +253,13 @@ def test_an_hourly_job_an_hour_behind_is_overdue() -> None:
 
 
 def test_a_job_never_run_since_recording_began_is_never_run() -> None:
-    """With a trigger past since recording began and no run, the job is ``never_run``."""
+    """A trigger past since recording began, without a run since, reads ``never_run``."""
     recording_began(pacific(2026, 10, 13))
     assert state_of("renewals", NOW) == JobState.NEVER_RUN
 
 
 def test_a_fresh_install_is_waiting() -> None:
-    """Installed this morning before the trigger, a job with no run is ``waiting``."""
+    """Installed this morning before the trigger, a job without a run is ``waiting``."""
     recording_began(pacific(2026, 10, 15, 6))
     assert state_of("renewals", pacific(2026, 10, 15, 6, 45)) == JobState.WAITING
 
