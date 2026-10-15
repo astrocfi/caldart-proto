@@ -249,6 +249,8 @@ export const handlers = [
   // The register's header and the Health and database page read the registry's state as
   // they mount: by default, one successful import and none running.
   http.get(`${API}/aircraft/registry`, () => HttpResponse.json(makeRegistryStatus())),
+  // Every scheduled job's panel reads the jobs' states; by default none has a run.
+  http.get(`${API}/system/jobs`, () => HttpResponse.json([])),
   // Both reminder screens read the reminder schedule; by default nobody has changed it.
   http.get(`${API}/admin/reminders/schedule`, () => HttpResponse.json(makeReminderSchedule())),
   // My aircraft and the register read the coverage policy; by default it excludes nothing.

@@ -7,6 +7,7 @@
  * returns.
  */
 import type { JSX } from 'react';
+import { Link } from 'react-router-dom';
 
 import type { Health } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
@@ -15,8 +16,16 @@ import { formatDateTime } from '@/portal/components/DateText';
 import { StatusDot } from '@/portal/components/StatusDot';
 import type { StatusTone } from '@/portal/components/StatusDot';
 import { useHealth } from './api';
+import { isJobLate, isJobProblem, jobLogPath, jobTrouble } from './jobRuns';
+import './jobLog.css';
 
 export type CheckVerdict = 'ok' | 'warn' | 'bad';
+
+/** One scheduled job that needs a look: what the check says, and whose log to open. */
+export interface JobTrouble {
+  job: string;
+  text: string;
+}
 
 export interface HealthCheck {
   key: string;
@@ -24,6 +33,8 @@ export interface HealthCheck {
   value: string;
   verdict: CheckVerdict;
   note?: string;
+  /** The scheduled jobs that need a look, each linking to its log. */
+  jobs?: JobTrouble[];
 }
 
 /** Free space below which a backup might not fit any more. */
@@ -121,6 +132,50 @@ function upgradeCheck(health: Health): HealthCheck {
   };
 }
 
+/** `count` and a word, such as *1 failed* or *2 late*, or `null` for none. */
+function tally(count: number, word: string): string | null {
+  return count === 0 ? null : `${count} ${word}`;
+}
+
+/**
+ * The scheduled jobs' row: a problem for each job whose last run failed or stopped
+ * before it finished, a warning for each that is late, each naming the job and linking
+ * to its log.
+ */
+function scheduledJobsCheck(health: Health, now: Date): HealthCheck {
+  const base = { key: 'scheduled_jobs', label: 'Scheduled jobs' };
+  if (health.db !== 'ok') {
+    return {
+      ...base,
+      value: 'Unknown',
+      verdict: 'warn',
+      note: 'The database could not be reached to check.',
+    };
+  }
+  const problems = health.scheduled_jobs.filter(isJobProblem);
+  const late = health.scheduled_jobs.filter(isJobLate);
+  if (problems.length === 0 && late.length === 0) {
+    return { ...base, value: 'On schedule', verdict: 'ok' };
+  }
+  const value = [tally(problems.length, 'failed'), tally(late.length, 'late')]
+    .filter((part) => part !== null)
+    .join(', ');
+  const jobs = [...problems, ...late].map((status) => ({
+    job: status.job,
+    text: jobTrouble(status, now) ?? status.name,
+  }));
+  return {
+    ...base,
+    value,
+    verdict: problems.length > 0 ? 'bad' : 'warn',
+    note:
+      late.length > 0
+        ? `The server may have stopped starting a job. Tell ${INSTALLER}.`
+        : "Each line says why, and the job's log has everything the run wrote.",
+    jobs,
+  };
+}
+
 /** Turn a health payload into the rows the panel renders. */
 export function healthChecks(health: Health, now: Date = new Date()): HealthCheck[] {
   return [
@@ -137,6 +192,7 @@ export function healthChecks(health: Health, now: Date = new Date()): HealthChec
     upgradeCheck(health),
     diskCheck(health),
     backupCheck(health, now),
+    scheduledJobsCheck(health, now),
     {
       key: 'version',
       label: 'Version',
@@ -198,6 +254,15 @@ export function HealthPanel(): JSX.Element {
                   <td>
                     <span className="num">{check.value}</span>
                     {check.note ? <div className="muted">{check.note}</div> : null}
+                    {check.jobs === undefined ? null : (
+                      <ul className="health__jobs">
+                        {check.jobs.map((trouble) => (
+                          <li key={trouble.job}>
+                            {trouble.text} <Link to={jobLogPath(trouble.job)}>View log</Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </td>
                   <td>
                     <StatusDot

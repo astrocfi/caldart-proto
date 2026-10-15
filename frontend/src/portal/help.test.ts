@@ -72,6 +72,8 @@ const HELP_ROUTE_PATTERNS: readonly string[] = [
   '/system/emails',
   '/system/emails/:id',
   '/system/scheduled',
+  '/system/jobs/runs/:id',
+  '/system/jobs/:job',
 ];
 
 /**
@@ -138,6 +140,8 @@ const HELP_PAGE_CASES: readonly [pathname: string, expectedHref: string][] = [
   ['/system/emails', '/docs/admin/sent-emails/'],
   ['/system/emails/903', '/docs/admin/sent-emails/'],
   ['/system/scheduled', '/docs/admin/scheduled/'],
+  ['/system/jobs/renewals', '/docs/admin/job-log/'],
+  ['/system/jobs/runs/12', '/docs/admin/job-log/'],
 ];
 
 describe('helpPath', () => {

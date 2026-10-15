@@ -1,10 +1,14 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { HttpResponse, http } from 'msw';
 import { useState } from 'react';
 import type { JSX } from 'react';
 import { describe, expect, it } from 'vitest';
 
+import { makeJobStatus } from '@test/fixtures/jobs';
+import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
+import { server } from '@test/server';
 import { JobPanel, NothingDue, RunNowButton } from './JobPanel';
 
 /** A panel whose run ends as soon as it starts, showing `result` once it has. */
@@ -20,6 +24,7 @@ function Harness({ result }: { result: JSX.Element }): JSX.Element {
   };
   return (
     <JobPanel
+      job="renewals"
       eyebrow="Email"
       title="Example job"
       description="The example job runs every morning at 6:00 AM."
@@ -70,6 +75,14 @@ describe('JobPanel', () => {
         screen.getByRole('heading', { name: 'The log' }),
       ]),
     ).toBe(true);
+  });
+
+  it("shows the job's last run, with its log", async () => {
+    server.use(http.get(`${API}/system/jobs`, () => HttpResponse.json([makeJobStatus()])));
+    renderWithProviders(<Harness result={RESULT} />);
+    expect(
+      await screen.findByRole('link', { name: 'View log: Automatic renewal charges' }),
+    ).toHaveAttribute('href', '/system/jobs/renewals');
   });
 
   it('moves the focus to the result heading once a run ends', async () => {

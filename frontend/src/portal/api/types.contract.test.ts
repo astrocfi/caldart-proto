@@ -119,6 +119,11 @@ import type {
   FinancePaymentTerm,
   GrantTermPayload,
   Health,
+  JobRun,
+  JobRunDetail,
+  JobRunOutcome,
+  JobState,
+  JobStatus,
   InsuranceVerificationPayload,
   LeaderPhotoId,
   LeaderSearchResult,
@@ -509,6 +514,12 @@ const reminderSchedulePayload: Matches<
   Schemas['ReminderScheduleRequest']
 > = true;
 const health: Matches<Health, Schemas['Health']> = true;
+const jobRun: Matches<JobRun, Schemas['JobRun']> = true;
+const jobRunDetail: Matches<JobRunDetail, Schemas['JobRunDetail']> = true;
+const jobRunOutcome: Matches<JobRunOutcome, Schemas['JobRunOutcomeEnum']> = true;
+const jobState: Matches<JobState, Schemas['JobStateEnum']> = true;
+const jobStatus: Matches<JobStatus, Schemas['JobStatus']> = true;
+const paginatedJobRuns: Matches<Paginated<JobRun>, Schemas['PaginatedJobRunList']> = true;
 const backup: Matches<Backup, Schemas['Backup']> = true;
 
 /* ------------------------------------------------------------------- site */
@@ -787,6 +798,12 @@ const assertions: readonly true[] = [
   reminderSchedule,
   reminderSchedulePayload,
   health,
+  jobRun,
+  jobRunDetail,
+  jobRunOutcome,
+  jobState,
+  jobStatus,
+  paginatedJobRuns,
   backup,
   navEntry,
   membersPage,
@@ -1032,6 +1049,12 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'ReminderSchedule',
   'ReminderScheduleRequest',
   'Health',
+  'JobRun',
+  'JobRunDetail',
+  'JobRunOutcomeEnum',
+  'JobStateEnum',
+  'JobStatus',
+  'PaginatedJobRunList',
   'Backup',
   'NavEntry',
   'MembersPage',

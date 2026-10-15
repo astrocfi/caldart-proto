@@ -18,6 +18,7 @@ import { useFocusAfterSave } from '@/portal/components/focus';
 import { useRegistryStatus } from '@/portal/api/queries';
 import type { RegistryStatus } from '@/portal/api/types';
 import { useRunRegistryImport } from './api';
+import { JobLastRun } from './JobLastRun';
 
 /** `count` and `noun`, the noun in the plural unless the count is one. */
 function counted(count: number, noun: string): string {
@@ -71,6 +72,7 @@ export function RegistryPanel(): JSX.Element {
       </p>
 
       {status.data === undefined ? null : <p role="status">{registryImportSummary(status.data)}</p>}
+      <JobLastRun job="registry" lead="Last nightly load" />
 
       {status.isError ? (
         <p className="field__error" role="alert">

@@ -1,0 +1,61 @@
+/*
+ * A scheduled job's records: the last run line on its panel, the health check's list
+ * of jobs that need a look, and one run's output.
+ */
+.job-last-run {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+}
+
+.health__jobs {
+  margin: var(--space-1) 0 0;
+  padding-left: var(--space-5);
+}
+
+/* The output reads as the server's terminal would show it, wrapped rather than cut. */
+.job-run__output {
+  margin: 0;
+  padding: var(--space-3);
+  border: var(--hairline) solid var(--color-rule);
+  border-radius: var(--radius);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: var(--text-sm);
+}
+
+/* One run's facts: a label column and its value, or the label above it on a phone. */
+.job-run__facts {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+}
+
+.job-run__facts > div {
+  display: grid;
+  grid-template-columns: 9rem 1fr;
+  gap: var(--space-3);
+}
+
+.job-run__facts dt {
+  color: var(--color-muted);
+}
+
+.job-run__facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 40rem) {
+  .job-run__facts > div {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
+
+.job-run__heading {
+  margin: var(--space-4) 0 var(--space-2);
+  font-size: var(--text-base);
+}

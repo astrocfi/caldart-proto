@@ -32,6 +32,7 @@ export function ReportsPanel(): JSX.Element {
 
   return (
     <JobPanel
+      job="reports"
       eyebrow="Reports"
       title="Scheduled reports"
       description="The scheduled reports go every morning at 6:00 AM: every emailed report that is due and, once a month, each DART&rsquo;s roster to the people checked to receive it."

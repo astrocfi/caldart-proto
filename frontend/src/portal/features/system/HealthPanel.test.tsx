@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
+import { makeJobRun, makeJobStatus } from '@test/fixtures/jobs';
 import type { Health } from '@/portal/api/types';
 import { HealthPanel, healthChecks } from './HealthPanel';
 
@@ -23,6 +24,7 @@ function health(overrides: Partial<Health> = {}): Health {
     last_backup: RECENT_BACKUP,
     version: '0.1.0',
     debug: false,
+    scheduled_jobs: [],
     ...overrides,
   };
 }
@@ -112,6 +114,110 @@ describe('healthChecks', () => {
   });
 });
 
+describe('the scheduled jobs check', () => {
+  /** A renewal run that failed at 6:30 AM Pacific on `NOW`'s day. */
+  const FAILED = makeJobStatus({
+    state: 'failed',
+    last_run: makeJobRun({
+      outcome: 'failed',
+      exit_status: 1,
+      finished_at: '2026-06-15T13:30:00Z',
+      error: '2 renewal charges need checking; settle them on the finance Renewals tab',
+    }),
+  });
+
+  /** The bounce check, due at 4:20 AM Pacific and not run since. */
+  const OVERDUE = makeJobStatus({
+    job: 'bounces',
+    name: 'Bounce check',
+    state: 'overdue',
+    missed_at: '2026-06-15T11:20:00Z',
+  });
+
+  function jobsCheck(payload: Health) {
+    return healthChecks(payload, NOW).find((check) => check.key === 'scheduled_jobs')!;
+  }
+
+  it('reads on schedule when every job is well', () => {
+    expect(jobsCheck(health({ scheduled_jobs: [makeJobStatus()] }))).toMatchObject({
+      value: 'On schedule',
+      verdict: 'ok',
+    });
+  });
+
+  it('is a problem when a job failed', () => {
+    expect(jobsCheck(health({ scheduled_jobs: [FAILED] })).verdict).toBe('bad');
+  });
+
+  it('names the failed job, when it failed, and why', () => {
+    expect(jobsCheck(health({ scheduled_jobs: [FAILED] })).jobs).toEqual([
+      {
+        job: 'renewals',
+        text: 'Automatic renewal charges failed at 6:30 AM: 2 renewal charges need checking; settle them on the finance Renewals tab',
+      },
+    ]);
+  });
+
+  it('dates a failure from another day', () => {
+    const yesterday = makeJobStatus({
+      state: 'failed',
+      last_run: makeJobRun({ outcome: 'failed', finished_at: '2026-06-14T13:30:00Z', error: '' }),
+    });
+    expect(jobsCheck(health({ scheduled_jobs: [yesterday] })).jobs?.[0]?.text).toBe(
+      'Automatic renewal charges failed on 06/14/2026 at 6:30 AM.',
+    );
+  });
+
+  it('is a problem when a run stopped before it finished', () => {
+    const stopped = makeJobStatus({
+      state: 'stopped',
+      last_run: makeJobRun({ outcome: 'stopped', finished_at: null, exit_status: null }),
+    });
+    expect(jobsCheck(health({ scheduled_jobs: [stopped] })).jobs?.[0]?.text).toBe(
+      'Automatic renewal charges: the run that started at 6:31 AM stopped before it finished.',
+    );
+  });
+
+  it('warns about a late job, naming when it was due', () => {
+    const check = jobsCheck(health({ scheduled_jobs: [OVERDUE] }));
+    expect(check).toMatchObject({
+      verdict: 'warn',
+      value: '1 late',
+      jobs: [{ job: 'bounces', text: 'Bounce check: due at 4:20 AM, without a run since.' }],
+    });
+  });
+
+  it('warns about a job that has never run though it was due', () => {
+    const never = makeJobStatus({
+      state: 'never_run',
+      last_run: null,
+      missed_at: '2026-06-15T13:30:00Z',
+    });
+    expect(jobsCheck(health({ scheduled_jobs: [never] })).jobs?.[0]?.text).toBe(
+      'Automatic renewal charges: due at 6:30 AM, and still waiting for its first run.',
+    );
+  });
+
+  it('counts failures and late jobs together, failures first', () => {
+    expect(jobsCheck(health({ scheduled_jobs: [OVERDUE, FAILED] }))).toMatchObject({
+      value: '1 failed, 1 late',
+      verdict: 'bad',
+    });
+  });
+
+  it('reads a job that is waiting for its first run as well', () => {
+    const waiting = makeJobStatus({ state: 'waiting', last_run: null });
+    expect(jobsCheck(health({ scheduled_jobs: [waiting] })).verdict).toBe('ok');
+  });
+
+  it('cannot judge the jobs while the database is down', () => {
+    expect(jobsCheck(health({ db: 'error: down' }))).toMatchObject({
+      value: 'Unknown',
+      verdict: 'warn',
+    });
+  });
+});
+
 describe('HealthPanel', () => {
   beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
@@ -127,9 +233,16 @@ describe('HealthPanel', () => {
     renderWithProviders(<HealthPanel />);
 
     expect(await screen.findByText('Database')).toBeInTheDocument();
-    for (const label of ['Database upgrade', 'Disk free', 'Last backup', 'Version', 'Debug mode'])
+    for (const label of [
+      'Database upgrade',
+      'Disk free',
+      'Last backup',
+      'Scheduled jobs',
+      'Version',
+      'Debug mode',
+    ])
       expect(screen.getByText(label)).toBeInTheDocument();
-    expect(screen.getAllByText('Good')).toHaveLength(6);
+    expect(screen.getAllByText('Good')).toHaveLength(7);
     expect(screen.getByText('0.1.0')).toBeInTheDocument();
   });
 
@@ -144,6 +257,24 @@ describe('HealthPanel', () => {
         'An upgrade was left half finished. Tell the person who installed the site.',
       ),
     ).toBeInTheDocument();
+  });
+
+  it('links a failed job to its log', async () => {
+    server.use(
+      healthHandler(
+        health({
+          scheduled_jobs: [
+            makeJobStatus({ state: 'failed', last_run: makeJobRun({ outcome: 'failed' }) }),
+          ],
+        }),
+      ),
+    );
+    renderWithProviders(<HealthPanel />);
+
+    expect(await screen.findByRole('link', { name: 'View log' })).toHaveAttribute(
+      'href',
+      '/system/jobs/renewals',
+    );
   });
 
   it('shows the error when the check itself fails', async () => {
