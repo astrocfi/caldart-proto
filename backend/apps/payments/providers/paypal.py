@@ -85,6 +85,19 @@ WEBHOOK_TOO_LARGE_MESSAGE = "Notification too large."
 #: What the webhook answers a notification PayPal does not vouch for.
 UNVERIFIED_MESSAGE = "PayPal did not verify this notification."
 
+#: The headers PayPal signs every notification with.  A delivery missing any of
+#: them is refused without asking PayPal, which would only say no.
+TRANSMISSION_HEADERS = (
+    "Paypal-Transmission-Id",
+    "Paypal-Transmission-Sig",
+    "Paypal-Transmission-Time",
+)
+
+#: Where a payment settled by a ``PAYMENT.CAPTURE.COMPLETED`` notification keeps
+#: the capture it names, beside the order :meth:`PayPalProvider.start` stored, so a
+#: later refund knows which capture to give the money back from.
+WEBHOOK_CAPTURE_KEY = "capture"
+
 #: The vault instruction attached to a checkout order that is to save the payer's
 #: account for automatic renewal.
 VAULT_ATTRIBUTES = {"store_in_vault": "ON_SUCCESS", "usage_type": "MERCHANT"}
@@ -312,11 +325,17 @@ def capture_id(payment: Payment) -> str:
     """The id of the capture that took ``payment``'s money, read from its stored order.
 
     A refund is issued against the capture rather than the order, so this is what
-    the refund call needs.  Raises :class:`PaymentVerificationError` when the
-    stored response holds no completed capture, which is what a payment that was
-    never captured looks like.
+    the refund call needs.  The first completed capture of the stored order is
+    used, and failing that the completed capture a ``PAYMENT.CAPTURE.COMPLETED``
+    notification filed under :data:`WEBHOOK_CAPTURE_KEY` when it settled the
+    payment.  Raises :class:`PaymentVerificationError` when neither holds one,
+    which is what a payment that was never captured looks like.
     """
-    captures = completed_captures(payment.raw or {})
+    raw = payment.raw or {}
+    captures = completed_captures(raw)
+    filed = raw.get(WEBHOOK_CAPTURE_KEY) or {}
+    if not captures and filed.get("status") == "COMPLETED":
+        captures = [filed]
     found = captures[0].get("id") if captures else None
     if not found:
         raise PaymentVerificationError(
@@ -377,6 +396,33 @@ def verify_capture(
     if not order_id or order_id != payment.provider_ref:
         log_capture_mismatch(payment, captured, "order")
         raise PaymentVerificationError("The PayPal capture belongs to another order.")
+
+
+def is_signed_delivery(request: HttpRequest, payload: dict[str, Any]) -> bool:
+    """Whether a delivery carries everything PayPal signs a notification with.
+
+    That is every one of :data:`TRANSMISSION_HEADERS`, and an ``id`` and an
+    ``event_type`` in the body.  A delivery without them cannot pass PayPal's check,
+    so it is refused without spending a call on asking.
+    """
+    if not all(request.headers.get(name) for name in TRANSMISSION_HEADERS):
+        return False
+    return bool(payload.get("id")) and bool(payload.get("event_type"))
+
+
+def belongs_to_payment_order(payment: Payment, capture: dict[str, Any]) -> bool:
+    """Whether a capture notification's resource is a capture of ``payment``'s order.
+
+    True only when the payment holds an order and the resource's related order id
+    is that order, so a ``custom_id`` naming the payment is never enough on its own.
+    """
+    return bool(payment.provider_ref) and related_order_id(capture) == payment.provider_ref
+
+
+def same_currency(payment: Payment, resource: dict[str, Any]) -> bool:
+    """Whether the resource's ``amount.currency_code`` is the payment's currency."""
+    currency = str((resource.get("amount") or {}).get("currency_code") or "")
+    return currency.lower() == payment.currency.lower()
 
 
 def related_order_id(capture: dict[str, Any]) -> str:
@@ -460,7 +506,7 @@ class PayPalProvider(Provider):
         its own, when ``order_id`` names another order, when PayPal reports
         anything but ``COMPLETED``, when it completes the order without a capture,
         and when :func:`verify_capture` finds the captured total, the currency, the
-        capture's ``custom_id`` or the order id disagreeing with the payment.  Of
+        capture's ``custom_id``, or the order id disagreeing with the payment.  Of
         those, a status other than ``COMPLETED`` and a completed order without a
         capture also mark the payment failed;
         the rest leave it as it was.  A capture that never completes raises
@@ -556,15 +602,21 @@ class PayPalProvider(Provider):
         a 400, both before PayPal is asked.  A notification PayPal does not vouch
         for is a 400 that records nothing and touches no payment.
 
+        A delivery missing any of :data:`TRANSMISSION_HEADERS`, or a body ``id`` or
+        ``event_type``, is that same 400 without a call to PayPal.
+
         A verified notification is filed as the matching payment's
         ``raw["last_webhook"]`` and answered 200 with ``{"received": true,
         "handled": ...}``.  ``handled`` is true when a ``PAYMENT.CAPTURE.COMPLETED``
-        passed :func:`verify_capture` and settled the payment, when a denial or a
-        reversal was applied (which fails a payment still waiting on its money and
-        leaves a settled one as it is), and when a ``PAYMENT.CAPTURE.REFUNDED`` was
-        filed: the refund somebody took in PayPal's dashboard, so the ledger is
-        right whoever issued it.  A notification about no payment of ours, and
-        any other event type, is received but not handled.
+        passed :func:`verify_capture` and settled the payment, which keeps its stored
+        order and files the capture under :data:`WEBHOOK_CAPTURE_KEY`; when a
+        denial or a reversal of the payment's own order was applied (which fails a
+        payment still waiting on its money and leaves a settled one as it is); and
+        when a ``PAYMENT.CAPTURE.REFUNDED`` in the payment's currency was filed:
+        the refund somebody took in PayPal's dashboard, so the ledger is right
+        whoever issued it.  A notification about no payment of ours, a denial or a
+        reversal of another order, a refund in another currency, and any other
+        event type, are received but not handled.
         """
         if request.method != "POST":
             return HttpResponseNotAllowed(["POST"])
@@ -579,6 +631,9 @@ class PayPalProvider(Provider):
             return JsonResponse({"detail": "Malformed JSON."}, status=400)
 
         event_type = payload.get("event_type", "")
+        if not is_signed_delivery(request, payload):
+            log.warning("Refused an unsigned PayPal webhook %r", event_type)
+            return JsonResponse({"detail": UNVERIFIED_MESSAGE}, status=400)
         # Nothing is written, and no payment row is locked, until PayPal vouches for
         # the notification: the route is anonymous.
         if not self.verify_signature(request, payload):
@@ -591,7 +646,7 @@ class PayPalProvider(Provider):
             log.info("PayPal webhook %r referenced an unknown payment", event_type)
             return JsonResponse({"received": True, "handled": False})
 
-        record_provider_event(payment, {"event_type": event_type, "payload": payload})
+        payment = record_provider_event(payment, {"event_type": event_type, "payload": payload})
 
         if event_type == CAPTURE_COMPLETED:
             try:
@@ -604,16 +659,23 @@ class PayPalProvider(Provider):
             except PaymentVerificationError:
                 return JsonResponse({"received": True, "handled": False})
             fees = fees_from_capture(resource)
+            # The stored order stays, so the capture is filed beside it for a refund.
             mark_succeeded(
                 payment,
                 wallet=PaymentWallet.PAYPAL,
-                raw=payload,
+                raw={**(payment.raw or {}), WEBHOOK_CAPTURE_KEY: resource},
                 fee_cents=fees.fee_cents if fees is not None else None,
                 net_cents=fees.net_cents if fees is not None else None,
             )
         elif event_type in CAPTURE_FAILED:
+            if not belongs_to_payment_order(payment, resource):
+                log.error("PayPal %r for payment %s names another order", event_type, payment.pk)
+                return JsonResponse({"received": True, "handled": False})
             mark_failed(payment, payload)
         elif event_type == CAPTURE_REFUNDED:
+            if not same_currency(payment, resource):
+                log.error("PayPal refund for payment %s is in another currency", payment.pk)
+                return JsonResponse({"received": True, "handled": False})
             self.record_refund(payment, resource)
         else:
             return JsonResponse({"received": True, "handled": False})

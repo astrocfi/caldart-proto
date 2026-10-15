@@ -110,6 +110,14 @@ RESET_CONFIRM_URL = "/api/v1/auth/password/reset/confirm"
 #: reset that is meant to succeed.  It is a throwaway literal, never a real secret.
 GOOD_PASSWORD = "Sierra-Foothills-2027"  # noqa: S105 - test fixture
 
+#: The transmission headers PayPal signs a webhook delivery with, for a test client
+#: to send.  The values are made up: PayPal's verification call is mocked.
+PAYPAL_TRANSMISSION_HEADERS = {
+    "Paypal-Transmission-Id": "69cd13f0-d67a-11e5-baa3-778b53f4ae55",
+    "Paypal-Transmission-Sig": "lmI95Jx3Y9nhR5SJWlHVIWpg4AgFk7n9bCHSRxbrd8A9",
+    "Paypal-Transmission-Time": "2026-10-14T18:41:28Z",
+}
+
 
 def register_payload(**overrides: str) -> dict[str, str]:
     """Return a valid ``POST /auth/register`` body, with ``overrides`` replacing fields.

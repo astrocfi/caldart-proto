@@ -32,6 +32,7 @@ from tests.conftest import (
     GOOD_PASSWORD,
     LOGIN_URL,
     ME_URL,
+    PAYPAL_TRANSMISSION_HEADERS,
     REGISTER_URL,
     RESET_CONFIRM_URL,
     RESET_URL,
@@ -272,9 +273,14 @@ def test_the_paypal_webhook_needs_no_token(csrf_client: APIClient, settings: Set
     respx.post(f"{PAYPAL_SANDBOX}/v1/notifications/verify-webhook-signature").mock(
         return_value=httpx.Response(200, json={"verification_status": "SUCCESS"})
     )
-    body = json.dumps({"event_type": "PAYMENT.CAPTURE.COMPLETED", "resource": {}})
+    body = json.dumps({"id": "WH-1", "event_type": "PAYMENT.CAPTURE.COMPLETED", "resource": {}})
 
-    response = csrf_client.post(PAYPAL_WEBHOOK, data=body, content_type="application/json")
+    response = csrf_client.post(
+        PAYPAL_WEBHOOK,
+        data=body,
+        content_type="application/json",
+        headers=PAYPAL_TRANSMISSION_HEADERS,
+    )
 
     assert response.status_code == 200
 

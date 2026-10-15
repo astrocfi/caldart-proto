@@ -358,9 +358,10 @@ a test event in another terminal:
 
 Both webhook views are ``csrf_exempt`` with no authentication and no
 permission classes: the provider's signature over the body is the whole gate.
-Each client address may make ``PAYMENTS_WEBHOOK_THROTTLE_RATE`` deliveries
-(``120/min`` by default) to the two together; past that it is answered 429, and
-the provider sends the delivery again later.
+Each client address may make ``PAYPAL_WEBHOOK_THROTTLE_RATE`` deliveries
+(``120/min`` by default) to the PayPal webhook, whose check costs a call to
+PayPal; past that it is answered 429, and PayPal sends the delivery again
+later.  The Stripe webhook is not throttled: its signature is checked locally.
 Make sure the reverse proxy passes ``/api/v1/payments/stripe/webhook`` and
 ``/api/v1/payments/paypal/webhook`` through unauthenticated, and does not
 strip the ``Stripe-Signature`` or ``Paypal-*`` headers.
@@ -613,9 +614,11 @@ site, with fake money.  Both sides of the transaction show up under
 Webhooks
 --------
 
-The capture call is authoritative, so the PayPal webhook is a safety net for
-a browser that closes before the capture, and the way a refund taken in PayPal's
-dashboard reaches the ledger.  It needs ``PAYPAL_WEBHOOK_ID``, without which the
+The capture call is authoritative.  The PayPal webhook is the safety net for
+a capture PayPal took whose answer never reached CalDART, and for the renewal
+charges the scanner takes, and it is the way a refund taken in PayPal's
+dashboard reaches the ledger.  It does not rescue a checkout whose browser
+closed before the capture: no money has moved for such an order.  It needs ``PAYPAL_WEBHOOK_ID``, without which the
 route answers 404.  To set it up:
 
 1. **Apps & Credentials → your app → Add Webhook**, URL

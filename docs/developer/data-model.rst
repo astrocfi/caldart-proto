@@ -3674,9 +3674,9 @@ the contribution, or both, for the provider's own record of the charge.
   ``refunded_cents`` adds the succeeded ones up.  The refund service writes
   both (:doc:`api-refunds`).  Only a refund moves a payment out of ``succeeded``:
   ``mark_succeeded`` and ``mark_failed`` leave a ``succeeded``,
-  ``partially_refunded`` or ``refunded`` payment exactly as it is, so neither a
+  ``partially_refunded``, or ``refunded`` payment exactly as it is, so neither a
   confirm call nor a webhook delivered after a refund reopens its term, moves its
-  ``completed_at`` or marks it ``failed``.
+  ``completed_at``, or marks it ``failed``.
 
 Contribution tiers are a module constant, not a table:
 ``CONTRIBUTION_TIERS`` in ``apps/payments/models.py`` (No contribution,

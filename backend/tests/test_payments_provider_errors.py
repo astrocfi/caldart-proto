@@ -32,6 +32,7 @@ from apps.payments.providers import paypal
 from apps.payments.providers import stripe as stripe_provider
 from apps.payments.providers.base import ProviderUnavailableError
 from apps.payments.services import create_checkout
+from tests.conftest import PAYPAL_TRANSMISSION_HEADERS
 from tests.test_payments_stripe import fake_stripe_client
 
 pytestmark = pytest.mark.django_db
@@ -498,6 +499,7 @@ def test_a_capture_mismatch_grants_no_membership(
 def capture_completed_event(payment: Payment) -> dict[str, Any]:
     """A ``PAYMENT.CAPTURE.COMPLETED`` webhook payload naming ``payment``."""
     return {
+        "id": "WH-1",
         "event_type": "PAYMENT.CAPTURE.COMPLETED",
         "resource": {
             "id": "CAPTURE-1",
@@ -509,8 +511,13 @@ def capture_completed_event(payment: Payment) -> dict[str, Any]:
 
 
 def post_webhook(client: APIClient, event: dict[str, Any]) -> Response:
-    """POST the body to the PayPal webhook endpoint as JSON, with no signature headers."""
-    return client.post(WEBHOOK, data=json.dumps(event), content_type="application/json")
+    """POST the body to the PayPal webhook endpoint as JSON, with PayPal's headers."""
+    return client.post(
+        WEBHOOK,
+        data=json.dumps(event),
+        content_type="application/json",
+        headers=PAYPAL_TRANSMISSION_HEADERS,
+    )
 
 
 @respx.mock
@@ -525,10 +532,8 @@ def test_a_verification_timeout_refuses_the_webhook(
 
     response = post_webhook(api_client, capture_completed_event(payment))
 
-    assert (response.status_code, json.loads(response.content)) == (
-        400,
-        {"detail": paypal.UNVERIFIED_MESSAGE},
-    )
+    assert response.status_code == 400
+    assert json.loads(response.content) == {"detail": paypal.UNVERIFIED_MESSAGE}
 
 
 @respx.mock
