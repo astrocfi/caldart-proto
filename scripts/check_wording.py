@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Flag a verb whose object is a negative, and hold the tree to a baseline of hits.
+"""Flag a verb whose object is a negative, and fail on any hit.
 
 The project's prose rule puts a negation on the verb, never on its object, its
 complement, or the object of a preposition: write "doesn't have a portal account",
@@ -7,22 +7,32 @@ complement, or the object of a preposition: write "doesn't have a portal account
 such as "No payment found".  A negative subject reads naturally ("Nobody changes their
 own roles", "Nothing is due") and is never flagged.
 
-A hit is a flagged word followed by ``no``, ``nothing``, ``nobody``, ``none``, or ``no
-one``.  The flagged words are every form in ``FLAGGED_VERBS``, every word in
-``FLAGGED_WORDS`` (the forms of "be" and the prepositions), and any other word ending in
-``-ed`` (a past tense) outside ``ALLOWED_WORDS`` and ``NOT_PAST_TENSE``.  One pronoun
-from ``PRONOUNS`` (an indirect object) or one adverb from ``ADVERBS`` may stand between
-the two; a noun there (an indirect object such as "a donor") is a known gap.  The words
-are
-separated by a single space or tab, so a table's padding never joins two cells, or by
-one line break, after which the continuation may open with a comment leader (``#``,
-``#:``, ``//``, or ``*``), so a phrase wrapped in a docstring or a comment is still found.
-The match ignores case.  An underscore or a letter joins words into an identifier, so
-``has_no_term`` and ``hasNoTerm`` never match.  These are passed over:
+A hit is a flagged word followed by ``no``, ``nothing``, ``nobody``, ``none``, ``no
+one``, or ``nobody's`` or ``no one's`` as a determiner (``nobody's role``).  The
+flagged words are every form in ``FLAGGED_VERBS`` (past participles such as ``given``
+and ``sent`` included, after a form of "be" too), every word in ``FLAGGED_WORDS``
+(the forms of "be" and the prepositions), and any other word ending in ``-ed`` (a past
+tense) outside ``ALLOWED_WORDS`` and ``NOT_PAST_TENSE``.  One pronoun from ``PRONOUNS``
+(an indirect object) or one adverb from ``ADVERBS`` may stand between the two; a noun
+there (an indirect object such as "a donor") is a known gap.  The words are separated by
+a single space or tab, so a table's padding never joins two cells, or by one line break,
+after which the continuation may open with a comment leader (``#``, ``#:``, ``//``, or
+``*``), so a phrase wrapped in a docstring or a comment is still found.  The match
+ignores case.  An underscore or a letter joins words into an identifier, so
+``has_no_term`` and ``hasNoTerm`` never match, and an apostrophe between letters joins a
+contraction ("doesn't") into one word.  A quote that opens or closes a string literal,
+straight or typographic, belongs to neither word beside it, so a phrase at the start or
+the end of a literal (``it('offers ... reset')``, a docstring's opening quotes) is
+checked like any other.  These are passed over:
 
 * a negative that is a value or an answer: ``None`` spelled that way (Python's value),
-  an all-caps negative after a verb that isn't all caps (``NONE``), and ``no`` with
-  punctuation right after it ("the member said no.");
+  an all-caps negative after a verb that isn't all caps (``NONE``), a capitalized
+  negative after a lower-case verb (a quoted label: "reads No insurance on file"), and
+  ``no`` with punctuation right after it ("the member said no.");
+* a negative that is the subject of a clause of its own: ``nothing``, ``nobody``,
+  ``none``, or ``no one`` (past an ``else``) before a word in ``SUBJECT_VERBS`` ("says
+  nothing is hidden"), and ``nobody's`` or ``no one's`` meaning "nobody is" or "nobody
+  has" ("says nobody's signed in");
 * a verb form preceded by a determiner (``a``, ``the``, ``every``, ...), which makes it a
   noun ("a change nobody made");
 * ``no`` followed by a word in ``NOT_OBJECTS`` (``longer``, ``matter``, ``later``,
@@ -43,33 +53,19 @@ plus untracked files ``.gitignore`` does not exclude), minus generated files, lo
 and binaries.  Hits in the generated OpenAPI files are reported at their source, the
 serializer and view docstrings.
 
-``scripts/wording-baseline.txt`` records the accepted hits per file.  Run without a
-switch, the check exits 1 when a file has more hits than its baseline (every hit in it is
-printed, each with a suggested rewrite where the verb is simple), when a file outside the
-baseline has any hit, or when a file has fewer hits than its baseline, so that a change
-that rewrites hits lowers the baseline in the same commit.  Otherwise it exits 0.
+Run without a switch, the check prints every hit as ``path:line: text``, with a suggested
+rewrite below it where the rewrite is simple, then the total and the remedy, and exits
+1.  It exits 0 when it doesn't find a hit.
 
 Usage::
 
-    scripts/check_wording.py                      check against the baseline
-    scripts/check_wording.py --update-baseline    lower the baseline to the counts
-    scripts/check_wording.py --update-baseline --accept-new
-                                                  record every count, raised ones too
-    scripts/check_wording.py --all [--path DIR]   list every hit, ignoring the baseline
-    scripts/check_wording.py --coordinated [--path DIR]
+    scripts/check_wording.py [--path PATH]        fail on any hit
+    scripts/check_wording.py --coordinated [--path PATH]
                                                   list "and/or/but no" for review
 
-``--update-baseline`` refuses (exit 1) to raise a count or add a file unless
-``--accept-new`` is given.  It writes tracked files only: a file git doesn't track yet is
-left out with a warning, so a scratch file never lands in the baseline.  Renaming a file
-that has hits moves its count to a path the baseline doesn't list, so the rename needs
-``--update-baseline --accept-new``, and a review of the baseline's diff to confirm that
-the old path's count moved to the new one unchanged.  ``--all`` exits 1 when it lists a
-hit, so it confirms that an area is clean; ``--path`` (repeatable) limits ``--all``,
-``--coordinated``, or the check to a subtree, and is refused with ``--update-baseline``,
-since the baseline covers the whole tree.
+``--path`` (repeatable) limits the check, or ``--coordinated``, to a file or a subtree.
 
-Known gaps, which the sweep reviews by hand:
+Known gaps, reviewed by hand:
 
 * a noun between the verb and the negative (an indirect object such as "a donor");
 * a coordinated object after ``and``, ``or``, or ``but`` ("gets 400 and" followed by a
@@ -111,9 +107,6 @@ from wording_words import (
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-#: The accepted hits per file, relative to the root the check runs from.
-BASELINE = "scripts/wording-baseline.txt"
-
 #: What the check scans: the same tree ``make lint-spelling`` hands codespell.
 SCANNED_PATHS = (
     "README.rst",
@@ -144,7 +137,6 @@ SKIPPED_PREFIXES = (
 #: Generated files.  The OpenAPI description and its snapshot repeat the serializer and
 #: view docstrings, which the check reads at their source.
 SKIPPED_FILES = (
-    BASELINE,
     "backend/openapi.json",
     "backend/tests/snapshots/openapi-components.json",
     "frontend/e2e/seed-facts.json",
@@ -191,6 +183,22 @@ CLAUSE_VERBS = frozenset(
     + MODALS.split()
 )
 
+#: A word after ``nothing``, ``nobody``, ``none``, or ``no one`` (past an ``else``) that
+#: makes the negative the subject of a clause of its own ("says nothing is hidden",
+#: "says nothing else needs fixing"): a form of "be", a modal, a perfect auxiliary, or a
+#: third-person present verb.
+SUBJECT_VERBS = frozenset(
+    [family.split()[1] for family in FLAGGED_VERBS]
+    + BE_FORMS.split()
+    + MODALS.split()
+    + list(PERFECT_AUXILIARIES)
+)
+
+#: A word after ``nobody's`` or ``no one's`` that makes the ``'s`` a contraction of "is"
+#: or "has" ("nobody's here", "nobody's been charged"), not a possessive.  A past
+#: participle, an ``-ing`` form, or an unlisted ``-ed`` word does the same.
+CONTRACTION_COMPLEMENTS = frozenset((*BE_FORMS.split(), "here", "there"))
+
 #: A character right after ``no`` that makes it an answer rather than a determiner:
 #: "the member said no."
 ANSWER_ENDINGS = frozenset(".,;:!?)]}\"'" + chr(0x2019) + chr(0x201D))
@@ -202,14 +210,28 @@ _SEPARATOR = r"(?:[ \t]|[ \t]*\r?\n[ \t]*(?:(?:\#:?|//|\*)[ \t]*)?)"
 #: The apostrophes that join a contraction into one word: straight and typographic.
 _APOSTROPHES = "'" + chr(0x2019)
 
+# A word starts after anything but a letter, a digit, or an underscore, and after an
+# apostrophe only when no letter stands before it: an opening quote ("it('sends") starts a
+# word, while the apostrophe inside a contraction ("doesn't") joins its letters into one.
+_WORD_START = rf"(?<!\w)(?<!\w[{_APOSTROPHES}])"
+
+# A word ends before anything but a letter, a digit, an underscore, or a hyphen, and
+# before an apostrophe only when no letter follows it: a closing quote ("it('is done')")
+# ends a word, while one inside a contraction or a possessive ("none's") joins the next.
+_WORD_END = rf"(?![\w-])(?![{_APOSTROPHES}]\w)"
+
 # A lookahead, so that every word start is tried and one candidate never hides the next.
 _CANDIDATE = re.compile(
-    rf"(?<![\w{_APOSTROPHES}])(?=(?P<verb>[A-Za-z]+)"
+    _WORD_START
+    + r"(?=(?P<verb>[A-Za-z]+)"
     + _SEPARATOR
     + rf"(?:(?P<middle>{'|'.join(PRONOUNS + ADVERBS)})"
     + _SEPARATOR
     + ")?"
-    + rf"(?P<negative>nothing|nobody|none|no)(?![\w{_APOSTROPHES}-]))",
+    + rf"(?P<negative>nobody[{_APOSTROPHES}]s|no{_SEPARATOR}one[{_APOSTROPHES}]s"
+    + r"|nothing|nobody|none|no)"
+    + _WORD_END
+    + ")",
     re.IGNORECASE,
 )
 
@@ -221,9 +243,12 @@ _THAN = re.compile(_SEPARATOR + r"[A-Za-z]+" + _SEPARATOR + r"than\b", re.IGNORE
 # covers a coordinated object, but the check can't tell one from a new negative subject
 # ("and no email is sent"), so ``--coordinated`` only lists these for review by hand.
 _COORDINATED = re.compile(
-    rf"(?<![\w{_APOSTROPHES}])(?=(?P<verb>and|but|or)"
+    _WORD_START
+    + r"(?=(?P<verb>and|but|or)"
     + _SEPARATOR
-    + rf"(?P<negative>nothing|nobody|none|no)(?![\w{_APOSTROPHES}-]))",
+    + r"(?P<negative>nothing|nobody|none|no)"
+    + _WORD_END
+    + ")",
     re.IGNORECASE,
 )
 
@@ -237,12 +262,6 @@ _NEXT_LINE_MARKER = "wording:ignore-next-line"
 
 # A reStructuredText comment that holds only the next-line marker.
 _PARAGRAPH_MARKER = re.compile(r"\s*\.\.\s+wording:ignore-next-line\s*")
-
-_BASELINE_HEADER = (
-    "# The hits scripts/check_wording.py accepts per file: a path and its count, sorted.\n"
-    "# Rewrite a hit, then lower this file with scripts/check_wording.py --update-baseline\n"
-    "# in the same change.\n"
-)
 
 
 class _Family(NamedTuple):
@@ -267,6 +286,13 @@ def _families() -> dict[str, _Family]:
 
 _FAMILY_OF = _families()
 
+#: The family whose forms make a passive before a past participle: "gets paid".
+_GET = _FAMILY_OF["get"]
+
+#: The forms of "be" that leave a past participle's rewrite to the reader: "has been
+#: sent" moves the negation to ``has``, which the check doesn't see.
+_UNNEGATED_BE = frozenset(("be", "been", "being"))
+
 
 @dataclass(frozen=True)
 class Hit:
@@ -275,30 +301,19 @@ class Hit:
     ``line`` is the 1-based line the verb is on.  ``text`` is that line stripped, joined
     with the next line when the phrase wraps.  ``suggestion`` reads ``"<phrase> ->
     <rewrite>"`` for a third-person present form, a simple past that differs from the
-    base form, or a past participle after ``has``, ``have``, or ``had``, each with at
-    most a pronoun before the negative, and for ``is``, ``are``, ``was``, ``were``,
-    ``am``, and ``with`` (``NEGATED_WORDS``).  It is ``None`` for every other hit (a base
-    form, an ``-ing`` form, an unlisted ``-ed`` word, any other word from
-    ``FLAGGED_WORDS``, or a phrase with an adverb in it), whose rewrite depends on the
-    words around it.
+    base form, or a past participle after ``has``, ``have``, ``had``, ``is``, ``are``,
+    ``was``, ``were``, ``am``, ``get``, ``gets``, or ``got``, each with at most a pronoun
+    before the negative, and for ``is``, ``are``, ``was``, ``were``, ``am``, and
+    ``with`` (``NEGATED_WORDS``).  It is ``None`` for every other hit (a base form, an
+    ``-ing`` form, an unlisted ``-ed`` word, a past participle after ``be``, ``been``, or
+    ``being``, any other word from ``FLAGGED_WORDS``, or a phrase with an adverb in it),
+    whose rewrite depends on the words around it.
     """
 
     path: str
     line: int
     text: str
     suggestion: str | None
-
-
-@dataclass(frozen=True)
-class Comparison:
-    """The files whose hit count is above, or below, their baseline count.
-
-    A file the baseline does not list counts as a baseline of 0, and a listed file that
-    holds fewer hits, or is gone, as below it.  Both lists are sorted.
-    """
-
-    over: list[str]
-    under: list[str]
 
 
 def find_hits(text: str, path: str) -> list[Hit]:
@@ -343,6 +358,9 @@ def _find(text: str, path: str, *, coordinated: bool) -> list[Hit]:
             continue
         if middle is not None and _starts_a_clause(verb, middle, next_word):
             continue
+        is_after_a_preposition = verb.lower() in PREPOSITION_FORMS
+        if not is_after_a_preposition and _is_a_subject(text, match, next_word):
+            continue
         verb_start = match.start("verb")
         previous_match = _PREVIOUS_WORD.search(text, max(0, verb_start - 80), verb_start)
         previous = previous_match[1] if previous_match is not None else None
@@ -386,6 +404,53 @@ def _starts_a_clause(verb: str, middle: str, next_word: str | None) -> bool:
     return next_word is not None and next_word.lower() in CLAUSE_VERBS
 
 
+def _is_a_subject(text: str, match: re.Match[str], next_word: str | None) -> bool:
+    """Whether the matched negative is a subject rather than an object.
+
+    The caller asks only after a word other than a preposition, whose object a negative
+    always is, even before a verb.  ``nothing``, ``nobody``,
+    ``none``, or ``no one`` followed (past an ``else``) by a word in ``SUBJECT_VERBS``
+    starts a clause of its own ("says nothing is hidden").  ``nobody's`` or ``no
+    one's`` followed by a word in ``CONTRACTION_COMPLEMENTS``, a past
+    participle, an ``-ing`` form, or an ``-ed`` word is a contraction of "is" or "has"
+    ("says nobody's signed in"), never a possessive.
+    """
+    lower = match["negative"].lower()
+    if lower.endswith("s") and next_word is not None:
+        return _is_a_complement(next_word.lower())
+    words = _words_after(text, match.end("negative"), 3)
+    if lower == "no":
+        if len(words) == 0 or words[0] != "one":
+            return False
+        words = words[1:]
+    if len(words) > 0 and words[0] == "else":
+        words = words[1:]
+    return len(words) > 0 and words[0] in SUBJECT_VERBS
+
+
+def _is_a_complement(word: str) -> bool:
+    """Whether ``word`` after ``nobody's`` makes the ``'s`` mean "is" or "has"."""
+    if word in CONTRACTION_COMPLEMENTS or word.endswith(("ing", "ed")):
+        return True
+    if word not in _FAMILY_OF:
+        return False
+    family = _FAMILY_OF[word]
+    return word == family.participle != family.base
+
+
+def _words_after(text: str, end: int, count: int) -> list[str]:
+    """Up to ``count`` lower-case words after ``end``, with only separators between."""
+    words: list[str] = []
+    position = end
+    while len(words) < count:
+        found = _NEXT_WORD.match(text, position)
+        if found is None:
+            break
+        words.append(found[1].lower())
+        position = found.end()
+    return words
+
+
 def _is_flagged(word: str) -> bool:
     """Whether ``word`` is a listed form, or an unlisted word that reads as past tense."""
     lower = word.lower()
@@ -398,13 +463,16 @@ def _is_not_an_object(text: str, match: re.Match[str]) -> bool:
     """Whether the matched negative is a value or an answer rather than an object.
 
     That is ``None`` spelled that way (Python's value), an all-caps negative after a verb
-    that isn't all caps (``NONE``, a constant), and ``no`` with punctuation right after
-    it ("said no.").
+    that isn't all caps (``NONE``, a constant), a capitalized negative after a lower-case
+    verb (a quoted label or message: "reads No insurance on file"), and ``no`` with
+    punctuation right after it ("said no.").
     """
     verb, negative = match["verb"], match["negative"]
     if negative == "None":
         return True
     if negative.isupper() and not verb.isupper():
+        return True
+    if negative[0].isupper() and verb[0].islower():
         return True
     end = match.end("negative")
     is_answer = end < len(text) and text[end] in ANSWER_ENDINGS
@@ -452,14 +520,18 @@ def _suggestion(phrase: _Phrase) -> str | None:
     """The rewrite of the phrase with the negation on the verb, if one is simple.
 
     A third-person present form takes ``doesn't``, a simple past ``didn't``, and a past
-    participle after ``has``, ``have``, or ``had`` that auxiliary's negative, and a word
-    in ``NEGATED_WORDS`` its negated form (``is`` -> ``isn't``, ``with`` -> ``without``);
-    a pronoun before the negative stays where it is.  ``no`` is rewritten with ``anyone``
-    before ``one``, ``any`` before a plural or a word in ``ANY_BEFORE``, and ``a`` or
-    ``an`` otherwise; the word after ``no`` is shown on both sides.  A bound keeps its
-    meaning without the negative: ``no more than`` becomes ``at most``, and ``no fewer
-    than`` or ``no less than`` becomes ``at least``, after any flagged word.  Returns
-    ``None`` for any other word or form, and for a phrase with an adverb in it.
+    participle after an auxiliary that auxiliary's negative: ``has``, ``have``, and
+    ``had`` (``hasn't sent``), ``is``, ``are``, ``was``, ``were``, and ``am`` (``isn't
+    sent``), and ``get``, ``gets``, and ``got`` (``doesn't get paid``).  A word in
+    ``NEGATED_WORDS`` takes its negated form (``is`` -> ``isn't``, ``with`` ->
+    ``without``); a pronoun before the negative stays where it is.  ``no`` is rewritten
+    with ``anyone`` before ``one``, ``any`` before a plural or a word in ``ANY_BEFORE``,
+    and ``a`` or ``an`` otherwise; the word after ``no`` is shown on both sides, and
+    ``nobody's`` or ``no one's`` becomes ``anybody's`` or ``anyone's``.  A bound keeps
+    its meaning without the negative: ``no more than`` becomes ``at most``, and ``no
+    fewer than`` or ``no less than`` becomes ``at least``, after any flagged word.
+    Returns ``None`` for any other word or form, for a past participle after ``be``,
+    ``been``, or ``being``, and for a phrase with an adverb in it.
     """
     verb, middle, previous = phrase.verb, phrase.middle, phrase.previous
     form = verb.lower()
@@ -478,13 +550,13 @@ def _suggestion(phrase: _Phrase) -> str | None:
     if form not in _FAMILY_OF:
         return None
     family = _FAMILY_OF[form]
-    if (
-        previous is not None
-        and previous.lower() in PERFECT_AUXILIARIES
-        and form == family.participle
-    ):
-        negated = _like(previous, f"{previous.lower()}n't")
-        return f"{previous} {verb} {objects} -> {negated} {form} {positive}"
+    if previous is not None and form == family.participle:
+        lead = previous.lower()
+        if lead in _UNNEGATED_BE:
+            return None
+        negated = _negated_auxiliary(lead)
+        if negated is not None:
+            return f"{previous} {verb} {objects} -> {_like(previous, negated)} {form} {positive}"
     if form == family.third:
         auxiliary = "doesn't"
     elif form == family.past and family.past != family.base:
@@ -494,11 +566,28 @@ def _suggestion(phrase: _Phrase) -> str | None:
     return f"{verb} {objects} -> {_like(verb, auxiliary)} {family.base} {positive}"
 
 
+def _negated_auxiliary(word: str) -> str | None:
+    """The negative of ``word`` as an auxiliary before a past participle, if it is one."""
+    if word in PERFECT_AUXILIARIES:
+        return f"{word}n't"
+    if word in BE_FORMS.split() and word in NEGATED_WORDS:
+        return NEGATED_WORDS[word]
+    if word == _GET.third:
+        return f"doesn't {_GET.base}"
+    if word == _GET.past:
+        return f"didn't {_GET.base}"
+    if word == _GET.base:
+        return f"don't {_GET.base}"
+    return None
+
+
 def _objects(negative: str, next_word: str | None) -> tuple[str, str]:
     """The negative object as written, and its positive rewrite."""
     lower = negative.lower()
     if lower in POSITIVES:
         return negative, POSITIVES[lower]
+    if lower.endswith("s"):
+        return _possessive(negative, next_word)
     if next_word is None:
         return negative, "any"
     phrase = f"{negative} {next_word}"
@@ -509,6 +598,21 @@ def _objects(negative: str, next_word: str | None) -> tuple[str, str]:
         return phrase, f"any {next_word}"
     article = "an" if word[0] in "aeiou" else "a"
     return phrase, f"{article} {next_word}"
+
+
+def _possessive(negative: str, next_word: str | None) -> tuple[str, str]:
+    """``nobody's`` or ``no one's`` as written, with the word after it, and its rewrite.
+
+    A line break inside ``no one's`` is written as a space.
+    """
+    ending = negative[-2:]
+    if negative.lower().startswith("nobody"):
+        written, positive = negative, f"anybody{ending}"
+    else:
+        written, positive = f"{negative[:2]} one{ending}", f"anyone{ending}"
+    if next_word is None:
+        return written, positive
+    return f"{written} {next_word}", f"{positive} {next_word}"
 
 
 def _like(model: str, word: str) -> str:
@@ -557,11 +661,6 @@ def scanned_files(root: Path) -> list[str]:
     return sorted(path for path in paths if not _is_skipped(path) and (root / path).is_file())
 
 
-def tracked_files(root: Path) -> set[str]:
-    """Every path under ``SCANNED_PATHS`` that git tracks (or has staged) at ``root``."""
-    return _git_files(root, "--cached")
-
-
 def _git_files(root: Path, *options: str) -> set[str]:
     """The paths ``git ls-files`` lists under ``SCANNED_PATHS`` with ``options``."""
     git = shutil.which("git")
@@ -591,105 +690,54 @@ def _is_under(path: str, roots: Sequence[str]) -> bool:
     return any(path == root or path.startswith(f"{root}/") for root in roots)
 
 
-def read_baseline(path: Path) -> dict[str, int]:
-    """The baseline at ``path`` as a map of file path to count; empty when it is missing.
-
-    Each line is a path and a count separated by a space; blank lines and lines starting
-    with ``#`` are skipped.
-    """
-    if not path.is_file():
-        return {}
-    baseline = {}
-    for line in path.read_text(encoding="utf-8").splitlines():
-        if line.strip() == "" or line.startswith("#"):
-            continue
-        file_path, count = line.rsplit(" ", 1)
-        baseline[file_path] = int(count)
-    return baseline
-
-
-def write_baseline(path: Path, counts: dict[str, int]) -> None:
-    """Write ``counts`` to ``path`` under a comment header, sorted, leaving out zeros."""
-    entries = "".join(f"{file_path} {counts[file_path]}\n" for file_path in sorted(counts))
-    path.write_text(_BASELINE_HEADER + entries, encoding="utf-8")
-
-
-def compare(counts: dict[str, int], baseline: dict[str, int]) -> Comparison:
-    """Compare the hit count per file with the baseline's (see ``Comparison``)."""
-    every_path = sorted(set(counts) | set(baseline))
-    return Comparison(
-        over=[path for path in every_path if counts.get(path, 0) > baseline.get(path, 0)],
-        under=[path for path in every_path if counts.get(path, 0) < baseline.get(path, 0)],
-    )
-
-
 def main(argv: Sequence[str] | None = None, *, root: Path = REPO_ROOT) -> int:
     """Run the check against the tree at ``root``; return the exit status.
 
-    ``argv`` defaults to the command line.  An invalid combination of switches exits 2
-    through ``argparse``.
+    ``argv`` defaults to the command line.  An invalid switch exits 2 through
+    ``argparse``.
     """
-    parser = _parser()
-    args = parser.parse_args(argv)
+    args = _parser().parse_args(argv)
     roots = [path.strip("/").removeprefix("./") for path in args.path]
-    if args.update_baseline and len(roots) > 0:
-        parser.error("--path cannot be combined with --update-baseline")
-    if args.accept_new and not args.update_baseline:
-        parser.error("--accept-new needs --update-baseline")
     if args.coordinated:
         return _list_coordinated(scan(root, paths=roots, finder=find_coordinated))
-    hits = scan(root, paths=roots)
-    if args.all:
-        return _list_all(hits)
-    counts = {path: len(found) for path, found in hits.items()}
-    baseline = read_baseline(root / BASELINE)
-    if len(roots) > 0:
-        baseline = {path: count for path, count in baseline.items() if _is_under(path, roots)}
-    if args.update_baseline:
-        return _update(root, hits, baseline, accept_new=args.accept_new)
-    return _report(hits, counts, baseline, compare(counts, baseline))
+    return _report(scan(root, paths=roots))
 
 
 def _parser() -> argparse.ArgumentParser:
     """The parser for the switches the module docstring lists."""
     parser = argparse.ArgumentParser(
         prog="check_wording.py",
-        description="Flag a verb whose object is a negative, against a per-file baseline.",
+        description="Flag a verb whose object is a negative.",
     )
-    mode = parser.add_mutually_exclusive_group()
-    mode.add_argument("--all", action="store_true", help="list every hit, ignoring the baseline")
-    mode.add_argument(
+    parser.add_argument(
         "--coordinated",
         action="store_true",
         help="list every 'and', 'or', or 'but' before a negative, for review by hand",
-    )
-    mode.add_argument(
-        "--update-baseline",
-        action="store_true",
-        help="lower the baseline to the current counts",
-    )
-    parser.add_argument(
-        "--accept-new",
-        action="store_true",
-        help="with --update-baseline, also record raised counts and new files",
     )
     parser.add_argument(
         "--path",
         action="append",
         default=[],
         metavar="PATH",
-        help="limit the check, --all, or --coordinated to this file or directory (repeatable)",
+        help="limit the check or --coordinated to this file or directory (repeatable)",
     )
     return parser
 
 
-def _list_all(hits: dict[str, list[Hit]]) -> int:
-    """Print every hit and a total; 1 when there is any hit, else 0."""
+def _report(hits: dict[str, list[Hit]]) -> int:
+    """Print every hit and a total, with the remedy; 1 when there is any hit, else 0."""
     for path in sorted(hits):
         _print_hits(hits[path])
     total = sum(len(found) for found in hits.values())
-    _out(f"{_plural(total, 'hit')} in {_plural(len(hits), 'file')}\n")
-    return 1 if total > 0 else 0
+    if total == 0:
+        _out("Wording check passed.\n")
+        return 0
+    _out(
+        f"{_plural(total, 'hit')} in {_plural(len(hits), 'file')}.  Put the negation on the "
+        "verb, as each suggestion shows, or end a line that must stay verbatim with a "
+        "wording:ignore comment.\n"
+    )
+    return 1
 
 
 def _list_coordinated(candidates: dict[str, list[Hit]]) -> int:
@@ -699,69 +747,6 @@ def _list_coordinated(candidates: dict[str, list[Hit]]) -> int:
     total = sum(len(found) for found in candidates.values())
     _out(f"{_plural(total, 'candidate')} in {_plural(len(candidates), 'file')}\n")
     return 0
-
-
-def _update(
-    root: Path, hits: dict[str, list[Hit]], baseline: dict[str, int], *, accept_new: bool
-) -> int:
-    """Write the tracked files' counts as the baseline; refuse a raised one by default.
-
-    A file with hits that git doesn't track is left out, with a warning naming it.
-    Without ``accept_new``, a count above the baseline (or a file outside it) refuses the
-    update, and the baseline is left as it was.
-    """
-    tracked = tracked_files(root)
-    for path in sorted(set(hits) - tracked):
-        _out(
-            f"Left out of the baseline, since git doesn't track it yet: {path} "
-            f"({_plural(len(hits[path]), 'hit')})\n"
-        )
-    counts = {path: len(found) for path, found in hits.items() if path in tracked}
-    comparison = compare(counts, baseline)
-    if len(comparison.over) > 0 and not accept_new:
-        for path in comparison.over:
-            _print_hits(hits[path])
-        _out(
-            f"Refused: {_plural(len(comparison.over), 'file')} over the baseline.  Rewrite "
-            "the hits, or pass --accept-new to record them.\n"
-        )
-        return 1
-    write_baseline(root / BASELINE, counts)
-    _out(
-        f"Wrote {BASELINE}: {_plural(sum(counts.values()), 'hit')} in "
-        f"{_plural(len(counts), 'file')}.\n"
-    )
-    return 0
-
-
-def _report(
-    hits: dict[str, list[Hit]],
-    counts: dict[str, int],
-    baseline: dict[str, int],
-    comparison: Comparison,
-) -> int:
-    """Print the files over and under the baseline; 1 when there is either, else 0."""
-    for path in comparison.over:
-        _print_hits(hits[path])
-        allowed = baseline.get(path, 0)
-        _out(f"{path}: {_plural(counts[path], 'hit')}, over the baseline's {allowed}\n")
-    for path in comparison.under:
-        _out(
-            f"{path}: {_plural(counts.get(path, 0), 'hit')}, under the baseline's "
-            f"{baseline[path]}; lower it with scripts/check_wording.py --update-baseline\n"
-        )
-    if len(comparison.over) + len(comparison.under) == 0:
-        _out(
-            f"Wording check: {_plural(sum(counts.values()), 'hit')} in "
-            f"{_plural(len(counts), 'file')}, within the baseline.\n"
-        )
-        return 0
-    if len(comparison.over) > 0:
-        _out(
-            "Put the negation on the verb, as each suggestion shows, or end a line that "
-            "must stay verbatim with a wording:ignore comment.\n"
-        )
-    return 1
 
 
 def _print_hits(hits: list[Hit]) -> None:
