@@ -4,7 +4,7 @@
   The page a bulk email's unsubscribe link opens.  `state` is one of `confirm`,
   `already`, `done`, `not_allowed`, or `expired` (see `apps.mail.views.unsubscribe`);
   `address` is the email address the link unsubscribes, in every state but `expired`.
-  The button posts back to this same address; it carries no CSRF token because the
+  The button posts back to this same address; it doesn't carry a CSRF token because the
   signed token in the address is the authorization.
 {% endcomment %}
 
@@ -48,7 +48,7 @@
       {% elif state == "not_allowed" %}
         <p class="lede">
           {{ org }} sends {{ email_type.name }} email to everyone it writes to, so this link
-          changes nothing.
+          doesn't change anything.
         </p>
       {% else %}
         <p class="lede">

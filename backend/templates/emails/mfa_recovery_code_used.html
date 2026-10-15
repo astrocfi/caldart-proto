@@ -40,7 +40,7 @@ as in the other account emails.
               <td style="padding: 24px 32px 8px;">
                 <p style="margin: 0 0 16px;">Hello{% if first_name %} {{ first_name }}{% endif %},</p>
                 <p style="margin: 0 0 16px;">
-                  One of your backup codes was just used in place of a code from your authenticator app, for your account at {{ org_name }}, registered to {{ email }}. {% if remaining == 0 %}You have no unused backup codes left: sign in and make a new set on your profile's Two-factor sign-in card.{% else %}You have {{ remaining }} unused backup code{{ remaining|pluralize }} left. You can make a new set on your profile's Two-factor sign-in card at any time.{% endif %}
+                  One of your backup codes was just used in place of a code from your authenticator app, for your account at {{ org_name }}, registered to {{ email }}. {% if remaining == 0 %}You don't have any unused backup codes left: sign in and make a new set on your profile's Two-factor sign-in card.{% else %}You have {{ remaining }} unused backup code{{ remaining|pluralize }} left. You can make a new set on your profile's Two-factor sign-in card at any time.{% endif %}
                 </p>
                 <p style="margin: 0 0 8px; font-size: 14px; color: #55606d;">
                   If this was not you, reset your password straight away and tell {{ org_name }}{% if contact_email %}

@@ -3,7 +3,7 @@
 {% comment %}
   The page a mission callout's answer buttons open.  `state` is one of `form`, `done`,
   `closed`, `busy`, `inactive`, or `invalid` (see `apps.bulk_email.views.callout_answer`).  The form posts
-  back to this same address; it carries no CSRF token because the signed token in the
+  back to this same address; it doesn't carry a CSRF token because the signed token in the
   address is the authorization.  `page.body_html` is the sanitized message with the
   person's values filled in, each escaped; the form names `page.user`'s address, so a
   reader sees whose answer it records.

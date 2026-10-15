@@ -5,7 +5,7 @@ Hello{% if first_name %} {{ first_name }}{% endif %},
 One of your backup codes was just used in place of a code from your authenticator
 app, for your account at {{ org_name }}, registered to {{ email }}.
 {% if remaining == 0 %}
-You have no unused backup codes left. Sign in and make a new set on your profile's
+You don't have any unused backup codes left. Sign in and make a new set on your profile's
 Two-factor sign-in card.
 {% else %}
 You have {{ remaining }} unused backup code{{ remaining|pluralize }} left. You can make a new set on

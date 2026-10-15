@@ -7,7 +7,7 @@ address is now {{ new_email }}, and password reset links go there.{% else %}Some
 {{ new_email }}. The account keeps signing in with {{ previous_email }} until
 somebody opens the link we sent to {{ new_email }}.{% endif %}
 
-If this was you, there is nothing to do.
+If this was you, you don't need to do anything.
 
 If it was not you, open this link{% if completed %} to put {{ previous_email }} back{% else %} to stop the change{% endif %}:
 

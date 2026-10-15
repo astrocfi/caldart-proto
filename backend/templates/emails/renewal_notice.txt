@@ -5,28 +5,28 @@ Hello {{ first_name }},
 Because you asked us for a recurring donation {{ cadence_label }}, we are charging
 it today: {{ amount }} to {{ method_label }}.
 
-If that is not what you want — a different card, a different amount, or no
-recurring donation at all — change it here and write to us about the charge:
+If that is not what you want — a different card, a different amount, or an
+end to the recurring donation — change it here and write to us about the charge:
 {% else %}
 Because you asked us for a recurring donation {{ cadence_label }}, we will charge
 {{ amount }} to {{ method_label }} on {{ charge_on|date:"F j, Y" }}.
 
 Nothing to do if that is right. If it is not — a different card, a different
-amount, or no recurring donation at all — change it here before that date:
+amount, or an end to the recurring donation — change it here before that date:
 {% endif %}{% elif charge_on == today %}
 Your {{ plan_name }} membership term ends {{ expires_on|date:"F j, Y" }}. Because you asked us
 to {% if kind == "both" %}renew your membership and take your contribution{% else %}renew it{% endif %} automatically, we are charging it today: {{ amount }} to
 {{ method_label }}.
 
-If that is not what you want — a different card, a different contribution, or no
-automatic renewal at all — change it here and write to us about the charge:
+If that is not what you want — a different card, a different contribution, or an
+end to automatic renewal — change it here and write to us about the charge:
 {% else %}
 Your {{ plan_name }} membership runs out on {{ expires_on|date:"F j, Y" }}. Because you asked
 us to {% if kind == "both" %}renew your membership and take your contribution{% else %}renew it{% endif %} automatically, we will charge {{ amount }} to {{ method_label }} on
 {{ charge_on|date:"F j, Y" }}{% if charge_on > expires_on %}, the day you chose, so your membership lapses until then{% else %}, and your coverage will carry straight on{% endif %}.
 
 Nothing to do if that is right. If it is not — a different card, a different
-contribution, or no automatic renewal at all — change it here before that date:
+contribution, or an end to automatic renewal — change it here before that date:
 {% endif %}{{ payments_url }}
 
 --

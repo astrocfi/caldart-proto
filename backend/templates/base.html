@@ -21,8 +21,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     {% comment %}
-      `firstof` rather than the `default` filter: an error page renders with no
-      `page` and, on a 500, no context processors at all, and a missing filter
+      `firstof` rather than the `default` filter: an error page renders without a
+      `page` and, on a 500, without any context processors at all, and a missing filter
       *argument* raises where a missing variable would not.
     {% endcomment %}
     <title>{% block title %}{% firstof page.seo_title page.title "CalDART" %}{% endblock %}{% block title_suffix %} · {% firstof site_settings.org_name "CalDART" %}{% endblock %}</title>
@@ -144,7 +144,7 @@
           {% comment %}
             Only the outward links: the portal, joining and donating all have
             their own place in the navigation bar above, and repeating them
-            here cost four lines of height for nothing.
+            here would only waste four lines of height.
           {% endcomment %}
           {% if site_settings.facebook_url or site_settings.twitter_url %}
             <div>
