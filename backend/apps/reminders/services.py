@@ -4,7 +4,7 @@ One entry point, :func:`send_renewal_reminders`, which the management command,
 ``POST /system/reminders/run`` and the systemd timer all call.  It is
 deliberately idempotent: every email it sends is recorded in a ``ReminderLog``
 row, and the unique constraint on ``(user, membership, kind)`` means a second
-run sends nothing.  That constraint is also what lets each kind be a stage --
+run doesn't send anything.  That constraint is also what lets each kind be a stage --
 a span of expiry dates rather than one date -- and what a losing run in a race
 hits; neither ends the scan, and neither does a mail server that refuses one
 address.
@@ -78,8 +78,8 @@ SKIP_REASONS: tuple[str, ...] = (
 #: from its own date.  ``expired`` keeps to the week in which a term that has
 #: just run out is still recent news, and ``lapsed`` covers the month up to its
 #: own day (thirty to sixty days after expiry on the default schedule), after which
-#: membership says nothing more.  The stages before expiry need no entry: each
-#: reaches back to the day after the stage nearer expiry, so those spans meet
+#: membership doesn't say anything more.  The stages before expiry don't need an entry:
+#: each reaches back to the day after the stage nearer expiry, so those spans meet
 #: without touching.
 POST_EXPIRY_REACH_DAYS: dict[str, int] = {
     ReminderKind.EXPIRED: 6,
@@ -271,9 +271,9 @@ def _renews_itself(user: User) -> bool:
 
     True for an active renewal, and for a pending one that already has a scheduled
     charge: in both cases the renewal emails tell the member what is happening to
-    their membership.  A paused or canceled renewal covers nothing, so the ordinary
-    reminders resume, and a recurring donation never covers anything: it renews no
-    membership.
+    their membership.  A paused or canceled renewal doesn't cover anything, so the
+    ordinary reminders resume, and a recurring donation never covers anything: it doesn't
+    renew a membership.
     """
     mandate = RenewalMandate.objects.filter(user=user, plan__isnull=False).first()
     if mandate is None:
@@ -302,7 +302,7 @@ def stage_span(
     day D, ``first`` covers terms ending D+31 to D+60, ``second`` covers D+8 to
     D+30, and ``final`` covers D+1 to D+7.  A member who joins the register 23
     days out is therefore in ``second`` that day, rather than falling between two
-    exact dates and hearing nothing.
+    exact dates and never hearing anything.
 
     A stage at or after expiry reaches back by its entry in
     :data:`POST_EXPIRY_REACH_DAYS`: ``expired`` covers terms that ran out on any
@@ -336,7 +336,7 @@ def _candidates(kind: str, today: date, schedule: ReminderSchedule) -> QuerySet[
     exact date.  The ``ReminderLog`` constraint keeps a member who sits in one
     stage for days from being written to twice.  Canceled terms are left out, and
     so are suspended ones, whose holder deactivated their own account; lifetime
-    terms have no ``ends_on`` and so never appear here.  A friend is never nagged
+    terms don't have an ``ends_on`` and so never appear here.  A friend is never nagged
     to renew, and neither is a member who has asked to become one, so the terms of
     an account stored as a friend or carrying a ``friend_on`` date are left out too.
     """
@@ -367,15 +367,15 @@ def send_renewal_reminders(
     stored :class:`~apps.reminders.models.ReminderSchedule`, read once per run.  A
     member is in at most one stage on any day, and gets each stage once, however
     the schedule is edited between runs.  A dry
-    run writes nothing at all: no email, no log rows, no status flips.
+    run doesn't write anything at all: not an email, a log row, or a status flip.
 
     A member whose membership renews itself is skipped for every stage, because
     the automatic-renewal emails already tell them what is happening; a mandate
-    that has been paused or canceled covers nothing, so the reminders resume.
+    that has been paused or canceled doesn't cover anything, so the reminders resume.
 
     One member's problem never stops the scan.  A send the mail server refuses
-    is logged at ERROR, counted in ``failed`` and ``failed_by_kind``, and leaves
-    no log row, so any later run while the term is still in that stage tries
+    is logged at ERROR, counted in ``failed`` and ``failed_by_kind``, and doesn't leave
+    a log row, so any later run while the term is still in that stage tries
     again.  A log row another run wrote first counts as ``already_sent``.  The
     run summary is returned either way; nothing is raised.
 

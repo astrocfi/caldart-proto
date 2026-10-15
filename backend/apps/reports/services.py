@@ -58,7 +58,7 @@ ROSTER_KIND = "roster"
 
 #: Why a subscription or a roster did not produce an email, in the order a
 #: summary lists them.  ``not_permitted``: the subscription's account may no
-#: longer read the report, so it was paused.  ``no_recipients``: a DART with no
+#: longer read the report, so it was paused.  ``no_recipients``: a DART without a
 #: checked person who has an address.  ``no_email``: one checked person without an
 #: address, on a DART whose roster went to others.
 SKIP_REASONS: tuple[str, ...] = ("not_permitted", "no_recipients", "no_email")
@@ -276,7 +276,7 @@ def send_subscription_email(
     (``emails/scheduled_report.{txt,html}``) names the report, ``filters`` (the
     summary :func:`applied_filters` gives), the schedule and who set it up.  The email
     log records the send under the purpose ``scheduled_report``, with the recipient's
-    account and its display name when there is one, and no name for a bare address.
+    account and its display name when there is one, and a blank name for a bare address.
     A report the stored params no longer build raises DRF's ``ValidationError``, and
     a refusing mail server raises as :func:`~caldart.mail.send_templated` does.
     """
@@ -326,9 +326,10 @@ def send_subscription(
     is paused.  Otherwise the email goes out, ``last_sent_at`` is stamped and, when
     ``advance`` is set, ``next_due_on`` moves to the schedule's next day after
     ``today``.  A report that cannot be built from the stored params, or a send the
-    mail server refuses, is counted in ``failed`` and changes nothing else, so the
+    mail server refuses, is counted in ``failed`` and doesn't change anything else, so the
     subscription stays due.  A dry run builds the report's table, so it fails exactly
-    the subscriptions a live run would, records what would happen, and writes nothing.
+    the subscriptions a live run would, records what would happen, and doesn't write
+    anything.
     """
     spec = REPORTS[subscription.report]
     if refresh_recipient(subscription) and not dry_run:
@@ -489,13 +490,13 @@ def send_roster_email(
 def send_roster(run: ReportRun, dart: Dart, *, today: date, dry_run: bool) -> None:
     """Send ``dart``'s roster to each person checked to receive it, recorded on ``run``.
 
-    A DART with no checked person who has an address is skipped once as
+    A DART without a checked person who has an address is skipped once as
     ``no_recipients``; otherwise each checked person without one is skipped as
     ``no_email`` and everyone else is sent one email.  The roster is the members
     report for the DART, by name, with :data:`ROSTER_COLUMNS`, as a PDF built once.
     ``roster_sent_at`` is stamped when every email went out; a refused one is counted
     in ``failed`` and leaves the DART due, so the next run sends it again.  A dry run
-    records the emails and writes nothing.
+    records the emails and doesn't write anything.
     """
     reachable = dart.roster_recipients()
     if len(reachable) == 0:
@@ -541,7 +542,7 @@ def send_rosters_now(
 
     Each DART is sent as the daily run sends it.  A live send writes one
     ``report.send`` audit line per DART, naming ``actor``, the DART and its counts; a
-    dry run writes nothing at all.
+    dry run doesn't write anything at all.
     """
     day = timezone.localdate() if today is None else today
     run = ReportRun(today=day, dry_run=dry_run)
@@ -569,11 +570,11 @@ def run_scheduled_reports(
     (:func:`send_subscription`, moving each sent one on to its next day), then each
     active DART not yet sent a roster in ``today``'s month (:func:`send_roster`).
     Nothing raises for one recipient: refusals are counted and retried by the next
-    run.  A dry run writes nothing but records every email it would send.
+    run.  A dry run only records every email it would send, and doesn't write anything.
 
     Each subscription and each DART is sent in its own transaction, holding its row
     and checking again that it is still due; one another run holds is passed by
-    (that run sends it), so two runs at once send nothing twice.
+    (that run sends it), so two runs at once never send anything twice.
 
     Every run ends with one ``reports.run`` audit line carrying the mode and the
     three counts; ``actor`` is the account that asked for it, or ``command`` for the

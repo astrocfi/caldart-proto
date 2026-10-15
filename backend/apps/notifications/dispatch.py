@@ -3,8 +3,8 @@
 :func:`handle` is registered with :func:`caldart.events.subscribe` when the app starts,
 so it runs inside the transaction of whatever raised the event.  It builds the email
 there, while the objects the event names are in hand, and sends it once that
-transaction commits, so a request that rolls back sends nothing.  Each recipient is
-sent through :func:`caldart.mail.send_templated`, which records every send in the
+transaction commits, so a request that rolls back doesn't send anything.  Each recipient
+is sent through :func:`caldart.mail.send_templated`, which records every send in the
 email log under the purpose ``notification_<slug>``.  A refused send is logged and the
 next recipient is still tried: nothing a notification does can fail the request that
 raised the event.
@@ -44,7 +44,7 @@ type Audience = Callable[[User], bool]
 class Recipient:
     """One address an event's email goes to, and how the email log records it.
 
-    ``user_id`` is the bound account, or ``None`` for an address with no account;
+    ``user_id`` is the bound account, or ``None`` for an address without an account;
     ``name`` is the name the log records; ``why`` is the footer line saying why the
     address hears about the event.
     """
@@ -63,8 +63,8 @@ def handle(slug: str, payload: Mapping[str, object]) -> None:
     transaction commits (:func:`send`).
 
     Nothing here raises into the caller: a payload the email cannot be built from is
-    logged with its traceback and sends nothing, and a failure while sending is logged
-    by Django's robust ``on_commit`` handling.
+    logged with its traceback and doesn't send anything, and a failure while sending is
+    logged by Django's robust ``on_commit`` handling.
     """
     try:
         message = build_message(slug, payload)
@@ -109,7 +109,7 @@ def suspended() -> Iterator[None]:
 
 
 def roster_recipients(dart: object) -> list[Recipient]:
-    """The contacts checked to receive ``dart``'s roster; nobody when ``dart`` is none."""
+    """The contacts checked to receive ``dart``'s roster; empty for a non-DART."""
     if not isinstance(dart, Dart):
         return []
     why = f"You are receiving this because the {dart.name} lists you to receive its roster."
@@ -193,7 +193,7 @@ def send(
         # not send must not cost the remaining recipients their email.
         except Exception as exc:
             # The event and the exception class only: the email log already names
-            # the refused address, and this log is no place to collect addresses.
+            # the refused address, and this log isn't a place to collect addresses.
             log.error("notification send failed: event=%s error=%s", slug, error_name(exc))
 
 

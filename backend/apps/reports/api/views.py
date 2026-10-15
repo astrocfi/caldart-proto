@@ -84,7 +84,7 @@ class ReportListView(APIView):
     def get(self, request: Request) -> Response:
         """200 with one entry per report the caller may read, in registry order.
 
-        Any signed-in user may ask; a member who may read no report gets an empty
+        Any signed-in user may ask; a member who can't read any report gets an empty
         list.
         """
         rows: list[ReportSummaryDict] = [

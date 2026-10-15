@@ -13,6 +13,6 @@ def can_read_report(user: User | AnonymousUser | None, spec: Report) -> bool:
     """True when ``user`` holds one of the roles ``spec`` names.
 
     A system administrator and a Django superuser may read every report; an anonymous
-    caller may read none.
+    caller can't read any.
     """
     return user_has_any_role(user, spec.roles)

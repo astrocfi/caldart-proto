@@ -3,9 +3,9 @@
 Run by ``deploy/systemd/caldart-reports.timer`` at 06:00 in production.  It sends
 every report subscription that is due and every DART roster not yet sent this month.
 Safe to repeat: a sent subscription moves on to its next day and a sent roster is
-stamped with the month, so a second run the same day sends nothing again.  The
+stamped with the month, so a second run the same day doesn't send anything again.  The
 command exits non-zero when any email could not be sent, so the systemd unit goes to
-``failed`` instead of reporting a clean run that reached nobody.
+``failed`` instead of reporting a clean run that didn't reach anybody.
 """
 
 from __future__ import annotations
@@ -43,7 +43,7 @@ class Command(BaseCommand):
         ``--today`` must be an ISO ``YYYY-MM-DD`` date, or ``CommandError`` is raised
         with the invalid value quoted.  After the run, if any email failed to send,
         ``CommandError`` is raised naming how many did, so the command exits non-zero;
-        a run with no failures returns normally.
+        a run without failures returns normally.
         """
         run_date: date | None = None
         if options["today"]:

@@ -13,7 +13,7 @@ from apps.notifications.models import NotificationSubscription
 from apps.notifications.services import refresh_recipient, refused_event
 from caldart.messages import email_messages
 
-#: What a subscription with no event is refused with.
+#: What a subscription without an event is refused with.
 NO_EVENTS_MESSAGE = "Choose at least one event."
 
 #: What a slug the catalog does not list is refused with.
