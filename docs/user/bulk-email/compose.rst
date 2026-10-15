@@ -165,8 +165,8 @@ address that is not an email address, or a field that cannot be filled in. **Sen
 is fixed and you press **Check again**. An amber dot and **Worth a look:** mark something
 that may be a mistake, and *You can still send.* says you may go ahead anyway:
 
-- *{dart_name} is empty for 41 of 120 people who receive this email, so their copies show
-  nothing there.* Add words to show instead, as in *{dart_name|your DART}*, or take it out.
+- *{dart_name} is empty for 41 of 120 people who receive this email, so their copies don't
+  show anything there.* Add words to show instead, as in *{dart_name|your DART}*, or take it out.
 - *The email still says "TODO".* Placeholder text, such as *TODO*, *XXX*, *lorem ipsum*, or
   *[insert*, is still in the subject or the message.
 - *1 picture doesn't have a description for people who cannot see pictures.* Delete it and

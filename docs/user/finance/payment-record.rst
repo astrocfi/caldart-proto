@@ -128,7 +128,7 @@ write the check, record the refund here, and the books match.
 A refund of more than is left is refused with *Only $… of this payment is left to
 refund.* A refund of $0 is refused with *A refund must be for more than zero.* A
 payment that never succeeded cannot be refunded, and the form says *That payment was
-never paid, so there is nothing to refund.*
+never paid, so there isn't anything to refund.*
 
 See everything the member has paid
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
