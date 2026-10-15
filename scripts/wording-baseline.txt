@@ -121,7 +121,7 @@ backend/apps/payments/api/receipt_views.py 5
 backend/apps/payments/api/refund_views.py 1
 backend/apps/payments/api/renewal_views.py 9
 backend/apps/payments/api/report_views.py 9
-backend/apps/payments/api/serializers.py 9
+backend/apps/payments/api/serializers.py 8
 backend/apps/payments/api/views.py 6
 backend/apps/payments/donations.py 3
 backend/apps/payments/management/commands/payments_sandbox_check.py 3
@@ -129,9 +129,9 @@ backend/apps/payments/management/commands/run_auto_renewals.py 2
 backend/apps/payments/management/commands/send_year_statements.py 2
 backend/apps/payments/migrations/0003_renewal_charge_settling.py 1
 backend/apps/payments/models.py 8
-backend/apps/payments/providers/base.py 10
+backend/apps/payments/providers/base.py 9
 backend/apps/payments/providers/mock.py 5
-backend/apps/payments/providers/paypal.py 23
+backend/apps/payments/providers/paypal.py 21
 backend/apps/payments/providers/paypal_api.py 8
 backend/apps/payments/providers/paypal_orders.py 4
 backend/apps/payments/providers/stripe.py 18
@@ -141,7 +141,7 @@ backend/apps/payments/reconciliation.py 2
 backend/apps/payments/refunds.py 9
 backend/apps/payments/renewals/__init__.py 3
 backend/apps/payments/renewals/background.py 2
-backend/apps/payments/renewals/charge.py 25
+backend/apps/payments/renewals/charge.py 23
 backend/apps/payments/renewals/emails.py 2
 backend/apps/payments/renewals/mandates.py 30
 backend/apps/payments/renewals/scan.py 24
@@ -305,7 +305,7 @@ backend/tests/test_payments_reports.py 3
 backend/tests/test_payments_settled.py 3
 backend/tests/test_payments_start_guards.py 7
 backend/tests/test_payments_stripe.py 17
-backend/tests/test_paypal_renewal_charges.py 11
+backend/tests/test_paypal_renewal_charges.py 10
 backend/tests/test_paypal_unavailable.py 2
 backend/tests/test_permission_matrix.py 5
 backend/tests/test_profile_api.py 4
@@ -402,7 +402,7 @@ docs/developer/api-payments.rst 23
 docs/developer/api-profile.rst 11
 docs/developer/api-reference.rst 14
 docs/developer/api-refunds.rst 5
-docs/developer/api-renewals.rst 16
+docs/developer/api-renewals.rst 15
 docs/developer/api-reports.rst 5
 docs/developer/api-system.rst 22
 docs/developer/architecture.rst 23
@@ -420,7 +420,7 @@ docs/developer/notification-events.rst 10
 docs/developer/notifications.rst 5
 docs/developer/payments-setup.rst 13
 docs/developer/reminders.rst 13
-docs/developer/renewals.rst 50
+docs/developer/renewals.rst 45
 docs/developer/reports.rst 13
 docs/developer/roadmap.rst 2
 docs/developer/scheduled-reports.rst 8
@@ -459,7 +459,7 @@ docs/user/finance/member-ledger.rst 4
 docs/user/finance/payment-list.rst 1
 docs/user/finance/payment-record.rst 3
 docs/user/finance/record-payment.rst 2
-docs/user/finance/renewals.rst 7
+docs/user/finance/renewals.rst 3
 docs/user/index.rst 1
 docs/user/member/become-a-member.rst 4
 docs/user/member/change-email.rst 1
@@ -513,7 +513,7 @@ frontend/src/portal/App.test.tsx 1
 frontend/src/portal/api/client.test.ts 1
 frontend/src/portal/api/client.ts 4
 frontend/src/portal/api/types.contract.test.ts 1
-frontend/src/portal/api/types.ts 13
+frontend/src/portal/api/types.ts 12
 frontend/src/portal/auth/guards.tsx 1
 frontend/src/portal/auth/useAuth.ts 2
 frontend/src/portal/components/BouncedDot.tsx 1
@@ -578,8 +578,6 @@ frontend/src/portal/features/admin-payments/ReconciliationPage.test.tsx 1
 frontend/src/portal/features/admin-payments/RecordPaymentPage.test.tsx 1
 frontend/src/portal/features/admin-payments/RecordPaymentPage.tsx 2
 frontend/src/portal/features/admin-payments/RefundForm.tsx 1
-frontend/src/portal/features/admin-payments/SettleChargeButton.test.tsx 3
-frontend/src/portal/features/admin-payments/SettleChargeButton.tsx 7
 frontend/src/portal/features/admin-payments/api.ts 1
 frontend/src/portal/features/admin-payments/labels.ts 1
 frontend/src/portal/features/admin-payments/reports-api.ts 1
