@@ -30,7 +30,7 @@ class OrgDetails:
     ``name`` is never empty: it falls back to ``CalDART``.  ``contact_email``,
     ``mailing_address`` and ``ein`` are empty strings when nobody has entered
     them, and whatever prints them leaves the line out rather than printing a
-    blank one.  ``site_url`` carries no trailing slash, so a link is built by
+    blank one.  ``site_url`` doesn't carry a trailing slash, so a link is built by
     appending a rooted path to it.
     """
 
@@ -42,7 +42,7 @@ class OrgDetails:
 
 
 def site_settings() -> SiteSettings | None:
-    """The default site's ``SiteSettings`` row, or ``None`` when there is none.
+    """The default site's ``SiteSettings`` row, or ``None`` when there isn't one.
 
     It is ``None`` before ``migrate`` has set the site up, and reading it never
     creates the row.

@@ -7,7 +7,7 @@ translation happens in one place: :func:`caldart_exception_handler` renders a
 ``DomainValidationError`` as a 400 keyed by the field it names and a
 ``DomainPermissionError`` as a 403 carrying ``detail``.
 
-Session authentication has no ``WWW-Authenticate`` challenge, so DRF turns an
+Session authentication doesn't have a ``WWW-Authenticate`` challenge, so DRF turns an
 unauthenticated request into 403.  The API contract promises 401,
 which is also what the SPA's ``client.ts`` keys "log in again" off.
 
@@ -73,7 +73,7 @@ def caldart_exception_handler(exc: Exception, context: dict[str, Any]) -> Respon
     A ``DomainValidationError`` becomes 400 ``{field: [message]}`` and a
     ``DomainPermissionError`` 403 ``{"detail": message}``, the shapes DRF's own
     validation and permission errors produce.  Everything else is DRF's answer,
-    except that ``NotAuthenticated`` is rewritten from 403 to 401 and a 404 with no
+    except that ``NotAuthenticated`` is rewritten from 403 to 401 and a 404 without a
     sentence of its own reads :data:`NOT_FOUND_MESSAGE`.  An exception
     the API does not describe -- a bug -- still returns ``None`` and reaches
     Django's 500 handling.

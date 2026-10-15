@@ -39,7 +39,7 @@ def portal_api_endpoints(*, endpoints: list[Endpoint], **_: Any) -> list[Endpoin
     return [entry for entry in endpoints if entry[0].startswith(API_PATH_PREFIX)]
 
 
-class SessionAuthenticationScheme(OpenApiAuthenticationExtension):  # type: ignore[no-untyped-call]  # drf-spectacular's registering __init_subclass__ carries no annotations
+class SessionAuthenticationScheme(OpenApiAuthenticationExtension):  # type: ignore[no-untyped-call]  # drf-spectacular's registering __init_subclass__ isn't annotated
     """Describe the project's session authentication to the OpenAPI generator.
 
     Importing this module registers the scheme, which every operation then names as

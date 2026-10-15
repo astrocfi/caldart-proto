@@ -22,8 +22,8 @@ def normalize_phone(value: str | None) -> str:
     Punctuation and spaces are dropped and a leading country code ``1`` is
     removed, so ``+1 (415) 555-0100``, ``415.555.0100`` and ``4155550100`` all
     come back ``415-555-0100``.  A blank value gives ``""``.  Anything that is
-    not ten digits after that is returned stripped of nothing, for the caller to
-    refuse: this function never invents a number.
+    not ten digits after that is returned as given, with only its surrounding
+    whitespace trimmed, for the caller to refuse: this function never invents a number.
     """
     if not value:
         return ""

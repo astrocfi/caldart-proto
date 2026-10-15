@@ -1,4 +1,4 @@
-"""The production static-file storage: whitenoise's, with no second hash on Vite's files.
+"""The production static-file storage: whitenoise's, without hashing Vite's files twice.
 
 whitenoise's ``CompressedManifestStaticFilesStorage`` renames every file ``collectstatic``
 copies to carry a hash of its content, so the far-future cache headers it sends are safe.

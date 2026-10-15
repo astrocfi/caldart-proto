@@ -1,7 +1,7 @@
 """Load the repository's ``.env`` into the process environment.
 
 Importing this module reads ``.env`` from the repository root, so a bare
-checkout runs with no exported variables at all.  Real environment variables
+checkout runs without any exported variables at all.  Real environment variables
 win over the file.
 
 Only ``dev.py`` and ``test.py`` import it, and they do so before ``base``.

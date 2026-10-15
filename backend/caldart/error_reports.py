@@ -3,7 +3,7 @@
 Django's error reports (the mail ``AdminEmailHandler`` sends to ``ADMIN_EMAILS``, and
 the debug page) list the settings, masking those whose name looks secret: ``KEY``,
 ``SECRET``, ``PASS``, ``TOKEN`` and the like.  A connection URL can carry a password
-under a name that looks like nothing of the kind, ``BOUNCE_IMAP_URL`` for one, so
+under a name that doesn't look like one at all, ``BOUNCE_IMAP_URL`` for one, so
 :class:`CredentialSafeExceptionReporterFilter` also masks the password part of every
 URL in a setting's value, keeping the scheme, the user name and the host readable.
 ``DEFAULT_EXCEPTION_REPORTER_FILTER`` names it.

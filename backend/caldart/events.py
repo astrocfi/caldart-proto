@@ -3,18 +3,18 @@
 An app raises an event with :func:`emit` at the point the thing has definitively
 happened, inside its own transaction, and never needs to know who listens.  A
 listener registers with :func:`subscribe`; the notifications app does so when it
-starts, and a test does so to record what a service raised.  This module imports
-no app, so an app on any layer may import it.
+starts, and a test does so to record what a service raised.  This module doesn't
+import any app, so an app on any layer may import it.
 
 :data:`EVENT_SLUGS` is the closed list of events; ``emit`` refuses any other slug,
-so a misspelled event fails a test instead of quietly reaching nobody.
+so a misspelled event fails a test instead of quietly going unheard.
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 
-#: A listener: it receives the event's slug and its payload, and returns nothing.
+#: A listener: it receives the event's slug and its payload, and returns ``None``.
 type Handler = Callable[[str, Mapping[str, object]], None]
 
 #: Every event, in the order the screens list them.
@@ -59,7 +59,7 @@ def subscribe(handler: Handler) -> None:
 
 
 def unsubscribe(handler: Handler) -> None:
-    """Remove ``handler``; removing one that is not registered does nothing."""
+    """Remove ``handler``; one that is not registered leaves the listeners as they are."""
     if handler in _handlers:
         _handlers.remove(handler)
 

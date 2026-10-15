@@ -33,8 +33,8 @@ def format_display_date(day: date) -> str:
 def format_display_datetime(moment: datetime) -> str:
     """Return an aware ``moment`` as local ``MM/DD/YYYY at h:mm AM`` on a 12-hour clock.
 
-    ``14:30`` on September 27, 2026 reads ``09/27/2026 at 2:30 PM``: the hour has no
-    leading zero, midnight and noon read ``12``, and ``AM`` or ``PM`` follows.  The
+    ``14:30`` on September 27, 2026 reads ``09/27/2026 at 2:30 PM``: the hour doesn't have
+    a leading zero, midnight and noon read ``12``, and ``AM`` or ``PM`` follows.  The
     moment is converted to the installation's time zone first, so an instant just after
     midnight UTC reads as the evening before in California.  A naive datetime raises
     ``ValueError``, as :func:`django.utils.timezone.localtime` does.

@@ -66,7 +66,7 @@ GUIDE_SIGNED_OUT = "signed-out.json"
 GUIDE_PRIVATE_FILES = frozenset({GUIDE_ROLES, GUIDE_SIGNED_OUT, "objects.inv"})
 
 #: The directory of the guide's stylesheets, scripts, and fonts, which a signed-out page
-#: needs and which names no page.
+#: needs and which doesn't name a page.
 GUIDE_STATIC_DIR = "_static"
 
 #: The pages Sphinx writes that no source file makes, so no build lists them among its
@@ -122,7 +122,7 @@ def portal_password_change(request: HttpRequest) -> HttpResponseRedirect:
 
     ``/django-admin/password_change/`` would change a password outside the portal's
     rules (the current password, the validators, and the sessions they end), so it
-    answers a redirect.  The Django admin sets nobody else's password at all.
+    answers a redirect.  The Django admin never sets anybody else's password at all.
     """
     return HttpResponseRedirect(reverse("portal", kwargs={"path": "change-password"}))
 
@@ -153,8 +153,8 @@ def user_guide(request: HttpRequest, path: str) -> HttpResponseBase:
     load; any other request from them, including one for a file that does not exist,
     is sent to the portal's login page with ``next`` set to what they asked for, and a
     guide built without ``signed-out.json`` (or with one that is not valid JSON, which
-    is logged as an error) serves them nothing.  A page that ``roles.json`` restricts
-    to some roles is served only to a reader holding one of them (a system
+    is logged as an error) doesn't serve them anything.  A page that ``roles.json``
+    restricts to some roles is served only to a reader holding one of them (a system
     administrator holds them all); anyone else is redirected to the guide's front page.
     Every page the reader is served, and ``searchindex.js``, comes without the pages
     they may not open: the page's navigation leaves out every entry and next or
@@ -166,14 +166,14 @@ def user_guide(request: HttpRequest, path: str) -> HttpResponseBase:
     any path with a part that starts with a dot (the build's ``.doctrees`` and
     ``.buildinfo``) answer 404.  ``path`` is the part after ``/docs/``: an empty path
     or one ending in a slash serves that directory's ``index.html``, a path naming a
-    directory redirects to the slashed form, and a path that names no file, or escapes
-    the root, answers 404.  A guide that has not been built at all answers 404 too, and
-    logs a warning saying so.
+    directory redirects to the slashed form, and a path that doesn't name a file, or
+    escapes the root, answers 404.  A guide that has not been built at all answers 404
+    too, and logs a warning saying so.
 
     The response is marked private and revalidated on every request.  A page and the
     index carry an ``ETag`` naming the file's modification time and the pages taken
     out, so a reader whose roles change is sent the file again; every file carries
-    ``Last-Modified``, which revalidates a request that names no ``ETag``.  Sphinx
+    ``Last-Modified``, which revalidates a request that doesn't name an ``ETag``.  Sphinx
     pages inline the theme's mode switch, so ``script-src`` is replaced with
     ``'self' 'unsafe-inline'`` for the guide alone, exactly as the Wagtail admin's is.
     """
@@ -186,7 +186,7 @@ def user_guide(request: HttpRequest, path: str) -> HttpResponseBase:
             return redirect_to_login(request.get_full_path())
         signed_out_hidden = found
     if not (root / GUIDE_INDEX).is_file():
-        log.warning("The user guide has not been built: %s has no %s", root, GUIDE_INDEX)
+        log.warning("The user guide has not been built: %s is missing %s", root, GUIDE_INDEX)
         raise Http404("The user guide has not been built on this server.")
 
     if path == "" or path.endswith("/"):
@@ -205,8 +205,8 @@ def user_guide(request: HttpRequest, path: str) -> HttpResponseBase:
         roles = _page_roles(page_roles, relative)
         if roles or trims:
             # One query for the reader's roles, which every ``has_any_role`` below then
-            # reads from the prefetched groups; none for a file that is neither gated
-            # nor trimmed, such as a stylesheet.
+            # reads from the prefetched groups.  A file that is neither gated nor
+            # trimmed, such as a stylesheet, doesn't make the query.
             prefetch_related_objects([user], "groups")
         if roles and not user.has_any_role(*roles):
             return HttpResponseRedirect(reverse("user-guide", kwargs={"path": ""}))
@@ -248,10 +248,10 @@ def _signed_out_hidden(root: Path, path: str) -> frozenset[str] | None:
     ``path`` is the part of the request after ``/docs/``.  A signed-out reader may have
     a page ``signed-out.json`` names, or a page directory whose ``index.html`` is one,
     and is then hidden every other page of the build, the search page and the general
-    index among them; a file under ``_static/`` hides
-    nothing, since it names no page.  Everything else answers ``None``: any other page
-    or file, a path that leaves the guide or names nothing, an unbuilt guide, and a
-    guide without a readable ``signed-out.json``.
+    index among them; a file under ``_static/`` doesn't hide any page, since it doesn't
+    name one.  Everything else answers ``None``: any other page or file, a path that
+    leaves the guide or doesn't name anything, an unbuilt guide, and a guide without a
+    readable ``signed-out.json``.
     """
     signed_out_file = root / GUIDE_SIGNED_OUT
     if not signed_out_file.is_file():
@@ -274,7 +274,7 @@ def _signed_out_hidden(root: Path, path: str) -> frozenset[str] | None:
 
 
 def _page_docname(page: Path) -> str | None:
-    """The docname of the guide file ``page``, or ``None`` for a file that is no page.
+    """The docname of the guide file ``page``, or ``None`` for a file that isn't a page.
 
     ``dirhtml`` writes the page ``member/sign-in`` as ``member/sign-in/index.html``, a
     group index ``member/index`` as ``member/index.html``, and the front page as
@@ -290,7 +290,7 @@ def _page_docname(page: Path) -> str | None:
 
 
 def _is_private(relative: Path) -> bool:
-    """True for a guide file no reader is served: a build file naming restricted pages."""
+    """True for a guide file never served: a build file naming restricted pages."""
     if relative.as_posix() in GUIDE_PRIVATE_FILES:
         return True
     return any(part.startswith(".") for part in relative.parts)
@@ -347,14 +347,14 @@ def _guide_roles(root: Path) -> dict[str, tuple[str, ...]]:
 
 
 def _page_roles(page_roles: dict[str, tuple[str, ...]], relative: Path) -> tuple[str, ...]:
-    """The role slugs that may read the guide file ``relative``, or none for everyone.
+    """The role slugs that may read the guide file ``relative``, or ``()`` for everyone.
 
     ``relative`` is where the request resolved to inside the guide, so a path that
     detours through ``..`` is judged by the page it lands on.  ``dirhtml`` writes the
     page ``admin/members`` as ``admin/members/index.html`` and the index page
     ``admin/index`` as ``admin/index.html``, so a file named ``index.html`` is
     looked up under both docnames.  A file that is not a page (a stylesheet, an
-    image) has no roles.
+    image) doesn't have any roles.
     """
     path = relative.as_posix()
     if path == GUIDE_INDEX:
@@ -372,7 +372,7 @@ def _load_roles(roles_file: Path, modified: float) -> dict[str, tuple[str, ...]]
 
     ``modified`` is the file's modification time and part of the cache key, so a
     rebuilt guide is read again on its first request and never before.  A file that is
-    not valid JSON is logged as an error and read as restricting nothing, so every page
+    not valid JSON is logged as an error and read as empty, so every page
     is served, as for a guide built without the roles extension, rather than every
     request failing.
     """
@@ -393,20 +393,22 @@ def _load_signed_out(
     ``modified`` is the file's modification time and part of the cache key, so a
     rebuilt guide is read again on its first request and never before.  A file that is
     not valid JSON, or not the shape the guide build writes, is logged as an error and
-    read as naming no page, so a signed-out visitor is served nothing.
+    read as empty, so a signed-out visitor isn't served anything.
     """
     try:
         raw = json.loads(signed_out_file.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
         log.exception(
-            "The user guide's %s is not valid JSON; serving no page signed out", signed_out_file
+            "The user guide's %s is not valid JSON; sending every signed-out reader to sign in",
+            signed_out_file,
         )
         return frozenset(), frozenset()
     signed_out = raw.get("signed_out") if isinstance(raw, dict) else None
     pages = raw.get("pages") if isinstance(raw, dict) else None
     if not (isinstance(signed_out, list) and isinstance(pages, list)):
         log.error(
-            "The user guide's %s is not the shape the build writes; serving no page signed out",
+            "The user guide's %s is not the shape the build writes; sending every "
+            "signed-out reader to sign in",
             signed_out_file,
         )
         return frozenset(), frozenset()

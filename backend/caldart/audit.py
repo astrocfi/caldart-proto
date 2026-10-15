@@ -20,7 +20,7 @@ Every line has the same shape, which is what makes the journal greppable::
 ``actor`` is the id of the account that acted, ``command`` for a management
 command and the reminder timer, or ``anonymous`` for a request nobody is signed in
 to; ``target`` is the id of the account or record
-acted on, or ``-`` when the action has none.
+acted on, or ``-`` when the action doesn't have one.
 """
 
 from __future__ import annotations
@@ -48,7 +48,7 @@ EMPTY = "-"
 MAX_SLUG_LENGTH = 64
 
 #: A value a record may carry verbatim: it starts with a letter or a digit and
-#: holds nothing that would break the ``key=value`` shape apart.
+#: holds only characters that keep the ``key=value`` shape whole.
 SLUG_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 
 #: What :func:`safe_slug` replaces, and what it strips from the front.
@@ -176,7 +176,7 @@ def record(
     ``actor`` is the account that acted, or the string ``command`` or ``anonymous``;
     ``target``
     is the account or record acted on, given as a model instance or an id, and
-    renders as ``-`` when there is none.  Each keyword in ``fields`` becomes one
+    renders as ``-`` when there isn't one.  Each keyword in ``fields`` becomes one
     ``key=value`` pair, in the order given, after ``action``, ``actor``, and
     ``target``.
 
@@ -216,10 +216,10 @@ def safe_slug(value: str) -> str:
     """``value`` reduced to something a record may carry.
 
     Every character outside a slug becomes ``_``, leading punctuation goes, and
-    the result is cut to ``MAX_SLUG_LENGTH``.  A value with nothing left, such
+    the result is cut to ``MAX_SLUG_LENGTH``.  A value that is empty afterward, such
     as ``""`` or ``"///"``, becomes ``unnamed``.  Use it for a file name or a
-    database name an operator typed; an id or a slug the application owns needs
-    no such treatment.
+    database name an operator typed; an id or a slug the application owns doesn't
+    need it.
     """
     cleaned = UNSAFE_RE.sub("_", value).lstrip(LEADING_PUNCTUATION)[:MAX_SLUG_LENGTH]
     return cleaned or UNNAMED
@@ -238,7 +238,7 @@ def _actor_id(actor: Model | str) -> str:
 
 
 def _target_id(target: Model | int | None) -> str:
-    """``target``'s id, or ``-`` when the action has no target."""
+    """``target``'s id, or ``-`` when the action doesn't have one."""
     if target is None:
         return EMPTY
     if isinstance(target, Model):

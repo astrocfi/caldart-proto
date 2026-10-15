@@ -35,7 +35,7 @@ URL_PREFIX_SEGMENT = re.compile(r"[A-Za-z0-9._~-]+")
 
 
 def normalize_url_prefix(raw: str) -> str:
-    """The URL prefix ``raw`` names, as ``/segment[/segment...]``, or ``""`` for none.
+    """The URL prefix ``raw`` names, as ``/segment[/segment...]``, or ``""`` for the root.
 
     Surrounding whitespace is ignored, and one leading and one trailing slash are
     optional, so ``caldart-proto``, ``/caldart-proto`` and ``/caldart-proto/`` all read
@@ -52,7 +52,7 @@ def normalize_url_prefix(raw: str) -> str:
         if URL_PREFIX_SEGMENT.fullmatch(segment) is None or segment in {".", ".."}:
             raise ImproperlyConfigured(
                 f"URL_PREFIX {raw!r} is not a path such as /caldart-proto: each segment "
-                "is letters, digits, '.', '_', '~' or '-', with no empty segment."
+                "is letters, digits, '.', '_', '~' or '-', and none is empty."
             )
     return "/" + "/".join(segments)
 
@@ -487,7 +487,7 @@ PAYMENT_THROTTLE_RATES = {
 
 # The smallest gift, in cents, that a payer may choose on its own: a donation from the
 # portal or the public donation page, one-time or recurring.  A contribution added to a
-# membership fee has no minimum.
+# membership fee doesn't have a minimum.
 DONATION_MINIMUM_CENTS = env.int("DONATION_MINIMUM_CENTS", default=500)
 if DONATION_MINIMUM_CENTS < 1:
     raise ImproperlyConfigured(
@@ -570,8 +570,8 @@ WAGTAILDOCS_EXTENSIONS = ["csv", "docx", "key", "odt", "pdf", "pptx", "rtf", "tx
 WAGTAILDOCS_SERVE_METHOD = "serve_view"
 WAGTAILIMAGES_EXTENSIONS = ["gif", "jpg", "jpeg", "png", "webp", "svg"]
 WAGTAIL_APPEND_SLASH = True
-# Accounts are managed in the portal alone, so Wagtail changes no password or
-# address: caldart.urls closes its account screens, and these keep its forms and
+# Accounts are managed in the portal alone, so Wagtail never changes a password or
+# an address: caldart.urls closes its account screens, and these keep its forms and
 # login page from offering what those screens did.
 WAGTAIL_PASSWORD_MANAGEMENT_ENABLED = False
 WAGTAIL_PASSWORD_RESET_ENABLED = False
@@ -660,7 +660,7 @@ CONTENT_SECURITY_POLICY = {
         "font-src": [SELF, "data:"],
         # Stripe's Payment Element and Wagtail's admin both set styles from
         # JavaScript.  No template carries an inline script, so ``script-src``
-        # needs no matching relaxation outside the admin and the user guide,
+        # doesn't need a matching relaxation outside the admin and the user guide,
         # whose Sphinx pages inline the theme's mode switch.
         "style-src": [SELF, UNSAFE_INLINE],
     }
