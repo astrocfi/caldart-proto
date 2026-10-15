@@ -48,6 +48,7 @@ Every endpoint that answers with a mandate answers with this shape.
      "failure_count": 0,
      "next_charge_on": "2027-03-14",
      "last_error": "",
+     "last_charge_closed": false,
      "last_charged_at": "2026-03-14T18:22:05Z",
      "canceled_at": null,
      "created_at": "2025-03-14T18:21:58Z"
@@ -66,8 +67,13 @@ there is a plan, plus ``contribution_cents``.  ``status`` is ``pending``,
 waiting charge, and failing that the day stored on the mandate -- the day the
 member chose -- or ``today`` when that has already gone by, because the next scan
 is what takes a charge the scanner missed.  It is ``null`` only for a mandate that
-is not active.  ``last_error`` carries the reason the most recent charge was
-refused, which is what a paused mandate shows the member.  The provider's own
+is not active.  ``last_error`` carries the reason the most recent failed charge
+failed, which is what a paused mandate shows the member.  ``last_charge_closed``
+is true when that charge was one a treasurer closed as failed
+(:ref:`renewals-in-doubt`), which was never refused: the member's own
+``/me/renewal`` and ``/me/donation`` then read ``last_error`` as *The last charge
+couldn't be completed.*, and the finance screens read what the attempt recorded.
+The provider's own
 references -- the Stripe customer and payment method, the PayPal vault id -- are
 never sent to a browser.
 
@@ -320,8 +326,9 @@ scheduled first, then every tried charge by ``attempted_at``, newest first.
 is true for a ``scheduled`` charge the provider may have taken and cannot say about:
 the scan doesn't charge anything more for it until a treasurer settles it, and
 ``error`` says why.  ``mandate_kind`` is what the charge's mandate charges for:
-``renewal``, ``both``, or ``contribution``, as ``kind`` is for a mandate.  ``flagged_at`` is when the treasurer was last told the charge needs
-checking, and ``null`` until then (:ref:`renewals-in-doubt`).
+``renewal``, ``both``, or ``contribution``, as ``kind`` is for a mandate.
+``flagged_at`` is when the treasurer was last told the charge needs checking, and
+``null`` until then (:ref:`renewals-in-doubt`).
 ``payment_amount_cents`` is what the attempt's payment comes to and
 ``payment_sent_at`` when its charge was first sent to the provider; both are ``null``
 before there is a payment.
@@ -362,8 +369,8 @@ shows.
    The provider didn't take anything: the hold is released and the next scan charges the
    same payment again, under the same ``invoice_id``.
 ``failed``
-   Neither: the attempt is closed as failed with no charge, the payment is marked
-   failed, and an active mandate is paused.  Its member is emailed
+   Neither: the attempt is closed as failed, so it isn't charged, the payment is
+   marked failed, and an active mandate is paused.  Its member is emailed
    ``renewal_failed`` after the answer has gone: the charge couldn't be completed,
    the renewal or donation is paused, and where to pay by hand and turn it back on
    (:ref:`renewals-in-doubt`).  A mandate that was not active is left as it is, and
@@ -371,18 +378,22 @@ shows.
 
 Each clears ``flagged_at`` and writes a ``renewal.settle`` audit record naming the
 caller, with the attempt, the payment, the outcome, and any reference.  The answer
-is the attempt as it stands afterwards, shaped as in the list above, with three
+is the attempt as it stands afterwards, shaped as in the list above, with four
 fields more, so the treasurer who closed a charge can get in touch with the member:
 
 .. code-block:: json
 
    {"user_email": "maria@example.org", "user_phone": "415-555-0142",
-    "member_emailed": true}
+    "mandate_paused": true, "member_emailed": true}
 
-``user_email`` is the member's address and ``user_phone`` the phone number on their
-profile, an empty string when they don't have one.  ``member_emailed`` is true when the
-answer hands the member an email to send once it has gone (``paid``, and ``failed``
-on an active mandate) and the member has an address; it is false otherwise.
+For ``failed``, ``user_email`` is the member's address and ``user_phone`` the phone
+number on their profile, an empty string when they don't have one; for ``paid``
+and ``released`` both are ``null``.  ``mandate_paused`` is true for ``failed`` when
+the mandate stands paused afterwards, whoever paused it, and false otherwise.
+``member_emailed`` is true when the answer hands the member an email to send once
+it has gone (``paid``, and ``failed`` on an active mandate) and the member has an
+address; it is false otherwise.  The two are independent: a member without an
+address isn't emailed, and their renewal is still paused.
 
 The payment is locked with the attempt.  Once it has gone through, ``released`` and
 ``failed`` are refused: **400** ``{"outcome": ["This charge's payment has already gone

@@ -558,8 +558,10 @@ Template                   When
                            when their membership had lapsed too long to catch up
                            (``lapsed``), and when a treasurer closes a charge as
                            failed (``closed``): the charge couldn't be
-                           completed, it is paused, the day the term ends or
-                           ended, and the Renew and Donate screens' links.
+                           completed, it is paused, and, for a renewal, the
+                           day the term ends or ended.  It links the Renew
+                           screen for a renewal or the Donate screen for a
+                           recurring donation, and My payments.
 ``renewal_canceled``       The member or an administrator turned it off.
 =========================  ====================================================
 

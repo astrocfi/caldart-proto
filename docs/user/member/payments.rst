@@ -126,7 +126,9 @@ that. If all four attempts are refused, automatic renewal switches itself off, y
 are told so, and the ordinary reminders take over. Your current membership runs to
 its end date as it would anyway. The card's status then reads **Stopped** and repeats
 the reason the last charge was refused. **Turn on again** saves another method and
-starts it again.
+starts it again. When the treasurer closed the last charge, the card says
+*Automatic renewal is paused because the last charge couldn't be completed, so you
+won't be charged automatically.* in place of the reason.
 
 If CalDART misses your charge day, for instance because the overnight run was not
 working, the next run takes the charge on the spot and the email says so. The new

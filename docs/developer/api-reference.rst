@@ -499,9 +499,9 @@ data, so a volunteer who keeps the books reads the money without reading
 anybody's medical currency.  A member's contact details reach the finance roles
 only where the books need them: the email address on the ledger and the renewal
 lists, a donor's contact details on the donors report, and a member's address and
-phone number in the answer to settling a renewal charge,
-``POST /admin/renewals/attempts/{id}/settle``, so the treasurer who closes one can
-get in touch with that member.  An ``account_admin`` holds both, except the
+phone number in the answer to closing a renewal charge as failed,
+``POST /admin/renewals/attempts/{id}/settle`` with ``failed``, so the treasurer who
+closes one can get in touch with that member.  An ``account_admin`` holds both, except the
 donors report, ``GET /admin/payments/donors``, which is the treasurer's alone.
 A donor appears on no member list, so the portal reaches a donor's record
 from the donors report for a reader holding both roles, and from the
