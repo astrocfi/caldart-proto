@@ -6060,10 +6060,13 @@ of the app is commands and an API over the file system and the database connecti
 ----------
 
 One run of a scheduled job through ``manage.py run_job``, whatever its outcome
-(:ref:`deploy-job-runs`): every run a timer starts, and the live renewal scan and
-the FAA registry import a **Run now** starts.  A practice run, and a run of any other
-job started with **Run now**, writes no row.  The rows are pruned to the last 90 days
-(``apps.sysadmin.recording.RETENTION``) whenever a run starts.
+(:ref:`deploy-job-runs`): every run a timer starts, and every real **Run now**.  A
+practice run doesn't write a row, and neither does a renewal scan that finds another
+under way.  The rows are pruned to the last 90 days
+(``apps.sysadmin.recording.RETENTION``) whenever a run starts, and a job keeps only its
+newest ``idle`` row.  A restore closes every row its dump caught ``running`` as
+``failed``, with the error ``The database was restored from a backup taken while this
+run was under way.``
 
 .. list-table::
    :header-rows: 1
@@ -6103,8 +6106,10 @@ job started with **Run now**, writes no row.  The rows are pruned to the last 90
    * - ``exit_status``
      - ``SmallIntegerField``
      - null; default ``NULL``
-     - the status the process exits with: 0, a ``CommandError``'s ``returncode``, or
-       1 for an unexpected exception; ``NULL`` while it runs
+     - the status the process exits with: 0, 2 for options the command's parser
+       refuses, a ``CommandError``'s ``returncode``, 143 for ``SIGTERM``, or 1 for an
+       unexpected exception (a **Run now** in the request records 0 or 1); ``NULL``
+       while it runs
    * - ``started_by``
      - ``ForeignKey`` to ``accounts.User``, ``SET_NULL``
      - null; default ``NULL``
@@ -6129,6 +6134,12 @@ job started with **Run now**, writes no row.  The rows are pruned to the last 90
      - ``TextField``
      - not null; default ``""``
      - an unexpected exception's traceback
+   * - ``idle``
+     - ``BooleanField``
+     - not null; default ``False``
+     - a run that succeeded without finding anything to do, such as a bulk sender run
+       without a bulk email due; when one is saved, the job's other idle rows are
+       deleted
 
 **Constraints, indexes, and ordering.**
 

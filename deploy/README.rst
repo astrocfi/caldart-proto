@@ -584,8 +584,10 @@ sandbox (``ProtectSystem=strict``, no capabilities).
        has come, and exits at once when none is due
      - every minute
 
-Each timer starts the service of the same name (``caldart-backup.service``
-and so on), which runs its command and exits.  ``run_job`` runs the command
+Every time above is Pacific time: each timer's ``OnCalendar=`` names the site's
+time zone, ``America/Los_Angeles``, so the jobs run at those times whatever time
+zone the server itself is set to.  Each timer starts the service of the same name
+(``caldart-backup.service`` and so on), which runs its command and exits.  ``run_job`` runs the command
 unchanged, its output still going to the journal and its exit status its own, and
 keeps a record of the run, with that output, which a system administrator reads
 from **View log** in the portal.  Every timer but the bulk email
@@ -970,8 +972,8 @@ Backups
 ``/opt/caldart/backups/`` as ``caldart-YYYYMMDD-HHMMSS.sql.gz``, then deletes
 the generated dumps older than ``BACKUP_RETENTION_DAYS`` days (30 as
 installed).  Change the number in the environment file; the next run prunes by
-it.  A dump given its own name is never pruned, and when a dump fails no dump is
-pruned, so a failing backup never deletes the last good ones.  The install takes one dump
+it.  A dump given its own name is never pruned, and a dump that fails leaves every
+dump in place, so a failing backup never deletes the last good ones.  The install takes one dump
 straight away, and every upgrade takes one before it changes anything.
 
 Take one by hand, or check on the timer::

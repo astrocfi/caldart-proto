@@ -162,7 +162,10 @@ the generated ones more than ``BACKUP_RETENTION_DAYS`` days old::
 systemd expands the variable from the environment file, whose production
 template keeps dumps for 30 days (``BACKUP_RETENTION_DAYS=30``,
 :doc:`configuration`); change the number there and the next run prunes by it,
-with no ``daemon-reload``.  ``--prune-days`` runs only after a dump that succeeded,
+without a ``daemon-reload``.  ``--prune-days`` takes at least 1, so the dump just written always stays, and
+runs only after a dump that succeeded; an empty value, as an unset
+``BACKUP_RETENTION_DAYS`` gives, prints a warning and keeps every dump, and a value
+that isn't a whole number of at least 1 fails the unit after the dump.  It
 reads each file's modification time, and matches only the generated
 ``caldart-<timestamp>.sql.gz`` names, so a dump you gave your own ``--name`` is
 left alone; it prints a line for each dump it deletes.  ``run_job`` keeps a record
@@ -177,7 +180,7 @@ directory out by hand: it has to name whatever ``BACKUP_DIR`` points at, or
 expects a local ``pg_dump`` with ``DB_BACKUP_VIA_DOCKER=false``, which is what the
 installer writes; going through ``docker compose`` instead needs the ``caldart`` user
 in the ``docker`` group.  A dump that fails exits non-zero before the prune, so the
-unit reads ``failed`` and no dump is deleted.
+unit reads ``failed`` and every dump stays.
 
 A dump on the same disk as the database is not a backup.  Copy them somewhere
 else — another host, object storage, an external disk — as a second step,
@@ -284,6 +287,13 @@ Leave the web unit and the timers stopped: :ref:`backup-after-restore` starts
 them again once its checks pass.  The ``migrate`` is deliberate: a dump taken
 from an older release restores an older schema, and ``manage.py health`` will
 report the pending migrations if you forget.
+
+A dump holds the record of every scheduled run under way while it was taken, the
+backup's own among them.  Once the dump is replayed, ``db_restore`` closes each of
+those rows as failed, with the error *The database was restored from a backup taken
+while this run was under way.*, since no process is left to finish them; the
+**Scheduled jobs** health check then shows them until each job's next run
+(:ref:`deploy-job-runs`).
 
 **Restoring onto a fresh machine** is the same, into an empty database:
 follow :doc:`deployment` up to its database step, restore, migrate,

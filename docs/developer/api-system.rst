@@ -564,9 +564,12 @@ what is running.
 
 ``scheduled_jobs``
    Every scheduled job and how it stands, exactly as ``GET /system/jobs`` answers
-   it, and an empty list when ``db`` is not ``ok``.  The portal's **Scheduled
-   jobs** check reads it: a problem for each ``failed`` or ``stopped`` job, a
-   warning for each ``overdue`` or ``never_run`` one.
+   it, and ``null`` when ``db`` is not ``ok`` or the record of runs can't be read,
+   as while ``apps.sysadmin``'s migration waits to be applied after an upgrade; the
+   read runs in a savepoint, so the rest of the report stands.  The portal's
+   **Scheduled jobs** check reads it: a problem for each ``failed`` or ``stopped``
+   job, a warning for each ``overdue`` or ``never_run`` one, and *Unknown* for
+   ``null``.
 
 Statuses: **200**; **401** when anonymous; **403** for every other role.
 
@@ -797,8 +800,13 @@ Scheduled jobs
 --------------
 
 Every run of a scheduled job through ``manage.py run_job`` is a ``JobRun`` row
-(:ref:`deploy-job-runs`): every run a timer starts, and the live renewal scan and
-the FAA registry import a **Run now** starts.  A job is named by its key, the
+(:ref:`deploy-job-runs`): every run a timer starts, and every real **Run now**,
+under the caller, a practice run apart: ``POST /system/reminders/run``,
+``/system/reports/run``, ``/system/statements/run`` (with ``--year <year>`` as its
+options), ``/system/bounces/run`` (failed with the check's own sentence when the
+mailbox can't be read), and ``/system/bulk-email/run`` each record their real run,
+failed when the command would exit non-zero, and the live renewal scan and the
+registry import record theirs through ``run_job``.  A job is named by its key, the
 ``<key>`` of its ``caldart-<key>.timer``: ``backup``, ``registry``, ``reports``,
 ``renewals``, ``statements``, ``reminders``, ``bounces``, and ``bulk-email``.  The
 records hold what the runs printed, which can name members and their addresses, so
@@ -864,9 +872,11 @@ Statuses: **200**; **401** when anonymous; **403** for any other role.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 One job's runs, newest first, with the standard pagination (25 by default,
-``page_size`` up to 200), each run as above and without its output.
+``page_size`` up to 200), each run as above and without its output.  ``?outcome=failed``
+keeps the runs that failed and the ones that read ``stopped``.
 
-Statuses: **200**; **401** when anonymous; **403** for any other role; **404**
+Statuses: **200**; **400** with ``{"outcome": ["Choose failed, or leave it out."]}``
+for any other ``outcome``; **401** when anonymous; **403** for any other role; **404**
 with ``{"detail": "No such scheduled job."}`` for a key the table does not have.
 
 ``GET /system/jobs/runs/{id}``
@@ -884,7 +894,7 @@ One run, as above, with three more fields:
    The traceback of an unexpected exception, and empty otherwise.
 
 Statuses: **200**; **401** when anonymous; **403** for any other role; **404** for
-an id no run has, which includes a run pruned for its age.
+an id that isn't a run's, as for a run pruned for its age.
 
 
 Site

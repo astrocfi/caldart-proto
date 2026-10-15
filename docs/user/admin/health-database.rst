@@ -44,8 +44,11 @@ them again.
   though the site has been running long enough for it to. Under the value, one line names
   each job and what happened, such as *Automatic renewal charges failed at 6:30 AM: 2
   renewal charges need checking*, with **View log** beside it, which opens the job's runs
-  (:doc:`job-log`). A late job usually means the server has stopped starting it; tell the
-  person who installed the site.
+  (:doc:`job-log`). A job reads well again once a later run succeeds, the next scheduled
+  one or a real **Run now**: settling the renewal charges a treasurer must check doesn't
+  clear *Automatic renewal charges* by itself, the next run does. A late job usually
+  means the server has stopped starting it; tell the person who installed the site.
+  *Unknown* means the site could not read its record of the runs.
 - **Version**: which release is running. Quote it when you report a problem.
 - **Debug mode**: must read *Off*. If a live site reads *On*, ask the person who installed
   the site to turn it off at once, because it shows internal details to anyone who causes
@@ -158,7 +161,7 @@ no practice run, because the load changes nothing but the copy. **Run now** star
 once;
 it reads *Running since* and the time, and the button waits, until the load ends a few
 minutes later. A press while one runs says *An import is already running.* Under it, *Last
-nightly load* gives the last load's time and outcome, with **View log** (:doc:`job-log`).
+load* gives the last load's time and outcome, with **View log** (:doc:`job-log`).
 
 
 Routine

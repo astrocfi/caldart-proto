@@ -498,9 +498,10 @@ Beyond Django's and Wagtail's own, this project adds:
    * - ``db_backup [--name NAME] [--prune-days DAYS]``
      - write ``caldart-<timestamp>.sql.gz`` into ``BACKUP_DIR``, or ``NAME``
        instead of the generated file name; ``--prune-days`` then deletes the
-       generated dumps more than ``DAYS`` days old
+       generated dumps more than ``DAYS`` days old (at least 1; empty keeps them all)
    * - ``db_restore <file> [--yes]``
-     - drop the schema and replay a dump into it
+     - drop the schema and replay a dump into it, then close the job runs it caught
+       under way
    * - ``db_reset [--seed] [--noinput]``
      - drop and recreate the schema, migrate, create the cache table, seed roles
        and plans, optionally seed data
@@ -510,8 +511,8 @@ Beyond Django's and Wagtail's own, this project adds:
        a monitoring check
    * - ``run_job [--started-by USER_ID] <command> [options...]``
      - run a scheduled job's command with its options and record the run, its
-       output, and how it ended for the portal's job logs; the systemd units call
-       every job through it (:ref:`deploy-job-runs`)
+       output, and how it ended for the portal's job logs, exiting as the command
+       would; the systemd units call every job through it (:ref:`deploy-job-runs`)
    * - ``send_renewal_reminders [--dry-run] [--today YYYY-MM-DD]``
      - the renewal reminder scan (:doc:`reminders`)
    * - ``run_auto_renewals [--dry-run] [--today YYYY-MM-DD] [--scan-id ID]``

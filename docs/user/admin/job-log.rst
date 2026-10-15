@@ -19,7 +19,7 @@ Every job has a **View log** link beside a line that reads, for example, *Last r
 
 - each panel of :doc:`scheduled`, under what the job does;
 - **Backups** on :doc:`health-database`, for the nightly backup (*Last nightly backup*);
-- **FAA aircraft data** on the same page, for the nightly load (*Last nightly load*);
+- **FAA aircraft data** on the same page, for the nightly load (*Last load*);
 - the **Scheduled jobs** health check on :doc:`health-database`, beside each job it names.
 
 A job that has not been run since the site began keeping these records reads *No run
@@ -45,33 +45,39 @@ charges log**. **Back to scheduled tasks**, or **Back to health and database** f
 backup and the FAA load, returns to the job's panel.
 
 The table lists the job's runs newest first, 25 to a page, with **Previous** and **Next**
-under it. A caption above it counts them, such as *30 runs*. Each row has:
+under it. A caption above it counts them, such as *30 runs*. **Show** above the table
+picks *All runs* or *Failed runs*, the runs that failed or stopped. The page and the
+choice stay in the page's address, so a run's **Back** link, or a bookmark, returns to
+the same page. Each row has:
 
 - **Started**: the date and time the run began. Press it to open the run.
 - **Started by**: *Server* for a run the server started on its schedule, or the name of the
   system administrator who started it with **Run now**.
 - **Outcome**: a colored dot and a word. *Succeeded* and *Failed* say how a finished run
-  ended. *Running* is a run still under way. *Stopped* is a run that is still marked as
-  running long after it should have ended, which means the server stopped it, or restarted,
-  partway through.
+  ended; a run the server stopped at its time limit reads *Failed* with the error
+  *Stopped by the server before it finished.* *Running* is a run still under way.
+  *Stopped* is a run that is still marked as running long after it should have ended,
+  which means the server restarted partway through.
 - **Duration**: how long the run took, such as *2 min 5 s*, or a dash while it runs.
 - **Error**: the first line of a failed run's reason.
 
 On a narrow screen the table leaves out **Error**, then **Started by**, then **Duration**,
 and keeps **Started** and **Outcome** in sight.
 
-The site keeps 90 days of runs. Older ones are deleted as new ones are recorded, and a job
-that runs every minute, such as the bulk email sender, fills many pages in that time. The
-server keeps its own copy of everything, for the person who installed the site.
+The site keeps 90 days of runs. Older ones are deleted as new ones are recorded. The bulk
+email sender runs every minute, so of its runs that didn't find anything to send, only
+the newest is kept; every run that sent something stays. The server keeps its own copy of
+everything, for the person who installed the site.
 
 Which runs are recorded
 -----------------------
 
-Every run the server starts on its schedule is recorded. So is a real run of the automatic
-renewal charges, and an FAA data load, started with **Run now**: both run on the server
-after the page answers, and each names who pressed the button. A practice run, and a real
-run of any other job started with **Run now**, shows its result on its panel and is not
-added to the log.
+Every run the server starts on its schedule is recorded. So is every real run started
+with **Run now** on a job's panel, under the name of whoever pressed it, so a successful
+real run clears a failure from the **Scheduled jobs** health check. A practice run
+doesn't change anything and is not recorded. An automatic renewal run that finds another one
+under way stops at once and is not recorded either: the run under way has its own
+record.
 
 
 One run
@@ -109,9 +115,10 @@ not run when it should have reads as a warning.
 
 - **Automatic renewal charges** fails every morning while any renewal charge waits for the
   treasurer to check it with the payment provider. Its error says how many. The treasurer
-  settles them on the finance **Renewals** tab (:doc:`../finance/renewals`), and the next
-  morning's run succeeds.
-- A job that fails once and succeeds the next time needs nothing more. One that fails every
-  time, or a job that has stopped running, needs the person who installed the site: send
+  settles them on the finance **Renewals** tab (:doc:`../finance/renewals`). The failure
+  stays on the health check until the next run succeeds: the next morning's, or a real
+  **Run now** on :doc:`scheduled`.
+- A job that fails once and succeeds the next time doesn't need anything more. One that
+  fails every time, or a job that has stopped running, needs the person who installed the site: send
   them the job's name, the run's time, and its **Error** and **Output**.
 - Meanwhile **Run now** on the job's panel does the same work by hand.

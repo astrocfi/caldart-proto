@@ -1703,9 +1703,13 @@ such as ``manage.py run_job run_auto_renewals``.  ``run_job`` runs the command w
 ``call_command`` and passes every option after its name on unchanged.  What the
 command writes still goes to standard output and standard error, so **the journal
 keeps everything**, as ``journalctl -u caldart-<job>`` shows it, and the process
-exits with the status the command alone would have: a ``CommandError``'s
-``returncode``, or 1 for an unexpected exception, whose traceback Python prints as
-before.  A unit that fails still reads ``failed`` to systemd: ``run_auto_renewals``
+exits with the status the command alone would have: 2 for options the command's
+parser refuses, a ``CommandError``'s ``returncode``, 1 for an unexpected exception,
+whose traceback Python prints as before, and 143 for ``SIGTERM``, as when systemd
+stops the unit at ``TimeoutStartSec=``: the row is first closed as failed with
+*Stopped by the server before it finished.*, then the process ends of the same
+signal.  ``run_job`` refuses ``-h`` and ``--help`` among the options, exiting 1,
+since the help would be recorded as a run; ``manage.py <command> --help`` prints it.  A unit that fails still reads ``failed`` to systemd: ``run_auto_renewals``
 exits non-zero every morning while a renewal charge waits for a treasurer, for one.
 
 **The site keeps a copy** as a ``sysadmin.JobRun`` row (:doc:`data-model`): the
@@ -1714,26 +1718,34 @@ status, who started it, and its output, with standard output, standard error, an
 every line a console logging handler printed interleaved in the order written.
 The row keeps the last 65,536 characters of the output and says when it cut the
 rest; it keeps a ``CommandError``'s text, or an exception's type, message, and
-traceback.  Rows older than 90 days are deleted whenever a run starts.  Both
-limits are ``OUTPUT_LIMIT`` and ``RETENTION`` in ``apps/sysadmin/recording.py``.  A
+traceback, without any NUL character, which Postgres text refuses.  Rows older
+than 90 days are deleted whenever a run starts, and a run that succeeded without
+finding anything to do (a bulk sender minute when nothing was due) replaces the
+job's previous such row, so the sender keeps one quiet run and every run that sent
+mail.  A run long enough to outlive its database connection gets a fresh one before
+the row is saved.  Both limits are ``OUTPUT_LIMIT`` and ``RETENTION`` in ``apps/sysadmin/recording.py``.  A
 system administrator reads the rows on each job's log in the portal, from **View
 log** on the Scheduled tasks and Health and database pages, through the
 ``/system/jobs`` routes (:ref:`api-system-jobs`).  When the row cannot be written,
 as with the database down, the command runs anyway, unrecorded, and a warning says
 why.
 
-A run the timer starts names nobody as its starter.  The two **Run now** presses that
+A run the timer starts doesn't name a starter.  The two **Run now** presses that
 start a process of their own, a live renewal scan and an FAA registry import, run
-``run_job --started-by <id>``, so their rows name the administrator.  The other
-**Run now** presses, and every practice run, answer inside the request and leave
-no row.  A command run by hand with ``sudo deploy/manage.sh run_job <command> ...``
+``run_job --started-by <id>``, so their rows name the administrator.  Every other real
+**Run now** runs inside the request through ``recorded_request_run``
+(``apps/sysadmin/recording.py``), under the caller: its output is the lines the
+command would print and the log lines of the request's own thread, and it fails as the
+command would, so a real run that succeeds clears a failure from the health check.
+A practice run isn't recorded, and neither is a renewal scan that finds another one
+under way, which the scan under way covers.  A command run by hand with ``sudo deploy/manage.sh run_job <command> ...``
 is recorded as the server's; ``sudo deploy/manage.sh <command> ...`` is not
 recorded at all, which is the way to rehearse with ``--dry-run`` without the
 rehearsal becoming the job's latest run.
 
 The output names members and their addresses, and is shown only to system
 administrators.  None of the commands prints a credential: the backup prints the
-dump's path and size, and ``pg_dump``'s errors carry no password, which reaches it
+dump's path and size, and ``pg_dump``'s errors don't carry a password, which reaches it
 through ``PGPASSWORD``; the bounce check's errors name the mailbox's host and never
 its password; and the payment providers' errors name a charge, never a key.
 
@@ -1747,8 +1759,10 @@ through ``run_job``, and no stale limit is shorter than the unit's
 table in the same commit.
 
 The **Scheduled jobs** health check reads each job's latest row against the table.
-It reads the timer's schedule on the server's own clock, in the system time zone
-the timers fire in.  A job is a problem when its latest run failed, or is still
+Every timer's ``OnCalendar=`` names the site's ``TIME_ZONE``,
+``America/Los_Angeles``, so it fires on the site's clock whatever time zone the
+server is set to, and the check reads the schedule in that same zone; the drift test
+fails a timer that names another.  A job is a problem when its latest run failed, or is still
 unfinished past its stale limit (the process is gone, so the run reads as
 *stopped*).  It is a warning when its timer fired at least the grace period ago
 and no run started since, or when it has never run although a trigger has passed
