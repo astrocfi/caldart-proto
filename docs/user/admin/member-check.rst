@@ -42,7 +42,7 @@ The box searches as you type, and one box takes four kinds of search:
   (415) 555-0100, 415-555-0100, and 4155550100 all find the same person, whether it is
   their phone or their alternate phone.
 - **An N-number.** Every member who lists that airplane on their profile. The leading N is
-  optional, and spaces, dashes, and capitals are ignored. A search with no digits in it is
+  optional, and spaces, dashes, and capitals are ignored. A search without any digits in it is
   never read as a registration, so looking for "Nate" finds Nate.
 
 The search finds members and friends of CalDART. A friend supports CalDART without paying
@@ -69,9 +69,9 @@ current and the pilot certificate, the medical, and the photo ID are all verifie
 and names each reason:
 
 - *Membership expired*; *Not yet paid* for somebody who joined as a member and has
-  never paid; or, for a friend, *Friend of CalDART, not a member*. A friend pays no dues,
+  never paid; or, for a friend, *Friend of CalDART, not a member*. A friend doesn't pay dues,
   so a friend is always a NO-GO on membership.
-- *Not a pilot* for somebody with no pilot certificate. It is their only reason besides the
+- *Not a pilot* for somebody without a pilot certificate. It is their only reason besides the
   membership: the medical and photo ID of a person who cannot fly are not listed.
 - *Medical expired*, *No medical on file*, or *No medical expiry on file* when the member
   chose a class of medical and never entered its date.
@@ -80,7 +80,7 @@ and names each reason:
 - *No photo ID on file* when the photo ID reads *Not provided*.
 
 Each document gives one reason at most. A medical that has expired, or that is not on
-file, reads that and nothing more, verified or not: verifying it would not clear the
+file, reads only that, verified or not: verifying it would not clear the
 pilot. When the member or an administrator changes a verified item, the verification is
 cleared and the item needs checking again.
 
@@ -98,7 +98,7 @@ counts as current up to and including its last day.
 **Medical** shows **Current**, **Expired** once its date has passed, or **Not current**
 when no date was entered, then the kind of medical (BasicMed or the class), its expiry
 date, and its mark. A medical expiring today still counts as current. A medical of *None*
-shows the word *None* and nothing else.
+shows only the word *None*.
 
 **Certificate** shows the certificate, its number, any ratings (**Instrument** among them
 when the pilot holds an instrument rating), and its mark.
@@ -110,7 +110,7 @@ Nothing else about the document is recorded.
 Each mark reads **Verified** followed by who verified it and on which day, such as
 *Verified by Dana Leader on 05/01/2026*, or **Not verified** in amber, the color of a check
 still to be made. An item the person does not hold (*Not a pilot*, a medical of *None*, or
-a photo ID of *Not provided*) has nothing to verify and shows no mark.
+a photo ID of *Not provided*) doesn't have anything to verify and doesn't show a mark.
 
 **Aircraft** lists every airplane on the member's profile, each with its insurance status
 and expiry date. The status gives the same answer as the :doc:`aircraft-check`:
@@ -125,10 +125,11 @@ and expiry date. The status gives the same answer as the :doc:`aircraft-check`:
 An airplane CalDART's coverage policy leaves out, such as a helicopter while helicopters
 are excluded, reads **Not covered**, beside a red dot, in place of its insurance status, and the
 reason follows its expiry date, such as *Not covered: helicopters are excluded by
-CalDART's policy*. An airplane with no category recorded reads *Category not recorded*
-there instead.
+CalDART's policy*. An airplane without a recorded category reads *Category not
+recorded* there instead.
 
-With no airplanes on the profile the card says *No aircraft on this member's profile.*
+When the profile doesn't list any airplanes, the card says *No aircraft on this member's
+profile.*
 
 
 Verifying the documents
@@ -140,21 +141,22 @@ administrator see **Verify** under the person's name. Press it to open the
 
 #. Check the fields against the documents in front of you: **Pilot certificate**,
    **Certificate number**, **Medical**, **Medical expires**, and **Photo ID**. Correct
-   any that are wrong. **Certificate number** takes seven digits and nothing else, and
+   any that are wrong. **Certificate number** takes seven digits only, and
    it and **Medical expires** may be left blank.
 #. Check **Pilot certificate verified**, **Medical verified**, and **Photo ID verified**
    for each document you have seen. The boxes open checked for the items already
    verified, and changing a field unchecks its box, so you check it again only once you
    have checked the new value. Uncheck a box to clear that verification. An item the
    person does not hold (*Not a pilot*, a medical of *None*, or a photo ID of *Not
-   provided*) has no box, since there is nothing to verify; choose what they showed you
-   and its box appears. With none of the three held, the panel says *Nothing to verify
-   yet*.
-#. Press **Save verification** at the foot of the panel. The toast reads *Verification saved*, and the card shows the
-   new marks and verdict. **Cancel**, or Escape, closes the panel and changes nothing.
+   provided*) doesn't have a box, since there isn't anything to verify; choose what they
+   showed you and its box appears. When the person doesn't hold any of the three, the panel
+   says *Nothing to verify yet*.
+#. Press **Save verification** at the foot of the panel. The toast reads *Verification
+   saved*, and the card shows the new marks and verdict. **Cancel**, or Escape, closes the
+   panel and doesn't change anything.
    Either way you are back on **Verify**.
 
-A field the record refuses, such as a certificate with no number, shows its message under
+A field the record refuses, such as a certificate without a number, shows its message under
 the field and nothing is saved. You may verify your own documents. Each save that
 verifies or clears an item emails the people subscribed to *Verification recorded* on the
 :doc:`notifications` screen, once for the whole save.
@@ -165,10 +167,10 @@ Making someone a verifier
 
 A DART leader, a user administrator, and a system administrator also see **Make a
 verifier** under the person's name, or **Remove as verifier** when they already hold the
-role, on everybody's card but their own: nobody changes their own roles. It asks first, saying what the change means, with **Cancel** already chosen, so a
-stray Enter changes nothing. Press **Yes, make a verifier** (or **Yes, remove as
-verifier**) to change the role; a toast confirms it. **Cancel**, or Escape, leaves the role
-as it was.
+role, on everybody's card but their own: nobody changes their own roles. It asks first,
+saying what the change means, with **Cancel** already chosen, so a stray Enter doesn't
+change anything. Press **Yes, make a verifier** (or **Yes, remove as verifier**) to change
+the role; a toast confirms it. **Cancel**, or Escape, leaves the role as it was.
 A verifier finds **Member check** and **Aircraft check** in their menu the next time the
 page loads. See :doc:`../roles`.
 
@@ -188,25 +190,25 @@ has verified yet, in two sections:
   **Updated** is the day their profile last changed.
 - **Aircraft insurance**, one row per airplane, under its own columns: **N-number**,
   **Owner**, **Carrier**, **Expires** (the policy's expiry date), and **Updated** (the day
-  the record last changed). An airplane has no check columns.
+  the record last changed). An airplane doesn't have check columns.
 
 The line under the PDF's title reads *Showing: Not yet verified*. Only what somebody holds
-is checked: a non-pilot's **Certificate** reads *Not provided*, as does the **Medical** of a
-person with no medical and the **Photo ID** of one with no photo ID on file. A person who holds none of
-the three, and an airplane with no policy on file, is not listed. A section heading always
-starts on the page with its first rows. The CSV is one table under one header row, so a
-spreadsheet reads it whole: it names each row's section in its first column, **Section**,
-which the PDF leaves to its headings, and it carries the People columns for both
-sections, with an airplane's N-number under **Name**, its owner under **DART or owner**,
-its carrier under **Details**, and its three check cells left blank. The report can also
-be emailed on a schedule from the :doc:`subscriptions` screen, where the **Verified**,
-**Verified by**, and **Verified on** columns can be added.
+is checked: a non-pilot's **Certificate** reads *Not provided*, as does the **Medical** of
+a person without a medical and the **Photo ID** of one without a photo ID on file. A
+person who doesn't hold any of the three, and an airplane without a policy on file, is not
+listed. A section heading always starts on the page with its first rows. The CSV is one
+table under one header row, so a spreadsheet reads it whole: it names each row's section
+in its first column, **Section**, which the PDF leaves to its headings, and it carries the
+People columns for both sections, with an airplane's N-number under **Name**, its owner
+under **DART or owner**, its carrier under **Details**, and its three check cells left
+blank. The report can also be emailed on a schedule from the :doc:`subscriptions` screen,
+where the **Verified**, **Verified by**, and **Verified on** columns can be added.
 
 
 When nobody matches
 ===================
 
-A search that finds nobody says *Nobody matches that*. If you typed an N-number, the card
+A search that doesn't find anyone says *Nobody matches that*. If you typed an N-number, the card
 says *No member lists that aircraft. You can still check the aircraft itself.* and offers a
 **Check** button that opens the :doc:`aircraft-check` for that airplane.
 

@@ -39,11 +39,11 @@ final one until 1 day before. The lapsed reminder runs from its number of days a
 date for 30 days. The expired reminder never moves: it runs from the end date through 6 days
 after.
 
-Each subject begins with your organization's name in place of CalDART. Each member gets one
-email per membership at each stage. Nobody is sent a reminder whose membership renews itself
-automatically, who holds a life membership, who has already renewed, whose account is
-deactivated, or who has no email address. Nobody has to start the nightly check, and there
-is no button for it on this screen.
+Each subject begins with your organization's name in place of CalDART. Each member gets
+one email per membership at each stage. Nobody is sent a reminder whose membership renews
+itself automatically, who holds a life membership, who has already renewed, whose account
+is deactivated, or who doesn't have an email address. Nobody has to start the nightly
+check, and there isn't a button for it on this screen.
 
 
 What you see

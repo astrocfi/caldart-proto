@@ -18,8 +18,8 @@ status** beside it. Six cards follow.
 
 **Membership**
    The kind of account (**Member**, **Friend**, or **Donor**), the membership status, and
-   *Profile complete* or *Profile incomplete*. A member with no term in force reads *Not yet
-   paid* (or *No membership in force*), or *Membership set aside while deactivated*, as on
+   *Profile complete* or *Profile incomplete*. A member without a term in force reads *Not
+   yet paid* (or *No membership in force*), or *Membership set aside while deactivated*, as on
    the :doc:`member-record`. A donor's card adds *A donor gave through the public site and
    cannot sign in. If a receipt went astray, an account administrator corrects the email
    address on the member record.* If you are an account administrator too, **Member record**
@@ -35,8 +35,8 @@ status** beside it. Six cards follow.
    administrator** box is one, with *Only a system administrator can give or take away this
    role.* So is the box of each two-factor role you do not hold yourself (:doc:`../roles`),
    with *Only somebody who holds this role, or a system administrator, can give or take it
-   away.* On your own record the card lists the roles you hold under **Your roles**, with no
-   boxes and no **Save changes**, and says *You cannot change your own roles. Ask another
+   away.* On your own record the card lists the roles you hold under **Your roles**, without
+   boxes or **Save changes**, and says *You cannot change your own roles. Ask another
    administrator.*
 
 **Account status**
@@ -64,8 +64,8 @@ status** beside it. Six cards follow.
    records an account an administrator created on :doc:`new-member`, each role given or taken
    away, each deactivation, reactivation, block, and lifted block, each new password
    required, each change of address confirmed or undone, and each two-factor reset. The
-   command line reads *The system*, a deleted administrator *A deleted account*, and none at
-   all *No change to this account's roles or status is recorded.*
+   command line reads *The system*, a deleted administrator *A deleted account*, and an empty
+   history *No change to this account's roles or status is recorded.*
 
 No role change is saved until you press **Save changes**, and the message *Account saved.*
 confirms it. A refused save takes you to what the site refused. **Cancel** puts every box
@@ -82,7 +82,7 @@ address from **Change email** in the portal's menu.
 
 On an unverified address a **Resend verification message** button sends a fresh link, and
 the message at the top of the screen names the address it went to. It is disabled on a
-deactivated account. Clicking the link a second time does no harm, so send another whenever
+deactivated account. Clicking the link a second time is harmless, so send another whenever
 somebody says the first never came.
 
 
@@ -114,13 +114,13 @@ Granting and removing roles
 
 Things worth knowing:
 
-- Roles add up. **Member** opens no screen of its own, because every signed-in account has
-  the member screens.
-- **Treasurer** opens the payment screens and nothing that shows a member's medical or
-  certificate, so a volunteer who keeps the books needs no access to anybody's medical
-  details.
+- Roles add up. **Member** doesn't open a screen of its own, because every signed-in
+  account has the member screens.
+- **Treasurer** opens the payment screens but doesn't open anything that shows a member's
+  medical or certificate, so a volunteer who keeps the books doesn't need access to
+  anybody's medical details.
 - **Website administrator** opens the website's editor. Granting the role is the whole job;
-  there is nothing else to switch on, and removing it closes the editor again.
+  there isn't anything else to switch on, and removing it closes the editor again.
 - **System administrator** can do everything, including the server's own administration
   site. Grant it sparingly. Only a system administrator can grant or remove it, so the box
   is grayed out for anybody else.
@@ -136,8 +136,8 @@ Rules the site enforces
 =======================
 
 - **You cannot deactivate or block your own account, or reset its password.** Your own
-  record's **Account status** card says so and offers no action, and its **Password** card
-  points you to **Change password**.
+  record's **Account status** card says so and doesn't offer any action, and its
+  **Password** card points you to **Change password**.
 - **Nobody changes their own roles**, a system administrator included. Your own record
   lists your roles without boxes; ask another administrator to change them. Trying anyway is
   refused, and the attempt is recorded.
@@ -151,8 +151,8 @@ Rules the site enforces
   send it a password reset, or require a new password of it, only when you hold every
   two-factor role it holds (:doc:`../roles`). Member, Verifier, and DART leader do not
   count. As a user administrator you can act on an ordinary member, a DART leader, a
-  verifier, or another user administrator, and on nobody else with a two-factor role you
-  lack.
+  verifier, or another user administrator, and never on anybody else with a two-factor
+  role you lack.
 
 Some accounts, typically the one the site was installed with, hold full system access
 without the System administrator role checked. They count as a system administrator here, so
@@ -203,9 +203,10 @@ exactly as **Deactivate account** does. While the block holds:
 - signing in with the right password, or pressing **Reactivate my account**, is answered
   *This account has been closed. Contact CalDART to reopen it.*, with your organization's
   name in place of CalDART;
-- asking for a password reset sends no email, and a reset link sent before the block is
+- asking for a password reset doesn't send an email, and a reset link sent before the block is
   answered with the same sentence;
-- registering again opens nothing, and the person is emailed that the account is closed;
+- registering again doesn't open an account, and the person is emailed that the account is
+  closed;
 - nobody can press **Reactivate account**, here or on the :doc:`member-record`.
 
 Only a user administrator blocks an account or lifts the block. **Allow reactivation** lifts
@@ -233,7 +234,7 @@ reload and reactivate it first. *That account is already deactivated.* and *That
 already active.* mean somebody changed it while the page was open; reload the page. *The
 mail server did not accept the message. A system administrator can see the attempt on the
 Sent Emails page.* after **Send password reset** or **Resend verification message** means
-nothing was sent: the site could not hand the email to its mail server. A system
+the email wasn't sent: the site could not hand the email to its mail server. A system
 administrator sees the attempt marked *Failed:* on **Sent emails**, with the reason; tell
 whoever runs the server, and press the button again once it is fixed. After **Require a new
 password** the message says the old password is shut out regardless; pressing it again sends

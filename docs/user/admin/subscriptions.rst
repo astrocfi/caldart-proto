@@ -47,15 +47,15 @@ scrolls sideways, says so above it, and keeps **Report** pinned at the left.
    report, in which case its emails are paused.
 
 **Pause** and **Resume**
-   A paused subscription keeps everything it was set up with and sends nothing until you
-   resume it. Resuming one whose recipient may no longer read the report is refused, and the
-   message says why.
+   A paused subscription keeps everything it was set up with and doesn't send anything
+   until you resume it. Resuming one whose recipient may no longer read the report is
+   refused, and the message says why.
 
 **The trashcan**
    Asks first: press it and it turns into **Delete** and **Cancel**. Press **Delete** and
    the emailed report is gone; **Cancel**, Escape, or a click elsewhere leaves it as it is.
 
-With none set up the table reads *No reports are sent by email yet*.
+Until one is set up, the table reads *No reports are sent by email yet*.
 
 
 Setting one up
@@ -80,25 +80,25 @@ it.
    hold; then what is on file, the medical's expiry date in **Expires**, and the day it
    last changed. An aircraft's row names its N-number, its owner, the carrier, the
    policy's expiry date, and the day it last changed. In the PDF each section has its own
-   header row, and the aircraft's has no check columns; in the CSV one header row covers
-   both, the owner under **DART or owner**, and an aircraft's check cells are blank.
-   **Verified** (*Yes* when everything on the row is verified), **Verified by**, and
-   **Verified on** (the most recent verification on the row) are there to add from
+   header row, and the aircraft's doesn't have the check columns; in the CSV one header
+   row covers both, the owner under **DART or owner**, and an aircraft's check cells are
+   blank. **Verified** (*Yes* when everything on the row is verified), **Verified by**,
+   and **Verified on** (the most recent verification on the row) are there to add from
    **Columns**. Its **Status** filter lists the rows with anything not yet verified when
    left blank, or the fully **Verified** ones, or **All** of them, and its **DART** filter
-   keeps one DART's people and the aircraft they fly. It can go to a verifier, a DART leader, a user
-   administrator, or an account administrator. Choosing a report draws the same filters its own screen
-   has, with no **Reset filters** button among them. The payments and donors reports add
-   **Period**: **This month**, **Last month**, **This year**, or **Last year**, worked out
-   on the day each email goes, so a monthly subscription for **Last month** always carries
-   the month before the one it is sent in. The reconciliation report offers **Period** in
-   place of its screen's fixed **From** and **To** dates, and the contributions report has
-   one **Year** control: **This year** or **Last year**, also worked out on the day each
-   email goes.
+   keeps one DART's people and the aircraft they fly. It can go to a verifier, a DART
+   leader, a user administrator, or an account administrator. Choosing a report draws the
+   same filters its own screen has, without the **Reset filters** button. The payments and
+   donors reports add **Period**: **This month**, **Last month**, **This year**, or **Last
+   year**, worked out on the day each email goes, so a monthly subscription for **Last
+   month** always carries the month before the one it is sent in. The reconciliation
+   report offers **Period** in place of its screen's fixed **From** and **To** dates, and
+   the contributions report has one **Year** control: **This year** or **Last year**, also
+   worked out on the day each email goes.
 #. **Columns** chooses what the report carries, as on the report's own screen; left alone,
    it carries the default columns. A column left out is left out of every section of the
    PDF that has it. The reconciliation and contributions reports have fixed
-   columns and offer no chooser.
+   columns and don't offer a chooser.
 #. **Formats** attaches a CSV, a PDF, or both.
 #. **Schedule** is **Weekly**, **Monthly**, **Quarterly**, or **Yearly**. A weekly one asks
    for the **Day** it goes. A monthly subscription goes on the first of the month, a
@@ -106,9 +106,10 @@ it.
    first of January.
 #. **Recipient email** is where it goes.
 
-Press **Add emailed report**, or **Cancel** or Escape. *Report added.* confirms a save. An address that belongs to a CalDART account is refused when
-that account holds no role that may read the report, with *does not hold a role that may read
-this report* under the address: the treasurer cannot be sent the membership report, whose
+Press **Add emailed report**, or **Cancel** or Escape. *Report added.* confirms a save. An
+address that belongs to a CalDART account is refused when that account doesn't hold a role
+that may read the report, with *does not hold a role that may read this report* under the
+address: the treasurer cannot be sent the membership report, whose
 medical and certificate details are not theirs to read. An address no account holds is
 refused until you check **This address is outside CalDART and may receive this report**, which
 appears once CalDART asks for it. A filter the report cannot use is named, with the reason,
@@ -125,11 +126,11 @@ checked. The **Report** and the **Recipient** are shown as plain text, since nei
 change: to send a different report, or to send it to somebody else, delete the subscription
 and set up another.
 
-Change what you need and press **Save changes**; the form closes, *Report saved.* confirms it,
-and the row shows the change. A changed schedule moves **Next** to the schedule's next day
-after today. **Cancel**, or Escape, closes the form and changes nothing, and you are back on
-the row's **Edit**. A filter the report cannot use is named, with the reason, under the
-filters, as when setting one up.
+Change what you need and press **Save changes**; the form closes, *Report saved.* confirms
+it, and the row shows the change. A changed schedule moves **Next** to the schedule's next
+day after today. **Cancel**, or Escape, closes the form without changing anything, and you
+are back on the row's **Edit**. A filter the report cannot use is named, with the reason,
+under the filters, as when setting one up.
 
 One form is open at a time. **Add a scheduled report** closes an open edit, **Edit** on another row
 opens that row's subscription in its place, and **Edit** on the row being edited closes it.
@@ -154,15 +155,16 @@ with each person's phone, email, certificate, medical, aircraft, expiry, and a *
 saying which each one is. It never lists a deactivated account or a donor.
 
 The **DART rosters** card lists each active DART, its **Recipients** (the checked people with
-an address), and when its roster was **Last sent**. A DART with nobody set to receive it is sent nothing.
+an address), and when its roster was **Last sent**. No roster goes to a DART without anyone
+set to receive it.
 
 Under the table sit the box **Practice run: show what would happen, send nothing**, checked
 to begin with, the button beside it, and under them what the last run did, so the button
 never moves when a long result appears. While the box is checked the button reads
 **Preview rosters**: press it, and under it the card reads **What this run would do**, where
 the cursor moves, and a line such as *Would send 7 emails, skipped 1.* When something was skipped, a further
-line gives the reasons: *nobody to send to* for a DART with nobody set to receive it, and
-*no address on file* for a checked person with no email address. A table names each email
+line gives the reasons: *nobody to send to* for a DART without anyone set to receive it,
+and *no address on file* for a checked person without an email address. A table names each email
 with **Who** and **What**, and **Report or DART** when an email names one. Clear the box,
 and the button reads **Send rosters now**: it sends every DART's roster at once, whatever
 the date, and the heading then reads **What this run did**.

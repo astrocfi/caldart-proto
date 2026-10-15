@@ -9,7 +9,7 @@ account and profile, their membership terms, their payments, and the controls to
 record. Only an account administrator can open it, by clicking a name on :doc:`members` or
 on any other screen that lists people. A system administrator can open it too.
 
-A donor, somebody who has only given through the public site, is on no member list. Open a
+A donor, somebody who has only given through the public site, isn't on any member list. Open a
 donor's record from **Member record** on one of their payments (search the
 :doc:`../finance/payment-list` for their name, then see :doc:`../finance/payment-record`) or
 on their :doc:`../finance/member-ledger`; from their :doc:`user-record` if you are a user
@@ -25,12 +25,12 @@ The person's name heads the page, with **Back to members** beside it (**Back to 
 on a donor's record, when you have that tab). A summary strip under the name carries:
 
 - their membership status: **Current**, **Expiring soon**, **Expired**, **Friend**, or
-  **Never expires** for a life member. A member with no term in force reads *Not yet paid:
+  **Never expires** for a life member. A member without a term in force reads *Not yet paid:
   grant a term on Memberships* (or *No membership in force* when every term was
   canceled), and a deactivated member whose terms were set aside reads *Membership set
   aside while deactivated*;
 - the plan, the expiry date, and *joined* with the date their first term began, each left
-  out when there is none;
+  out when there isn't one;
 - *Profile updated* with the date the profile was last changed, or *Profile never edited*.
   A payment, a renewal, or a membership grant does not change the date;
 - **Donor** for somebody who has only given through the public site, and **Account
@@ -50,12 +50,12 @@ Profile
 A **Verification** card heads the tab. It lists **Pilot certificate**, **Medical**, and
 **Photo ID**, each with what the record holds (such as *Private · 1234567* or *Third class
 · expires 01/31/2027*) and its mark, read as on the :doc:`member-check`; an item not held,
-such as *Not a pilot*, has none. **Verify** opens the checks alone, each with what the
+such as *Not a pilot*, doesn't have one. **Verify** opens the checks alone, each with what the
 record holds beside it: check each item you have seen on the documents and press **Save
 verification**; *Verification saved*
 confirms it. Correct a wrong number or date in the form below and save it first. A record
-with no profile yet has no Verification card, and one for a donor or a deactivated account
-has no **Verify**, since neither can fly.
+without a profile yet doesn't have a Verification card, and one for a donor or a deactivated
+account doesn't offer **Verify**, since neither can fly.
 
 An **Aircraft** card follows, listing each airplane on the person's profile with its make,
 model, and insurance; each N-number opens the :doc:`aircraft-record`.
@@ -66,8 +66,8 @@ plus:
 
 - **Kind of account**, **Member** or **Friend**. Saving a change of kind makes it at once: a
   member made a friend reads **Friend** from that moment, and any change to friend they had
-  asked for at the end of their term is dropped. A donor's record has no such field. A donor
-  becomes a member or a friend only by registering on the site with the same address.
+  asked for at the end of their term is dropped. A donor's record leaves this field out. A
+  donor becomes a member or a friend only by registering on the site with the same address.
 - Under **Email address**, **Verified** with the date the address was confirmed, or
   **Unverified**, and *Waiting for … to confirm.* while a new address waits for its link.
   Nothing here resends a message; a user administrator can, from the :doc:`user-record`.
@@ -109,9 +109,9 @@ a save. A term set to **Canceled** no longer counts toward the membership, and i
 in the history. The plan and the start date cannot be changed: cancel a wrong term and
 grant the right one, with a note saying why.
 
-A donor's record has no **Grant a term**: a donor holds no membership, and the history
-reads *A donor holds no membership, and becomes a member only by registering.* A donor
-becomes a member by registering on the site with the same address.
+A donor's record doesn't offer **Grant a term**: a donor doesn't hold a membership, and the
+history reads *A donor holds no membership, and becomes a member only by registering.* A
+donor becomes a member by registering on the site with the same address.
 
 **Grant a term** gives somebody a membership by hand, for a check or cash, or as a gift.
 Choose the **Plan**, and optionally a **Start date** and a **Note** (*Why this term was
@@ -124,7 +124,7 @@ Leave the start date blank and the term starts in the right place:
 - a current member's new term starts the day after their present one ends, so granting a
   year to somebody with four months left gives them sixteen months;
 - a lapsed member's, or a friend's, starts today;
-- a life plan has no end date.
+- a life plan doesn't have an end date.
 
 Fill in the start date only for something that happened on a particular day, such as a
 check that arrived last month. It may be today or earlier, never later. Granting a term to
@@ -140,14 +140,14 @@ This person's whole money history, the same one the treasurer's screens show:
 - **Totals** over every year: **Paid**, **Contributed**, **Fees**, and **Refunded**.
 - Their automatic renewal, if they have one, with its state, the saved payment method, what
   it charges, the **Next charge** date, and the reason for its last refusal. A member without
-  one reads *This member renews by hand.*; anybody else without one has no such card.
+  one reads *This member renews by hand.*; anybody else without one doesn't have this card.
 - **Payments**: every payment's date, receipt number (which opens it), what it was for (such
   as **Annual and contribution**), total, refund, method, and status.
 - **Contribution statements**: a button for each year the person gave beyond their dues,
   such as **Download 2025 statement**. Otherwise it reads *This member has not given
   anything beyond their dues.*, or *This person has not given anything yet.* if no dues.
 
-A term you grant by hand has no payment behind it, so it does not appear here. For the
+A term you grant by hand doesn't have a payment behind it, so it does not appear here. For the
 organization's figures, use **Accounting** under **Finance** in the menu.
 
 
@@ -193,8 +193,8 @@ Four refusals can appear:
 - *You cannot deactivate your own account.*
 - *You cannot activate or deactivate an account that holds administrative roles you do not
   hold.*: the account holds a two-factor role you lack (:doc:`../roles`), such as a
-  treasurer's or a system administrator's; a DART leader or a verifier is no obstacle. Ask a
-  system administrator, or a colleague who holds every two-factor role that account holds.
+  treasurer's or a system administrator's; a DART leader's or verifier's role doesn't count.
+  Ask a system administrator, or a colleague who holds every two-factor role it holds.
 - *A user administrator has blocked this account from reactivating. Allow reactivation on
   its user record first.*: the card also says the account is blocked. Only a user
   administrator lifts the block, from the :doc:`user-record`.
@@ -219,7 +219,7 @@ first, and they are emailed that it is off. Anyone subscribed to **Automatic ren
 recurring donation turned off** (:doc:`notifications`) is told too; the member link in that
 notification no longer opens, because the record is gone. A payment the person started but
 had not finished can still go through afterwards: it joins the books under **Deleted
-member**, buys no membership, and sends no receipt.
+member**, but doesn't buy a membership or send a receipt.
 
 After the delete you are back on the member list, or on the **Donors** tab after a donor's
 when you have it, where the row reads **Deleted member** and the number with the same gifts

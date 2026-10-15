@@ -22,7 +22,7 @@ name.* or *Enter a last name.* when you press **Add member**.
 **Account**
    **Email address**, **First name**, **Last name**, and **Kind of account**. **Kind of
    account** is **Member**, the first choice, or **Friend**; its hint reads *A friend pays
-   no dues and is never current or expired.* There is no password box: the person chooses
+   no dues and is never current or expired.* There isn't a password box: the person chooses
    their own password from the email the site sends them, and nobody else ever knows it.
 
 **Contact**, **Amateur radio**, **Aviation**, and **Volunteer interests**
@@ -59,15 +59,16 @@ Using the link lets them choose a password and also confirms their email address
 the owner of the address could have received it. Their address shows **Unverified** on their
 record until they do.
 
-The person has joined already. Until they set a password through the invitation, they cannot
-sign in; after that their first sign-in opens the dashboard, never the rest of
-the join wizard (see :doc:`../member/join`), even with the profile half empty or no term
-yet. Creating an account does not give anybody a membership, though:
-until a term starts the account reads **Not yet paid** on :doc:`members`, with
-**Member** as its kind, and *Not yet paid: grant a term on Memberships* on its record.
-The member's own dashboard says *Your membership is not yet paid* and offers **Pay dues**. Grant a term on the **Memberships** tab of the
-:doc:`member-record`, or let the member pay online, and they are a member from that
-moment. A friend needs neither, because a friend pays no dues.
+The person has joined already. Until they set a password through the invitation, they
+cannot sign in; after that their first sign-in opens the dashboard, never the rest of the
+join wizard (see :doc:`../member/join`), even when the profile is half empty or there
+isn't a term yet. Creating an account does not give anybody a membership, though: until a
+term starts the account reads **Not yet paid** on :doc:`members`, with **Member** as its
+kind, and *Not yet paid: grant a term on Memberships* on its record. The member's own
+dashboard says *Your membership is not yet paid* and offers **Pay dues**. Grant a term on
+the **Memberships** tab of the :doc:`member-record`, or let the member pay online, and
+they are a member from that moment. A friend needs neither, because a friend doesn't pay
+dues.
 
 
 If something looks wrong

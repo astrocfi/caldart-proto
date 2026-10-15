@@ -93,7 +93,7 @@ The four checks:
   return to a different address, the domain of that address, which the block names), of the
   servers allowed to send email that claims to come from CalDART. It is good when the list
   exists, names the server the website sends through, and tells receivers to be suspicious
-  of anything else. It is a problem when there is no list, the list is malformed, or the
+  of anything else. It is a problem when the list is missing, is malformed, or the
   website's server is not on it. It is a warning when the list is too lenient, or when the
   website hands its mail to a server on the same machine, so the panel cannot tell which
   public address the mail leaves from.
@@ -104,22 +104,24 @@ The four checks:
 - **Handling of forged mail (DMARC)**: a short public instruction that tells receiving
   systems what to do with a message that claims to come from CalDART but fails the other
   checks, and where to send reports about it. It is a problem when none is published, or
-  when more than one is, because receiving systems then follow none of them. It is a warning
-  while it only says to watch (``p=none``), and good when it says to send forgeries to spam
-  (``quarantine``) or refuse them (``reject``). When it names addresses for reports, the
-  block lists them. When CalDART sends from a part of a larger domain, such as
-  ``caldart.example.org``, and that part has no instruction of its own, receiving systems
-  follow the one for ``example.org``, and so does the check: the block says where it found
-  the instruction, and judges its setting for subdomains (``sp=``) when there is one.
+  when more than one is, because receiving systems then don't follow any of them. It is a
+  warning while it only says to watch (``p=none``), and good when it says to send
+  forgeries to spam (``quarantine``) or refuse them (``reject``). When it names addresses
+  for reports, the block lists them. When CalDART sends from a part of a larger domain,
+  such as ``caldart.example.org``, and that part doesn't have an instruction of its own,
+  receiving systems follow the one for ``example.org``, and so does the check: the block
+  says where it found the instruction, and judges its setting for subdomains (``sp=``)
+  when there is one.
 - **Bounce address**: where a receiving server sends back a message it cannot deliver,
-  which CalDART reads to find the addresses that are no good. Some systems trust a message
+  which CalDART reads to find the addresses that don't work. Some systems trust a message
   more when it is on the same domain as the From address, so it is a warning when it is on
   an unrelated domain.
 
-Changes to a domain name can take a few hours to reach everyone, so **Check again** may show
-the old answer for a while. A lookup that *did not get an answer in time*, or a check that
-*took too long*, says nothing about the records: press **Check again** in a minute or two.
-*No name server could answer* means the domain's own name servers are not working.
+Changes to a domain name can take a few hours to reach everyone, so **Check again** may
+show the old answer for a while. A lookup that *did not get an answer in time*, or a check
+that *took too long*, doesn't say anything about the records: press **Check again** in a
+minute or two. *No name server could answer* means the domain's own name servers are not
+working.
 
 
 Backups
@@ -151,17 +153,18 @@ installed the site chose.
 FAA aircraft data
 =================
 
-Every night at 4:30 AM CalDART loads the FAA's aircraft registry: the list of aircraft types
-members pick from, and the registrations the N-number box lists on the aircraft forms. The
-line under the panel's text reads *Imported 312 types and 204 registrations on 09/20/2026*,
-adding, for example, *folded 2 hand-added types* when types an account administrator added
-by hand have since been registered by the FAA and were merged into its entries. A failed
-load reads *Failed:* and the reason; before the first one, *No import has run yet.* There is
-no practice run, because the load changes nothing but the copy. **Run now** starts one at
-once;
-it reads *Running since* and the time, and the button waits, until the load ends a few
-minutes later. A press while one runs says *An import is already running.* Under it, *Last
-load* gives the last load's time and outcome, with **View log** (:doc:`job-log`).
+Every night at 4:30 AM CalDART loads the FAA's aircraft registry: the list of aircraft
+types members pick from, and the registrations the N-number box lists on the aircraft
+forms. The line under the panel's text reads *Imported 312 types and 204 registrations on
+09/20/2026*, adding, for example, *folded 2 hand-added types* when types an account
+administrator added by hand have since been registered by the FAA and were merged into its
+entries. A failed load reads *Failed:* and the reason; before the first one, *No import
+has run yet.* There isn't a practice run, because the load only changes CalDART's copy of
+the registry.
+**Run now** starts one at once; it reads *Running since* and the time, and the button
+waits, until the load ends a few minutes later. A press while one runs says *An import is
+already running.* Under it, *Last load* gives the last load's time and outcome, with
+**View log** (:doc:`job-log`).
 
 
 Routine
@@ -177,7 +180,8 @@ If something looks wrong
 ========================
 
 If **Create backup** fails, the message under it comes from the server; pass it to whoever
-runs the server, since nothing half written is left behind. If the N-number box offers
-nothing for an aircraft you know is registered, read the line under **FAA aircraft data**: a
-*Failed:* line, or a date more than a few days old, means the nightly load has stopped, and
-the person who runs the server can check it. Meanwhile **Run now** loads it by hand.
+runs the server, since nothing half written is left behind. If the N-number box doesn't
+offer anything for an aircraft you know is registered, read the line under **FAA aircraft
+data**: a *Failed:* line, or a date more than a few days old, means the nightly load has
+stopped, and the person who runs the server can check it. Meanwhile **Run now** loads it
+by hand.

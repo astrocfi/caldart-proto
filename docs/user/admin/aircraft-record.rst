@@ -23,42 +23,42 @@ service) at the right.
 A **Verification** card heads the page below that, the same as on a :doc:`member-record`.
 It lists **Insurance**, with what the record holds (such as *Avemco · AV-00012345 ·
 Liability $1,000,000 per occurrence, $100,000 per person · expires 03/01/2027*, or *No
-insurance on file* with nothing recorded) and its
-mark: **Verified** with who verified it and on which day, or **Not verified** in amber. A
-policy whose date has passed reads **Expired** before its mark, and insurance with no expiry
-date on file has nothing to verify and no mark. **Verify**
-opens the same verification panel as the :doc:`aircraft-check`: correct the policy against
-its documents, check **Insurance verified**, and press **Save verification**. *Verification saved*
-confirms it, the card returns with you on its **Verify**, and the form below starts again
-from the saved record. **Cancel**, or Escape, closes the panel and changes nothing.
+insurance on file* when nothing is recorded) and its mark: **Verified** with who verified
+it and on which day, or **Not verified** in amber. A policy whose date has passed reads
+**Expired** before its mark, and insurance without an expiry date on file doesn't have
+anything to verify, so it doesn't show a mark. **Verify** opens the same verification
+panel as the :doc:`aircraft-check`: correct the policy against its documents, check
+**Insurance verified**, and press **Save verification**. *Verification saved* confirms it,
+the card returns with you on its **Verify**, and the form below starts again from the
+saved record. **Cancel**, or Escape, closes the panel and doesn't change anything.
 
 **Details** is the form, headed by a line such as *Last updated 09/01/2026 by Dana Fiske*:
-the date of the last change and the account behind it. A record whose **History** records no
-change has no such line. The form has four parts.
+the date of the last change and the account behind it. A record whose **History** is empty
+doesn't have this line. The form has four parts.
 
 **Aircraft**
    **N-number**, **Year**, **Aircraft type**, **Seats**, **Category**, and
-   **Airworthiness**. The N-number is a US
-   registration: the box writes the N, then takes digits first and at most two letters,
-   never I or O. As you type, up to eight airplanes from the FAA data whose N-number
-   starts with what you typed are listed under the box, each with its N-number, aircraft
-   type, year, and registrant; click one, or reach it with the arrow keys and press Enter,
-   and Escape closes the list. Picking one writes its N-number into the box and fills the
-   type, year, seats, category, and airworthiness; it fills **Owner name** from the registration and guesses **Owner
-   type** from the kind of registrant it is (a person or co-owners become Individual, a
-   partnership becomes Flying club, a company becomes FBO; a government registrant, or one
-   that fits none of those, leaves Owner type as it was). The line under the box then reads
-   *From FAA data as of* the day of CalDART's copy, until the N-number changes. An
-   airplane the registry lacks is simply not listed; type its whole N-number. The aircraft type is picked from a list: type the make, the
-   model, or a designator (cessna 172, c172, skyhawk) in **Aircraft type** and pick the
-   entry, which shows its seats. The make and model come from the type, and picking one
-   with **Seats** empty fills in its seats and, when the registry knows it, the
-   **Category**. A type the list lacks can be added with **New aircraft type**, as the
-   :doc:`aircraft` describes. **Category** (Airplane, Helicopter, Gyroplane,
-   Glider, Balloon, Airship, Powered lift, Weight-shift control, Powered parachute, or
-   Other) and **Airworthiness** (Standard, Limited, Restricted, Experimental, Provisional,
-   Multiple, Primary, Special flight permit, or Light sport) may stay **Not recorded**;
-   the :ref:`coverage-policy` is judged against them.
+   **Airworthiness**. The N-number is a US registration: the box writes the N, then takes
+   digits first and at most two letters, never I or O. As you type, up to eight airplanes
+   from the FAA data whose N-number starts with what you typed are listed under the box,
+   each with its N-number, aircraft type, year, and registrant; click one, or reach it
+   with the arrow keys and press Enter, and Escape closes the list. Picking one writes its
+   N-number into the box and fills the type, year, seats, category, and airworthiness; it
+   fills **Owner name** from the registration and guesses **Owner type** from the kind of
+   registrant it is (a person or co-owners become Individual, a partnership becomes Flying
+   club, a company becomes FBO; a government registrant, or one that doesn't fit any of
+   those, leaves Owner type as it was). The line under the box then reads *From FAA data
+   as of* the day of CalDART's copy, until the N-number changes. An airplane the registry
+   lacks is simply not listed; type its whole N-number. The aircraft type is picked from a
+   list: type the make, the model, or a designator (cessna 172, c172, skyhawk) in
+   **Aircraft type** and pick the entry, which shows its seats. The make and model come
+   from the type, and picking one with **Seats** empty fills in its seats and, when the
+   registry knows it, the **Category**. A type the list lacks can be added with **New
+   aircraft type**, as the :doc:`aircraft` describes. **Category** (Airplane, Helicopter,
+   Gyroplane, Glider, Balloon, Airship, Powered lift, Weight-shift control, Powered
+   parachute, or Other) and **Airworthiness** (Standard, Limited, Restricted,
+   Experimental, Provisional, Multiple, Primary, Special flight permit, or Light sport)
+   may stay **Not recorded**; the :ref:`coverage-policy` is judged against them.
 
 **Owner**
    **Owner type** (Individual, FBO, or Flying club), **Owner name**, and **Owner contact**,
@@ -89,10 +89,10 @@ History
 **History** lists every change to the record, newest first, one line each: the date and
 time, the account that made it, and what it did, such as *09/01/2026 at 12:00 PM · Dana
 Fiske · updated carrier, insurance expiry*, or *created* for the change that added the airplane. A
-change with no account behind it, such as the demo data, reads *the seed*. The words match
+change without an account behind it, such as the demo data, reads *the seed*. The words match
 the form, so *insurance expiry* is the **Insurance expires** box.
 
-A record with no recorded change says *No change is recorded for this record.* The next save
+A record without a recorded change says *No change is recorded for this record.* The next save
 starts the list. If the history cannot be fetched, the card says *That record's history
 didn't load. Try again in a moment.*
 
@@ -104,8 +104,8 @@ This card lists every member who has attached the airplane to their profile, one
 with each part in a column of its own: their name, their email address, **Member current**, **Member expired**, or **Friend**, and **GO** or
 **NO-GO**, the :doc:`member-check`'s own verdict for that person, so the record and the
 checks never disagree. A name opens that person's
-:doc:`member-record`. With nobody attached it reads *No member lists this aircraft on their
-profile.*
+:doc:`member-record`. When nobody has attached it, the card reads *No member lists this
+aircraft on their profile.*
 
 
 Deleting the record
@@ -137,7 +137,7 @@ the aircraft type from the list.* means the **Aircraft type** box holds typing t
 picked from the list. *Enter an amount of $0 or more.* means a money box holds a negative
 number or something that is not a number; type dollars, and a leading $ and commas are fine.
 *Use a US registration like N172SP: N, then digits, then at most two letters.* means the
-N-number does not follow the US pattern. **No insurance on file** means the record has no
-expiry date, which is different from an expired policy; enter the carrier, the limits, and
+N-number does not follow the US pattern. **No insurance on file** means the record doesn't
+have an expiry date, which is different from an expired policy; enter the carrier, the limits, and
 the expiry before a DART leader relies on the airplane. *No such aircraft* means the record
 has been deleted; use **Back to the register**.
