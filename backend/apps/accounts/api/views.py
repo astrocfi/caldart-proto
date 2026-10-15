@@ -138,7 +138,8 @@ SELF_RESET_REFUSED = (
 #: What the user administrator is told when the account holds a role they lack: a reset
 #: link reaches the account's owner, but the account-edit guard covers it all the same.
 RESET_ROLES_REFUSED = (
-    "You cannot send a password reset to an account that holds roles you do not hold."
+    "You cannot send a password reset to an account that holds "
+    "administrative roles you do not hold."
 )
 
 #: What the user administrator is told when the mail server refuses a message they
@@ -911,18 +912,18 @@ class AdminUserSendPasswordResetView(APIView):
     def post(self, request: Request, pk: int) -> Response:
         """Mail the account with id ``pk`` a reset link, and answer 200 with a message.
 
-        Restricted to ``user_admin``, and to ``system_admin`` by implication; anyone
-        else gets 403 and an unknown ``pk`` gets 404.  Refused with a 400, in this order
-        and mailing nothing: a donor, who cannot sign in ("A donor cannot sign in, so no
-        reset email was sent."); your own account (:data:`SELF_RESET_REFUSED`); an
-        account holding roles you do not hold (:data:`RESET_ROLES_REFUSED`, the
+        Restricted to ``user_admin``, and to ``system_admin`` by implication; anyone else
+        gets 403 and an unknown ``pk`` gets 404.  Refused with a 400, in this order and
+        mailing nothing: a donor, who cannot sign in ("A donor cannot sign in, so no reset
+        email was sent."); your own account (:data:`SELF_RESET_REFUSED`); an account
+        holding administrative roles you do not hold (:data:`RESET_ROLES_REFUSED`, the
         account-edit guard); and an account with nobody to mail, a deactivated one or one
         with no email address ("That account is deactivated, so no reset email was
         sent.").  Both the send and the refusals are recorded in the audit log, a refusal
         with the reason ``donor_account``, ``own_account``, ``roles_not_held``, or
-        ``inactive_account``.  A mail server that refuses the
-        message is a 503 with ``MAIL_REFUSED``: the failed send is in the email log, the
-        refusal is logged, and nothing is recorded in the audit log.
+        ``inactive_account``.  A mail server that refuses the message is a 503 with
+        ``MAIL_REFUSED``: the failed send is in the email log, the refusal is logged, and
+        nothing is recorded in the audit log.
         """
         actor = signed_in_user(request)
         user = generics.get_object_or_404(User, pk=pk)
@@ -980,23 +981,23 @@ class AdminUserRequireNewPasswordView(APIView):
     def post(self, request: Request, pk: int) -> Response:
         """Shut the account ``pk``'s password out, end its sessions, mail a reset link.
 
-        Restricted to ``user_admin``, and to ``system_admin`` by implication; anyone
-        else gets 403 and an unknown ``pk`` gets 404.  The account's password becomes
-        unusable and every session signed in to it is ended
+        Restricted to ``user_admin``, and to ``system_admin`` by implication; anyone else
+        gets 403 and an unknown ``pk`` gets 404.  The account's password becomes unusable
+        and every session signed in to it is ended
         (:func:`apps.accounts.api.account_actions.require_new_password_for`), so the old
         password neither signs in nor reactivates; then the reset email, in the wording
-        that says an administrator required a new password, goes to the account's
-        address.  The answer is 200 ``{"detail": "The old password no
-        longer works and every session is ended. A password reset email went to
-        <address>."}``.  A deactivated account stays deactivated and is mailed the
-        link, which reactivates it when its owner chooses a password, as any reset
-        does.  A blocked account is mailed nothing, since its link would be refused,
-        and the detail ends "The account is blocked from reactivating, so no reset
-        email was sent."  A donor (a tombstone among them), your own account, and an
-        account holding roles you do not hold are each a 400 ``{"detail": ...}`` and
-        change nothing.  A mail server that refuses the message is a 503 with
-        :data:`CREDENTIAL_MAIL_REFUSED`: the password and sessions stay as the action
-        left them, the failed send is in the email log, and the refusal is logged.
+        that says an administrator required a new password, goes to the account's address.
+        The answer is 200 ``{"detail": "The old password no longer works and every session
+        is ended. A password reset email went to <address>."}``.  A deactivated account
+        stays deactivated and is mailed the link, which reactivates it when its owner
+        chooses a password, as any reset does.  A blocked account is mailed nothing, since
+        its link would be refused, and the detail ends "The account is blocked from
+        reactivating, so no reset email was sent."  A donor (a tombstone among them), your
+        own account, and an account holding administrative roles you do not hold are each
+        a 400 ``{"detail": ...}`` and change nothing.  A mail server that refuses the
+        message is a 503 with :data:`CREDENTIAL_MAIL_REFUSED`: the password and sessions
+        stay as the action left them, the failed send is in the email log, and the refusal
+        is logged.
         """
         actor = signed_in_user(request)
         target = generics.get_object_or_404(User, pk=pk)
@@ -1098,10 +1099,10 @@ class AdminUserDeactivateView(APIView):
     def post(self, request: Request, pk: int) -> Response:
         """Deactivate the account ``pk`` as its owner would deactivate it, answering 200.
 
-        Every automatic renewal and recurring donation is canceled, every membership
-        term with time left is suspended, every session signed in to the account is
-        ended, and the change is recorded as ``account.deactivate`` under the caller.
-        Your own account, a donor, an account holding roles you do not hold, and one
+        Every automatic renewal and recurring donation is canceled, every membership term
+        with time left is suspended, every session signed in to the account is ended, and
+        the change is recorded as ``account.deactivate`` under the caller.  Your own
+        account, a donor, an account holding administrative roles you do not hold, and one
         already deactivated are each a 400 ``{"detail": ...}``.  Restricted to
         ``user_admin``, and to ``system_admin`` by implication.
         """
@@ -1119,8 +1120,8 @@ class AdminUserReactivateView(APIView):
 
         Each suspended membership term is active again, or expired if it ran out
         meanwhile; the change is recorded as ``account.activate`` under the caller.  A
-        donor, an account holding roles you do not hold, an account blocked from
-        reactivating, and one already active are each a 400 ``{"detail": ...}``.
+        donor, an account holding administrative roles you do not hold, an account blocked
+        from reactivating, and one already active are each a 400 ``{"detail": ...}``.
         Restricted to ``user_admin``, and to ``system_admin`` by implication.
         """
         return _admin_user_action(request, pk, reactivate_for)
@@ -1135,13 +1136,13 @@ class AdminUserBlockView(APIView):
     def post(self, request: Request, pk: int) -> Response:
         """Block the account ``pk`` from reactivating, answering 200.
 
-        An active account is deactivated first, exactly as ``/deactivate`` does it.
-        While the block is set, sign-in, ``/auth/reactivate``, a password reset, and
-        registering with the address all refuse with "This account has been closed.
-        Contact <organization name> to reopen it.", and no administrator reactivates it.
-        Recorded as ``account.block``.  Your own account, a donor, and an account
-        holding roles you do not hold are each a 400 ``{"detail": ...}``.  Restricted to
-        ``user_admin``, and to ``system_admin`` by implication.
+        An active account is deactivated first, exactly as ``/deactivate`` does it.  While
+        the block is set, sign-in, ``/auth/reactivate``, a password reset, and registering
+        with the address all refuse with "This account has been closed. Contact
+        <organization name> to reopen it.", and no administrator reactivates it.  Recorded
+        as ``account.block``.  Your own account, a donor, and an account holding
+        administrative roles you do not hold are each a 400 ``{"detail": ...}``.
+        Restricted to ``user_admin``, and to ``system_admin`` by implication.
         """
         return _admin_user_action(request, pk, block_for)
 

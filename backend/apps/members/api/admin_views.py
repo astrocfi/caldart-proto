@@ -293,13 +293,13 @@ class MemberDeactivateView(APIView):
         """200 with the member record once the account is deactivated.
 
         Everything the person's own deactivation does: every automatic renewal and
-        recurring donation is canceled, every membership term with time left is
-        suspended, every session signed in to the account is ended, and the change is
-        recorded as ``account.deactivate`` under the caller and raised as
-        ``account_deactivated`` naming the caller.  Your own account, a donor, an
-        account holding roles you do not hold (a system administrator's, unless you
-        are one), and one already deactivated are each a 400 ``{"detail": ...}``.  An
-        unknown member is a 404.
+        recurring donation is canceled, every membership term with time left is suspended,
+        every session signed in to the account is ended, and the change is recorded as
+        ``account.deactivate`` under the caller and raised as ``account_deactivated``
+        naming the caller.  Your own account, a donor, an account holding administrative
+        roles you do not hold (a system administrator's, unless you are one), and one
+        already deactivated are each a 400 ``{"detail": ...}``.  An unknown member is a
+        404.
         """
         member = get_object_or_404(User, pk=pk)
         try:
@@ -318,13 +318,13 @@ class MemberReactivateView(APIView):
     def post(self, request: Request, pk: int) -> Response:
         """200 with the member record once the account is active again.
 
-        What the person's own reactivation does: each suspended membership term is
-        active again, or expired if it ran out meanwhile; canceled mandates stay
-        canceled.  Recorded as ``account.activate`` under the caller and raised as
-        ``account_reactivated`` naming the caller.  A donor, an account holding roles
-        you do not hold, an account a user administrator has blocked from reactivating,
-        and one already active are each a 400 ``{"detail": ...}``.  An unknown member is
-        a 404.
+        What the person's own reactivation does: each suspended membership term is active
+        again, or expired if it ran out meanwhile; canceled mandates stay canceled.
+        Recorded as ``account.activate`` under the caller and raised as
+        ``account_reactivated`` naming the caller.  A donor, an account holding
+        administrative roles you do not hold, an account a user administrator has blocked
+        from reactivating, and one already active are each a 400 ``{"detail": ...}``.  An
+        unknown member is a 404.
         """
         member = get_object_or_404(User, pk=pk)
         try:

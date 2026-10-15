@@ -310,7 +310,8 @@ describe('UserDetailPage', () => {
       stubAction(
         'deactivate',
         {
-          detail: 'You cannot activate or deactivate an account that holds roles you do not hold.',
+          detail:
+            'You cannot activate or deactivate an account that holds administrative roles you do not hold.',
         },
         400,
       );
@@ -325,7 +326,7 @@ describe('UserDetailPage', () => {
       );
 
       expect(await screen.findByRole('alert')).toHaveTextContent(
-        'You cannot activate or deactivate an account that holds roles you do not hold.',
+        'You cannot activate or deactivate an account that holds administrative roles you do not hold.',
       );
     });
 
@@ -508,7 +509,7 @@ describe('UserDetailPage', () => {
 
     it('shows a refusal in the card', async () => {
       const refused =
-        'You cannot require a new password for an account that holds roles you do not hold.';
+        'You cannot require a new password for an account that holds administrative roles you do not hold.';
       stubDetail();
       stubRequire({ detail: refused }, 400);
       renderDetail();

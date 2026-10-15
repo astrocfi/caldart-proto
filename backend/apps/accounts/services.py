@@ -83,7 +83,8 @@ PROTECTED_ACCOUNT_FIELDS: tuple[str, ...] = ("email",)
 ACCOUNT_FIELDS: tuple[str, ...] = ("first_name", "last_name")
 
 EMAIL_CHANGE_REFUSED = (
-    "You cannot change the email address of an account that holds roles you do not hold."
+    "You cannot change the email address of an account that holds "
+    "administrative roles you do not hold."
 )
 ROLE_CHANGE_REFUSED = (
     "Only a system administrator can grant or take away the System administrator role."

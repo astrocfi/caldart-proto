@@ -16,13 +16,13 @@ website administrator, and a system administrator must use two-factor sign-in: a
 code from an authenticator app on their phone each time they sign in (see
 :doc:`member/two-factor`).
 
-Those six are the **two-factor roles**, and they are granted with care. A user
-administrator grants or takes away a two-factor role only while holding it themselves: one
-who is also an account administrator can make somebody else an account administrator, but
-one who is not the treasurer can neither grant nor take away Treasurer. Any user
-administrator grants and takes away Member, Verifier, and DART leader. A system
-administrator grants and takes away every role. Nobody changes their own roles, a system
-administrator included: ask another administrator.
+Those six are the **two-factor roles**, which messages call the administrative roles, and
+they are granted with care. A user administrator grants or takes away a two-factor role only
+while holding it themselves: one who is also an account administrator can make somebody else
+an account administrator, but one who is not the treasurer can neither grant nor take away
+Treasurer. Any user administrator grants and takes away Member, Verifier, and DART leader. A
+system administrator grants and takes away every role. Nobody changes their own roles, a
+system administrator included: ask another administrator.
 
 This guide works the same way. It shows each reader the screens their roles reach:
 its menu and its contents list only the pages you can use, and the address of any
@@ -77,8 +77,9 @@ adds the **Operations** group:
 
 A verifier does not browse the membership list. A DART leader or a user
 administrator grants the role from the member check, and a user administrator can
-also grant it on the **User record** (:doc:`admin/user-record`). Nobody makes themselves
-a verifier. You may verify your own documents.
+also grant it on the **User record** (:doc:`admin/user-record`). Anyone with a portal
+account can be made a verifier, whatever other roles they hold, a treasurer included.
+Nobody makes themselves a verifier. You may verify your own documents.
 
 
 DART leader

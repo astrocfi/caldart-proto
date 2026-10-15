@@ -152,7 +152,9 @@ type ProfileChanges = dict[str, Any]
 
 SELF_DELETE_REFUSED = "You cannot delete your own account."
 SYSTEM_ADMIN_DELETE_REFUSED = "Only a system administrator can delete a system administrator."
-ROLES_NOT_HELD_DELETE_REFUSED = "You cannot delete an account that holds roles you do not hold."
+ROLES_NOT_HELD_DELETE_REFUSED = (
+    "You cannot delete an account that holds administrative roles you do not hold."
+)
 #: Why a tombstone's record refuses an edit, a membership term, or a delete.
 TOMBSTONE_CHANGE_REFUSED = (
     "This record keeps a deleted member's payments in the books and cannot be changed."

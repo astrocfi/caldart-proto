@@ -226,7 +226,7 @@ describe('MemberAccountActions', () => {
         HttpResponse.json(
           {
             detail:
-              'You cannot activate or deactivate an account that holds roles you do not hold.',
+              'You cannot activate or deactivate an account that holds administrative roles you do not hold.',
           },
           { status: 400 },
         ),
@@ -241,7 +241,7 @@ describe('MemberAccountActions', () => {
     );
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'You cannot activate or deactivate an account that holds roles you do not hold.',
+      'You cannot activate or deactivate an account that holds administrative roles you do not hold.',
     );
   });
 

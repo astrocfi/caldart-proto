@@ -1479,7 +1479,7 @@ password; and an account holding roles the caller does not hold, under the
 
     400 {"detail": "A donor cannot sign in, so no reset email was sent."}
     400 {"detail": "You cannot send a password reset to your own account. Use Change password instead."}
-    400 {"detail": "You cannot send a password reset to an account that holds roles you do not hold."}
+    400 {"detail": "You cannot send a password reset to an account that holds administrative roles you do not hold."}
 
 Both the send and the refusal are recorded in the audit log
 (:ref:`deploy-audit-log`), a refusal as ``action=password_reset.admin_sent`` with
@@ -1539,7 +1539,7 @@ Refused, changing nothing, in this order::
 
     400 {"detail": "A donor cannot sign in, so there is no password to replace."}
     400 {"detail": "You cannot require a new password for your own account. Use Change password instead."}
-    400 {"detail": "You cannot require a new password for an account that holds roles you do not hold."}
+    400 {"detail": "You cannot require a new password for an account that holds administrative roles you do not hold."}
 
 A tombstone is a donor, so the first sentence covers it; the last is the
 :ref:`account-edit guard <account-edit-guard>`.  Each refusal is recorded at WARNING as
@@ -1553,7 +1553,7 @@ failed send is in the email log and the refusal is logged
 (:ref:`refused sends <api-refused-send>`).
 
 Statuses: **200** once the password is shut out, whether or not a link was mailed;
-**400** for a donor, your own account, or an account holding roles you do not hold;
+**400** for a donor, your own account, or an account holding administrative roles you do not hold;
 **401** when anonymous; **403** without ``user_admin``; **404** for an unknown id;
 **503** when the mail server refused the reset email.  Not throttled.
 
@@ -1693,7 +1693,7 @@ sentences are listed under :ref:`account-edit-guard`.
    then every active or paused mandate is canceled with the administrator as
    ``canceled_by`` (a pending one discarded), and every term with time left is
    suspended, each ``membership.correct`` recorded under the administrator.
-   Refused for your own account, a donor, an account holding roles you do not
+   Refused for your own account, a donor, an account holding administrative roles you do not
    hold, and an account already deactivated.
 
 ``POST /admin/users/{id}/reactivate``
@@ -1703,14 +1703,14 @@ sentences are listed under :ref:`account-edit-guard`.
    suspended term is restored, and an unverified address is mailed a link (a
    refused link leaves the answer unchanged,
    :ref:`refused sends <api-refused-send>`).
-   Refused for a donor, an account holding roles you do not hold, an account
+   Refused for a donor, an account holding administrative roles you do not hold, an account
    blocked from reactivating, and an account already active.
 
 ``POST /admin/users/{id}/block``
    Sets ``reactivation_blocked`` (:ref:`api-reactivation-block`), recorded as
    ``account.block``.  An active account is deactivated first, exactly as
    ``/deactivate`` does it.  Blocking an account already blocked changes
-   nothing.  Refused for your own account, a donor, and an account holding roles
+   nothing.  Refused for your own account, a donor, and an account holding administrative roles
    you do not hold.
 
 ``POST /admin/users/{id}/unblock``
@@ -1827,19 +1827,20 @@ action is a 400 carrying ``detail``::
 Refused change      Message
 ==================  ==============================================================
 Their address       You cannot change the email address of an account that holds
-                    roles you do not hold.
+                    administrative roles you do not hold.
 Your own status     You cannot deactivate your own account.
-Their status        You cannot activate or deactivate an account that holds roles
-                    you do not hold.
+Their status        You cannot activate or deactivate an account that holds
+                    administrative roles you do not hold.
 Your own block      You cannot block your own account.
-Their block         You cannot block or unblock an account that holds roles you
-                    do not hold.
+Their block         You cannot block or unblock an account that holds
+                    administrative roles you do not hold.
 Your own password   You cannot require a new password for your own account. Use
                     Change password instead. (or *You cannot send a password reset
                     to your own account.*)
 Their password      You cannot require a new password for an account that holds
-                    roles you do not hold. (or *You cannot send a password reset to
-                    an account that holds roles you do not hold.*)
+                    administrative roles you do not hold. (or *You cannot send a
+                    password reset to an account that holds administrative roles
+                    you do not hold.*)
 A donor             A donor has no portal account to deactivate. (or *to
                     reactivate.*, or *to block.*)
 A blocked account   A user administrator has blocked this account from

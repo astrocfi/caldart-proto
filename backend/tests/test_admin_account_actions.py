@@ -42,7 +42,10 @@ CONTRIBUTION = 2500
 
 SELF_REFUSED = {"detail": "You cannot deactivate your own account."}
 ROLES_REFUSED = {
-    "detail": "You cannot activate or deactivate an account that holds roles you do not hold."
+    "detail": (
+        "You cannot activate or deactivate an account that holds "
+        "administrative roles you do not hold."
+    )
 }
 DONOR_DEACTIVATE_REFUSED = {"detail": "A donor has no portal account to deactivate."}
 DONOR_REACTIVATE_REFUSED = {"detail": "A donor has no portal account to reactivate."}

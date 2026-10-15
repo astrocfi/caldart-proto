@@ -49,7 +49,11 @@ ADMIN_BLOCKED = {
     "Allow reactivation on its user record first."
 }
 SELF_BLOCK = {"detail": "You cannot block your own account."}
-ROLES_BLOCK = {"detail": "You cannot block or unblock an account that holds roles you do not hold."}
+ROLES_BLOCK = {
+    "detail": (
+        "You cannot block or unblock an account that holds administrative roles you do not hold."
+    )
+}
 DONOR_BLOCK = {"detail": "A donor has no portal account to block."}
 
 
