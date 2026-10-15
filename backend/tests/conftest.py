@@ -27,11 +27,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Protocol, cast
 
 import freezegun
+import httpx
 import pytest
 import respx
 from django.conf import settings as django_settings
 from django.contrib.auth import get_user_model
 from django.core import mail
+from django.core.cache import cache
 from django.core.mail import EmailMessage, EmailMultiAlternatives
 from django.core.mail.backends.locmem import EmailBackend
 from django.http import HttpResponse, HttpResponseBase
@@ -1238,3 +1240,28 @@ def change_and_confirm(vera: UserModel, client: APIClient) -> None:
     """Ask to move ``vera`` to :data:`VERA_NEW` and follow the link mailed there."""
     ask(client)
     client.post(EMAIL_VERIFY_URL, {"token": confirm_token()})
+
+
+# --------------------------------------------------------------------------
+# PayPal sandbox
+# --------------------------------------------------------------------------
+#: The PayPal host every sandbox-configured test talks to.
+PAYPAL_SANDBOX = "https://api-m.sandbox.paypal.com"
+
+
+@pytest.fixture
+def paypal_sandbox(settings: Settings) -> Iterator[None]:
+    """Fake sandbox PayPal credentials, with no cached token before or after."""
+    settings.PAYPAL_CLIENT_ID = "paypal-client"
+    settings.PAYPAL_CLIENT_SECRET = "paypal-secret"  # noqa: S105 - a fake secret
+    settings.PAYPAL_ENV = "sandbox"
+    cache.clear()
+    yield
+    cache.clear()
+
+
+def paypal_token(router: respx.Router) -> respx.Route:
+    """Answer PayPal's OAuth call, so the provider can make the call under test."""
+    return router.post(f"{PAYPAL_SANDBOX}/v1/oauth2/token").mock(
+        return_value=httpx.Response(200, json={"access_token": "tok", "expires_in": 3600})
+    )

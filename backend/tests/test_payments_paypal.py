@@ -34,7 +34,7 @@ from apps.payments.models import (
     RefundReason,
     RefundStatus,
 )
-from apps.payments.providers import paypal
+from apps.payments.providers import paypal, paypal_api, paypal_orders
 from apps.payments.providers.base import (
     PaymentVerificationError,
     ProviderFees,
@@ -132,7 +132,7 @@ def capture_payload(
 def test_a_call_no_route_matches_never_reaches_paypal() -> None:
     """A test that forgets to mock a route fails outright instead of calling PayPal."""
     with pytest.raises(AllMockedAssertionError, match="not mocked"):
-        paypal.access_token()
+        paypal_api.access_token()
 
 
 # --------------------------------------------------------------------------
@@ -142,8 +142,8 @@ def test_a_call_no_route_matches_never_reaches_paypal() -> None:
 def test_the_token_is_fetched_once_and_cached() -> None:
     """The OAuth token is fetched once and reused from cache on a second call."""
     route = token_route(respx.mock)
-    assert paypal.access_token() == "A21AA-token"
-    assert paypal.access_token() == "A21AA-token"
+    assert paypal_api.access_token() == "A21AA-token"
+    assert paypal_api.access_token() == "A21AA-token"
     assert route.call_count == 1
 
     request = route.calls[0].request
@@ -160,15 +160,15 @@ def test_an_expired_token_is_fetched_again() -> None:
     """
     route = token_route(respx.mock, expires_in=TOKEN_LIFETIME_SECONDS)
     with freeze_time("2026-09-22 12:00:00") as clock:
-        assert paypal.access_token() == "A21AA-token"
+        assert paypal_api.access_token() == "A21AA-token"
 
         # codespell:ignore-next-line tick
-        clock.tick(timedelta(seconds=TOKEN_LIFETIME_SECONDS - paypal.TOKEN_SKEW_SECONDS - 1))
-        assert paypal.access_token() == "A21AA-token"
+        clock.tick(timedelta(seconds=TOKEN_LIFETIME_SECONDS - paypal_api.TOKEN_SKEW_SECONDS - 1))
+        assert paypal_api.access_token() == "A21AA-token"
         assert route.call_count == 1
 
         clock.tick(timedelta(seconds=2))  # codespell:ignore tick
-        assert paypal.access_token() == "A21AA-token"
+        assert paypal_api.access_token() == "A21AA-token"
         assert route.call_count == 2
 
 
@@ -176,13 +176,13 @@ def test_an_expired_token_is_fetched_again() -> None:
 def test_emptying_the_cache_fetches_a_fresh_token() -> None:
     """Emptying Django's cache forces a fresh fetch on the next call."""
     route = token_route(respx.mock, expires_in=0)
-    paypal.access_token()
-    paypal.access_token()
+    paypal_api.access_token()
+    paypal_api.access_token()
     # expires_in=0 still leaves the 30s floor, so the cache holds.
     assert route.call_count == 1
 
     cache.clear()
-    paypal.access_token()
+    paypal_api.access_token()
     assert route.call_count == 2
 
 
@@ -191,7 +191,7 @@ def test_bad_credentials_raise() -> None:
     """A 401 from the token endpoint raises PaymentVerificationError."""
     respx.post(TOKEN_URL).mock(return_value=httpx.Response(401, json={"error": "invalid_client"}))
     with pytest.raises(PaymentVerificationError, match=r"refused our credentials \(HTTP 401\)"):
-        paypal.access_token()
+        paypal_api.access_token()
 
 
 def test_missing_credentials_raise(settings: Settings) -> None:
@@ -201,15 +201,15 @@ def test_missing_credentials_raise(settings: Settings) -> None:
         ProviderNotConfiguredError,
         match=r"PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET are empty",
     ):
-        paypal.access_token()
+        paypal_api.access_token()
 
 
 def test_the_live_environment_uses_the_live_host(settings: Settings) -> None:
     """PAYPAL_ENV selects the live or sandbox API host."""
     settings.PAYPAL_ENV = "live"
-    assert paypal.api_base() == "https://api-m.paypal.com"
+    assert paypal_api.api_base() == "https://api-m.paypal.com"
     settings.PAYPAL_ENV = "sandbox"
-    assert paypal.api_base() == SANDBOX
+    assert paypal_api.api_base() == SANDBOX
 
 
 # --------------------------------------------------------------------------
@@ -1370,7 +1370,7 @@ def test_a_breakdown_that_is_not_a_number_reports_no_fee() -> None:
         }
     }
 
-    assert paypal.fees_from_capture(capture) is None
+    assert paypal_orders.fees_from_capture(capture) is None
 
 
 @respx.mock

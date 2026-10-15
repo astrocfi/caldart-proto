@@ -72,8 +72,11 @@ Each of these is **400**, keyed by the field it belongs to:
 * ``reason`` — a reason outside the five choices.
 * ``detail`` — the sentence the provider gave, when the provider refuses the
   refund or cannot be reached.  The refund row is kept as ``failed``, so the
-  attempt stays on the record; the payment's status does not move, because no
-  money went back.
+  attempt stays on the record; the payment's status does not move.  A provider
+  that could not be reached may still have given the money back, so its sentence
+  is followed by *Check the provider's dashboard before trying again: if the
+  refund went through, the provider's notification records it.* -- as a dashboard
+  refund (:ref:`api-refunds-webhooks`).
 
 Nothing is written when the amount or the reason is refused.
 
@@ -109,7 +112,9 @@ Provider        The call
                 repeated after a timeout gives the money back once.
 ``paypal``      ``POST /v2/payments/captures/{capture_id}/refund``, where the
                 capture id is read from the capture response stored on the
-                payment.  A payment with no completed capture is a **400**.
+                payment, with ``PayPal-Request-Id: caldart-refund-<refund
+                id>``, so a call repeated for the same row gives the money
+                back once.  A payment with no completed capture is a **400**.
 ``mock``        Succeeds at once, with no provider reference: no provider is
                 holding a refund id.
 ``manual``      Nothing is called: a check or cash goes back the way it came,

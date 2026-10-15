@@ -503,9 +503,10 @@ Beyond Django's and Wagtail's own, this project adds:
        backup, version, and ``DEBUG``; ``--json`` for a monitoring check
    * - ``send_renewal_reminders [--dry-run] [--today YYYY-MM-DD]``
      - the renewal reminder scan (:doc:`reminders`)
-   * - ``run_auto_renewals [--dry-run] [--today YYYY-MM-DD]``
+   * - ``run_auto_renewals [--dry-run] [--today YYYY-MM-DD] [--scan-id ID]``
      - send renewal notices and charge the renewals and recurring donations
-       due (:doc:`renewals`)
+       due (:doc:`renewals`); ``--scan-id`` fills in the row a **Run now** on the
+       Scheduled tasks page wrote
    * - ``send_scheduled_reports [--dry-run] [--today YYYY-MM-DD]``
      - send the report subscriptions and DART rosters that are due
        (:doc:`scheduled-reports`)

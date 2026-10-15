@@ -726,6 +726,17 @@ verifies whichever of the keys below are set before you open a browser.
 
    :Production: ``false``
 
+``RENEWAL_STALE_MINUTES``
+   How many minutes a renewal charge the scan has claimed, or a live renewal scan
+   started from the Scheduled tasks page, may stay unfinished before it is taken
+   to have died.  The next scan then takes the claim over and settles the charge
+   with the provider before charging anything, and the page reports the scan as
+   *Did not finish.*  It must be at least 15, the time the systemd unit allows one
+   scan: below that every live scan refuses to start, with ``ImproperlyConfigured``
+   naming the setting.  See :ref:`renewals-scanner`.
+
+   :Both: ``60``
+
 .. _configuration-payment-limits:
 
 Payment limits

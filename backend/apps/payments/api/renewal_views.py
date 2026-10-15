@@ -14,6 +14,7 @@ what takes the money, and these endpoints only change what it will find.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any, cast
 
 from django.db import transaction
@@ -37,11 +38,13 @@ from apps.payments.api.serializers import (
     RenewalEnvelopeSerializer,
     RenewalMandateSerializer,
     RenewalPatchSerializer,
+    RenewalSettleSerializer,
     RenewalSetupResponseSerializer,
     RenewalSetupSerializer,
 )
 from apps.payments.models import RenewalAttempt, RenewalMandate, RenewalOutcome
 from apps.payments.providers.base import PaymentError, get_provider
+from apps.payments.renewals.charge import settle_in_doubt
 from apps.payments.renewals.mandates import (
     RENEWAL_CONTRIBUTION_CODE,
     RenewalContributionError,
@@ -53,6 +56,7 @@ from apps.payments.renewals.mandates import (
 )
 from apps.payments.renewals_report import mandate_queryset
 from apps.payments.throttling import PaymentConfirmThrottle, PaymentStartThrottle
+from caldart.mail import send_after_response
 
 #: What ``DELETE /me/renewal``, ``/me/donation`` and ``/admin/renewals/{id}`` answer with.
 DELETE_RESPONSE_DESCRIPTION = "The authority is off.  The body is empty."
@@ -395,12 +399,54 @@ class AdminRenewalAttemptListView(ListAPIView[RenewalAttempt]):
         the history.  ``?outcome=`` narrows to one outcome; anything outside the attempt
         outcomes is a 400 keyed by ``outcome``.
         """
-        queryset = RenewalAttempt.objects.select_related("mandate", "mandate__user").order_by(
-            F("attempted_at").desc(nulls_first=True), "-scheduled_on", "-id"
-        )
+        queryset = RenewalAttempt.objects.select_related(
+            "mandate", "mandate__user", "payment"
+        ).order_by(F("attempted_at").desc(nulls_first=True), "-scheduled_on", "-id")
         wanted = (self.request.query_params.get("outcome") or "").strip()
         if not wanted:
             return queryset
         if wanted not in RenewalOutcome.values:
             raise ValidationError({"outcome": f"Unknown outcome '{wanted}'."})
         return queryset.filter(outcome=wanted)
+
+
+class AdminRenewalAttemptSettleView(APIView):
+    """``POST /admin/renewals/attempts/{id}/settle`` -- settle a charge held in doubt."""
+
+    permission_classes = [IsAuthenticated, IsFinance]
+
+    @extend_schema(request=RenewalSettleSerializer, responses={200: RenewalAttemptSerializer})
+    def post(self, request: Request, pk: int) -> Response:
+        """200 with the attempt once the treasurer's answer has been applied.
+
+        ``{"outcome": "paid", "reference": "<capture id>"}`` records the charge the
+        provider took: the provider confirms the id belongs to this payment, and the
+        attempt is settled at once, the term renewed, and the member emailed once
+        the answer has gone.  ``{"outcome": "released"}`` releases the hold, so the
+        next scan charges the same payment again under the same invoice id.
+        ``{"outcome": "failed"}`` closes it as failed without a charge and pauses
+        the mandate.  404 for an unknown attempt, 400 keyed by ``attempt`` for one
+        that is not in doubt, and 400 naming ``detail`` when the provider will not
+        confirm the reference or cannot be reached.
+        """
+        payload = RenewalSettleSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        if not RenewalAttempt.objects.filter(pk=pk).exists():
+            raise Http404("No such renewal charge.")
+        emails: list[Callable[[], None]] = []
+        try:
+            settled = settle_in_doubt(
+                pk,
+                outcome=payload.validated_data["outcome"],
+                reference=payload.validated_data["reference"],
+                actor=signed_in_user(request),
+                defer=emails.append,
+            )
+        except PaymentError as exc:
+            raise ValidationError({"detail": str(exc)}) from exc
+        response = Response(RenewalAttemptSerializer(settled).data)
+        if emails:
+            send_after_response(
+                response, lambda: [send() for send in emails], what="the renewal charged email"
+            )
+        return response

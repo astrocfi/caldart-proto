@@ -122,6 +122,21 @@ class Payment(TimestampedModel):
     provider_ref = models.CharField(
         max_length=128, blank=True, help_text="PaymentIntent id / PayPal order id."
     )
+    charge_customer_ref = models.CharField(
+        max_length=128,
+        blank=True,
+        help_text="For an off-session charge, the provider customer it was first sent for.",
+    )
+    charge_method_ref = models.CharField(
+        max_length=128,
+        blank=True,
+        help_text="For an off-session charge, the saved method it was first sent against.",
+    )
+    charge_sent_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When an off-session charge for this payment was first sent to the provider.",
+    )
     status = models.CharField(
         max_length=20, choices=PaymentStatus.choices, default=PaymentStatus.PENDING
     )
@@ -542,6 +557,18 @@ class RenewalAttempt(TimestampedModel):
         null=True, blank=True, help_text="When the advance-warning email went out."
     )
     attempted_at = models.DateTimeField(null=True, blank=True)
+    in_doubt = models.BooleanField(
+        default=False,
+        help_text=(
+            "The provider may have taken this charge and cannot say; the scan charges "
+            "nothing for it until a treasurer settles it."
+        ),
+    )
+    flagged_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the treasurer was told this charge needs checking.",
+    )
     result_emailed_at = models.DateTimeField(
         null=True, blank=True, help_text="When the charged or failed email went out."
     )
@@ -565,6 +592,39 @@ class RenewalAttempt(TimestampedModel):
     def __str__(self) -> str:
         """The member, the scheduled day and the outcome, separated by middle dots."""
         return f"{self.mandate.user} \u00b7 {self.scheduled_on.isoformat()} ({self.outcome})"
+
+
+class RenewalScan(models.Model):
+    """One live renewal scan a system administrator started from the Scheduled tasks page.
+
+    The scan runs in its own process, outside the request that started it, and fills
+    this row in when it ends.  ``finished_at`` is null while it runs; ``ok`` says
+    whether it ran to its end and ``error`` why it did not.  ``result`` holds the
+    run's counts and actions, as ``POST /system/renewals/run`` answers a dry run with
+    them, and is null until the scan has finished.  ``started_by`` is who pressed
+    **Run now**, recorded as the actor of the run's ``renewals.run`` audit record.
+    """
+
+    started_at = models.DateTimeField(default=timezone.now)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    started_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="renewal_scans",
+    )
+    ok = models.BooleanField(default=False)
+    error = models.TextField(blank=True)
+    result = models.JSONField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-started_at", "-id"]
+
+    def __str__(self) -> str:
+        """When the scan started and whether it ran to its end."""
+        outcome = "ok" if self.ok else "not ok"
+        return f"renewal scan {self.started_at:%Y-%m-%d %H:%M} ({outcome})"
 
 
 class YearStatement(TimestampedModel):

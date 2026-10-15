@@ -29,6 +29,7 @@ EVENT_SLUGS: tuple[str, ...] = (
     "auto_renewal_on",
     "auto_renewal_off",
     "auto_renewal_declined",
+    "renewal_needs_checking",
     "donation_received",
     "payment_recorded",
     "payment_refunded",

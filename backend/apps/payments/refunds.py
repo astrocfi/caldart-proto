@@ -57,6 +57,14 @@ DASHBOARD_NOTE = "Issued in the provider's dashboard"
 #: The subject of the email a member gets when money goes back to them.
 REFUND_SUBJECT = "{org}: a refund of {amount}"
 
+#: What a treasurer is told after a refund the provider did not answer.  The money
+#: may have gone back all the same, and the provider's notification would then
+#: file it as a dashboard refund, so a second refund could give it back twice.
+CHECK_DASHBOARD_MESSAGE = (
+    "Check the provider's dashboard before trying again: if the refund went "
+    "through, the provider's notification records it."
+)
+
 #: The statuses a payment whose money arrived can be in.  A refund is refused
 #: from any other, and one from these is judged on what is left, so a payment
 #: already given back in full is refused by amount rather than by status.
@@ -348,11 +356,17 @@ def _ask_the_provider(payment: Payment, refund: Refund) -> ProviderRefund:
     goes back the way it came, by check or in cash, and no provider is involved.
     Anything the provider raises -- its own ``PaymentError``, or a fault nobody
     foresaw -- marks ``refund`` failed and travels on to the caller, so no path
-    leaves a row stranded ``pending``.
+    leaves a row stranded ``pending``.  A provider that could not be reached may
+    still have given the money back, so its error is raised again with
+    :data:`CHECK_DASHBOARD_MESSAGE` after it.
     """
     # Inline: the providers import this module, so importing them at the top
     # would close the cycle.
-    from apps.payments.providers.base import ProviderRefund, get_provider
+    from apps.payments.providers.base import (
+        ProviderRefund,
+        ProviderUnavailableError,
+        get_provider,
+    )
 
     if payment.provider == PaymentProvider.MANUAL:
         return ProviderRefund(provider_ref="", raw={"provider": PaymentProvider.MANUAL.value})
@@ -363,6 +377,9 @@ def _ask_the_provider(payment: Payment, refund: Refund) -> ProviderRefund:
         refund.raw = {"error": str(exc)}
         refund.save(update_fields=["status", "raw", "updated_at"])
         log.warning("Refund %s for payment %s failed: %s", refund.pk, payment.pk, exc)
+        if isinstance(exc, ProviderUnavailableError):
+            # The provider may have given the money back before its answer was lost.
+            raise ProviderUnavailableError(f"{exc} {CHECK_DASHBOARD_MESSAGE}") from exc
         raise
 
 

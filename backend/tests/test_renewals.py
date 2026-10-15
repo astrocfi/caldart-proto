@@ -731,16 +731,29 @@ def test_a_charge_a_provider_outage_stopped_is_tried_again(
     assert attempt.outcome == RenewalOutcome.SCHEDULED
 
 
-def test_a_charge_a_provider_outage_stopped_leaves_no_pending_payment(
+def test_a_charge_a_provider_outage_stopped_keeps_its_pending_payment(
     unreachable_provider: None, member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
-    """The payment row started for a charge nobody took is thrown away again."""
+    """The provider may have charged before the line dropped, so the payment is kept."""
     make_mandate(member, annual_plan, ends_on=today)
     run_auto_renewals(today=today - timedelta(days=1))
 
     run_auto_renewals(today=today)
 
-    assert Payment.objects.count() == 0
+    assert RenewalAttempt.objects.get().payment == Payment.objects.get()
+
+
+def test_every_try_at_a_charge_an_outage_stopped_reuses_its_payment(
+    unreachable_provider: None, member: User, annual_plan: MembershipPlan, today: date
+) -> None:
+    """A second scan charges the same payment, so the provider sees the same key."""
+    make_mandate(member, annual_plan, ends_on=today)
+    run_auto_renewals(today=today - timedelta(days=1))
+
+    run_auto_renewals(today=today)
+    run_auto_renewals(today=today)
+
+    assert Payment.objects.count() == 1
 
 
 # --------------------------------------------------------------------------

@@ -95,7 +95,8 @@ The filters narrow the whole log, every page of it:
    Membership granted by an administrator*, *Notification: Membership expired*,
    *Notification: Automatic renewal or recurring donation turned on*, *Notification:
    Automatic renewal or recurring donation turned off*, *Notification: Automatic renewal or
-   recurring donation charge failed*, *Notification: Donation received*,
+   recurring donation charge failed*, *Notification: Automatic charge needs checking*,
+   *Notification: Donation received*,
    *Notification: Payment recorded by hand*, *Notification: Payment refunded*,
    *Notification: Account deactivated*, *Notification: Account reactivated*, *Notification:
    Roles changed*, *Notification: Email address changed*, *Notification: Profile changed*,

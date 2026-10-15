@@ -9,6 +9,7 @@ app_name = "sysadmin"
 urlpatterns = [
     path("system/health", views.HealthView.as_view(), name="health"),
     path("system/renewals/run", views.RenewalRunView.as_view(), name="renewals-run"),
+    path("system/renewals/runs/<int:pk>", views.RenewalScanView.as_view(), name="renewals-scan"),
     path("system/statements/run", views.StatementsRunView.as_view(), name="statements-run"),
     path("system/backups", views.BackupListCreateView.as_view(), name="backups"),
     path(

@@ -220,8 +220,10 @@ on the finance screens and in the emails that report a charge.
 The schedule
 ============
 
-Four constants in ``apps/payments/renewals/scan.py`` set the timing around the day
-the member chose:
+Five constants set the timing around the day the member chose:
+``NOTICE_DAYS``, ``CARD_EXPIRY_WARNING_DAYS``, and ``CATCH_UP_DAYS`` in
+``apps/payments/renewals/scan.py``, and ``RETRY_OFFSETS`` and ``PENDING_ALERT_DAYS`` in
+``apps/payments/renewals/charge.py``, the module that takes each charge:
 
 ====================================  =========  =============================
 Constant                              Value      Meaning
@@ -234,6 +236,9 @@ Constant                              Value      Meaning
                                                  member is warned it will not last.
 ``CATCH_UP_DAYS``                     30         How long after the stored charge
                                                  date a scan may still take it.
+``PENDING_ALERT_DAYS``                3          How long a charge may stay pending
+                                                 at the provider before the
+                                                 treasurer is told.
 ====================================  =========  =============================
 
 A default charge falls on the term's ``ends_on``, which that term still covers, so
@@ -250,8 +255,10 @@ The scan
 ========
 
 ``run_auto_renewals(*, today, dry_run, actor)`` is the one entry point.  The
-management command, ``POST /system/renewals/run`` and the systemd timer all call
-it, and it does three things in order.
+management command and the systemd timer call it, and so does ``POST
+/system/renewals/run``: inline for a dry run, and through the management command in
+a process of its own for a live one (:ref:`renewals-run-now`).  It does three
+things in order.
 
 1. **Notice.**  For every ``active`` mandate, find the member's active term that
    runs furthest into the future.  If ``charge_date`` is within ``NOTICE_DAYS``,
@@ -290,6 +297,15 @@ it, and it does three things in order.
 3. **Charge.**  For every ``scheduled`` attempt due today or earlier: claim the
    attempt, create the payment from the plan's current price plus the mandate's
    contribution, then ask the provider to charge the saved method off-session.
+   The payment and the attempt that owns it are written in one transaction, and
+   the charge is keyed on the payment (``caldart-renewal-<payment id>``, as Stripe's
+   idempotency key, PayPal's ``PayPal-Request-Id``, and PayPal's ``invoice_id``).
+   The first time a payment is sent, the provider customer and the saved method it
+   is sent for are stamped on it with the time (``charge_customer_ref``,
+   ``charge_method_ref``, and ``charge_sent_at``), and every later try and lookup
+   uses those and the payment's own ``provider``.  A member who changes card,
+   abandons a new setup, or switches provider between a lost answer and the next
+   scan therefore changes nothing about how that charge is settled.
 
    The claim is a single conditional update that stamps ``attempted_at`` while the
    attempt is still ``scheduled`` and unstamped.  Two scans running at once -- the
@@ -298,7 +314,13 @@ it, and it does three things in order.
    and moves on.  Nor can the two write the same charge twice: a mandate holds
    one ``scheduled`` attempt at a time (``renewal_attempt_one_scheduled_per_mandate``),
    so of two scans that both find none waiting, the one whose write is refused
-   leaves the charge and its notice to the other.
+   leaves the charge and its notice to the other.  A stamp older than
+   ``RENEWAL_STALE_MINUTES`` (60 by default, and never less than 15) belongs to a
+   scan that died after claiming, and the same update lets the next scan take it
+   over, so a crash never strands a charge as ``in_flight``.  Every way the scan
+   then closes or releases the attempt is a conditional update on its own claim
+   stamp, and the attempt is closed before the mandate is touched or anybody is
+   emailed: a scan whose claim was taken over records nothing.
 
    On success the payment goes through the same ``mark_succeeded`` path as a
    checkout, so the next term is activated starting the day after the current one
@@ -314,14 +336,51 @@ it, and it does three things in order.
    the attempt, the failure count rises, and ``renewal_failed`` goes out naming
    either the day of the next try or that it was the last.  A mandate with
    retries left gets the next attempt from ``RETRY_OFFSETS``; one whose retries
-   are exhausted is paused.
+   are exhausted is paused.  A decline for a mandate that is no longer active --
+   turned off while its charge was being settled -- closes the attempt and changes
+   nothing else.
 
    A provider that cannot be reached, that is not configured, or that is
    switched off (the mock provider with ``PAYMENTS_MOCK_ENABLED`` off) says
-   nothing about the member's card: the pending payment is deleted, the claim is released,
-   the attempt stays ``scheduled`` for the next scan, and the run counts it as
-   ``provider_down``.  No retry rung is spent, no email goes out and the mandate
-   stays ``active``.
+   nothing about the member's card: the claim is released, the attempt stays
+   ``scheduled`` for the next scan, and the run counts it as ``provider_down``.
+   No retry rung is spent, no email goes out, and the mandate stays ``active``.
+   A provider that could not be reached may have charged before its answer was
+   lost, so the pending payment stays on the attempt; only a payment no provider
+   was ever asked about (one not configured or switched off, on the payment's
+   first try) is deleted.
+
+   A charge the provider accepted and has not settled -- a Stripe intent in
+   ``processing``, a PayPal capture held as ``PENDING`` -- is neither taken nor
+   refused.  The payment stays pending on the attempt, the claim is released, no
+   email goes out, no rung is spent, and the run counts it as ``pending``.  The
+   Stripe webhook may settle the payment in the meantime.  A charge still pending
+   more than ``PENDING_ALERT_DAYS`` (3) after it was sent is logged at ERROR and
+   flagged to the treasurer once (:ref:`renewals-in-doubt`).
+
+   A provider that answered nothing earlier in the run is sent no more charges
+   in it: each is put off unsent, as ``provider_down``.
+
+   A charge the provider may have taken and cannot be asked about is held *in
+   doubt*: the attempt stays ``scheduled`` with ``in_doubt`` set and the reason in
+   its ``error``, the payment stays pending, no email goes out, no rung is
+   spent, and every scan skips it as ``in_doubt`` until a treasurer settles it
+   (:ref:`renewals-in-doubt`).  Only PayPal holds charges in doubt.
+
+   **Settling a charge sent before.** An attempt whose payment is already set has
+   been sent to the provider before, and its outcome was never recorded: a lost
+   answer, a charge still settling, or a scan that died after claiming it.  Such an
+   attempt is never charged afresh.  Once claimed, a payment the webhook has already
+   marked succeeded is recorded as the charge.  Otherwise the provider is asked for
+   the charge it made for that payment (``find_mandate_charge``), and a success, a
+   decline, a charge still settling, or one in doubt is recorded exactly as if the
+   charge had just answered.  Only when the provider holds no charge for it is the
+   payment charged again, under the same key; if the attempt should no longer be
+   charged by then -- the mandate is off, or a skip rule below applies -- the
+   payment is deleted and the attempt closed as ``skipped`` instead.  This runs
+   whatever the mandate's status, and turning renewal off leaves such an attempt
+   ``scheduled`` for it, so money taken just before the member turned renewal off is
+   still recorded.
 
    An attempt whose mandate is no longer active is closed as ``skipped`` and
    charges nothing, and so is a renewal's attempt whose member has become a friend
@@ -376,7 +435,7 @@ walk carries on.
 The providers
 =============
 
-Each provider implements four methods on ``Provider``:
+Each provider implements these methods on ``Provider``:
 
 ``start_mandate(mandate)``
    the parameters the browser needs to collect a method, and whatever handle the
@@ -384,8 +443,20 @@ Each provider implements four methods on ``Provider``:
 ``confirm_mandate(mandate, **kwargs)``
    read the saved method back, verified with the provider, as a ``MandateMethod``.
 ``charge_mandate(mandate, payment)``
-   charge off-session; raises ``PaymentDeclinedError`` carrying the provider's own
-   wording when the method is refused.
+   charge off-session, keyed on the payment so a repeat for the same payment
+   takes nothing twice; raises ``PaymentDeclinedError`` carrying the provider's own
+   wording when the method is refused, ``PaymentPendingError`` when the provider
+   has the charge and has not settled it, and ``ProviderUnavailableError`` when it
+   cannot be reached, which says nothing about whether the charge was made.
+``find_mandate_charge(mandate, payment)``
+   settle a payment from the charge an earlier call already made for it, and
+   answer whether there was one; it raises what ``charge_mandate`` raises for a
+   charge it finds refused or still settling, and ``PaymentInDoubtError`` for one
+   it may hold and cannot look up.
+``record_charge_reference(payment, reference)``
+   check a provider id a treasurer copied from the provider's dashboard against the
+   payment, and store the provider's handle on it, so ``find_mandate_charge`` can
+   settle it.  Only PayPal implements it.
 ``method_from_payment(payment)``
    the method a succeeded checkout saved, so a checkout that asked for automatic
    renewal activates its mandate without a second round trip.
@@ -395,9 +466,19 @@ needed, and its id kept in ``customer_ref``.  A checkout with ``auto_renew`` is
 created against that customer with ``setup_future_usage="off_session"``.  Turning
 renewal on without paying uses a SetupIntent with ``usage="off_session"``, which
 the Payment Element renders in ``setup`` mode.  A charge is a PaymentIntent with
-``off_session: true`` and ``confirm: true``, keyed so a repeated attempt cannot
-charge twice; a ``CardError`` and an intent that comes back needing
-authentication are both declines, because nobody is present to authenticate.
+``off_session: true`` and ``confirm: true``, carrying ``metadata.payment_id`` and
+keyed so a repeated attempt cannot charge twice; a ``CardError`` and an intent
+that comes back needing authentication are both declines, because nobody is
+present to authenticate, and ``processing`` is pending.  Stripe forgets an
+idempotency key after 24 hours, and the next scan is usually a day later, so a
+payment sent before is looked up first: the intent named in its ``provider_ref``
+is retrieved, and a payment whose create call never answered has the customer's
+intents listed from shortly before it was written, taking the one whose
+``metadata.payment_id`` is its own.  Listing is used rather than Stripe's search,
+which lags behind; a list that runs past one page without finding the payment puts
+the charge off rather than charging again.  A ``resource_missing`` refusal naming the
+customer or the card is a decline (the saved card is gone), as is a renewal with no
+customer or card to charge.
 
 **PayPal.**  A checkout with ``auto_renew`` carries
 ``payment_source.paypal.attributes.vault`` with ``store_in_vault: ON_SUCCESS``
@@ -406,24 +487,49 @@ and ``usage_type: MERCHANT``, and the captured order's
 Turning renewal on without paying creates a vault setup token, which the buttons
 approve and which is exchanged for a payment token.  A charge is an Orders v2
 create carrying ``payment_source.paypal.vault_id``, captured in the same call.
-The label is the payer's masked email address, such as ``PayPal
-(m***@example.org)``.
+The purchase unit carries ``invoice_id: caldart-renewal-<payment id>``.  The order's
+id is stored on the payment as soon as PayPal answers, before any separate
+capture, which carries its own ``PayPal-Request-Id``; a payment sent before has
+that order read back and, if it was never captured, captured, and the capture must
+pass the same ``verify_capture`` checks as a checkout's.  A capture PayPal holds as
+``PENDING`` is pending.
 
-**Mock.**  Saves one test card instantly, ``Test card ending 4242, expires
-12/2030``.  A mandate whose ``method_last4`` is ``0002`` is refused every time it
-is charged with "Your card was declined", which is how the decline, the retries
-and the pause are demonstrated and tested; the seed uses it for its paused
-mandate.  The succeeding card seeds the three mandates the daily scan always
-has work on -- two due for an ordinary renewal today, and one due for a catch-up
-renewal -- and the two recurring donations: the account administrator's yearly
-one, a month out, and one generated member's monthly one, nine days out.  The
-seed creates these mock mandates only while ``PAYMENTS_MOCK_ENABLED`` is on.
-With it off, as the production settings leave it, those members get no
-automatic renewal or recurring donation, the paused mandate carries the seed's
-Stripe Visa ending 4242, and ``seed_demo`` says so in its output
-(:ref:`deploy-database`).  A mock mandate that is already there when the
-provider is off, from a seed run while it was on, is put off at each charge
-like any other provider that is switched off, so it never fails the scan.
+PayPal answers a repeated ``PayPal-Request-Id`` with the order it already made for
+about six hours, and cannot search orders by our reference.  So a create that never
+answers -- a timeout, a 5xx, a 429, or a 408 -- is asked again at once, under the same
+id, after 30, 60, and 120 seconds, within a five-minute deadline that stays well
+inside the 15-minute minimum of ``RENEWAL_STALE_MINUTES``.  Once any try has gone
+unanswered, every answer but the order itself means PayPal may hold one, so the
+charge is held in doubt rather than declined: a ``PREVIOUS_REQUEST_IN_PROGRESS``, a
+401 or a 403 after the token lapsed, and any other refusal alike.  So are a create
+still unanswered at the deadline, one PayPal refuses as ``DUPLICATE_INVOICE_ID``, one
+whose capture does not match the payment, and a payment sent more than five hours ago
+that names no order; none of them is created again.
+
+PayPal refusing CalDART's own credentials -- a 401, a 403, or a token it will not
+give -- says nothing about the member's account, so in the renewal path it is never
+a decline: on a first try it is an outage that sent nothing, and the charge is put
+off.  So is a request that certainly never left (a connection refused or never made).
+After one create goes unanswered, the scan sends PayPal no more charges in that run:
+each is put off before it is stamped as sent, so a PayPal that is down altogether
+leaves one charge in doubt, not every one.  The label is the payer's masked email
+address, such as ``PayPal (m***@example.org)``.
+
+**Mock.** Saves one test card instantly, ``Test card ending 4242, expires 12/2030``,
+and takes or refuses each charge within its one call, so it never has an earlier
+charge to find.  A mandate whose ``method_last4`` is ``0002`` is refused every time
+it is charged with "Your card was declined", which is how the decline, the retries
+and the pause are demonstrated and tested; the seed uses it for its paused mandate.
+The succeeding card seeds the three mandates the daily scan always has work on --
+two due for an ordinary renewal today, and one due for a catch-up renewal -- and the
+two recurring donations: the account administrator's yearly one, a month out, and
+one generated member's monthly one, nine days out.  The seed creates these mock
+mandates only while ``PAYMENTS_MOCK_ENABLED`` is on. With it off, as the production
+settings leave it, those members get no automatic renewal or recurring donation, the
+paused mandate carries the seed's Stripe Visa ending 4242, and ``seed_demo`` says so
+in its output (:ref:`deploy-database`).  A mock mandate that is already there when
+the provider is off, from a seed run while it was on, is put off at each charge like
+any other provider that is switched off, so it never fails the scan.
 
 .. _renewals-emails:
 
@@ -486,11 +592,11 @@ ERROR and leaves the attempt's timestamp unset, so the next scan tries again.
 Automatic renewal and the reminders
 ===================================
 
-A member whose membership renews itself is skipped by the renewal reminder scan
-for every kind, with the reason ``auto_renew``.  Only a renewal counts -- a
-recurring donation renews nothing, so it never silences a reminder: the renewal emails already tell
-them what is happening to their membership, and a "your membership expires in 30
-days" alongside "we will renew it on the 17th" would only confuse.
+A member whose membership renews itself is skipped by the renewal reminder scan for
+every kind, with the reason ``auto_renew``.  Only a renewal counts -- a recurring
+donation renews nothing, so it never silences a reminder: the renewal emails already
+tell them what is happening to their membership, and a "your membership expires in
+30 days" alongside "we will renew it on the 17th" would only confuse.
 
 The skip applies to an ``active`` mandate, and to a ``pending`` one that already
 has a scheduled charge.  A ``paused`` or ``canceled`` mandate covers nothing, so
@@ -512,16 +618,99 @@ through ``deploy/manage.sh`` (:ref:`deploy-manage-commands`)::
   sudo deploy/manage.sh run_auto_renewals --dry-run
   sudo deploy/manage.sh run_auto_renewals --today 2026-10-03 --dry-run
 
-The command prints the counts and exits non-zero when any charge was refused, so
-the systemd unit goes to ``failed`` rather than reporting a clean run that took
-no money.  A system administrator can run the same scan from the portal's
-Scheduled tasks page, which calls ``POST /system/renewals/run``.
+The command prints the counts and exits non-zero when any charge was refused, or
+when a live run leaves any charge held in doubt, so the systemd unit goes to
+``failed`` rather than reporting a clean run that took no money.  A system
+administrator can run the same scan from the portal's Scheduled tasks page, which
+calls ``POST /system/renewals/run``.
 
 The timer is installed with the rest of the units; see :ref:`deploy-renewals`.
 What went out is in the journal::
 
   journalctl -u caldart-renewals -n 50
   journalctl -u caldart-renewals | grep 'action=renewals.run'
+
+A charge whose outcome the scan did not learn is logged at ERROR (``could not
+charge through``), one the provider is still settling at INFO (``is still
+settling``), and a claim taken over from a scan that died at WARNING (``never
+settled; taking it up``).  None of those needs action: the next scan settles each
+with the provider before charging anything.  A charge held in doubt is logged at
+ERROR (``is in doubt and waits for a treasurer``) and does need one; so does a
+charge pending for days (``has been pending at``).
+
+A live scan holds a database advisory lock for as long as it runs, so the timer and
+**Run now** never charge at the same time.  One that cannot take the lock does
+nothing, prints that another run is under way, writes a WARNING ``renewals.run``
+audit record with the reason ``run_in_progress``, and exits cleanly.  A
+``RENEWAL_STALE_MINUTES`` under 15 stops every live scan before it starts.
+
+.. _renewals-in-doubt:
+
+Charges a treasurer settles
+---------------------------
+
+A charge held in doubt, and one pending at the provider for more than three days,
+raise the ``renewal_needs_checking`` notification to the treasurers, account
+administrators, and system administrators who subscribe to it
+(:doc:`notification-events`), and the attempt's ``flagged_at`` records that it went.
+It goes once per hold: a charge released and then held in doubt again is flagged
+again, and so is one still in doubt once the member's term has run out.  While any
+charge is in doubt, the live ``run_auto_renewals`` exits non-zero, naming how many,
+so the timer's unit reads ``failed`` every morning until they are settled.  On the
+finance area's Renewals tab such a charge reads *Needs checking*, with the reason.
+
+**Settle** on that row (``POST /admin/renewals/attempts/{id}/settle``) names what to
+search PayPal's dashboard for -- the invoice id ``caldart-renewal-<payment id>``, the
+amount, and when the charge was sent -- and takes the treasurer's answer.  The
+attempt is locked while it is settled, so two treasurers settle it once.
+
+* **Record as paid**, with PayPal's capture id.  The capture is read from PayPal --
+  one call -- and must be completed and carry this payment's ``custom_id`` or
+  ``invoice_id``, amount, and currency.  The payment succeeds from it, its order as
+  ``provider_ref`` and the capture filed under ``raw["capture"]``, and the attempt
+  is settled at once exactly as the scan settles one: the charge recorded and the
+  term renewed.  The member's email is sent after the answer has gone, so a slow
+  mail server never holds the request up.
+* **It took nothing**, once the treasurer has checked that the dashboard holds no
+  charge for the invoice.  The hold is released, and the next scan charges the same
+  payment again, under the same ``invoice_id``.  With PayPal's *Block accidental
+  payments* on (:doc:`payments-setup`), a PayPal that did take it refuses the repeat
+  as a duplicate and the charge is held in doubt again, and flagged again.
+* **Close as failed**, when neither fits, once the treasurer has checked the same
+  box.  Nothing is charged: the attempt is closed as failed, the payment is marked
+  failed, and an active mandate is paused, raising ``auto_renewal_off``; the member
+  is not emailed, and the ordinary renewal reminders take over.
+
+The attempt and its payment are locked while it is settled, and a payment that has
+already gone through can only be recorded as paid: *It took nothing* and *Close as
+failed* are refused for it.  Each writes one ``renewal.settle`` audit record naming
+the treasurer, with the attempt, the payment, the outcome, and any capture reference
+(``-`` when there is none).  An attempt in doubt
+whose payment has succeeded meanwhile -- recorded by some other path -- settles
+itself on the next scan.  A charge pending at Stripe needs no answer: every scan
+asks Stripe again, and the webhook settles it the moment Stripe does.
+
+.. _renewals-run-now:
+
+Run now from the portal
+-----------------------
+
+A rehearsal calls no provider and answers inside the request.  A live run charges
+every renewal that is due, each charge waiting on the provider, so on a busy morning
+it would outlast the proxy and worker timeouts and be cut off mid-charge.  ``POST
+/system/renewals/run`` therefore writes a ``RenewalScan`` row, starts ``manage.py
+run_auto_renewals --scan-id <row>`` in its own session under the server's Python
+(the same mechanism as the FAA registry import), and answers 202 at once.  The
+command fills the row in with the run's counts and actions when it ends, and its
+``renewals.run`` audit record names the administrator who pressed **Run now**.  The
+page follows the row through ``GET /system/renewals/runs/{id}``.  The process is a
+child of the web service, so it dies if the service restarts mid-scan; a row still
+unfinished ``RENEWAL_STALE_MINUTES`` after it started reads as *Did not finish.*,
+and any charge the scan had claimed is settled by the next scan once its claim is as
+old. The process writes to the web service's own output, so its log lines are in
+``journalctl -u caldart-web``.  While one such row is unfinished and younger than
+``RENEWAL_STALE_MINUTES``, another press answers 409, *An automatic renewal run is
+already under way.*
 
 .. _renewals-catch-up:
 
@@ -566,8 +755,7 @@ on have no mandate here: the payment method was never handed to CalDART, and
 there is nothing to charge.  They re-authorize from the portal's Payments screen,
 and until they do the ordinary renewal reminders cover them.
 
-Changing the timing means changing the four constants in
-``apps/payments/renewals/scan.py`` and this page together; the months each cadence
-adds are ``CADENCE_MONTHS`` in ``apps/payments/renewals/schedule.py``.  The day of
-the charge itself is not a constant: it is stored on the mandate, and the member
-owns it.
+Changing the timing means changing those constants and this page together; the
+months each cadence adds are ``CADENCE_MONTHS`` in
+``apps/payments/renewals/schedule.py``.  The day of the charge itself is not a
+constant: it is stored on the mandate, and the member owns it.

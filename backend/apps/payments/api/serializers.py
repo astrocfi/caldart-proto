@@ -29,8 +29,10 @@ from apps.payments.models import (
     RenewalAttempt,
     RenewalMandate,
     RenewalOutcome,
+    RenewalScan,
 )
 from apps.payments.reconciliation import ReconciliationRow
+from apps.payments.renewals.charge import SETTLE_OUTCOMES, SETTLE_PAID
 from apps.payments.renewals.mandates import (
     PAST_CHARGE_DATE_MESSAGE,
     RENEWAL_PLAN_MESSAGE,
@@ -588,6 +590,8 @@ class RenewalAttemptSerializer(serializers.ModelSerializer[RenewalAttempt]):
     membership_id = serializers.IntegerField(read_only=True, allow_null=True)
     user_id = serializers.SerializerMethodField()
     user_name = serializers.SerializerMethodField()
+    payment_amount_cents = serializers.SerializerMethodField()
+    payment_sent_at = serializers.SerializerMethodField()
 
     class Meta:
         model = RenewalAttempt
@@ -603,10 +607,24 @@ class RenewalAttemptSerializer(serializers.ModelSerializer[RenewalAttempt]):
             "error",
             "noticed_at",
             "attempted_at",
+            "in_doubt",
+            "flagged_at",
+            "payment_amount_cents",
+            "payment_sent_at",
             "result_emailed_at",
             "created_at",
         ]
         read_only_fields = fields
+
+    @extend_schema_field(serializers.IntegerField(allow_null=True))
+    def get_payment_amount_cents(self, obj: RenewalAttempt) -> int | None:
+        """What the attempt's payment comes to, or ``None`` before it has one."""
+        return obj.payment.amount_cents if obj.payment is not None else None
+
+    @extend_schema_field(serializers.DateTimeField(allow_null=True))
+    def get_payment_sent_at(self, obj: RenewalAttempt) -> dt.datetime | None:
+        """When the attempt's charge was first sent to the provider, or ``None``."""
+        return obj.payment.charge_sent_at if obj.payment is not None else None
 
     def get_user_id(self, obj: RenewalAttempt) -> int:
         """The id of the member whose renewal this attempt is."""
@@ -615,6 +633,28 @@ class RenewalAttemptSerializer(serializers.ModelSerializer[RenewalAttempt]):
     def get_user_name(self, obj: RenewalAttempt) -> str:
         """The display name of the member whose renewal this attempt is."""
         return obj.mandate.user.display_name
+
+
+class RenewalSettleSerializer(serializers.Serializer[dict[str, Any]]):
+    """``POST /admin/renewals/attempts/{id}/settle`` body: what the provider says.
+
+    ``outcome`` is ``paid`` when the provider took the charge, and ``reference`` is
+    then its id for it -- a PayPal capture id -- which is required; ``released``
+    when it took nothing; and ``failed`` to close the charge without one.
+    ``reference`` is read only for ``paid``.
+    """
+
+    outcome = serializers.ChoiceField(choices=SETTLE_OUTCOMES)
+    reference = serializers.CharField(required=False, allow_blank=True, max_length=128, default="")
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        """Return ``attrs``, or refuse ``paid`` without a ``reference``."""
+        is_paid = attrs["outcome"] == SETTLE_PAID
+        if is_paid and not attrs["reference"].strip():
+            raise serializers.ValidationError(
+                {"reference": ["Give the payment provider's id for the charge."]}
+            )
+        return {**attrs, "reference": attrs["reference"].strip() if is_paid else ""}
 
 
 class RenewalSetupSerializer(MandateScopedSerializer):
@@ -768,6 +808,22 @@ class RenewalRunResultSerializer(serializers.Serializer[dict[str, Any]]):
     paused = serializers.IntegerField()
     skipped = serializers.IntegerField()
     actions = RunActionSerializer(many=True)
+
+
+class RenewalScanSerializer(serializers.ModelSerializer[RenewalScan]):
+    """One live renewal scan started from the Scheduled tasks page, and how it ended.
+
+    ``finished_at`` is null while the scan runs; ``ok`` says whether it ran to its end
+    and ``error`` why it did not.  ``result`` is what the scan reported, shaped as
+    :class:`RenewalRunResultSerializer`, and null until it has finished.
+    """
+
+    result = RenewalRunResultSerializer(allow_null=True, read_only=True)
+
+    class Meta:
+        model = RenewalScan
+        fields = ["id", "started_at", "finished_at", "ok", "error", "result"]
+        read_only_fields = fields
 
 
 # --------------------------------------------------------------------------

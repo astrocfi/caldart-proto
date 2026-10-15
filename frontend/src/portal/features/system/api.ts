@@ -8,6 +8,7 @@
  * calls a `system_admin`-only endpoint, and the route guard on the System pages keeps anyone else
  * from mounting it.
  */
+import { useEffect } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
@@ -29,6 +30,7 @@ import type {
   ReminderSchedule,
   ReminderSchedulePayload,
   RenewalRunResult,
+  RenewalScan,
   ReportRunResult,
   RegistryImport,
   StatementsRunResult,
@@ -164,24 +166,59 @@ export function useRunReminders(): UseMutationResult<ReminderRunResult, unknown,
   });
 }
 
+/** How often a live renewal scan is asked for again while it runs. */
+export const RENEWAL_SCAN_POLL_MS: number = 2_000;
+
+/** One live renewal scan, cached by its id. */
+export function renewalScanKey(id: number): readonly ['system', 'renewals', 'scan', number] {
+  return ['system', 'renewals', 'scan', id] as const;
+}
+
+/** Rehearses the automatic-renewal scan via `POST /system/renewals/run` with `dry_run`. */
+export function useRehearseRenewals(): UseMutationResult<RenewalRunResult, unknown, void> {
+  return useMutation({
+    mutationFn: () => api.post<RenewalRunResult>('/system/renewals/run', { dry_run: true }),
+  });
+}
+
 /**
- * Runs the automatic-renewal scan (or a rehearsal) via `POST /system/renewals/run`.
- *
- * A real run charges cards and activates terms, so the finance area's own
- * queries are dropped afterwards; a dry run writes nothing and leaves them be.
+ * Starts a live automatic-renewal scan via `POST /system/renewals/run`. The server
+ * runs it in its own process and answers at once with its unfinished row, which is
+ * cached for {@link useRenewalScan} to follow.
  */
-export function useRunRenewals(): UseMutationResult<RenewalRunResult, unknown, boolean> {
+export function useStartRenewals(): UseMutationResult<RenewalScan, unknown, void> {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (dryRun: boolean) =>
-      api.post<RenewalRunResult>('/system/renewals/run', { dry_run: dryRun }),
-    onSuccess: (_result, dryRun) => {
-      if (dryRun) return;
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'renewals'] });
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'payments'] });
-      void queryClient.invalidateQueries({ queryKey: ['system', 'emails'] });
+    mutationFn: () => api.post<RenewalScan>('/system/renewals/run', { dry_run: false }),
+    onSuccess: (scan) => {
+      queryClient.setQueryData(renewalScanKey(scan.id), scan);
     },
   });
+}
+
+/**
+ * Follows a live renewal scan via `GET /system/renewals/runs/{id}`, asking again every
+ * `RENEWAL_SCAN_POLL_MS` until it finishes. A finished scan has charged cards and
+ * activated terms, so the finance area's own queries are dropped then. `id` is null
+ * before any live scan has started, and nothing is asked for.
+ */
+export function useRenewalScan(id: number | null): UseQueryResult<RenewalScan> {
+  const queryClient = useQueryClient();
+  const query = useQuery({
+    queryKey: renewalScanKey(id ?? 0),
+    queryFn: () => api.get<RenewalScan>(`/system/renewals/runs/${id ?? 0}`),
+    enabled: id !== null,
+    refetchInterval: (current) =>
+      current.state.data?.finished_at === null ? RENEWAL_SCAN_POLL_MS : false,
+  });
+  const finishedAt = query.data?.finished_at ?? null;
+  useEffect(() => {
+    if (finishedAt === null) return;
+    void queryClient.invalidateQueries({ queryKey: ['admin', 'renewals'] });
+    void queryClient.invalidateQueries({ queryKey: ['admin', 'payments'] });
+    void queryClient.invalidateQueries({ queryKey: ['system', 'emails'] });
+  }, [finishedAt, queryClient]);
+  return query;
 }
 
 /**

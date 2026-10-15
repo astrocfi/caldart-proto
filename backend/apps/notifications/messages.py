@@ -23,7 +23,7 @@ from apps.aircraft.models import Aircraft
 from apps.darts.models import Dart
 from apps.members.models import MemberProfile, Membership
 from apps.members.services import account_kind
-from apps.payments.models import Payment, PaymentKind, RenewalMandate
+from apps.payments.models import Payment, PaymentKind, RenewalAttempt, RenewalMandate
 from caldart.audit import COMMAND_ACTOR
 from caldart.dates import format_display_date
 from caldart.mail import org_name
@@ -370,6 +370,23 @@ def _auto_renewal_declined(payload: Mapping[str, object]) -> Built:
     )
 
 
+def _renewal_needs_checking(payload: Mapping[str, object]) -> Built:
+    """``renewal_needs_checking``: an automatic charge the treasurer has to settle."""
+    attempt = _required(payload, "attempt", RenewalAttempt)
+    payment = _required(payload, "payment", Payment)
+    reason = _required(payload, "reason", str)
+    mandate = attempt.mandate
+    return (
+        f"{mandate.user.display_name}'s automatic {_mandate_kind(mandate)} charge needs checking",
+        [
+            ("Amount", money_label(payment.amount_cents)),
+            ("Provider", payment.get_provider_display()),
+            ("Why", reason),
+        ],
+        _payment_link(payment),
+    )
+
+
 def _donation_received(payload: Mapping[str, object]) -> Built:
     """``donation_received``: a gift, once or from a recurring donation."""
     payment = _required(payload, "payment", Payment)
@@ -572,6 +589,7 @@ _BUILDERS: dict[str, Callable[[Mapping[str, object]], Built]] = {
     "auto_renewal_on": _auto_renewal_on,
     "auto_renewal_off": _auto_renewal_off,
     "auto_renewal_declined": _auto_renewal_declined,
+    "renewal_needs_checking": _renewal_needs_checking,
     "donation_received": _donation_received,
     "payment_recorded": _payment_recorded,
     "payment_refunded": _payment_refunded,

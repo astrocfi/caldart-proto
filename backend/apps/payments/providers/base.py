@@ -29,12 +29,50 @@ class ProviderUnavailableError(PaymentError):
     """
 
 
+class RequestNotSentError(ProviderUnavailableError):
+    """The provider could not be reached, and was certainly never sent the request.
+
+    The connection was never made, or the credentials it needs could not be
+    fetched, so the provider cannot have acted: an off-session charge that ends
+    here took nothing, and is put off rather than held in doubt.
+    """
+
+
 class PaymentDeclinedError(PaymentError):
     """The provider refused a charge it was asked to take off-session.
 
     The message is the provider's own reason, written for the member -- "Your
     card was declined", "Your card has expired" -- because it is what the
     renewal attempt keeps in ``error`` and what the failure email quotes.
+    """
+
+
+class PaymentPendingError(PaymentError):
+    """The provider has accepted an off-session charge and not yet settled it.
+
+    Stripe reports such a charge as ``processing``, and PayPal holds such a capture
+    as ``PENDING``.  The money may still arrive or be refused, so the charge is
+    neither taken nor declined: the renewal scan keeps its payment and asks again.
+    """
+
+
+class PaymentInDoubtError(PaymentError):
+    """The provider may have taken an off-session charge, and cannot be asked whether.
+
+    PayPal keeps a ``PayPal-Request-Id`` for a few hours and offers no search of
+    orders by our reference, so a create call that never answered, and was not
+    answered on any retry while PayPal still held the id, leaves a charge nobody can
+    look up; so does PayPal refusing the order as a duplicate of an invoice it has
+    already been paid for.  Charging again could take the money twice, so the
+    renewal scan charges nothing more for it and asks a treasurer to settle it.
+    """
+
+
+class PaymentUnansweredError(PaymentInDoubtError):
+    """The provider never answered a charge it was sent, however often it was asked.
+
+    The charge is in doubt like any other, and also says the provider is not
+    answering at all, so the renewal scan sends it no more charges in the same run.
     """
 
 
@@ -120,8 +158,8 @@ class Provider:
     ``refund`` gives money back; ``handle_webhook`` processes an asynchronous
     notification, and ``fetch_fees`` asks the provider again what a settled
     payment cost.  The mandate calls -- ``start_mandate``, ``confirm_mandate``,
-    ``charge_mandate`` and ``method_from_payment`` -- save a payment method and
-    charge it off-session for automatic renewal.
+    ``charge_mandate``, ``find_mandate_charge`` and ``method_from_payment`` -- save
+    a payment method and charge it off-session for automatic renewal.
     """
 
     slug: str = ""
@@ -217,14 +255,53 @@ class Provider:
         raise NotImplementedError
 
     def charge_mandate(self, mandate: RenewalMandate, payment: Payment) -> None:
-        """Charge ``payment`` against the method ``mandate`` holds, off-session.
+        """Charge ``payment`` off-session, against the method it was first sent for.
 
-        Returns ``None`` once the money has arrived and ``payment`` has been
-        marked succeeded.  Raises :class:`PaymentDeclinedError` with the
-        provider's reason when the method is refused, and
-        :class:`ProviderUnavailableError` when the provider cannot be reached;
-        neither leaves the payment succeeded.  Raises ``NotImplementedError`` on
-        a provider that cannot hold a mandate.
+        The customer and the method are the ones stamped on the payment
+        (``charge_customer_ref``, ``charge_method_ref``) when the renewal scan first
+        sent it, not whatever ``mandate`` holds now, so a card changed in between
+        never turns a retry into a different charge.  Returns ``None`` once the
+        money has arrived and ``payment`` has been marked succeeded.  The request is
+        keyed on ``payment``, so calling this again for the same payment asks the
+        provider for the charge it already made rather than a second one, for as
+        long as the provider remembers the key.  Raises
+        :class:`PaymentDeclinedError` with the provider's reason when the method is
+        refused, :class:`PaymentPendingError` when the provider has the charge and
+        has not settled it, :class:`PaymentInDoubtError` when it may have taken the
+        charge and cannot be asked, and :class:`ProviderUnavailableError` when the
+        provider cannot be reached, which says nothing about whether the charge was
+        made; none of them leaves the payment succeeded.  Raises
+        ``NotImplementedError`` on a provider that cannot hold a mandate.
+        """
+        raise NotImplementedError
+
+    def find_mandate_charge(self, mandate: RenewalMandate, payment: Payment) -> bool:
+        """Settle ``payment`` from a charge an earlier call already made, if any.
+
+        Called before charging a payment that has been sent to the provider before,
+        whose outcome was never learned.  Returns ``True`` when the provider holds a
+        charge for ``payment`` that succeeded, having marked the payment succeeded,
+        and ``False`` when it holds none, so charging is safe.  Raises what
+        :meth:`charge_mandate` raises for a charge it found refused or still
+        settling, :class:`PaymentInDoubtError` when the provider may hold a charge
+        that cannot be looked up, and :class:`ProviderUnavailableError` when the
+        provider cannot be asked.  Raises ``NotImplementedError`` on a provider that
+        cannot hold a mandate.
+        """
+        raise NotImplementedError
+
+    def record_charge_reference(self, payment: Payment, reference: str) -> None:
+        """Name, on ``payment``, the charge the provider says it took for it.
+
+        Used by a treasurer settling a charge in doubt from the provider's own
+        dashboard: ``reference`` is the provider's id for the charge.  It is checked
+        with the provider -- it must exist and belong to this payment, for its
+        amount and currency -- and the provider's handle on it is stored as
+        ``provider_ref``, so :meth:`find_mandate_charge` can then settle the
+        payment.  Raises :class:`PaymentVerificationError` when the provider's
+        record does not match, :class:`ProviderUnavailableError` when it cannot be
+        asked, and ``NotImplementedError`` on a provider whose charges are never in
+        doubt.
         """
         raise NotImplementedError
 

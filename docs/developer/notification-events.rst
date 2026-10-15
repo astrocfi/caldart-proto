@@ -132,9 +132,16 @@ Money
        member lapsed too long ago (``how="lapsed"``)
      - ``mandate``, ``how``
    * - ``auto_renewal_declined``
-     - ``payments.renewals.scan._record_failure``, for every declined charge
+     - ``payments.renewals.charge._record_failure``, for every declined charge of an
+       active mandate
      - ``mandate``; ``reason``, the provider's words; ``next_on``, the day of the
        retry, or ``None`` when the retries are exhausted and the mandate is paused
+   * - ``renewal_needs_checking``
+     - ``payments.renewals.charge._flag``, once per hold: when the scan holds a
+       charge in doubt, when a charge has been pending at the provider for more than
+       ``PENDING_ALERT_DAYS``, and again when the member's term runs out while the
+       charge is still in doubt
+     - ``attempt``; ``payment``; ``reason``, why the charge needs checking
    * - ``donation_received``
      - ``payments.services._complete``, for a succeeded payment that names no plan:
        a gift on the public donation page, a contribution, or a recurring

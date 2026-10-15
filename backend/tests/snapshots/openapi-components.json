@@ -3944,12 +3944,16 @@
       "attempted_at": "string(date-time)|null",
       "created_at": "string(date-time)",
       "error": "string",
+      "flagged_at": "string(date-time)|null",
       "id": "integer",
+      "in_doubt": "boolean",
       "mandate_id": "integer",
       "membership_id": "integer|null",
       "noticed_at": "string(date-time)|null",
       "outcome": "ref:RenewalOutcomeEnum",
+      "payment_amount_cents": "integer|null",
       "payment_id": "integer|null",
+      "payment_sent_at": "string(date-time)|null",
       "result_emailed_at": "string(date-time)|null",
       "scheduled_on": "string(date)",
       "user_id": "integer",
@@ -3959,12 +3963,16 @@
       "attempted_at",
       "created_at",
       "error",
+      "flagged_at",
       "id",
+      "in_doubt",
       "mandate_id",
       "membership_id",
       "noticed_at",
       "outcome",
+      "payment_amount_cents",
       "payment_id",
+      "payment_sent_at",
       "result_emailed_at",
       "scheduled_on",
       "user_id",
@@ -4077,6 +4085,40 @@
       "paused",
       "skipped",
       "warned"
+    ]
+  },
+  "RenewalScan": {
+    "properties": {
+      "error": "string",
+      "finished_at": "string(date-time)|null",
+      "id": "integer",
+      "ok": "boolean",
+      "result": "ref:RenewalRunResult|null",
+      "started_at": "string(date-time)"
+    },
+    "required": [
+      "error",
+      "finished_at",
+      "id",
+      "ok",
+      "result",
+      "started_at"
+    ]
+  },
+  "RenewalSettleOutcomeEnum": {
+    "enum": [
+      "paid",
+      "released",
+      "failed"
+    ]
+  },
+  "RenewalSettleRequest": {
+    "properties": {
+      "outcome": "ref:RenewalSettleOutcomeEnum",
+      "reference": "string"
+    },
+    "required": [
+      "outcome"
     ]
   },
   "RenewalSetupRequest": {

@@ -189,6 +189,9 @@ import type {
   RenewalOutcome,
   RenewalPatchRequest,
   RenewalRunResult,
+  RenewalScan,
+  RenewalSettleOutcome,
+  RenewalSettleRequest,
   RunAction,
   RenewalSetupRequest,
   RenewalSetupResponse,
@@ -449,6 +452,10 @@ const renewalSetupRequest: Matches<RenewalSetupRequest, Schemas['RenewalSetupReq
 const renewalSetupResponse: Matches<RenewalSetupResponse, Schemas['RenewalSetupResponse']> = true;
 const renewalConfirm: Matches<RenewalConfirmRequest, Schemas['RenewalConfirmRequest']> = true;
 const renewalRun: Matches<RenewalRunResult, Schemas['RenewalRunResult']> = true;
+const renewalScan: Matches<RenewalScan, Schemas['RenewalScan']> = true;
+const renewalSettle: Matches<RenewalSettleRequest, Schemas['RenewalSettleRequest']> = true;
+const renewalSettleOutcome: Matches<RenewalSettleOutcome, Schemas['RenewalSettleOutcomeEnum']> =
+  true;
 const renewalPatch: Matches<RenewalPatchRequest, Schemas['PatchedRenewalPatchRequest']> = true;
 const runAction: Matches<RunAction, Schemas['RunAction']> = true;
 
@@ -742,6 +749,9 @@ const assertions: readonly true[] = [
   renewalSetupResponse,
   renewalConfirm,
   renewalRun,
+  renewalScan,
+  renewalSettle,
+  renewalSettleOutcome,
   renewalPatch,
   runAction,
   leaderSearch,
@@ -982,6 +992,9 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'RenewalSetupResponse',
   'RenewalConfirmRequest',
   'RenewalRunResult',
+  'RenewalScan',
+  'RenewalSettleRequest',
+  'RenewalSettleOutcomeEnum',
   'PatchedRenewalPatchRequest',
   'RunAction',
   'LeaderSearchResult',
