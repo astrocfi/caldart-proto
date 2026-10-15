@@ -1,12 +1,10 @@
 """Rate limits on the signed-in endpoints that start, or finish, a payment.
 
 Each start asks a provider for a payment intent, an order, or a setup intent, and each
-confirmation asks the provider again, so both are counted, which bounds how many cards
-one account can try through CalDART's merchant accounts in an hour.  A card tried in the
-browser against an intent already handed out never reaches these endpoints; canceling
-a declined intent and Stripe Radar cover that (``docs/developer/payments-setup.rst``).
-Each account has its own budget for each scope, so one member's checkout never slows
-another's.  The public donation
+confirmation asks the provider again, so both are counted per account.  Declined
+intents are canceled by the providers, and Stripe Radar is the recommended control on
+Stripe's side (``docs/developer/payments-setup.rst``).  Each account has its own budget
+for each scope, so one member's checkout never slows another's.  The public donation
 page's own endpoints are counted by client address instead
 (``apps.accounts.throttling``).
 

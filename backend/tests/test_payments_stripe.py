@@ -510,7 +510,8 @@ def test_a_refused_cancel_still_answers_the_payment_failed(
     api_client.force_login(member)
     response = api_client.post(CONFIRM, {"payment_id": payment.pk, "payment_intent_id": "pi_stuck"})
 
-    assert (response.status_code, response.json()["status"]) == (200, "failed")
+    assert response.status_code == 200
+    assert response.json()["status"] == "failed"
 
 
 def test_confirm_rejects_an_intent_still_processing(
@@ -928,53 +929,39 @@ def test_a_failed_setup_cancels_the_setup_intent(
     assert fake_intents.setup.canceled == ["seti_declined"]
 
 
-def test_a_failed_setup_discards_the_pending_mandate(
+def test_a_canceled_setup_is_reported_handled(
     api_client: APIClient, member: User, fake_intents: FakeIntents
 ) -> None:
-    """The pending authority the declined SetupIntent was saving for is thrown away."""
+    """A webhook that canceled the declined SetupIntent answers ``handled``."""
     mandate = pending_stripe_donation(member, "seti_declined")
 
     response = post_webhook(api_client, setup_failed_event(mandate, "seti_declined"))
 
-    assert json.loads(response.content)["handled"] is True
-    assert not RenewalMandate.objects.filter(pk=mandate.pk).exists()
+    assert json.loads(response.content) == {"received": True, "handled": True}
 
 
-def test_a_late_setup_failure_spares_the_setup_that_followed_it(
+def test_a_failed_setup_leaves_the_pending_mandate_to_the_next_setup(
     api_client: APIClient, member: User, fake_intents: FakeIntents
 ) -> None:
-    """A failure for an older SetupIntent leaves the mandate a newer one is saving for."""
-    mandate = pending_stripe_donation(member, "seti_newer")
-
-    post_webhook(api_client, setup_failed_event(mandate, "seti_older"))
-
-    assert RenewalMandate.objects.filter(pk=mandate.pk).exists()
-
-
-def test_a_setup_failure_leaves_an_active_mandate_alone(
-    api_client: APIClient, member: User, fake_intents: FakeIntents
-) -> None:
-    """Only a pending authority is discarded; an active one keeps its saved method."""
+    """The webhook changes no mandate: the member's next setup replaces a pending one."""
     mandate = pending_stripe_donation(member, "seti_declined")
-    mandate.status = MandateStatus.ACTIVE
-    mandate.save(update_fields=["status"])
 
     post_webhook(api_client, setup_failed_event(mandate, "seti_declined"))
 
     assert RenewalMandate.objects.filter(pk=mandate.pk).exists()
 
 
-def test_a_setup_failure_for_an_unknown_mandate_is_not_handled(
+def test_a_failed_setup_whose_mandate_is_gone_is_still_canceled(
     api_client: APIClient, member: User, fake_intents: FakeIntents
 ) -> None:
-    """A failure naming no mandate this installation has is received, not handled."""
-    mandate = pending_stripe_donation(member, "seti_gone")
-    event = setup_failed_event(mandate, "seti_gone")
+    """A SetupIntent whose mandate was discarded since is canceled all the same."""
+    mandate = pending_stripe_donation(member, "seti_orphan")
+    event = setup_failed_event(mandate, "seti_orphan")
     mandate.delete()
 
-    response = post_webhook(api_client, event)
+    post_webhook(api_client, event)
 
-    assert json.loads(response.content) == {"received": True, "handled": False}
+    assert fake_intents.setup.canceled == ["seti_orphan"]
 
 
 def test_webhook_refuses_an_amount_that_does_not_match(

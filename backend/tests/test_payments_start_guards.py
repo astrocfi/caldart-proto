@@ -18,12 +18,14 @@ from types import ModuleType, SimpleNamespace
 from typing import Any
 
 import pytest
+from django.core import mail
 from django.core.cache import cache
 from django.core.exceptions import ImproperlyConfigured
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from freezegun import freeze_time
 from pytest_django import Settings
+from pytest_django.fixtures import DjangoCaptureOnCommitCallbacks
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
@@ -566,9 +568,16 @@ def test_the_provider_is_asked_while_the_payment_row_is_locked(
     annual_plan: MembershipPlan,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """By the time the provider is asked, the payment's row has been locked."""
+    """By the time the provider is asked, the payment's row is locked in a transaction.
+
+    The suite runs every test inside a transaction of its own, so the confirm's own is
+    the savepoint open beyond the ones the test began with.
+    """
     payment = PaymentFactory(user=member, plan=annual_plan, provider=PaymentProvider.MOCK)
     locks_seen: list[int] = []
+    in_atomic: list[bool] = []
+    savepoints_before = len(connection.savepoint_ids)
+    savepoints_seen: list[int] = []
 
     with CaptureQueriesContext(connection) as queries:
 
@@ -579,6 +588,8 @@ def test_the_provider_is_asked_while_the_payment_row_is_locked(
                     for query in queries.captured_queries
                 )
             )
+            in_atomic.append(connection.in_atomic_block)
+            savepoints_seen.append(len(connection.savepoint_ids) - savepoints_before)
             return True
 
         monkeypatch.setattr(
@@ -590,6 +601,29 @@ def test_the_provider_is_asked_while_the_payment_row_is_locked(
         )
 
     assert locks_seen == [1]
+    assert in_atomic == [True]
+    assert savepoints_seen == [1]
+
+
+def test_the_receipt_waits_for_the_commit(
+    api_client: APIClient,
+    member: User,
+    annual_plan: MembershipPlan,
+    django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
+) -> None:
+    """No receipt is mailed while the payment's row is locked; it goes once committed."""
+    payment = PaymentFactory(user=member, plan=annual_plan, provider=PaymentProvider.MOCK)
+    api_client.force_login(member)
+
+    with django_capture_on_commit_callbacks(execute=False) as callbacks:
+        api_client.post(
+            MOCK_COMPLETE, {"payment_id": payment.pk, "outcome": "succeed"}, format="json"
+        )
+
+    assert len(mail.outbox) == 0
+    for callback in callbacks:
+        callback()
+    assert len(mail.outbox) == 1
 
 
 @pytest.fixture
@@ -602,7 +636,7 @@ def provider_never_asked(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(payment_views, "get_provider", refuse)
 
 
-SETTLED = [
+NOT_PENDING = [
     PaymentStatus.SUCCEEDED,
     PaymentStatus.FAILED,
     PaymentStatus.REFUNDED,
@@ -639,7 +673,7 @@ def confirm_again(
     return answer
 
 
-@pytest.mark.parametrize("status", SETTLED)
+@pytest.mark.parametrize("status", NOT_PENDING)
 @pytest.mark.parametrize(("url", "provider"), CONFIRM_ROUTES)
 @pytest.mark.usefixtures("provider_never_asked")
 def test_a_settled_payment_is_answered_from_its_row(

@@ -39,7 +39,6 @@ from django.http import HttpRequest, HttpResponse, HttpResponseNotAllowed, JsonR
 from stripe.params._payment_intent_create_params import PaymentIntentCreateParams
 
 from apps.payments.models import (
-    MandateStatus,
     Payment,
     PaymentProvider,
     PaymentStatus,
@@ -211,15 +210,17 @@ def close_declined_intent(payment: Payment, intent: dict[str, Any]) -> None:
 
 
 def cancel_setup_intent(setup_id: str) -> None:
-    """Cancel the SetupIntent ``setup_id`` after a decline, so it takes no other card.
+    """Cancel the SetupIntent ``setup_id``, so its client secret takes no card.
 
-    A cancel Stripe refuses, or cannot be reached for, is logged at WARNING and
-    otherwise ignored: the setup has failed either way.
+    Used after a decline and whenever a pending mandate's setup is replaced or thrown
+    away.  A cancel Stripe refuses, or cannot be reached for, and a Stripe with no
+    secret key configured, are logged at WARNING and otherwise ignored: the setup is
+    finished with either way.
     """
     try:
         stripe_client().v1.setup_intents.cancel(setup_id)
-    except stripe.StripeError as exc:
-        log.warning("Could not cancel declined SetupIntent %s: %s", setup_id, exc)
+    except (stripe.StripeError, ProviderNotConfiguredError) as exc:
+        log.warning("Could not cancel SetupIntent %s: %s", setup_id, exc)
 
 
 def wallet_from_intent(intent: dict[str, Any]) -> str:
@@ -515,9 +516,9 @@ class StripeProvider(Provider):
         failed (and canceled the declined intent, :func:`close_declined_intent`),
         when a ``charge.updated`` event filled in a fee that was not known when the
         money arrived, when a ``charge.refunded`` event recorded a refund taken in
-        Stripe's own dashboard, and when a ``setup_intent.setup_failed`` event named a
-        mandate (:meth:`handle_setup_failed`).  An unknown payment, a failed
-        verification and any other event type are all received but not handled.
+        Stripe's own dashboard, and when a ``setup_intent.setup_failed`` event canceled
+        a declined SetupIntent (:meth:`handle_setup_failed`).  An unknown payment, a
+        failed verification and any other event type are all received but not handled.
         """
         if request.method != "POST":
             return HttpResponseNotAllowed(["POST"])
@@ -570,34 +571,20 @@ class StripeProvider(Provider):
         return JsonResponse({"received": True, "handled": True})
 
     def handle_setup_failed(self, setup: dict[str, Any]) -> JsonResponse:
-        """Cancel a SetupIntent Stripe declined, and discard the setup it was for.
+        """Cancel a SetupIntent Stripe declined, whatever became of its mandate.
 
-        The mandate is the one ``metadata.mandate_id`` names.  The SetupIntent is
-        canceled (:func:`cancel_setup_intent`) when it is left in
-        ``requires_payment_method``, so its client secret takes no other card, and
-        the mandate is deleted when it is still ``pending`` and the SetupIntent is
-        the one saving its method (:data:`SETUP_INTENT_KEY`): a pending mandate has
-        saved, charged, and announced nothing.  A mandate in any other state, or one
-        a newer SetupIntent is saving for, is left alone.  Answers ``handled`` false
-        when no Stripe mandate of that id exists.
+        A SetupIntent left in ``requires_payment_method`` is canceled
+        (:func:`cancel_setup_intent`), so its client secret takes no other card, and
+        the event is answered ``handled``.  The event is signed, so the SetupIntent
+        is canceled without looking for the mandate it was started for, which may
+        have been discarded or set up again with another provider since.  No mandate
+        is changed: a pending one is replaced by the member's next setup or thrown
+        away by a checkout that saves nothing.  A SetupIntent in any other status is
+        answered ``handled`` false.
         """
-        mandate_id = str((setup.get("metadata") or {}).get("mandate_id") or "")
-        mandate = (
-            RenewalMandate.objects.filter(
-                pk=int(mandate_id), provider=PaymentProvider.STRIPE
-            ).first()
-            if mandate_id.isdigit()
-            else None
-        )
-        if mandate is None:
-            log.info("Stripe webhook %s referenced an unknown mandate", SETUP_FAILED)
+        if setup.get("status") != DECLINED_STATUS:
             return JsonResponse({"received": True, "handled": False})
-        setup_id = str(setup.get("id") or "")
-        if setup.get("status") == DECLINED_STATUS:
-            cancel_setup_intent(setup_id)
-        is_current = (mandate.raw or {}).get(SETUP_INTENT_KEY) == setup_id
-        if mandate.status == MandateStatus.PENDING and is_current:
-            mandate.delete()
+        cancel_setup_intent(str(setup.get("id") or ""))
         return JsonResponse({"received": True, "handled": True})
 
     def handle_charge_updated(self, charge: dict[str, Any]) -> JsonResponse:
@@ -689,7 +676,8 @@ class StripeProvider(Provider):
         Returns ``{"client_secret": ...}`` for the Element rendered in ``setup``
         mode, having made sure the mandate has a customer to save against, and
         records the SetupIntent's id on the mandate's ``raw`` under
-        :data:`SETUP_INTENT_KEY`.  No money moves.  Raises
+        :data:`SETUP_INTENT_KEY`, canceling one recorded there before
+        (:meth:`abandon_setup`).  No money moves.  Raises
         :class:`ProviderNotConfiguredError` without a secret key,
         :class:`ProviderUnavailableError` when Stripe cannot be reached, and
         :class:`PaymentVerificationError` when Stripe answers without a client
@@ -715,9 +703,20 @@ class StripeProvider(Provider):
         secret = intent.get("client_secret")
         if not secret:
             raise PaymentVerificationError("Stripe returned no SetupIntent client secret.")
+        self.abandon_setup(mandate)
         mandate.raw = {**(mandate.raw or {}), SETUP_INTENT_KEY: str(intent.get("id") or "")}
         mandate.save(update_fields=["raw", "updated_at"])
         return {"client_secret": secret}
+
+    def abandon_setup(self, mandate: RenewalMandate) -> None:
+        """Cancel the SetupIntent ``mandate.raw`` names under :data:`SETUP_INTENT_KEY`.
+
+        Nothing is asked of Stripe for a mandate that names none.  The key itself is
+        left for the caller, which is about to replace or delete the mandate's ``raw``.
+        """
+        setup_id = (mandate.raw or {}).get(SETUP_INTENT_KEY)
+        if setup_id:
+            cancel_setup_intent(str(setup_id))
 
     def confirm_mandate(self, mandate: RenewalMandate, **kwargs: Any) -> MandateMethod:
         """Read back the card the member saved, and check it is theirs.

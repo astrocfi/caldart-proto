@@ -548,22 +548,31 @@ def test_capture_refuses_an_order_id_that_is_not_paypals_shape(
     assert response.json() == {"order_id": [PAYPAL_ORDER_ID_MESSAGE]}
 
 
-@pytest.mark.parametrize(
-    ("status", "answer"),
-    [(PaymentStatus.PENDING, 400), (PaymentStatus.FAILED, 200)],
-    ids=["pending-refused", "failed-answered-from-its-row"],
-)
 @respx.mock
 def test_capture_of_a_payment_with_no_order_is_refused(
-    api_client: APIClient, member: User, annual_plan: MembershipPlan, status: str, answer: int
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """A payment PayPal never gave an order is not captured under one the caller names.
-
-    A pending one is refused; a failed one is answered from its row, as every payment
-    that is no longer pending is, and PayPal is asked nothing either way.
-    """
+    """A pending payment PayPal never gave an order is not captured under another."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.PAYPAL)
-    payment.status = status
+    token_route(respx.mock)
+    route = respx.post(f"{ORDERS_URL}/ORDERELSE/capture").mock(
+        return_value=httpx.Response(201, json=capture_payload(payment, order_id="ORDERELSE"))
+    )
+
+    api_client.force_login(member)
+    response = api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDERELSE"})
+
+    assert response.status_code == 400
+    assert route.call_count == 0
+
+
+@respx.mock
+def test_a_failed_payment_with_no_order_is_answered_without_asking_paypal(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A failed payment is answered from its row, like every payment no longer pending."""
+    payment = create_checkout(member, "annual", 0, PaymentProvider.PAYPAL)
+    payment.status = PaymentStatus.FAILED
     payment.save(update_fields=["status"])
     token_route(respx.mock)
     route = respx.post(f"{ORDERS_URL}/ORDERELSE/capture").mock(
@@ -573,7 +582,7 @@ def test_capture_of_a_payment_with_no_order_is_refused(
     api_client.force_login(member)
     response = api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDERELSE"})
 
-    assert response.status_code == answer
+    assert response.json()["status"] == PaymentStatus.FAILED
     assert route.call_count == 0
 
 

@@ -122,10 +122,13 @@ def confirm_payment(payment: Payment, provider: str, **arguments: str) -> None:
 
     The payment's row is locked from the status check until the provider has answered,
     so two confirms of one payment run one after the other and the second finds it
-    settled.  The lock is held for as long as the provider takes, which the client's
-    timeout bounds (40 seconds for Stripe, 20 for PayPal); a webhook for the same
-    payment waits on it meanwhile.  What the provider wrote is kept when it refuses,
-    since the refusal is raised only once the lock is released.
+    settled.  The lock is held for as long as the provider's calls take, which their
+    timeouts bound: up to about 80 seconds for a Stripe decline (the retrieve and the
+    cancel, 40 seconds each at worst) and about 40 for PayPal (the token and the
+    capture); a webhook for the same payment waits on it meanwhile.  The receipt is
+    mailed only once the lock is released (``mark_succeeded`` sends it on commit).
+    What the provider wrote is kept when it refuses, since the refusal is raised only
+    once the lock is released.
     """
     refusal: PaymentError | None = None
     with transaction.atomic():

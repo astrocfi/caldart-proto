@@ -17,11 +17,13 @@ import pytest
 import respx
 import stripe
 from pytest_django.fixtures import Settings
+from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.members.models import MembershipPlan
 from apps.payments.models import (
     MandateProvider,
+    MandateStatus,
     Payment,
     PaymentProvider,
     PaymentStatus,
@@ -37,7 +39,7 @@ from apps.payments.providers.base import (
 )
 from apps.payments.providers.mock import DECLINED_LAST4, MOCK_CARD_LABEL
 from apps.payments.providers.paypal import paypal_label
-from apps.payments.renewals.mandates import begin_mandate
+from apps.payments.renewals.mandates import begin_mandate, discard_pending_mandate
 from apps.payments.services import create_checkout
 from tests.factories import RenewalMandateFactory
 
@@ -343,6 +345,70 @@ def test_stripe_records_the_setup_intent_it_starts(
 
     mandate.refresh_from_db()
     assert mandate.raw[stripe_provider.SETUP_INTENT_KEY] == "seti_9"
+
+
+def open_stripe_setup(member: User, plan: MembershipPlan | None, setup_id: str) -> RenewalMandate:
+    """A pending Stripe mandate whose method ``setup_id`` is still being saved for."""
+    return RenewalMandateFactory(
+        user=member,
+        plan=plan,
+        contribution_cents=0 if plan is not None else 2_000,
+        provider=MandateProvider.STRIPE,
+        status=MandateStatus.PENDING,
+        customer_ref="cus_test_1",
+        method_ref="",
+        raw={stripe_provider.SETUP_INTENT_KEY: setup_id},
+    )
+
+
+def test_a_new_setup_cancels_the_one_it_replaces(
+    fake_stripe: FakeStripe, member: User, annual_plan: MembershipPlan
+) -> None:
+    """Starting a SetupIntent for a mandate cancels the one recorded there before."""
+    mandate = open_stripe_setup(member, annual_plan, "seti_old")
+    fake_stripe.setup_payload = {"id": "seti_new", "client_secret": "seti_new_secret"}
+
+    get_provider(MandateProvider.STRIPE).start_mandate(mandate)
+
+    assert fake_stripe.canceled_setups == ["seti_old"]
+
+
+def test_setting_up_again_with_paypal_cancels_the_stripe_setup(
+    fake_stripe: FakeStripe, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A mandate begun again under another provider closes its open SetupIntent."""
+    open_stripe_setup(member, annual_plan, "seti_open")
+
+    begin_mandate(member, plan=annual_plan, contribution_cents=0, provider=MandateProvider.PAYPAL)
+
+    assert fake_stripe.canceled_setups == ["seti_open"]
+
+
+def test_discarding_a_pending_mandate_cancels_its_setup(
+    fake_stripe: FakeStripe, member: User
+) -> None:
+    """A pending mandate thrown away takes its open SetupIntent with it."""
+    open_stripe_setup(member, None, "seti_open")
+
+    discard_pending_mandate(member)
+
+    assert fake_stripe.canceled_setups == ["seti_open"]
+
+
+def test_a_checkout_that_saves_nothing_cancels_an_open_setup(
+    fake_stripe: FakeStripe, api_client: APIClient, member: User
+) -> None:
+    """A donation checkout without ``auto_renew`` discards the setup and cancels it."""
+    open_stripe_setup(member, None, "seti_open")
+    api_client.force_login(member)
+
+    api_client.post(
+        "/api/v1/payments/checkout",
+        {"plan": None, "contribution_cents": 2_000, "provider": "mock"},
+        format="json",
+    )
+
+    assert fake_stripe.canceled_setups == ["seti_open"]
 
 
 def test_stripe_charges_the_saved_method_without_the_member(

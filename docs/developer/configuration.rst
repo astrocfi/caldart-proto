@@ -731,15 +731,11 @@ verifies whichever of the keys below are set before you open a browser.
 Payment limits
 --------------
 
-Each checkout endpoint asks a provider about a card.  A floor on what a payer may
-give on its own and a per-account rate on starting and confirming payments bound
-how many cards anybody can try through CalDART's own endpoints in an hour.  A card
-tried in the browser against a client secret already handed out goes straight to
-Stripe and is never counted here; the Stripe webhook and the Radar rules in
-:doc:`payments-setup` cover that.  The public donation page's own
-endpoints are limited by
-client address instead, under ``AUTH_THROTTLE_DONATE`` and
-``AUTH_THROTTLE_DONATE_CONFIRM`` above.
+Each checkout endpoint asks a provider about a card, so CalDART sets a floor on what
+a payer may give on its own and a per-account rate on starting and confirming
+payments.  The Stripe webhook and the Radar rules in :doc:`payments-setup` are the
+other half.  The public donation page's own endpoints are limited by client address
+instead, under ``AUTH_THROTTLE_DONATE`` and ``AUTH_THROTTLE_DONATE_CONFIRM`` above.
 
 ``DONATION_MINIMUM_CENTS``
    The smallest gift, in cents, a payer may choose on its own: a donation from the

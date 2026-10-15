@@ -34,23 +34,21 @@ Three more rules keep the endpoints from being a way to try cards at will:
   Stripe confirm, the PayPal capture, and ``/me/renewal/confirm`` and
   ``/me/donation/confirm``) and per client address on the public donation page
   (``donate`` to start a gift, ``donate_confirm`` to confirm or capture one).  Past
-  a rate the answer is **429**; the rates are in :doc:`configuration`.  The rates
-  count calls to CalDART: a card tried in the browser against a client secret
-  already handed out goes straight to Stripe and is not counted.
+  a rate the answer is **429**; the rates are in :doc:`configuration`.
 * **A payment is confirmed once.**  Only a ``pending`` payment is taken to the
   provider, under a lock on its row held from the status check until the provider
   answers, so two confirms of one payment run one after the other.  A confirm,
   capture, or mock completion of a payment that has succeeded, failed, or been
   refunded answers its ``{status, membership}`` as it stands without asking the
   provider, so a second call never takes money again and a failed payment is never
-  retried through the order or the intent it was started with.  A Stripe intent
-  CalDART learns has declined a card -- from this confirm, which the portal calls
-  after every decline, or from the ``payment_intent.payment_failed`` webhook -- is
-  canceled at Stripe, so its client secret takes no further card; until then
-  Stripe alone stands between the client secret and more cards, which is why the
-  webhook is required and Stripe Radar is configured (:doc:`payments-setup`).  A
-  PayPal capture refused as ``INSTRUMENT_DECLINED`` fails the payment.  Paying after
-  either starts a payment of its own.
+  retried through the order or the intent it was started with.  CalDART cancels a
+  Stripe PaymentIntent or SetupIntent once it learns the intent declined a card,
+  from the confirm the portal calls after every decline or from the
+  ``payment_intent.payment_failed`` and ``setup_intent.setup_failed`` webhooks, so
+  the Stripe webhook is required; Stripe Radar rules are the recommended control on
+  Stripe's side (:doc:`payments-setup`).  A PayPal capture refused as
+  ``INSTRUMENT_DECLINED`` fails the payment.  Paying after either starts a payment
+  of its own.
 
 
 Checkout
@@ -159,8 +157,9 @@ whatever ``auto_renew`` says; any later day is accepted.  Nothing acts on it whe
 ``auto_renew`` is false, since there is then no authority to date.
 
 A checkout with ``auto_renew`` false deletes any ``pending`` authority the payer
-is still carrying from a checkout they abandoned, and a pending authority is
-activated only by a payment for the same plan and the same contribution it names.
+is still carrying from a checkout they abandoned, canceling any Stripe SetupIntent
+it had open, and a pending authority is activated only by a payment for the same
+plan and the same contribution it names.
 Between them, no method is ever saved against a payer who did not ask at this
 checkout.  :doc:`api-renewals` covers the mandate that results and
 :doc:`renewals` the scan that acts on it.
@@ -719,9 +718,9 @@ check out.  Handles:
 * ``charge.refunded`` — records every succeeded refund on the charge that is
   not already on file, as :ref:`api-refunds-webhooks` describes;
 * ``setup_intent.setup_failed`` — cancels the SetupIntent when it is left in
-  ``requires_payment_method``, and deletes the ``pending`` mandate its
-  ``metadata.mandate_id`` names when that SetupIntent is the one saving its method
-  (:doc:`api-renewals`).  A failure naming no Stripe mandate is not handled.
+  ``requires_payment_method``, whatever has become of the mandate it was started
+  for, and changes no mandate (:doc:`api-renewals`).  ``handled`` is true when the
+  SetupIntent was canceled.
 
 Everything else is acknowledged and ignored.  The response says what happened:
 

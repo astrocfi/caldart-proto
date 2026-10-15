@@ -178,8 +178,10 @@ A Stripe SetupIntent that comes back ``requires_payment_method``, which is what 
 declined card leaves, is canceled at Stripe as the confirm is refused, so its client
 secret takes no further card; the portal calls this endpoint after every decline the
 browser sees, then starts a fresh setup.  The ``setup_intent.setup_failed`` webhook
-does the same for a decline nobody reports, and also deletes the ``pending`` mandate
-when that SetupIntent is the one saving its method (:doc:`payments-setup`).
+cancels a declined SetupIntent as well, and leaves the mandate as it is
+(:doc:`payments-setup`).  Beginning a mandate again, at setup or at a checkout, and a
+checkout that discards a pending mandate both cancel the SetupIntent the mandate
+had open, so no SetupIntent CalDART has stopped tracking stays usable.
 
 Statuses: **200**; **400** naming ``detail`` when the provider will not confirm
 what it is given; **404** when the caller started no setup of that kind; **401**

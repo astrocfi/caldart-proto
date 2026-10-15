@@ -376,14 +376,12 @@ In production, create the endpoint in the dashboard instead
   moment of the charge;
 * ``charge.refunded``, which records a refund taken in the Stripe dashboard
   (:doc:`api-refunds`);
-* ``setup_intent.setup_failed``, which cancels a SetupIntent that declined a card
-  and discards the pending authority it was saving for.
+* ``setup_intent.setup_failed``, which cancels a SetupIntent that declined a card.
 
 The dashboard shows the endpoint's signing secret once it exists.  The webhook is
-not optional: a card declined in the browser is reported to CalDART by the portal
-and also by ``payment_intent.payment_failed`` or ``setup_intent.setup_failed``, and
-for a script that never reports back the webhook is the only way CalDART hears of
-the decline and cancels the intent (see `Radar rules for card testing`_).
+required: ``payment_intent.payment_failed`` and ``setup_intent.setup_failed`` are
+how CalDART hears of every decline and cancels the intent, alongside the portal's
+own report (see `Radar rules for card testing`_).
 
 Without a correct secret every delivery is rejected with **400 Invalid Stripe
 signature** — which is the intended behavior, since an unverified webhook
@@ -414,21 +412,17 @@ Radar rules for card testing
 *Card testing* is somebody running stolen card numbers through a site's checkout
 to learn which ones work.  Each attempt costs a fee and a decline, and enough of
 them gets a merchant account reviewed or closed, which would stop members' dues
-along with it.  CalDART does what the server can: a public or portal donation,
-and any charge for a plan priced under it, must be at least
-``DONATION_MINIMUM_CENTS``; starting and confirming payments and saved methods is
-rate-limited per account and per address (:ref:`configuration-payment-limits`);
-and a PaymentIntent or SetupIntent is canceled once CalDART learns it declined a
-card.  CalDART learns that when the portal reports the decline or the webhook
-delivers ``payment_intent.payment_failed`` or ``setup_intent.setup_failed``.
-Between the decline and that report, a script holding an intent's client secret
-can still try more cards against it straight at Stripe, which the rate limits never
-see, so the webhook must be configured and Radar is the guard for that window.
-Radar is set in the dashboard, so it is a step for whoever runs the Stripe account,
-in both test and live mode:
+along with it.  On its side, CalDART requires every public or portal donation to be
+at least ``DONATION_MINIMUM_CENTS``, and every checkout for a plan priced under that
+minimum to reach it with its contribution; rate-limits starting and confirming
+payments and saved methods per account and per address
+(:ref:`configuration-payment-limits`); and cancels a PaymentIntent or SetupIntent
+once it learns, from the portal or the webhook, that the intent declined a card.
+The webhook above is required for that.  Stripe Radar rules are the recommended
+control on Stripe's side.  They are set in the dashboard, so they are a step for
+whoever runs the Stripe account, in both test and live mode:
 
-#. Open **Radar → Rules** (in older dashboards, **Payments → Fraud & risk →
-   Rules**).  Leave Stripe's default rules on, including
+#. Open **Radar → Rules**.  Leave Stripe's default rules on, including
    ``Block if :risk_level: = 'highest'``.  Stripe's own card-testing protection is
    part of Radar and needs nothing turned on.
 #. Turn on the default rule ``Block if :cvc_check: = 'fail'``, and add
