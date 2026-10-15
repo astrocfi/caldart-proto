@@ -5,8 +5,8 @@ any member's, and can send a receipt again when the first one did not arrive.
 Everything here answers with a PDF built by :mod:`apps.payments.receipts`,
 except the two JSON endpoints that say which years and what came of a resend.
 
-A receipt exists only for money that arrived, so a pending or failed payment has
-none and answers 404, exactly as an unknown id does.
+A receipt exists only for money that arrived, so a pending or failed payment
+doesn't have one and answers 404, exactly as an unknown id does.
 """
 
 from __future__ import annotations
@@ -43,7 +43,7 @@ def _settled_payment(payment_id: int, *, user: User | None = None) -> Payment:
     ``user`` narrows the search to that member's own payments, which is what
     makes the member's endpoints owner-only: somebody else's payment is as
     invisible as one that does not exist.  A payment whose money never arrived
-    has no receipt, so it is a 404 too.
+    doesn't have a receipt, so it is a 404 too.
     """
     payments = Payment.objects.select_related("user", "plan")
     if user is not None:
@@ -54,8 +54,8 @@ def _settled_payment(payment_id: int, *, user: User | None = None) -> Payment:
 def _statement_download(member: User, year: int) -> HttpResponse:
     """``member``'s statement for ``year`` as a download, or 404.
 
-    A year the member contributed nothing in has no statement, and answers 404
-    rather than a page of zeroes.
+    A year the member didn't contribute anything in doesn't have a statement, and
+    answers 404 rather than a page of zeroes.
     """
     if year not in receipts.statement_years(member):
         raise Http404("No contributions in that year.")
@@ -114,7 +114,7 @@ class MyStatementView(APIView):
         responses=download_responses(PDF_MEDIA_TYPE, "One year of the caller's contributions.")
     )
     def get(self, request: Request, year: int) -> HttpResponse:
-        """200 with the statement PDF; 401 when anonymous; 404 for a year with none."""
+        """200 with the statement PDF; 401 when anonymous; 404 for a year without one."""
         return _statement_download(_signed_in_user(request), year)
 
 
@@ -181,7 +181,7 @@ class AdminMemberStatementView(APIView):
         """200 with the member's statement PDF, for a treasurer or an account admin.
 
         401 when anonymous, 403 for any other role, 404 for an unknown member and
-        for a year they contributed nothing in.
+        for a year they didn't contribute anything in.
         """
         member = get_object_or_404(User, pk=user_id)
         return _statement_download(member, year)

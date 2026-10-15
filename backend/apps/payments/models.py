@@ -76,7 +76,7 @@ class ContributionTier(TypedDict):
     cents: int
 
 
-#: Contribution tiers offered at checkout, from no contribution up to Platinum.
+#: Contribution tiers offered at checkout, from $0 up to Platinum.
 #: A member who wants some other amount types it instead of picking a tier.
 #: The largest contribution a checkout accepts, in cents: $99,999.00.  It is
 #: inside every provider's per-charge ceiling, so an amount the form accepts is
@@ -219,7 +219,7 @@ class Payment(TimestampedModel):
         """Whether the payment is a gift started on the public donation page.
 
         ``apps.payments.donations.start_donation`` files the giver's details on
-        ``donor_fields`` before the provider is asked, and no other payment carries
+        ``donor_fields`` before the provider is asked, and only a public gift carries
         any, so a non-empty ``donor_fields`` is the mark.  Whoever gave may not own the
         account the address names, so such a payment never touches that account's
         renewal mandates or saved payment methods.
@@ -246,8 +246,8 @@ class Payment(TimestampedModel):
     def refunded_cents(self) -> int:
         """What has been given back, in cents: the sum of the succeeded refunds.
 
-        A pending or failed refund counts for nothing, and a payment with no refunds
-        at all reports ``0``.
+        A pending or failed refund doesn't count, and a payment without any refunds
+        reports ``0``.
         """
         return sum(
             refund.amount_cents
@@ -259,8 +259,8 @@ class Payment(TimestampedModel):
     def kind(self) -> str:
         """What this payment bought, as a :class:`PaymentKind` value.
 
-        ``membership`` when it names a plan and carries no contribution,
-        ``contribution`` when it names no plan, and ``both`` when it does both.
+        ``membership`` when it names a plan and doesn't carry a contribution,
+        ``contribution`` when it doesn't name a plan, and ``both`` when it does both.
         """
         if self.plan is None:
             return PaymentKind.CONTRIBUTION
@@ -292,7 +292,7 @@ class Payment(TimestampedModel):
         """What was bought, for a provider's own record of the charge.
 
         Names the plan, the contribution, or both joined by ``+``.  A payment that
-        buys no plan and carries no contribution reads as ``Contribution``.
+        doesn't buy a plan or carry a contribution reads as ``Contribution``.
         """
         parts = []
         if self.plan is not None:
@@ -408,9 +408,9 @@ class RenewalMandate(TimestampedModel):
       never renews), and renews the membership once a year, with
       ``contribution_cents`` taken alongside the dues.  Its ``cadence`` is always
       ``yearly``.
-    * A **recurring donation** names no plan.  It charges ``contribution_cents``
-      alone, monthly, quarterly or yearly as ``cadence`` says, and accompanies no
-      membership: a member, a life member and a friend may each hold one.
+    * A **recurring donation** doesn't name a plan.  It charges ``contribution_cents``
+      alone, monthly, quarterly, or yearly as ``cadence`` says, and doesn't accompany
+      a membership: a member, a life member, and a friend may each hold one.
 
     The provider is always one that can charge off-session -- ``stripe``,
     ``paypal`` or ``mock``, never ``manual``.
@@ -514,11 +514,11 @@ class RenewalAttempt(TimestampedModel):
     """One scheduled charge against a mandate, and every email keyed on it.
 
     An attempt is created when the scanner reaches a charge that is coming due.  It
-    carries the day the charge is due, the membership whose expiry it renews (none
-    for a recurring donation, which renews nothing), the payment it created once it
-    ran, and the provider's decline reason when it failed.  The three timestamps say
-    which emails have gone out, so a scan that runs twice in one day sends nothing
-    twice.  ``retry_of`` chains a retry back to
+    carries the day the charge is due, the membership whose expiry it renews (empty
+    for a recurring donation, which doesn't renew a membership), the payment it created
+    once it ran, and the provider's decline reason when it failed.  The three timestamps
+    say which emails have gone out, so a scan that runs twice in one day never sends an
+    email twice.  ``retry_of`` chains a retry back to
     the attempt that failed.
     """
 
@@ -560,8 +560,8 @@ class RenewalAttempt(TimestampedModel):
     in_doubt = models.BooleanField(
         default=False,
         help_text=(
-            "The provider may have taken this charge and cannot say; the scan charges "
-            "nothing for it until a treasurer settles it."
+            "The provider may have taken this charge and cannot say; the scan doesn't "
+            "charge anything for it until a treasurer settles it."
         ),
     )
     flagged_at = models.DateTimeField(

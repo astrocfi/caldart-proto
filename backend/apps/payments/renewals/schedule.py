@@ -2,7 +2,7 @@
 
 :class:`MandateKind` and the words for each kind, the amount a mandate charges, the
 membership term it renews, and the dates it charges on.  Every other module in the
-package reads these; this one reads none of them.
+package reads these; this one doesn't read any of them.
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ from apps.payments.models import MandateCadence, MandateStatus, RenewalMandate, 
 class MandateKind(models.TextChoices):
     """What a standing authority charges for, which is what every email says.
 
-    ``renewal`` renews a membership term and nothing else, ``both`` renews the
+    ``renewal`` renews only a membership term, ``both`` renews the
     term and takes a contribution alongside it, and ``contribution`` is a
     recurring donation: a contribution alone, on its own schedule, which is the only
     kind a life member or a friend holds, since neither has dues to renew.
@@ -51,11 +51,11 @@ CADENCE_MONTHS: dict[str, int] = {
 # Dates
 # --------------------------------------------------------------------------
 def card_expires_on(mandate: RenewalMandate) -> date | None:
-    """The last day the mandate's card works, or ``None`` when it has no expiry.
+    """The last day the mandate's card works, or ``None`` when it doesn't expire.
 
     A card expires at the end of its printed month, so an expiry of 03/2028 gives
     31 March 2028.  A mandate on a method that is not a card -- a PayPal balance,
-    say -- has no expiry month or year and gives ``None``.
+    say -- doesn't have an expiry month or year and gives ``None``.
     """
     if mandate.method_exp_year is None or mandate.method_exp_month is None:
         return None
@@ -67,13 +67,13 @@ def term_to_renew(user: User, today: date) -> Membership | None:
     """The active term whose expiry a mandate for ``user`` would renew.
 
     That is the active term that runs furthest into the future and has not run
-    out on ``today``.  ``None`` when the member holds no such term, and ``None``
-    as well when any active term is a lifetime one: a lifetime membership never
-    needs renewing.
+    out on ``today``.  ``None`` when the member doesn't hold such a term, and
+    ``None`` as well when any active term is a lifetime one: a lifetime membership
+    never needs renewing.
 
     The member's terms are walked in Python rather than filtered in the database,
     so a caller that has prefetched ``memberships`` -- the finance list does --
-    costs no query per member.
+    doesn't run a query per member.
     """
     active = [m for m in user.memberships.all() if m.status == MembershipStatusChoices.ACTIVE]
     if any(term.ends_on is None for term in active):
@@ -89,12 +89,12 @@ def lapsed_term_to_renew(user: User, today: date) -> Membership | None:
 
     This is the term a scan that missed its charge date would be catching up to:
     the ``active`` or ``expired`` term with the latest ``ends_on`` before
-    ``today``.  A canceled term bought nothing that can be renewed and is not
-    considered.  ``None`` when the member holds no such term, and ``None`` as
+    ``today``.  A canceled term didn't buy anything that can be renewed and is not
+    considered.  ``None`` when the member doesn't hold such a term, and ``None`` as
     well when any term of theirs is a lifetime one, which never needs renewing.
 
     The member's terms are walked in Python, so a caller that has prefetched
-    ``memberships`` costs no query per member.
+    ``memberships`` doesn't run a query per member.
     """
     renewable = (MembershipStatusChoices.ACTIVE, MembershipStatusChoices.EXPIRED)
     terms = [m for m in user.memberships.all() if m.status in renewable]
@@ -107,11 +107,11 @@ def lapsed_term_to_renew(user: User, today: date) -> Membership | None:
 
 
 def lifetime_term(user: User) -> Membership | None:
-    """The member's active lifetime term, or ``None`` when they hold none.
+    """The member's active lifetime term, or ``None`` when they don't hold one.
 
-    A lifetime term is an ``active`` membership with no ``ends_on``.  The terms
-    are walked in Python, so a caller that has prefetched ``memberships`` costs
-    no query per member.
+    A lifetime term is an ``active`` membership without an ``ends_on``.  The terms
+    are walked in Python, so a caller that has prefetched ``memberships`` doesn't
+    run a query per member.
     """
     for term in user.memberships.all():
         if term.status == MembershipStatusChoices.ACTIVE and term.ends_on is None:
@@ -122,7 +122,7 @@ def lifetime_term(user: User) -> Membership | None:
 def mandate_kind(mandate: RenewalMandate) -> str:
     """Which of :class:`MandateKind` ``mandate`` is, read off its plan and amount.
 
-    ``contribution`` when it names no plan, ``both`` when it names a plan and
+    ``contribution`` when it doesn't name a plan, ``both`` when it names a plan and
     carries a contribution, and ``renewal`` when it names a plan alone.
     """
     if mandate.plan_id is None:
@@ -155,11 +155,11 @@ def advance_by_cadence(day: date, cadence: str) -> date:
 
 
 def default_charge_date(user: User, today: date) -> date:
-    """The day a renewal for ``user`` is charged on when they name none themselves.
+    """The day a renewal for ``user`` is charged on when they don't name one themselves.
 
     The ``ends_on`` of their current dated term, so a renewal falls on the day the
     membership runs out and the coverage carries straight on, and ``today`` for a
-    member who holds none, since there is no later day to wait for.
+    member who doesn't hold one, since there isn't a later day to wait for.
     """
     term = term_to_renew(user, today)
     if term is not None and term.ends_on is not None:
@@ -176,7 +176,7 @@ def charge_date(mandate: RenewalMandate, today: date | None = None) -> date | No
     gone by -- because the next scan is what takes a charge the scanner missed.
 
     ``today`` defaults to the current local date.  The attempts are walked in
-    Python, so a caller that has prefetched ``attempts`` costs no query per
+    Python, so a caller that has prefetched ``attempts`` doesn't run a query per
     mandate.
     """
     if mandate.status != MandateStatus.ACTIVE:
@@ -196,7 +196,7 @@ def charge_date(mandate: RenewalMandate, today: date | None = None) -> date | No
 def renewal_amount_cents(mandate: RenewalMandate) -> int:
     """What the next charge comes to: the plan's price plus the contribution.
 
-    A recurring donation names no plan, so its next charge is the
+    A recurring donation doesn't name a plan, so its next charge is the
     contribution alone.
     """
     plan_cents = mandate.plan.price_cents if mandate.plan is not None else 0

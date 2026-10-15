@@ -59,12 +59,13 @@ class PaymentPendingError(PaymentError):
 class PaymentInDoubtError(PaymentError):
     """The provider may have taken an off-session charge, and cannot be asked whether.
 
-    PayPal keeps a ``PayPal-Request-Id`` for a few hours and offers no search of
-    orders by our reference, so a create call that never answered, and was not
+    PayPal keeps a ``PayPal-Request-Id`` for a few hours and doesn't offer a search
+    of orders by our reference, so a create call that never answered, and was not
     answered on any retry while PayPal still held the id, leaves a charge nobody can
     look up; so does PayPal refusing the order as a duplicate of an invoice it has
     already been paid for.  Charging again could take the money twice, so the
-    renewal scan charges nothing more for it and asks a treasurer to settle it.
+    renewal scan doesn't charge anything more for it and asks a treasurer to settle
+    it.
     """
 
 
@@ -72,7 +73,8 @@ class PaymentUnansweredError(PaymentInDoubtError):
     """The provider never answered a charge it was sent, however often it was asked.
 
     The charge is in doubt like any other, and also says the provider is not
-    answering at all, so the renewal scan sends it no more charges in the same run.
+    answering at all, so the renewal scan doesn't send it any more charges in the same
+    run.
     """
 
 
@@ -101,8 +103,8 @@ def card_label(brand: str, last4: str, exp_month: int | None, exp_year: int | No
     """The one line a member reads about a saved card.
 
     ``"Visa ending 4242, expires 03/2028"`` when everything is known; the expiry
-    is left off when the provider did not give one, and a card with no last four
-    digits reads as its brand alone.  A method with no brand and no digits at all
+    is left off when the provider did not give one, and a card without the last four
+    digits reads as its brand alone.  A method that has neither a brand nor digits
     reads ``"Saved payment method"``, so the label is never empty.
     """
     name = brand.replace("_", " ").title() if brand else ""
@@ -142,7 +144,7 @@ class ProviderRefund(TypedDict):
 
     ``provider_ref`` is the provider's own id for the refund, which is what makes
     the record idempotent when the same refund arrives again by webhook; it is
-    empty for a provider that issues no reference.  ``raw`` is the provider's
+    empty for a provider that doesn't issue a reference.  ``raw`` is the provider's
     answer, stored verbatim on the refund row.
     """
 
@@ -216,10 +218,10 @@ class Provider:
 
         A provider settles asynchronously, so the fee is often unknown at the
         moment the money arrives and knowable a little later.  This is the call
-        that asks again.  ``None`` means the provider has no figure yet -- not
-        that the fee was zero -- and leaves whatever is already recorded alone.
-        The default answers ``None``, which is right for a backend that reports
-        no fee at all.
+        that asks again.  ``None`` means the provider doesn't have a figure yet --
+        not that the fee was zero -- and leaves whatever is already recorded alone.
+        The default answers ``None``, which is right for a backend that never
+        reports a fee.
         """
         return None
 
@@ -238,8 +240,9 @@ class Provider:
         """Close whatever :meth:`start_mandate` left open for ``mandate`` at the provider.
 
         Called before a pending mandate's setup is replaced or thrown away, so a setup
-        nobody will confirm cannot be used again.  Does nothing by default; a provider
-        whose setup stays usable on its own, as a Stripe SetupIntent does, closes it.
+        nobody will confirm cannot be used again.  By default it doesn't do anything; a
+        provider whose setup stays usable on its own, as a Stripe SetupIntent does,
+        closes it.
         Never raises: a provider that cannot be reached is logged and left alone.
         """
 
@@ -269,7 +272,7 @@ class Provider:
         refused, :class:`PaymentPendingError` when the provider has the charge and
         has not settled it, :class:`PaymentInDoubtError` when it may have taken the
         charge and cannot be asked, and :class:`ProviderUnavailableError` when the
-        provider cannot be reached, which says nothing about whether the charge was
+        provider cannot be reached, which doesn't say whether the charge was
         made; none of them leaves the payment succeeded.  Raises
         ``NotImplementedError`` on a provider that cannot hold a mandate.
         """
@@ -281,7 +284,7 @@ class Provider:
         Called before charging a payment that has been sent to the provider before,
         whose outcome was never learned.  Returns ``True`` when the provider holds a
         charge for ``payment`` that succeeded, having marked the payment succeeded,
-        and ``False`` when it holds none, so charging is safe.  Raises what
+        and ``False`` when it doesn't hold one, so charging is safe.  Raises what
         :meth:`charge_mandate` raises for a charge it found refused or still
         settling, :class:`PaymentInDoubtError` when the provider may hold a charge
         that cannot be looked up, and :class:`ProviderUnavailableError` when the
@@ -310,7 +313,7 @@ class Provider:
 
         Read from the payment's own record of the charge, which is how a checkout
         that asked for automatic renewal activates its mandate without a second
-        round trip.  ``None`` when the provider saved nothing.
+        round trip.  ``None`` when the provider didn't save a method.
         """
         return None
 

@@ -411,7 +411,7 @@ not settled yet:
 
 .. code-block:: json
 
-   {"detail": "The provider has no fee to report for this payment yet."}
+   {"detail": "The provider doesn't have a fee to report for this payment yet."}
 
 A provider that is unconfigured or unreachable is refused the same way, with
 its own sentence, so "no answer yet" and "could not ask" read differently.

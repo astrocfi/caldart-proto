@@ -2,13 +2,12 @@
 
 Every active account -- a member, a friend, or a donor -- that made at least one
 settled contribution in a calendar year, and whose giving that year was not all refunded,
-is sent one email,
-``contribution_statement``, with that year's statement PDF attached
+is sent one email, ``contribution_statement``, with that year's statement PDF attached
 (:func:`apps.payments.receipts.render_statement_pdf`).  A
 :class:`~apps.payments.models.YearStatement` row is written for each address
 reached, so a rerun of :func:`send_year_statements` -- the yearly timer runs it
 once, and an operator can run it again from the portal's Scheduled tasks page --
-sends nothing twice.
+never sends anything twice.
 """
 
 from __future__ import annotations
@@ -52,7 +51,7 @@ def givers_in_year(year: int) -> list[User]:
     ``created_at`` when ``completed_at`` is unset, which would pick a giver
     :func:`apps.payments.receipts.contribution_payments` and
     :func:`apps.payments.receipts.statement_years` do not agree is one, leaving
-    them a statement of nothing.  Ordered by display name, so a live run and
+    them a statement of $0.00.  Ordered by display name, so a live run and
     its dry-run rehearsal list the same givers in the same order.
     """
     manual_this_year = Q(provider=PaymentProvider.MANUAL, received_on__year=year)
@@ -76,8 +75,8 @@ class StatementRun:
     /system/statements/run`` as ``{year, sent, skipped, failed, actions}``.
     ``sent`` is every account newly emailed, ``skipped`` every account that
     already held a :class:`~apps.payments.models.YearStatement` for the year,
-    and ``failed`` every one the mail server refused or that had no address on
-    file.  ``actions`` names the accounts behind ``sent``, one
+    and ``failed`` every one the mail server refused or that didn't have an address
+    on file.  ``actions`` names the accounts behind ``sent``, one
     :class:`~caldart.runs.RunAction` each, carrying the year's net total as
     ``amount_cents``.
     """
@@ -157,7 +156,7 @@ def _send_statement(user: User, year: int, total_cents: int) -> bool | None:
     started at once -- the timer and an operator's click on the Scheduled tasks page,
     say -- only one wins the claim.  Answers ``None`` without sending anything
     when another run already holds the claim, ``False`` without writing
-    anything for an account with no address on file, and ``False`` (releasing
+    anything for an account without an address on file, and ``False`` (releasing
     the claim, so the next run tries again) for one a mail server refuses (an
     ``OSError``); every ``False`` is logged.  Answers ``True`` once the email is
     confirmed sent.
@@ -211,17 +210,17 @@ def send_year_statements(
     ``today`` is only for the run's own record; the year and the givers in it
     are fixed by ``year``.  A giver who already holds a
     :class:`~apps.payments.models.YearStatement` for ``year`` is skipped: a
-    rerun for a year already sent reaches nobody again, and so is one claimed
+    rerun for a year already sent doesn't reach anybody again, and so is one claimed
     between this run's start and its own send by a second run started at the
-    same time.  A dry run writes and emails nothing, and reports exactly the
-    accounts and totals a live run would reach: an account with no address on
+    same time.  A dry run doesn't write or email anything, and reports exactly the
+    accounts and totals a live run would reach: an account without an address on
     file is counted in ``failed``, precisely as a live run would count it.
 
-    A giver whose year nets to nothing, every contribution of it refunded, is left out
-    altogether: no statement of $0.00 is sent, and the run counts them nowhere.
+    A giver whose year nets to zero, every contribution of it refunded, is left out
+    altogether: no statement of $0.00 is sent, and the run doesn't count them anywhere.
 
-    Nothing about one account stops the run: an address that fails, or one
-    with no address at all, is counted in ``failed`` and the walk carries on.
+    Nothing about one account stops the run: an address that fails, or an account
+    without an address at all, is counted in ``failed`` and the walk carries on.
     Every run ends with one ``statements.run`` audit record carrying the year,
     the mode and the counts.
     """

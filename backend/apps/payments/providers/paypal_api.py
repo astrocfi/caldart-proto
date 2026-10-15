@@ -2,10 +2,11 @@
 
 The provider in :mod:`apps.payments.providers.paypal` speaks to PayPal only through
 :func:`call`, which tells the two kinds of failure apart: a call PayPal never
-answered, or answered with a status that says nothing about the request (a 5xx, a
-429 or a 408), raises :class:`~apps.payments.providers.base.ProviderUnavailableError`,
-because PayPal may have acted on it; a refusal PayPal gave about the request itself
-raises :class:`PayPalRequestError` with PayPal's own issue codes.
+answered, or answered with a status that doesn't say anything about the request (a
+5xx, a 429 or a 408), raises
+:class:`~apps.payments.providers.base.ProviderUnavailableError`, because PayPal may
+have acted on it; a refusal PayPal gave about the request itself raises
+:class:`PayPalRequestError` with PayPal's own issue codes.
 
 The client-credentials token is held in Django's default cache until shortly
 before it expires; the entry records the environment and client id, so changing
@@ -37,7 +38,7 @@ LIVE_BASE = "https://api-m.paypal.com"
 SANDBOX_BASE = "https://api-m.sandbox.paypal.com"
 
 #: What a member is told when PayPal times out or answers with something we
-#: cannot read.  It says nothing about the money: a capture can fail in transit
+#: cannot read.  It doesn't say anything about the money: a capture can fail in transit
 #: after PayPal has already taken it.
 UNAVAILABLE_MESSAGE = "PayPal didn't answer. Try again in a moment."
 
@@ -54,7 +55,7 @@ TOKEN_CACHE_KEY = "paypal:access_token"  # noqa: S105 - a cache key, not a secre
 
 TIMEOUT_SECONDS = 20.0
 
-#: HTTP statuses below 500 that say nothing about the request: a request timeout
+#: HTTP statuses below 500 that don't say anything about the request: a request timeout
 #: and a rate limit.  :func:`is_transient` adds every 5xx.
 TRANSIENT_STATUSES = frozenset({408, 429})
 
@@ -139,7 +140,7 @@ def access_token() -> str:
     :class:`ProviderUnavailableError` when the token call does not complete or
     PayPal answers with a status :func:`is_transient` names, and
     :class:`PaymentVerificationError` when PayPal refuses the credentials or
-    returns no token.
+    doesn't return a token.
     """
     client_id, client_secret = credentials()
     key = [api_base(), client_id]
@@ -169,7 +170,7 @@ def access_token() -> str:
         raise unavailable("POST /v1/oauth2/token", exc) from exc
     token: str = body.get("access_token") or ""
     if not token:
-        raise PaymentVerificationError("PayPal returned no access token.")
+        raise PaymentVerificationError("PayPal didn't return an access token.")
 
     lifetime = max(int(body.get("expires_in", 0)) - TOKEN_SKEW_SECONDS, MINIMUM_TOKEN_SECONDS)
     cache.set(TOKEN_CACHE_KEY, CachedToken(key=key, token=token), timeout=lifetime)
@@ -195,7 +196,7 @@ def call(
     status and issue codes.  A call that certainly never reached PayPal -- the
     token could not be fetched, or the connection was never made -- raises
     :class:`~apps.payments.providers.base.RequestNotSentError`, the outage error
-    that also says nothing was asked.  A body that is not JSON is read as an empty
+    that also says that nothing was asked.  A body that is not JSON is read as an empty
     dict, so a successful call with an unreadable body returns ``{}``.
     """
     try:
@@ -239,7 +240,7 @@ def call(
 
 
 def is_transient(status: int) -> bool:
-    """Whether an HTTP ``status`` from PayPal says nothing about the request itself.
+    """Whether an HTTP ``status`` from PayPal doesn't say anything about the request.
 
     A 5xx is a fault on PayPal's side, a 429 a rate limit and a 408 a request that
     timed out there: any of them may follow work PayPal has already done, so the
@@ -269,7 +270,7 @@ class PayPalRequestError(PaymentVerificationError):
     ``status`` is the HTTP status, and ``issues`` holds the ``details[].issue`` codes
     PayPal gave, so a caller can tell one refusal from another without parsing the
     message.  :attr:`is_authorization` is true for a 401 or a 403: PayPal refusing
-    CalDART's own credentials, which says nothing about the payer.
+    CalDART's own credentials, which doesn't say anything about the payer.
     """
 
     def __init__(self, message: str, *, status: int, issues: list[str]) -> None:

@@ -1479,7 +1479,7 @@ def test_a_refund_of_a_payment_with_no_capture_is_refused(
     payment.status = PaymentStatus.SUCCEEDED
     payment.save(update_fields=["status"])
 
-    with pytest.raises(PaymentVerificationError, match="no completed PayPal capture"):
+    with pytest.raises(PaymentVerificationError, match="doesn't have a completed PayPal capture"):
         issue_refund(payment, amount_cents=1_500, reason=RefundReason.ERROR, actor=account_admin)
 
     assert Refund.objects.get().status == RefundStatus.FAILED

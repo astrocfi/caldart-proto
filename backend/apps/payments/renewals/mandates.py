@@ -57,10 +57,10 @@ LIFE_MEMBER_PLAN_MESSAGE = (
     "A life member's membership does not renew; choose a contribution instead."
 )
 
-#: What somebody is told when they ask for a recurring donation of nothing.
+#: What somebody is told when they ask for a recurring donation of $0.
 DONATION_AMOUNT_MESSAGE = "A recurring donation needs an amount to give."
 
-#: What somebody is told when they ask for an automatic renewal with no plan.
+#: What somebody is told when they ask for an automatic renewal without a plan.
 RENEWAL_PLAN_MESSAGE = "Automatic renewal needs a membership plan to renew."
 
 #: What somebody is told when they ask for a renewal on any cadence but yearly.
@@ -118,8 +118,8 @@ def check_renewable(
 
     Raises ``DomainValidationError`` keyed by :data:`AUTO_RENEW_FIELD` when the
     provider cannot charge again without the member -- which is every provider
-    outside :class:`~apps.payments.models.MandateProvider` -- when a donation gives
-    nothing, when a life member asks for a plan, and when the plan is a lifetime one.
+    outside :class:`~apps.payments.models.MandateProvider` -- when a donation is for
+    $0, when a life member asks for a plan, and when the plan is a lifetime one.
     """
     if provider not in MandateProvider.values:
         raise DomainValidationError(
@@ -144,7 +144,7 @@ def renewal_of(user: User) -> RenewalMandate | None:
 
 
 def donation_of(user: User) -> RenewalMandate | None:
-    """``user``'s recurring donation -- the mandate that names no plan -- or ``None``."""
+    """``user``'s recurring donation -- the mandate without a plan -- or ``None``."""
     return RenewalMandate.objects.filter(user=user, plan__isnull=True).first()
 
 
@@ -153,7 +153,7 @@ def refuse_renewal_contribution(user: User, contribution_cents: int) -> None:
 
     A contribution lives in one place: a member who already gives on a schedule
     changes that gift on the Donate screen rather than adding a second one to their
-    renewal.  A canceled donation gives nothing and stands in nobody's way, and a
+    renewal.  A canceled donation doesn't give anything or stand in anyone's way, and a
     renewal of the dues alone is always fine.  Raises ``DomainValidationError`` keyed
     by :data:`CONTRIBUTION_FIELD` carrying :data:`HAS_DONATION_MESSAGE`.
     """
@@ -170,8 +170,8 @@ def take_contribution_off_renewal(user: User, *, remove: bool, actor: Model | st
     A member whose renewal (anything but canceled) takes a contribution is refused
     a recurring donation with :class:`RenewalContributionError`, naming the amount,
     unless ``remove`` says they agreed to move it: then the renewal's contribution
-    becomes nothing, its dues renew as before, and one ``renewal.change`` audit
-    record names the amount taken off.  A member with no such renewal passes
+    drops to zero, its dues renew as before, and one ``renewal.change`` audit
+    record names the amount taken off.  A member without such a renewal passes
     straight through.
     """
     renewal = renewal_of(user)
@@ -209,7 +209,7 @@ def begin_mandate(
     A person holds at most one renewal and one recurring donation, so asking for
     one again -- at a checkout, or from the portal -- replaces whatever authority of
     that kind was there with a pending one carrying the plan, the contribution, the
-    cadence and the provider now asked for, and no saved method.  It becomes
+    cadence, and the provider now asked for, without a saved method.  It becomes
     ``active`` only when the method is confirmed, through :func:`save_method`.
     ``plan`` of ``None`` asks for the recurring donation; any plan, for the renewal.
     A scheduled charge the old authority already sent to its provider stays on the
@@ -218,7 +218,7 @@ def begin_mandate(
 
     ``next_charge_on`` is the day of the first charge.  Left out, a renewal takes
     :func:`default_charge_date` and a donation takes today.  A mandate begun at a
-    checkout with no day of its own is dated again from the payment, in
+    checkout without a day of its own is dated again from the payment, in
     :func:`activate_pending_mandate`, which is what :data:`CHOSEN_DATE_KEY` records.
     ``cadence`` is what the caller checked: a renewal is always yearly.
 
@@ -230,10 +230,10 @@ def begin_mandate(
 
     Whatever setup the replaced mandate left open at its provider is closed first
     (:meth:`~apps.payments.providers.base.Provider.abandon_setup`), under the provider
-    it was begun with, so a Stripe SetupIntent nobody will confirm takes no card.
+    it was begun with, so a Stripe SetupIntent nobody will confirm never takes a card.
 
     Raises ``DomainValidationError`` keyed by :data:`AUTO_RENEW_FIELD` for
-    anything :func:`check_renewable` refuses, and writes nothing when anything
+    anything :func:`check_renewable` refuses, and doesn't write anything when anything
     is refused.
     """
     renewable = check_renewable(plan, provider, user=user, contribution_cents=contribution_cents)
@@ -288,10 +288,11 @@ def save_method(
     Clears the failure count and any cancellation, writes one ``renewal.enable``
     audit record, and emails the member that the authority is on, naming the amount,
     the method and the next charge date.  The plan is named where there is one; a
-    recurring donation renews nothing, so it names none and the record's
+    recurring donation doesn't renew anything, so it doesn't name one and the record's
     ``plan`` field renders ``-``.  The email is sent after the transaction commits,
-    so a rollback tells nobody anything.  A mandate that was not active already
-    raises the ``auto_renewal_on`` event; a new card on an active one raises nothing.
+    so a rollback never tells anybody anything.  A mandate that was not active already
+    raises the ``auto_renewal_on`` event; a new card on an active one doesn't raise
+    an event.
     """
     was_active = mandate.status == MandateStatus.ACTIVE
     mandate.customer_ref = method.customer_ref or mandate.customer_ref
@@ -313,8 +314,8 @@ def save_method(
         actor=actor,
         target=mandate.user,
         provider=mandate.provider,
-        # A recurring donation names no plan, and an empty list is how a
-        # record says a field has no value: it renders as `-`.
+        # A recurring donation doesn't name a plan, and an empty list is how a
+        # record says a field is empty: it renders as `-`.
         plan=[] if mandate.plan is None else [mandate.plan.slug],
     )
     charge_on = charge_date(mandate)
@@ -350,20 +351,20 @@ def cancel_mandate(
     and is recorded as ``canceled_by`` and in the audit record's
     ``self_service`` flag; it is ``None`` for a cancellation nobody signed for.
     Every scheduled attempt still waiting is marked ``skipped``, so the next scan
-    charges nothing.  An attempt whose charge was already sent to the provider, and
-    whose outcome was never learned, is left for the scan to settle: it records a
-    charge the provider took and charges nothing new.  Writes one ``renewal.cancel``
-    audit record, ending in ``reason=<reason>`` when ``reason`` is given
-    (``member.delete`` when the member's account is being deleted), and emails the
+    doesn't charge anything.  An attempt whose charge was already sent to the provider,
+    and whose outcome was never learned, is left for the scan to settle: it records a
+    charge the provider took and doesn't charge anything new.  Writes one
+    ``renewal.cancel`` audit record, ending in ``reason=<reason>`` when ``reason`` is
+    given (``member.delete`` when the member's account is being deleted), and emails the
     member after the transaction commits.  Calling it on a mandate that is already
-    canceled changes nothing and sends nothing.
+    canceled doesn't change or send anything.
 
     Canceling a mandate that was active raises the ``auto_renewal_off`` event with
     the mandate and ``how``: the caller's word when given (``deactivated`` when the
     member left, ``deleted`` when their account is being deleted), otherwise
     ``member`` when ``actor`` is the mandate's own member and ``administrator`` for
     anybody else.  A paused mandate was off already, and
-    raised its event when it paused, so canceling it raises nothing.
+    raised its event when it paused, so canceling it doesn't raise one.
     """
     if mandate.status == MandateStatus.CANCELED:
         return mandate
@@ -401,12 +402,13 @@ def pending_mandate_for(payment: Payment) -> RenewalMandate | None:
     A mandate only matches when it is the payer's own, is still pending, names
     the provider the payment is being taken with, and renews exactly what the
     payment buys -- the same plan and the same contribution.  A member who
-    started a Stripe mandate and then paid with PayPal activates nothing, and
+    started a Stripe mandate and then paid with PayPal doesn't activate anything, and
     neither does a checkout for some other plan that happens to follow an
     abandoned one: a mandate is the authority the payer asked for at *this*
     checkout, never one left over from another.  A gift from the public donation
-    page activates nothing either (``Payment.is_public_gift``): whoever gave may not
-    own the account, and must never save a method against its standing authority.
+    page doesn't activate anything either (``Payment.is_public_gift``): whoever gave
+    may not own the account, and must never save a method against its standing
+    authority.
     """
     if payment.is_public_gift:
         return None
@@ -427,13 +429,13 @@ def pending_mandate_for(payment: Payment) -> RenewalMandate | None:
 def discard_pending_mandate(user: User) -> None:
     """Throw away the member's ``pending`` mandates, of either kind, if they hold any.
 
-    A pending mandate has no saved method, has charged nothing and has never been
-    announced to anybody, so a checkout that declines automatic renewal deletes it
-    outright rather than canceling it: there is no standing authority to withdraw
-    and nothing to tell the member.  Each one's open setup at its provider is closed
-    first (:meth:`~apps.payments.providers.base.Provider.abandon_setup`), so a Stripe
-    SetupIntent nobody will confirm takes no card.  A mandate in any other state is
-    left alone.
+    A pending mandate doesn't have a saved method, hasn't charged anything, and has
+    never been announced to anybody, so a checkout that declines automatic renewal
+    deletes it outright rather than canceling it: there isn't a standing authority to
+    withdraw or anything to tell the member.  Each one's open setup at its provider is
+    closed first (:meth:`~apps.payments.providers.base.Provider.abandon_setup`), so a
+    Stripe SetupIntent nobody will confirm never takes a card.  A mandate in any other
+    state is left alone.
 
     A pending mandate that was an active one until a new setup reset it may still
     hold a scheduled charge already sent to the provider, whose outcome the renewal
@@ -516,15 +518,15 @@ def switch_to_friend(
 
     The account becomes a friend through :func:`apps.members.lifecycle.become_friend`:
     the day after a current membership runs out, or at once.  Their automatic renewal
-    ends with it (a friend has no dues to renew): an active or paused one is canceled
-    through :func:`cancel_mandate` under their own name, and a pending one is thrown
-    away.  When an active renewal takes a contribution, ``keep_contribution`` must say
-    what becomes of it: true keeps it as a yearly recurring donation through
+    ends with it (a friend doesn't have dues to renew): an active or paused one is
+    canceled through :func:`cancel_mandate` under their own name, and a pending one is
+    thrown away.  When an active renewal takes a contribution, ``keep_contribution``
+    must say what becomes of it: true keeps it as a yearly recurring donation through
     :func:`keep_renewal_contribution`, false lets it stop.  Left as ``None`` there,
     ``DomainValidationError`` is raised keyed by :data:`KEEP_CONTRIBUTION_FIELD`, and
     true is refused the same way with :data:`KEEP_CONTRIBUTION_DONATION_HELD` while a
     recurring donation of theirs is active or paused.  ``keep_contribution`` is ignored
-    when there is nothing to keep: no contribution, or a paused renewal, whose method
+    when there isn't anything to keep: no contribution, or a paused renewal, whose method
     already failed or whose member was told it is off, so its contribution simply
     stops.  Every refusal of ``become_friend`` is raised too, and nothing is written
     when anything is refused.  The account and its renewal are locked for the
@@ -581,7 +583,7 @@ def keep_renewal_contribution(renewal: RenewalMandate) -> RenewalMandate:
     it with.  It is begun through :func:`begin_mandate`, reusing a canceled donation
     row when there is one, and activated through :func:`save_method`, so it is audited
     as ``renewal.enable`` and announced like any other.  The renewal must already be
-    canceled, and the member must hold no active or paused donation: a contribution
+    canceled, and the member must not hold an active or paused donation: a contribution
     lives in one place, so :func:`begin_mandate` refuses a donation beside a live
     renewal that takes one.
     """
@@ -610,14 +612,14 @@ def activate_pending_mandate(payment: Payment) -> RenewalMandate | None:
     """Activate the mandate a succeeded checkout was asked to save, if any.
 
     Called from :func:`apps.payments.services.mark_succeeded`, so a checkout that
-    asked for automatic renewal needs no second round trip: the method the member
+    asked for automatic renewal doesn't need a second round trip: the method the member
     just paid with is read back off the provider's own record of the charge.
-    Returns the activated mandate, or ``None`` when the payment saved no method
-    or there was no pending mandate to activate.
+    Returns the activated mandate, or ``None`` when the payment didn't save a method
+    or there wasn't a pending mandate to activate.
 
-    A renewal whose member named no charge date is dated from the term the payment
+    A renewal whose member didn't name a charge date is dated from the term the payment
     has just bought, so the first automatic charge falls on the day that term runs
-    out.  A recurring donation whose member named no later day has just taken its
+    out.  A recurring donation whose member didn't name a later day has just taken its
     first gift, so its next charge falls one cadence after today.  A date the member
     did choose is left exactly as they gave it, except that a donation's chosen day
     that is not after today moves on by its cadence too: the payment is that day's
@@ -629,7 +631,7 @@ def activate_pending_mandate(payment: Payment) -> RenewalMandate | None:
     method = get_provider(payment.provider).method_from_payment(payment)
     if method is None:
         log.warning(
-            "payment %s was to start a mandate but %s saved no method",
+            "payment %s was to start a mandate but %s didn't save a method",
             payment.pk,
             payment.provider,
         )
@@ -659,11 +661,11 @@ def roll_charge_date_past(user: User, *, covered_until: date | None) -> RenewalM
     itself.  Without this a member who renews by hand would be charged a second
     year on a day their coverage already reaches past.
 
-    Does nothing, and answers ``None``, for a member with no active authority, for
-    a recurring donation, which renews no term, when the coverage did not
-    move, and when the stored day already falls on or after the day the coverage now
-    runs to -- which is what makes it safe to call twice for one term.  Otherwise
-    answers the mandate as saved.
+    Leaves everything as it is, and answers ``None``, for a member without an active
+    authority, for a recurring donation, which doesn't renew a term, when the coverage
+    did not move, and when the stored day already falls on or after the day the
+    coverage now runs to -- which is what makes it safe to call twice for one term.
+    Otherwise answers the mandate as saved.
     """
     mandate = RenewalMandate.objects.filter(
         user=user, status=MandateStatus.ACTIVE, plan__isnull=False

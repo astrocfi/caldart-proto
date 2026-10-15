@@ -29,7 +29,7 @@ from apps.payments.reports import FINANCE_ROLES
 from caldart.reports import Money, Params, ReportColumn, ReportQuery, ReportSpec, given_params
 
 #: Which mandates each ``kind`` value keeps: a renewal alone, a renewal with a
-#: contribution, or a recurring donation, which renews no plan.
+#: contribution, or a recurring donation, which doesn't renew a plan.
 KIND_FILTERS: dict[str, Q] = {
     MandateKind.CONTRIBUTION: Q(plan__isnull=True),
     MandateKind.BOTH: Q(plan__isnull=False, contribution_cents__gt=0),
@@ -55,7 +55,7 @@ STATUS_LABELS: dict[str, str] = {
 
 
 class RenewalStatusFilterSerializer(serializers.Serializer[dict[str, Any]]):
-    """``GET /admin/renewals?status=&kind=`` -- an empty value narrows nothing.
+    """``GET /admin/renewals?status=&kind=`` -- an empty value doesn't narrow the list.
 
     ``kind`` is one of the mandate kinds the rows carry: ``renewal``, ``both`` or
     ``contribution`` (a recurring donation).

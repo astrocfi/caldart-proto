@@ -78,8 +78,8 @@ def receipt_lines(payment: Payment) -> list[ReceiptLine]:
     The membership line names the plan and, when the payment activated a term,
     that term's dates.  The contribution line is marked deductible, which is
     what brings the 501(c)(3) sentence onto the page.  A payment with neither a
-    plan nor a contribution -- which checkout refuses to create -- yields no
-    lines, and its receipt totals zero.
+    plan nor a contribution -- which checkout refuses to create -- yields an
+    empty list, and its receipt totals zero.
     """
     lines: list[ReceiptLine] = []
     if payment.plan is not None:
@@ -104,7 +104,7 @@ def receipt_lines(payment: Payment) -> list[ReceiptLine]:
 def term_detail(payment: Payment) -> str:
     """The membership term this payment bought, as ``2026-03-01 to 2027-02-28``.
 
-    A lifetime term reads ``from <start>``, and a payment with no term behind it
+    A lifetime term reads ``from <start>``, and a payment without a term behind it
     -- one still settling, or one whose term was canceled -- gives ``""``.
     """
     term = Membership.objects.filter(payment=payment).first()
@@ -173,7 +173,7 @@ def send_receipt(payment: Payment) -> bool:
     """Email CalDART's receipt for ``payment``, with the PDF attached.
 
     Stamps ``receipt_sent_at`` and returns ``True`` once the message has gone.
-    A payment whose payer has no address on file, and one the mail server
+    A payment whose payer doesn't have an address on file, and one the mail server
     refuses, are logged and answer ``False`` with ``receipt_sent_at`` left as it
     was, so resending is the retry.  Nothing here raises: a receipt that cannot
     be sent must never undo the payment that earned it.  Either way the attempt
@@ -245,7 +245,7 @@ def statement_years(user: User) -> list[int]:
     """The calendar years ``user`` may download a contribution statement for.
 
     Newest first, and a year appears only when the member made at least one
-    settled contribution in it.  An empty list means there is nothing to state.
+    settled contribution in it.  An empty list means there isn't a year to state.
     """
     rows = Payment.objects.filter(
         user=user, status__in=SETTLED_STATUSES, contribution_cents__gt=0
@@ -277,9 +277,9 @@ def statement_data(user: User, year: int) -> StatementData:
     against whatever of it was refunded.  A gift made on the public donation page with
     a member's or a friend's address is not counted as theirs: it is listed apart, in
     ``public_gifts``, with the name it was made out to as ``given_as`` when that is not
-    the account's own, and left out of the total.  A year
-    the member gave nothing in yields a statement whose total is zero rather than no
-    statement at all; :func:`statement_years` is what says which years are worth offering.
+    the account's own, and left out of the total.  A year the member didn't give
+    anything in yields a statement whose total is zero, and still a statement;
+    :func:`statement_years` is what says which years are worth offering.
     """
     payments = contribution_payments(user, year)
     lines = [
@@ -336,7 +336,7 @@ def statement_filename(member: User, year: int) -> str:
 
     The member's display name is slugified, so a treasurer who downloads a dozen
     statements for one year can tell them apart in a folder.  A name that slugifies
-    to nothing (an email address made only of symbols, say) falls back to the
+    to an empty string (an email address made only of symbols, say) falls back to the
     account id.
     """
     who = slugify(member.display_name) or str(member.pk)

@@ -67,7 +67,7 @@ class Command(BaseCommand):
         :data:`~apps.payments.renewals.background.STOPPED_WITH_AN_ERROR` when it
         raises, the exception propagating.
 
-        A live scan that finds another one already running does nothing, prints why,
+        A live scan that finds another one already running doesn't scan, prints why,
         writes a WARNING ``renewals.run`` audit record with the reason
         ``run_in_progress``, closes its row with that message, and exits cleanly; run
         through ``manage.py run_job``, it doesn't leave a job record, since the scan
@@ -101,7 +101,7 @@ class Command(BaseCommand):
         try:
             run = run_auto_renewals(today=scan_date, dry_run=options["dry_run"], actor=actor)
         except RenewalsBusyError as exc:
-            # Another live scan is charging; this one did nothing and says so.
+            # Another live scan is charging; this one didn't do anything and says so.
             audit.refuse(audit.RENEWALS_RUN, actor=actor, reason=audit.REASON_RUN_IN_PROGRESS)
             if scan is not None:
                 close_scan(scan, error=str(exc))

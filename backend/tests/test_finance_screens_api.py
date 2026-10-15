@@ -87,7 +87,9 @@ def test_a_payment_recorded_by_hand_is_refused(
     response = treasurer_client.post(fees_url(manual))
 
     assert response.status_code == 400
-    assert response.json()["detail"] == "The provider has no fee to report for this payment yet."
+    assert response.json()["detail"] == (
+        "The provider doesn't have a fee to report for this payment yet."
+    )
 
 
 def test_a_payment_that_never_succeeded_is_refused(
@@ -106,7 +108,9 @@ def test_a_payment_that_never_succeeded_is_refused(
     response = treasurer_client.post(fees_url(pending))
 
     assert response.status_code == 400
-    assert response.json()["detail"] == "The provider has no fee to report for this payment yet."
+    assert response.json()["detail"] == (
+        "The provider doesn't have a fee to report for this payment yet."
+    )
 
 
 def test_a_provider_that_cannot_be_asked_says_so(

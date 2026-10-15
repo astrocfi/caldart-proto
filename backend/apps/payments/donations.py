@@ -1,11 +1,11 @@
 """Gifts through the public donation page, from people who never sign in.
 
 A gift made on the public site belongs to the account its email address names, and
-an address with none becomes a **donor**: an account with no role and no usable
-password, so it can never sign in and appears in no member list.  The page answers
-the same whoever holds the address, so a member's or a friend's address simply gives
-to that account.  :func:`donor_for` finds the account or makes the bare donor;
-:func:`start_donation` starts a contribution for it through the same
+an address without an account becomes a **donor**: an account that doesn't hold a role
+or have a usable password, so it can never sign in and never appears in a member list.
+The page answers the same whoever holds the address, so a member's or a friend's
+address simply gives to that account.  :func:`donor_for` finds the account or makes the
+bare donor; :func:`start_donation` starts a contribution for it through the same
 :func:`~apps.payments.services.create_checkout` a member's own checkout uses, keeping
 what the giver typed on the payment's own ``donor_fields`` column rather than
 writing it at once, so an unauthenticated checkout can never overwrite an existing
@@ -140,8 +140,8 @@ def donor_for(fields: DonorFields) -> User:
         with transaction.atomic():
             user = create_account(email=email, kind=AccountKind.DONOR)
     except IntegrityError:
-        # Taken between the lookup and the write by a path that took no address lock:
-        # the gift is that account's, as for any address that has one.
+        # Taken between the lookup and the write by a path that didn't take an address
+        # lock: the gift is that account's, as for any address that has one.
         holder = address_holder(email)
         if holder is None:
             raise
@@ -171,13 +171,13 @@ def _fields_from_storage(data: dict[str, Any]) -> DonorFields:
 def start_donation(fields: DonorFields, contribution_cents: int, provider: str) -> Payment:
     """A ``pending`` gift of ``contribution_cents`` from the giver behind ``fields``.
 
-    The donor comes from :func:`donor_for` and the payment from ``create_checkout`` with
-    no plan, so the amount is the contribution alone and a gift of nothing is refused
+    The donor comes from :func:`donor_for` and the payment from ``create_checkout``
+    without a plan, so the amount is the contribution alone and a gift of zero is refused
     there.  ``fields`` are then filed on the payment's own ``donor_fields`` column --
     never ``raw``, which the provider's ``start`` call that follows is about to
     overwrite -- for :func:`apply_donor_fields` to write onto the donor's account once
     -- and only once -- this payment succeeds.  Raises what either call raises, and
-    writes nothing when it does.
+    doesn't write anything when it does.
     """
     donor = donor_for(fields)
     payment = create_checkout(donor, None, contribution_cents, provider)
@@ -193,7 +193,7 @@ def apply_donor_fields(payment: Payment) -> None:
     The names are replaced outright, and the phone and each optional profile field
     the giver filled in (a non-blank value, a DART, or a checked box) are written over
     the stored ones, while a field left out, blank, or unchecked keeps what an earlier
-    gift told us.  A payment that carries no such fields -- every payment but a public
+    gift told us.  A payment that doesn't carry such fields -- every payment but a public
     gift -- is left alone, which is what lets
     :func:`apps.payments.services.mark_succeeded` call this unconditionally for
     every payment that settles.  So is a public gift whose account is a member's or a

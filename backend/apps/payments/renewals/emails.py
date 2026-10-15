@@ -37,7 +37,7 @@ CADENCE_PHRASES: dict[str, str] = {
 
 #: Subject lines, in the house voice: plain, specific, no exclamation marks.
 #: Keyed by template and then by the mandate's kind, because a recurring donation
-#: renews nothing and must never say it does.
+#: doesn't renew anything and must never say it does.
 SUBJECTS: dict[str, dict[str, str]] = {
     "renewal_enabled": {
         MandateKind.RENEWAL: "{org}: automatic renewal is on",
@@ -103,7 +103,7 @@ def mandate_context(mandate: RenewalMandate, **extra: Any) -> dict[str, Any]:
     (``payments_url``, ``renew_url``, and ``donate_url``).  ``kind`` is the
     mandate's :class:`MandateKind` and ``kind_label`` the words for it, which is
     how each template tells a renewal from a recurring donation.  ``plan_name`` is
-    an empty string for a recurring donation, which names no plan, and
+    an empty string for a recurring donation, which doesn't name a plan, and
     ``cadence_label`` says how often the mandate charges ("each month").
     """
     amount_cents = renewal_amount_cents(mandate)
@@ -153,7 +153,7 @@ def send_mandate_email(
     lists it; the body from ``emails/<template>.{txt,html}`` rendered over
     :func:`mandate_context`.  Each entry of ``attachments`` is a filename, its
     bytes and its media type, which is how the charge report carries the
-    receipt.  A member with no email address is not written to.  The send is
+    receipt.  A member without an email address is not written to.  The send is
     recorded in the email log under the template's name.
 
     A mail server that refuses the message is logged at ERROR and answered

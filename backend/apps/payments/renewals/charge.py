@@ -11,7 +11,7 @@ is held *in doubt*: nothing more is charged for it until a treasurer settles it 
 :func:`settle_in_doubt`.
 
 Every way an attempt is closed is a conditional update on this scan's own claim, so
-a scan that lost its claim to another changes nothing and emails nobody.
+a scan that lost its claim to another never changes anything or emails anyone.
 """
 
 from __future__ import annotations
@@ -99,8 +99,8 @@ CLOSED_BY_TREASURER_MESSAGE = "Closed by the treasurer after checking with the p
 #: Why the treasurer is told again about a charge still in doubt.
 LAPSED_IN_DOUBT_MESSAGE = "The membership has run out while this charge waits to be checked."
 
-#: Why a charge is put off when its provider answered nothing earlier in the run.
-BREAKER_MESSAGE = "The provider answered nothing earlier in this run."
+#: Why a charge is put off when its provider didn't answer earlier in the run.
+BREAKER_MESSAGE = "The provider didn't answer earlier in this run."
 
 #: Why a charge whose payment has already gone through is neither released nor closed.
 ALREADY_PAID_MESSAGE = "This charge's payment has already gone through; record it as paid instead."
@@ -149,7 +149,7 @@ def schedule_attempt(
 
     ``renewal_attempt_one_scheduled_per_mandate`` allows a mandate one charge
     waiting at a time.  Two scans running at once -- the timer and a system
-    administrator pressing "Run now" -- can both find none waiting and both try to
+    administrator pressing "Run now" -- can both find that none is waiting and both try to
     write one; the second write is refused, and that scan leaves the charge, its
     notice, and its taking to the scan that wrote it.  A charge held in doubt is
     also the one waiting, so nothing new is written beside it until a treasurer has
@@ -201,7 +201,7 @@ def charge(attempt: RenewalAttempt, today: date, run: RenewalRun, *, dry_run: bo
         run.charged += 1
         run.record_action(CHARGE_KIND, mandate, on=attempt.scheduled_on, amount_cents=amount_cents)
         # A rehearsal cannot ask the provider whether the charge would be taken,
-        # so it reports the message a charge that succeeds sends.  It carries no
+        # so it reports the message a charge that succeeds sends.  It doesn't carry a
         # date: the charge that has not happened is what sets the one after it.
         run.record_action("renewal_charged", mandate)
         return
@@ -245,7 +245,7 @@ def _paid_meanwhile(attempt: RenewalAttempt, *, dry_run: bool) -> bool:
     A payment that succeeded -- recorded from the provider's own notification, or
     by a settle that stopped before it reached the attempt -- answers the doubt.
     In a live run the attempt's ``in_doubt`` is cleared, so it is settled as any
-    charge is; a rehearsal changes nothing and keeps reading it as in doubt.
+    charge is; a rehearsal doesn't change anything and keeps reading it as in doubt.
     """
     if dry_run or attempt.payment_id is None:
         return False
@@ -444,13 +444,13 @@ def _take(
     ``charge_sent_at``), so every later try and lookup uses those, whatever has
     happened to the mandate since.  ``fresh`` says the payment was written by this
     scan and has never been sent, so a provider that was never asked -- one not
-    configured or switched off, or one the request certainly never reached -- leaves
-    nothing behind worth keeping.  A provider that answered nothing earlier in the
-    same run is not asked at all: the charge is put off before anything is stamped.
+    configured or switched off, or one the request certainly never reached -- doesn't
+    leave anything behind worth keeping.  A provider that didn't answer earlier in
+    the same run is not asked at all: the charge is put off before anything is stamped.
     """
     mandate = attempt.mandate
     if payment.provider in run.unanswered:
-        # The provider answered nothing earlier in this run: sending more would only
+        # The provider didn't answer earlier in this run: sending more would only
         # leave more charges in doubt, so this one waits for the next run unsent.
         _postpone(attempt, payment, BREAKER_MESSAGE, run, discard=fresh)
         return
@@ -585,7 +585,7 @@ def _skip(attempt: RenewalAttempt, reason: str, run: RenewalRun, *, dry_run: boo
 def _renewal_skip_reason(attempt: RenewalAttempt, today: date) -> str | None:
     """Why a renewal's attempt should not be charged after all, or ``None``.
 
-    ``friend`` when the member has become a friend of CalDART, who pays no dues;
+    ``friend`` when the member has become a friend of CalDART, who doesn't pay dues;
     ``lifetime`` when they have been granted a lifetime term since the attempt was
     written; ``already_renewed`` when their coverage has already moved past the
     term the charge was for.  A recurring donation is never skipped for any of
@@ -620,7 +620,7 @@ def _claim(attempt: RenewalAttempt) -> bool:
     The claim is a single conditional update: the attempt is stamped
     ``attempted_at`` only while it is still ``scheduled`` and unstamped, so of two
     scans running at once -- the timer and a system administrator pressing "Run
-    now" -- exactly one charges, and the other finds nothing to do.
+    now" -- exactly one charges, and the other finds the attempt already taken.
 
     A stamp older than ``RENEWAL_STALE_MINUTES`` (:func:`stale_after`) is a claim
     whose scan died before it recorded anything, and is taken over by the same
@@ -651,7 +651,7 @@ def _release(attempt: RenewalAttempt, **fields: object) -> bool:
     """Give up this scan's claim, writing ``fields`` with it, and say whether it held it.
 
     A conditional update on the claim's own stamp, so a scan whose claim another
-    took over writes nothing.
+    took over doesn't write anything.
     """
     now = timezone.now()
     released = RenewalAttempt.objects.filter(
@@ -670,8 +670,8 @@ def _close(attempt: RenewalAttempt, outcome: str, *, error: str = "") -> bool:
     """Close a claimed attempt with ``outcome``, and say whether this scan did.
 
     A conditional update on the claim's own stamp: a scan whose claim another scan
-    took over closes nothing, and its caller then changes no mandate and emails
-    nobody, so a charge is never recorded twice.
+    took over doesn't close anything, and its caller then never changes a mandate or
+    emails anyone, so a charge is never recorded twice.
     """
     closed = RenewalAttempt.objects.filter(
         pk=attempt.pk, outcome=RenewalOutcome.SCHEDULED, attempted_at=attempt.attempted_at
@@ -690,9 +690,9 @@ def _postpone(
     """Put a charge back whose outcome the provider did not tell us.
 
     A provider that cannot be reached, that is not configured, or that is switched
-    off -- the mock provider with ``PAYMENTS_MOCK_ENABLED`` off -- says nothing
-    about the member's card, so it costs no rung of the retry ladder, sends no
-    decline notice and does not pause the mandate.  The attempt is released, still
+    off -- the mock provider with ``PAYMENTS_MOCK_ENABLED`` off -- doesn't say
+    anything about the member's card, so it doesn't cost a rung of the retry ladder,
+    send a decline notice, or pause the mandate.  The attempt is released, still
     scheduled for the same day, so the next scan tries it again.
 
     A provider that could not be reached may still have made the charge, so the
@@ -786,7 +786,7 @@ def _already_renewed(attempt: RenewalAttempt, today: date) -> bool:
 
     True when another term has been bought or granted since the attempt was
     scheduled, which is what a member paying by hand in the meantime looks like.
-    Always false for a recurring donation, which renews no term and so can never be
+    Always false for a recurring donation, which doesn't renew a term and so can never be
     overtaken by one.
     """
     if attempt.mandate.plan_id is None or attempt.membership is None:
@@ -798,7 +798,7 @@ def _already_renewed(attempt: RenewalAttempt, today: date) -> bool:
 
 
 def _finish(attempt: RenewalAttempt, outcome: str) -> None:
-    """Close an attempt with ``outcome`` and no charge."""
+    """Close an attempt with ``outcome``, without a charge."""
     attempt.outcome = outcome
     attempt.save(update_fields=["outcome", "updated_at"])
 
@@ -807,11 +807,11 @@ def _record_success(attempt: RenewalAttempt, run: RenewalRun) -> None:
     """Mark the attempt succeeded, roll the charge date forward, and tell the member.
 
     The attempt is closed first, on this scan's claim (:func:`_close`); a scan that
-    no longer holds the claim does nothing more.  The member's email goes out at
+    no longer holds the claim stops there.  The member's email goes out at
     once, or is handed to the run's ``defer`` to send later when the run has one.
     The mandate's stored charge date then moves on: to the ``ends_on`` of the term
     the charge bought for a renewal, and by the mandate's cadence from the day the
-    charge was scheduled for a recurring donation, which renews no term.
+    charge was scheduled for a recurring donation, which doesn't renew a term.
     """
     if not _close(attempt, RenewalOutcome.SUCCEEDED):
         return
@@ -868,7 +868,7 @@ def _record_failure(
     """Record a declined charge, then retry it or pause the mandate.
 
     The attempt is closed first, on this scan's claim (:func:`_close`); a scan that
-    no longer holds the claim does nothing more.  The provider's reason is kept on
+    no longer holds the claim stops there.  The provider's reason is kept on
     the attempt and quoted to the member.  A mandate with retries left gets the next
     one from :data:`RETRY_OFFSETS`; one whose retries are exhausted is paused, and
     the member is told that automatic renewal is off and the ordinary reminders

@@ -29,7 +29,7 @@ def completed_captures(order: dict[str, Any]) -> list[dict[str, Any]]:
     """Every ``COMPLETED`` capture in a capture response.
 
     Reads ``purchase_units[].payments.captures[]`` and skips a capture in any other
-    state.  An order with no purchase units gives an empty list.
+    state.  An order without purchase units gives an empty list.
     """
     return captures_with_status(order, "COMPLETED")
 
@@ -37,7 +37,7 @@ def completed_captures(order: dict[str, Any]) -> list[dict[str, Any]]:
 def captures_with_status(order: dict[str, Any], status: str) -> list[dict[str, Any]]:
     """Every capture in ``purchase_units[].payments.captures[]`` that is in ``status``.
 
-    An order with no purchase units gives an empty list.
+    An order without purchase units gives an empty list.
     """
     captures: list[dict[str, Any]] = []
     for unit in order.get("purchase_units") or []:
@@ -52,7 +52,7 @@ def captures_with_status(order: dict[str, Any], status: str) -> list[dict[str, A
 def captured_cents(order: dict[str, Any]) -> int:
     """The total of every ``COMPLETED`` capture in ``order``, in cents.
 
-    An order with no completed capture totals zero.
+    An order without a completed capture totals zero.
     """
     return sum(cents((c.get("amount") or {}).get("value", 0)) for c in completed_captures(order))
 
@@ -62,7 +62,7 @@ def fees_from_capture(capture: dict[str, Any]) -> ProviderFees | None:
 
     Reads ``seller_receivable_breakdown.paypal_fee.value`` and
     ``.net_amount.value``, the decimal strings PayPal reports, and converts both
-    to cents.  Answers ``None`` when the capture carries no breakdown, which is
+    to cents.  Answers ``None`` when the capture doesn't carry a breakdown, which is
     what an order that has not settled looks like, and when either figure cannot
     be read as a number.
     """
@@ -83,8 +83,8 @@ def fees_from_capture(capture: dict[str, Any]) -> ProviderFees | None:
 def fees_from_order(order: dict[str, Any]) -> ProviderFees | None:
     """The same, from a whole order: the breakdown of its first completed capture.
 
-    Answers ``None`` for an order with no completed capture, and for one whose
-    capture carries no breakdown yet.
+    Answers ``None`` for an order without a completed capture, and for one whose
+    capture doesn't carry a breakdown yet.
     """
     captures = completed_captures(order)
     if not captures:
@@ -110,7 +110,7 @@ def capture_id(payment: Payment) -> str:
     found = captures[0].get("id") if captures else None
     if not found:
         raise PaymentVerificationError(
-            "That payment has no completed PayPal capture to refund against."
+            "That payment doesn't have a completed PayPal capture to refund against."
         )
     return str(found)
 
@@ -121,7 +121,7 @@ def log_capture_mismatch(payment: Payment, captured: int, reason: str) -> None:
     PayPal has the money by this point, so the refusal needs a human to
     reconcile it.  ``captured`` is what PayPal took, in cents, and ``reason`` names
     the field that disagreed.  The record carries the payment id and both amounts,
-    and no personal data.
+    and leaves out personal data.
     """
     log.error(
         "PayPal capture mismatch (%s) for payment %s: captured %s cents, expected %s cents",
@@ -188,7 +188,7 @@ def related_order_id(capture: dict[str, Any]) -> str:
     """The id of the order a capture notification's resource belongs to.
 
     Read from ``supplementary_data.related_ids.order_id``, where PayPal puts it on a
-    capture; an empty string when the resource carries none.
+    capture; an empty string when the resource doesn't carry one.
     """
     related = (capture.get("supplementary_data") or {}).get("related_ids") or {}
     return str(related.get("order_id") or "")

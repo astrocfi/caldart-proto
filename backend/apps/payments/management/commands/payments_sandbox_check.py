@@ -30,7 +30,7 @@ from caldart.reports import money_label
 
 log = logging.getLogger(__name__)
 
-#: The Webhooks Management API's list endpoint.  It creates and moves nothing,
+#: The Webhooks Management API's list endpoint.  It doesn't create or move anything,
 #: and -- unlike the OpenID Connect identity endpoint, which needs a token from
 #: a user login and would report a perfectly working REST app key as
 #: unreachable -- it is a call any client-credentials token is entitled to,
@@ -93,7 +93,7 @@ def _enabled_payment_method_types(configurations: list[dict[str, Any]]) -> list[
     keys of every payment-method field on it (``card``, ``link``,
     ``us_bank_account``, and so on, whichever the account and Stripe's API
     version offer) whose ``available`` is true. Answers an empty list when
-    there is no default configuration, which is unusual but not an error: the
+    there isn't a default configuration, which is unusual but not an error: the
     Payment Element then falls back to card only.
     """
     for configuration in configurations:
@@ -115,9 +115,9 @@ def _check_stripe() -> _ProviderReport:
     the account balance and the payment method configuration list; a call
     Stripe refuses (a revoked key, an account in a bad state) or cannot be
     reached comes back as ``ok=False`` with the SDK's own message, logged at
-    warning level with nothing but the exception's class, since a
+    warning level with only the exception's class, since a
     ``StripeError`` can quote request data.  Fees, refunds, and off-session
-    (automatic renewal) charges need nothing beyond a valid secret key, so a
+    (automatic renewal) charges only need a valid secret key, so a
     reachable account is reported able to do all three.
     """
     if not get_provider("stripe").is_configured():
@@ -179,8 +179,8 @@ def _check_paypal() -> _ProviderReport:
     webhooks, without creating or moving anything. A call PayPal refuses or
     that cannot be reached comes back as ``ok=False`` with the raised
     :class:`~apps.payments.providers.base.PaymentError`'s message, logged at
-    warning level with nothing but the exception's class. Fees and refunds
-    need nothing beyond working credentials; vault (automatic renewal) is a
+    warning level with only the exception's class. Fees and refunds
+    only need working credentials; vault (automatic renewal) is a
     REST app setting this command cannot read through the API, so it is
     reported as something to check by hand.
     """

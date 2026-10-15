@@ -93,8 +93,8 @@ def signed_in_user(request: Request) -> User:
 def load_payment(payment_id: int, user: User, *, provider: str | None = None) -> Payment:
     """The caller's own payment, or 404.
 
-    Confirmation endpoints are deliberately owner-only: an account admin has no
-    business completing somebody else's checkout, so another member's payment
+    Confirmation endpoints are deliberately owner-only: an account admin doesn't have
+    any business completing somebody else's checkout, so another member's payment
     raises ``Http404`` exactly as an unknown id does.  When ``provider`` is given
     and the payment was not started with it, raises DRF's ``ValidationError``
     keyed by ``payment_id``.
@@ -211,9 +211,9 @@ class CheckoutView(APIView):
         the server will not charge for, or when the provider refuses to start the
         payment -- in which case no pending payment is left behind.
 
-        A life member has nothing to renew, so a ``plan`` from one is a 400 naming
-        ``plan``: their checkout is a contribution, with or without a standing
-        authority behind it.  A checkout with no plan is a donation, which is a 400
+        A life member doesn't have anything to renew, so a ``plan`` from one is a 400
+        naming ``plan``: their checkout is a contribution, with or without a standing
+        authority behind it.  A checkout without a plan is a donation, which is a 400
         naming ``contribution_cents`` under ``DONATION_MINIMUM_CENTS``.  429 past the
         caller's ``payment_start`` rate, which saving a method shares.
 
@@ -221,15 +221,16 @@ class CheckoutView(APIView):
         schedule: a ``pending`` mandate is created before the provider is started,
         so the provider knows to save the method, and it becomes active when the
         payment succeeds.  With a plan it is an automatic renewal, once a year;
-        with no plan it is a recurring donation of the contribution on ``cadence``.
+        without a plan it is a recurring donation of the contribution on ``cadence``.
         400 naming ``auto_renew`` for a plan that never expires, for a donation of
-        nothing, and for a provider that cannot charge a saved method; 400 naming
+        zero, and for a provider that cannot charge a saved method; 400 naming
         ``contribution_cents`` for a renewal that takes a contribution while the
         member holds a recurring donation; and ``400 {"detail": ..., "code":
         "renewal_contribution"}`` for a donation while the member's renewal takes a
         contribution, unless ``remove_renewal_contribution`` moves it off the
-        renewal first.  Any of these, and a provider that refuses to start, writes
-        nothing: no pending payment, and the member's mandates as they were.
+        renewal first.  Any of these, and a provider that refuses to start, doesn't
+        write anything: a pending payment isn't left behind, and the member's mandates
+        stay as they were.
 
         ``next_charge_on`` is the day that authority first charges on, and a day
         before today is a 400 naming ``next_charge_on``.  Left out, the first
@@ -248,9 +249,9 @@ class CheckoutView(APIView):
             raise ValidationError({"provider": f"'{provider_slug}' is not configured."})
 
         user = signed_in_user(request)
-        # One transaction: a refusal anywhere below leaves no pending payment and
-        # the member's mandates -- and a contribution moved off the renewal -- as
-        # they were.
+        # One transaction: a refusal anywhere below doesn't leave a pending payment,
+        # and leaves the member's mandates -- and a contribution moved off the
+        # renewal -- as they were.
         with transaction.atomic():
             payment = create_checkout(
                 user,
@@ -441,6 +442,6 @@ class PayPalWebhookView(APIView):
         Unauthenticated by design: PayPal's own verification call is what proves
         where the request came from, so the route answers 404 while
         ``PAYPAL_WEBHOOK_ID`` is empty, and a notification PayPal does not vouch
-        for is a 400 that records nothing.
+        for is a 400 that doesn't record anything.
         """
         return get_provider(PaymentProvider.PAYPAL).handle_webhook(request)

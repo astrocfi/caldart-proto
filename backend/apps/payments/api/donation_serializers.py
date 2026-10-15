@@ -33,7 +33,7 @@ from apps.payments.donations import DONOR_PROFILE_FIELDS
 from apps.payments.models import MAX_CONTRIBUTION_CENTS, PaymentProvider
 from caldart.messages import email_messages, when_missing
 
-#: What a gift of nothing is told.
+#: What a gift of zero is told.
 NO_AMOUNT_MESSAGE = "Choose an amount to give."
 
 
@@ -69,11 +69,11 @@ class DonationCheckoutSerializer(ProfileSerializer):
     as it is on every profile, and is stored as ``XXX-XXX-XXXX``.  The optional fields
     are the profile's own, under the profile's own rules (a five-digit ZIP code, a
     three-character airport, an active DART named by ``dart_id``), except that a
-    pilot certificate needs no number here.  ``contribution_cents`` runs from
-    ``DONATION_MINIMUM_CENTS`` to ``MAX_CONTRIBUTION_CENTS``: nothing is refused with
+    pilot certificate doesn't need a number here.  ``contribution_cents`` runs from
+    ``DONATION_MINIMUM_CENTS`` to ``MAX_CONTRIBUTION_CENTS``: zero is refused with
     "Choose an amount to give.", and less than the minimum with "A donation must be at
     least $5.00." (the minimum as configured).
-    There is no amount field: the gift is the contribution and nothing else.
+    The serializer doesn't take an amount field: the gift is the contribution alone.
     """
 
     first_name = serializers.CharField(
@@ -104,7 +104,7 @@ class DonationCheckoutSerializer(ProfileSerializer):
     def get_field_names(
         self, declared_fields: Mapping[str, serializers.Field[Any, Any, Any, Any]], info: FieldInfo
     ) -> list[str]:
-        """The fields in ``Meta.fields``, and none of the profile's others.
+        """The fields in ``Meta.fields`` alone, leaving out the profile's others.
 
         The profile serializer declares fields the donation form does not collect
         (the aircraft, the medical, the ratings); DRF would otherwise insist that every
@@ -113,9 +113,9 @@ class DonationCheckoutSerializer(ProfileSerializer):
         return list(self.Meta.fields)
 
     def validate_contribution_cents(self, value: int) -> int:
-        """Refuse a gift of nothing, and a gift under ``DONATION_MINIMUM_CENTS``.
+        """Refuse a gift of zero, and a gift under ``DONATION_MINIMUM_CENTS``.
 
-        Nothing is told :data:`NO_AMOUNT_MESSAGE`, and an amount under the minimum
+        Zero is told :data:`NO_AMOUNT_MESSAGE`, and an amount under the minimum
         :func:`~apps.payments.api.serializers.gift_minimum_message`.
         """
         if value == 0:

@@ -8,7 +8,8 @@ in this order, for every mandate that is ``active``:
    :data:`NOTICE_DAYS` gets a :class:`~apps.payments.models.RenewalAttempt`
    scheduled for that day, and the member is emailed the amount, the date and how
    to turn it off.  A monthly or quarterly donation is written its attempt on the
-   day of the charge, and sends no notice: its charged email is the one message.
+   day of the charge, and doesn't send a notice: its charged email is the one
+   message.
 2. **Card expiry.**  A card that expires before that charge earns one warning.
 3. **Charge.**  Every attempt due today or earlier is charged off-session.  A
    success activates the next term and emails the member; a decline records the
@@ -22,8 +23,8 @@ A live scan holds a database advisory lock while it runs, so the timer and a
 :class:`RenewalsBusyError` before it does anything.
 
 Every email is keyed on a timestamp of the attempt it belongs to, so a scan run
-twice in one day sends nothing twice.  A dry run changes no mandate, sends no
-email and charges nobody; the run itself is still recorded in the audit log.
+twice in one day never sends anything twice.  A dry run doesn't change a mandate,
+send an email, or charge anyone; the run itself is still recorded in the audit log.
 """
 
 from __future__ import annotations
@@ -88,7 +89,7 @@ SCAN_LOCK_KEY = 0x0C4A_26E5
 #: What a live scan says when another one already holds the lock.
 ALREADY_RUNNING_MESSAGE = "Another automatic renewal run is already under way."
 
-#: Why a mandate produced no charge on a given scan.
+#: Why a mandate didn't produce a charge on a given scan.
 SKIP_REASONS: tuple[str, ...] = (
     "friend",
     "lifetime",
@@ -114,7 +115,7 @@ class RenewalRun:
     /system/renewals/run``.  ``noticed`` counts the advance warnings sent,
     ``charged`` the renewals taken, ``failed`` the charges the provider refused,
     ``paused`` the mandates whose retries ran out on this scan, and ``skipped``
-    the mandates and attempts that needed nothing doing.
+    the mandates and attempts that didn't need anything done.
 
     ``actions`` names the people behind those counts: one
     :class:`~caldart.runs.RunAction` per email and per charge, in the order the
@@ -133,8 +134,8 @@ class RenewalRun:
     skipped: int = 0
     skipped_by_reason: dict[str, int] = field(default_factory=dict)
     actions: list[RunAction] = field(default_factory=list)
-    #: The providers that answered nothing at all earlier in this run: the charge
-    #: step sends them no more charges until the next run.
+    #: The providers that never answered at all earlier in this run: the charge
+    #: step doesn't send them any more charges until the next run.
     unanswered: set[str] = field(default_factory=set)
     #: Where a charged email goes to be sent later, or ``None`` to send it at once.
     #: A treasurer settling a charge from the portal hands it to the response.
@@ -216,8 +217,8 @@ def run_auto_renewals(
     """Scan every mandate, send the notices due, and charge the renewals due.
 
     ``today`` defaults to the current local date and is what every comparison is
-    made against, so a rehearsal can be run as of any date.  A dry run changes no
-    mandate, charges nobody and sends no email; it reports the counts the same
+    made against, so a rehearsal can be run as of any date.  A dry run doesn't change
+    a mandate, charge anyone, or send an email; it reports the counts the same
     scan would produce, and is itself recorded in the audit log.
 
     Nothing one member's mandate does stops the scan: a provider that declines,
@@ -230,15 +231,15 @@ def run_auto_renewals(
     every member the run emailed or charged -- or, in a rehearsal, would have.
 
     A charge whose date has already come round is scheduled and taken by the same
-    scan.  A rehearsal writes no attempt for the charge step to find, so the
+    scan.  A rehearsal doesn't write an attempt for the charge step to find, so the
     notice step hands it the attempts it would have written and the rehearsal
     reports that charge too.
 
     A live scan first checks ``RENEWAL_STALE_MINUTES`` (``stale_after``), raising
     ``ImproperlyConfigured`` when it is too small, then takes the renewal scan's
     advisory lock for as long as it runs.  When another live scan holds the lock
-    it raises :class:`RenewalsBusyError` having done nothing at all.  A rehearsal
-    changes nothing, so it takes no lock and runs beside a live scan.
+    it raises :class:`RenewalsBusyError` before it does anything at all.  A rehearsal
+    doesn't change anything, so it doesn't take the lock and runs beside a live scan.
     """
     if today is None:
         today = timezone.localdate()
@@ -266,7 +267,7 @@ def run_auto_renewals(
 
 
 class RenewalsBusyError(RuntimeError):
-    """Another live renewal scan holds the lock, so this one did nothing."""
+    """Another live renewal scan holds the lock, so this one didn't do anything."""
 
 
 @contextmanager
@@ -302,10 +303,10 @@ def _scan(run: RenewalRun, today: date, *, dry_run: bool) -> None:
 def _rehearsed_attempt(
     mandate: RenewalMandate, term: Membership | None, charge_on: date, today: date
 ) -> list[RenewalAttempt]:
-    """The unsaved attempt a rehearsal hands to its charge step, or nothing.
+    """The unsaved attempt a rehearsal hands to its charge step, or an empty list.
 
     A live run creates the attempt here and finds it again in the same run when
-    its date has already come round.  A rehearsal writes nothing, so the attempt
+    its date has already come round.  A rehearsal doesn't write anything, so the attempt
     it would have written is carried forward instead -- and only when it is due
     today, since a charge still in the future is for a later run to take.
     """
@@ -329,18 +330,18 @@ def _notice(
     never went out -- a mail server that refused it -- is written to again here.
 
     Returns the attempts a rehearsal would have written and that are due today,
-    for the charge step to rehearse as well; a live run returns nothing, because
+    for the charge step to rehearse as well; a live run returns an empty list, because
     it has written them to the database the charge step reads.
     """
     if mandate.plan_id is None:
         return _notice_donation(mandate, today, run, dry_run=dry_run)
     if account_kind(mandate.user, today) == AccountKind.FRIEND:
-        # A friend pays no dues, so a renewal they still hold renews nothing.
+        # A friend doesn't pay dues, so a renewal they still hold doesn't renew anything.
         run.record_skipped("friend")
         return []
     if lifetime_term(mandate.user) is not None:
         # The member has been granted a lifetime term since the mandate was made,
-        # so there is no expiry left for it to renew.
+        # so there isn't an expiry left for it to renew.
         run.record_skipped("lifetime")
         return []
     term = term_to_renew(mandate.user, today)
@@ -373,7 +374,7 @@ def _notice(
     run.noticed += 1
     run.record_action("renewal_notice", mandate, on=charge_on)
     if attempt is None:
-        # Only a rehearsal gets here with nothing written.
+        # Only a rehearsal gets here without having written an attempt.
         return _rehearsed_attempt(mandate, term, charge_on, today)
     if dry_run:
         # An attempt already waiting is one the charge step finds by itself.
@@ -387,11 +388,12 @@ def _notice_donation(
 ) -> list[RenewalAttempt]:
     """Schedule, and for a yearly gift announce, the next charge of a recurring donation.
 
-    The charge date is the mandate's own, and the attempt names no term: a donation
-    accompanies no membership, so anybody's is charged whatever their membership.
+    The charge date is the mandate's own, and the attempt doesn't name a term: a
+    donation doesn't accompany a membership, so anybody's is charged whatever their
+    membership.
     A yearly donation is scheduled and announced :data:`NOTICE_DAYS` ahead, exactly
     as a renewal is, and one whose notice the mail server refused is written to
-    again here.  A monthly or quarterly donation sends no notice: its attempt is
+    again here.  A monthly or quarterly donation doesn't send a notice: its attempt is
     written on the day of the charge, for the charge step of the same run to take.
 
     Returns what :func:`_notice` returns, for the same reason.
@@ -436,10 +438,10 @@ def _catch_up(
 ) -> list[RenewalAttempt]:
     """Renew a term that already ran out, or pause a mandate too far behind to.
 
-    Reached for a mandate whose member holds no term left to renew.  While the
+    Reached for a mandate whose member doesn't hold a term left to renew.  While the
     ordinary reminders are skipped for an active mandate, this is the only thing
-    that stops such a member lapsing unnoticed, so a charge date missed by no more
-    than :data:`CATCH_UP_DAYS` is taken here: the attempt is dated today, the
+    that stops such a member lapsing unnoticed, so a charge date missed by at most
+    :data:`CATCH_UP_DAYS` is taken here: the attempt is dated today, the
     notice says the charge is happening today, and the charge step of the same run
     takes it.  A charge date missed by longer than that pauses the mandate and
     tells the member why, and the ordinary reminders resume for them.
@@ -499,7 +501,7 @@ def _send_notice(
 def _abandon(mandate: RenewalMandate, run: RenewalRun, *, dry_run: bool) -> None:
     """Pause a mandate whose member lapsed too long ago to be charged unannounced.
 
-    Nothing is charged and no attempt is written: there is no term the money
+    Nothing is charged and no attempt is written: there isn't a term the money
     would extend.  The member is told that automatic renewal is off, why, and
     where to renew by hand, and the ordinary reminders cover them from then on.
     The pause raises the ``auto_renewal_off`` event with ``how="lapsed"``.

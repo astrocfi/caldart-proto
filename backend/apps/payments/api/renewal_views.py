@@ -63,8 +63,8 @@ from caldart.mail import send_after_response
 DELETE_RESPONSE_DESCRIPTION = "The authority is off.  The body is empty."
 
 #: What a caller is told when they ask about a mandate they do not have, by kind.
-NO_MANDATE = "You have no automatic renewal to change."
-NO_DONATION = "You have no recurring donation to change."
+NO_MANDATE = "You don't have an automatic renewal to change."
+NO_DONATION = "You don't have a recurring donation to change."
 
 
 class RenewalContributionConflictError(APIException):
@@ -101,9 +101,9 @@ def renewable_plan(slug: str) -> MembershipPlan:
 
 
 def own_mandate(request: Request, *, donation: bool) -> RenewalMandate | None:
-    """The caller's own donation or renewal, or ``None`` when they hold none of that kind.
+    """The caller's own donation or renewal, or ``None`` when they don't hold that kind.
 
-    ``donation`` picks the mandate that names no plan; otherwise the one that does.
+    ``donation`` picks the mandate without a plan; otherwise the one that names a plan.
     """
     return RenewalMandate.objects.filter(
         user=signed_in_user(request), plan__isnull=donation
@@ -111,7 +111,7 @@ def own_mandate(request: Request, *, donation: bool) -> RenewalMandate | None:
 
 
 def missing_mandate(*, donation: bool) -> Http404:
-    """The 404 for a caller who holds no mandate of the kind they asked about."""
+    """The 404 for a caller who doesn't hold a mandate of the kind they asked about."""
     return Http404(NO_DONATION if donation else NO_MANDATE)
 
 
@@ -133,7 +133,7 @@ class MyRenewalView(APIView):
     """``GET | PATCH | DELETE /me/renewal`` and ``/me/donation`` -- the caller's own.
 
     ``donation`` says which of the two authorities this view serves: the renewal,
-    which names a plan, or the recurring donation, which names none.
+    which names a plan, or the recurring donation, which doesn't name one.
     """
 
     permission_classes = [IsAuthenticated]
@@ -141,8 +141,9 @@ class MyRenewalView(APIView):
 
     @extend_schema(responses={200: RenewalEnvelopeSerializer})
     def get(self, request: Request) -> Response:
-        """200 with the ``{"mandate": ...}`` envelope; ``mandate`` is ``null`` when none.
+        """200 with the ``{"mandate": ...}`` envelope.
 
+        ``mandate`` is ``null`` when the caller doesn't hold a mandate of this kind.
         A canceled or paused mandate is still returned, with its status, so the
         portal can offer to turn it on again and show why it stopped.
         """
@@ -163,14 +164,14 @@ class MyRenewalView(APIView):
         a day chosen while a charge is scheduled only lasts until that charge
         completes.
 
-        404 when the caller holds no mandate of this kind; 400 naming
+        404 when the caller doesn't hold a mandate of this kind; 400 naming
         ``contribution_cents`` for an amount outside what a checkout would accept, for a
         donation under ``DONATION_MINIMUM_CENTS``, and for a contribution on a renewal
         while the caller holds a recurring donation;
         400 naming ``next_charge_on`` for a day that has already gone by, ``plan`` for
         a plan that is not on offer, ``cadence`` for a renewal on any cadence but
         yearly, and ``auto_renew`` for anything the authority could not charge again
-        -- a donation of nothing, a life member's plan, a plan that never expires --
+        -- a $0 donation, a life member's plan, a plan that never expires --
         which is the same rule the setup endpoint applies.  The dues themselves are
         not settable: they are the plan's price at the time of each charge.
         """
@@ -213,7 +214,7 @@ class MyRenewalView(APIView):
 
         Every scheduled charge is dropped and the member is emailed that it is
         off.  The other kind of authority, if the caller holds one, is untouched.
-        404 when the caller holds no mandate of this kind.
+        404 when the caller doesn't hold a mandate of this kind.
         """
         mandate = own_mandate(request, donation=self.donation)
         if mandate is None:
@@ -235,7 +236,7 @@ class MyRenewalSetupView(APIView):
 
         Creates or resets the caller's ``pending`` mandate of this kind over what was
         asked for, then asks the provider for whatever the browser needs -- a Stripe
-        SetupIntent's client secret, a PayPal setup token, nothing at all for the
+        SetupIntent's client secret, a PayPal setup token, or an empty object for the
         mock provider.  No money moves.
 
         For the renewal, ``plan`` names the plan to renew, once a year.  For the
@@ -247,9 +248,9 @@ class MyRenewalSetupView(APIView):
         400 naming ``plan`` for a plan that is not on offer, ``next_charge_on`` for
         a day that has already gone by, ``cadence`` for a renewal that is not
         yearly, ``contribution_cents`` for a contribution on a renewal while the
-        caller holds a recurring donation, ``auto_renew`` for a renewal with no plan
+        caller holds a recurring donation, ``auto_renew`` for a renewal without a plan
         or with one that never expires, for a life member who names a plan, and for
-        a donation of nothing, ``contribution_cents`` for a donation under
+        a $0 donation, ``contribution_cents`` for a donation under
         ``DONATION_MINIMUM_CENTS``, and ``detail`` when the provider refuses to start,
         in which case nothing is written.  429 past the caller's ``payment_start`` rate,
         which checkout shares.
@@ -302,7 +303,7 @@ class MyRenewalConfirmView(APIView):
 
         The body carries the provider's handle on what the browser did:
         ``setup_intent_id`` for Stripe, ``setup_token`` for PayPal, neither for
-        the mock provider.  404 when the caller started no setup of this kind, 400
+        the mock provider.  404 when the caller hasn't started a setup of this kind, 400
         naming ``detail`` when the provider will not confirm what it is given, and 429
         past the caller's ``payment_confirm`` rate.  A Stripe SetupIntent that declined
         the card is canceled as it is refused.

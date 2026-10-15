@@ -35,7 +35,7 @@ UNKNOWN_NET_CENTS = 0
 
 #: What a life member is told when a checkout is asked to sell them a term.
 LIFE_MEMBER_CHECKOUT_MESSAGE = (
-    "You are a life member, so there is nothing to renew. Make a donation instead."
+    "You are a life member, so you don't have anything to renew. Make a donation instead."
 )
 
 
@@ -57,9 +57,9 @@ def create_checkout(
 
     The amount is computed here and never taken from the client: it is the active
     plan's price plus ``contribution_cents``.  A falsy ``plan_slug`` makes the
-    payment a pure donation, with no plan and a zero plan amount.
+    payment a pure donation, without a plan and with a zero plan amount.
 
-    A life member has nothing left to buy, so a ``plan_slug`` for a member who
+    A life member doesn't have anything left to buy, so a ``plan_slug`` for a member who
     already holds a term that never expires is refused: their money goes to a
     contribution instead.
 
@@ -109,7 +109,7 @@ def settled_fees(payment: Payment, fee_cents: int | None, net_cents: int | None)
     fee has its net computed as the amount less that fee.  A provider that
     reported neither leaves a figure already on the row alone, because the fee
     can reach us before the success does -- nothing orders a provider's
-    callbacks.  A payment recorded by hand cost nothing, so its net is the whole
+    callbacks.  A payment recorded by hand didn't cost anything, so its net is the whole
     amount.  Anything else -- a provider that has not settled yet -- is left
     unknown, as ``(0, 0)``, for :func:`backfill_fees` to ask about later.
     """
@@ -128,7 +128,7 @@ def fees_are_known(payment: Payment) -> bool:
     """Whether the provider has told us what ``payment`` cost.
 
     A settled payment always nets something, so a zero net against a non-zero
-    amount is the mark of a fee nobody has reported yet.  A payment of nothing
+    amount is the mark of a fee nobody has reported yet.  A payment of zero
     -- which checkout will not create -- reads as known.
     """
     return payment.amount_cents == 0 or payment.net_cents != UNKNOWN_NET_CENTS
@@ -150,7 +150,7 @@ def mark_succeeded(
     cost as :func:`settled_fees` works it out from ``fee_cents`` and
     ``net_cents``, and activates a term for the payment's plan when it has one.
     CalDART's own receipt is then emailed to the payer with its PDF attached,
-    once the transaction the caller is in commits (at once when there is none): a
+    once the transaction the caller is in commits (at once outside a transaction): a
     mail server that refuses it is logged and leaves ``receipt_sent_at`` null, never
     undoing the membership the money bought, and no row lock is held while it is
     sent.  Returns the row as saved.
@@ -158,32 +158,32 @@ def mark_succeeded(
     A checkout that asked for automatic renewal leaves the payer a ``pending``
     :class:`~apps.payments.models.RenewalMandate`; this is where it becomes
     active, from the payment method the provider has just recorded against the
-    charge.  A payment with no such mandate activates nothing.
+    charge.  A payment without such a mandate doesn't activate anything.
 
     A gift started on the public donation page carries the giver's details on its
     own ``donor_fields`` column rather than on the account, so that an
     unauthenticated checkout can never overwrite an existing donor's stored
     details before it is paid; this is also where
     :func:`apps.payments.donations.apply_donor_fields` writes them, once the
-    payment settles.  A payment that carries no such details is unaffected.
+    payment settles.  A payment that doesn't carry such details is unaffected.
 
-    A payment taken by the renewal scanner gets no receipt here.  The renewal
+    A payment taken by the renewal scanner doesn't get a receipt here.  The renewal
     email that reports the charge carries the same receipt and the same PDF, and
     the member is owed one message per charge, not two; the scanner sends it and
     stamps ``receipt_sent_at`` itself.
 
     Idempotent: a second call is a no-op that returns the same payment and
-    sends no second receipt, so webhook and client confirmation can race safely.
+    never sends a second receipt, so webhook and client confirmation can race safely.
     The same holds for a payment refunded in full or in part: its status, its
     ``completed_at``, and its term stay as the refund left them, so a success the
-    provider reports again after a refund changes nothing and emails nobody.
+    provider reports again after a refund doesn't change anything or email anybody.
     """
     payment, transitioned = _complete(
         payment, wallet=wallet, raw=raw, provider_ref=provider_ref, fees=(fee_cents, net_cents)
     )
     if transitioned and not payment.renewal_attempts.exists() and not is_tombstone(payment.user):
         # After the commit, so a caller holding the payment's row lock never waits on
-        # the mail server, and a rolled-back success mails nobody.
+        # the mail server, and a rolled-back success never sends mail.
         transaction.on_commit(lambda: send_receipt(payment), robust=True)
     return payment
 
@@ -205,8 +205,8 @@ def _complete(
     The move raises one notification event: ``membership_paid`` with the payment,
     the term and ``automatic`` (true when the renewal scanner took it) for a payment
     that names a plan, contribution and all, and ``donation_received`` with the
-    payment for one that names none -- a public gift, a contribution, or a recurring
-    donation's charge.
+    payment for one that doesn't name a plan -- a public gift, a contribution, or a
+    recurring donation's charge.
 
     A payment whose money has already arrived -- succeeded, partly refunded, or
     refunded -- is returned as it is, so a refund is never undone by a late success.
@@ -225,8 +225,8 @@ def _complete(
     # whatever the provider's start, confirm and webhook calls did to `raw`.
     from apps.payments.donations import apply_donor_fields
 
-    # A deleted member's payment settles into the books and no further: the tombstone
-    # that holds it takes no giver's details, no term, and no notification.
+    # A deleted member's payment settles into the books and stops there: the
+    # tombstone that holds it doesn't take a giver's details, a term, or a notification.
     fulfill = not is_tombstone(payment.user)
     if fulfill:
         apply_donor_fields(payment)
@@ -305,8 +305,8 @@ def backfill_fees(payment: Payment) -> Payment:
 
     The row is read afresh, so a caller holding a stale copy still gets the
     right answer.  Answers it unchanged when the payment was recorded by hand,
-    when it has not succeeded, and when the provider still has no figure to
-    give.  Whatever the provider raises -- it is unconfigured, or unreachable --
+    when it has not succeeded, and when the provider still doesn't have a figure
+    to give.  Whatever the provider raises -- it is unconfigured, or unreachable --
     propagates, so the caller can tell "no answer yet" from "could not ask".
     """
     payment = Payment.objects.get(pk=payment.pk)
@@ -329,7 +329,7 @@ def mark_failed(payment: Payment, raw: dict[str, Any] | None = None) -> Payment:
     Stores ``raw`` when it is given, leaves ``completed_at`` alone, and returns the
     row as saved.  A succeeded, partly refunded, or refunded payment is returned
     unchanged, ``raw`` included, so it stays refundable and keeps its ledger line.
-    Activates no term and expires none.
+    Never activates or expires a term.
     """
     payment = Payment.objects.select_for_update().get(pk=payment.pk)
     if payment.status in SETTLED_STATUSES:
