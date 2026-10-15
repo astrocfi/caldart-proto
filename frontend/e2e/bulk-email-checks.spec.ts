@@ -4,7 +4,7 @@
  * stopping the send. The background sender, run from the Scheduled tasks page, then sends
  * the copies with the chosen Reply-To.
  *
- * The message holds no web link, so the checks never reach for the network. The batch
+ * The message doesn't hold a web link, so the checks never reach for the network. The batch
  * is the holders of the management role, which the seed gives to one demo account.
  */
 import { expect, test } from '@playwright/test';

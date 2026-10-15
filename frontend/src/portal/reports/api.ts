@@ -33,7 +33,7 @@ export const REPORTS_KEY = ['reports'] as const;
 export const SUBSCRIPTIONS_KEY = ['reports', 'subscriptions'] as const;
 export const ROSTERS_KEY = ['reports', 'rosters'] as const;
 
-/** A report's parameters: a value, a list of values such as the columns, or nothing. */
+/** A report's parameters: a value, a list of values such as the columns, or `undefined`. */
 export type ReportParams = Readonly<Record<string, string | readonly string[] | undefined>>;
 
 /** The list page's own parameter, which no report takes: a report carries every row. */
@@ -66,7 +66,7 @@ export function reportExportUrl(
   return search === '' ? base : `${base}?${search}`;
 }
 
-/** The reports the signed-in user may read, via `GET /reports`; a member has none. */
+/** The reports the signed-in user may read, via `GET /reports`; empty for a member. */
 export function useReports(): UseQueryResult<ReportSummary[]> {
   return useQuery({
     queryKey: REPORTS_KEY,
@@ -178,7 +178,7 @@ export function useRosters(): UseQueryResult<Roster[]> {
 /**
  * Sends every DART's roster now, or rehearses it, via `POST /reports/rosters/send`.
  *
- * A dry run changes nothing, so only a real one reads the rosters again.
+ * A dry run doesn't change anything, so only a real one reads the rosters again.
  */
 export function useSendRosters(): UseMutationResult<ReportRunResult, unknown, boolean> {
   const queryClient = useQueryClient();

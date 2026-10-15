@@ -24,7 +24,7 @@ const PAGES: [name: string, page: () => JSX.Element, loaded: string][] = [
 ];
 
 describe('the System pages', () => {
-  it.each(PAGES)('%s names no timer', async (_name, Page, loaded) => {
+  it.each(PAGES)("%s doesn't name a timer", async (_name, Page, loaded) => {
     server.use(...systemPageHandlers());
     const { container } = renderWithProviders(<Page />);
 

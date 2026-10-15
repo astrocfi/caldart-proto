@@ -33,7 +33,7 @@ test('a visitor gives from a new address and is thanked', async ({ page }) => {
   await expect(page.getByText(/Thank you\. Your gift keeps CalDART/)).toBeVisible();
 });
 
-test("the donor's receipt carries no link to the portal", async ({ page }) => {
+test("the donor's receipt doesn't carry a link to the portal", async ({ page }) => {
   const email = uniqueEmail('receipt');
   await startGift(page, email);
   await page.getByRole('button', { name: 'Succeed' }).click();

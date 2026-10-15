@@ -53,7 +53,7 @@ describe('formToPatch', () => {
     expect(patch.photo_id_type).toBe('military_id');
   });
 
-  it('starts a blank form on no photo ID provided', () => {
+  it('starts a blank form on Not provided for the photo ID', () => {
     expect(EMPTY_PROFILE_FORM.photo_id_type).toBe('not_provided');
   });
 
@@ -84,7 +84,7 @@ describe('formToPatch', () => {
     expect(patch.secondary_airport_identifier).toBe('SQL');
   });
 
-  it.each(['home_airport_city', 'ifr_rated'])('sends no %s', (field) => {
+  it.each(['home_airport_city', 'ifr_rated'])("doesn't send %s", (field) => {
     expect(field in formToPatch(EMPTY_PROFILE_FORM)).toBe(false);
   });
 });
@@ -246,7 +246,7 @@ describe('validateProfileForm', () => {
     ]);
   });
 
-  it('asks nothing of the names when the form does not show them', () => {
+  it("doesn't ask anything of the names when the form does not show them", () => {
     expect(
       validateProfileForm({ ...profileToForm(makeProfile()), first_name: '' }).first_name,
     ).toBeUndefined();

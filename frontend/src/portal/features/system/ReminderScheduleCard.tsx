@@ -93,8 +93,8 @@ interface StoredProps {
 
 /**
  * The schedule as five labeled lines, one per stage in the order a membership reaches
- * them: the three before expiry, the expired one, which has no field of its own, and the
- * lapsed one.
+ * them: the three before expiry, the expired one, which doesn't have a field of its own,
+ * and the lapsed one.
  */
 function ScheduleFacts({ stored }: StoredProps): JSX.Element {
   const facts = SCHEDULE_FIELDS.map(({ name, label, side }) => ({
@@ -153,9 +153,9 @@ function ScheduleForm({ stored }: StoredProps): JSX.Element {
   return (
     <form onSubmit={handleSubmit} noValidate className="stack">
       <p className="muted">
-        The expired reminder goes from the day a membership ends through 6 days after, and has no
-        number. A change applies from the next morning&rsquo;s renewal reminder emails, and never
-        sends a member a reminder they already had.
+        The expired reminder goes from the day a membership ends through 6 days after, and
+        doesn&apos;t have a number. A change applies from the next morning&rsquo;s renewal reminder
+        emails, and never sends a member a reminder they already had.
       </p>
       <div className="reminder-schedule__fields">
         {SCHEDULE_FIELDS.map(({ name, label, side, min, max }) => (
@@ -204,7 +204,7 @@ function blankErrorsOf(draft: Draft): Record<string, string> {
   );
 }
 
-/** The form's values as the `PUT` body, once `blankErrorsOf` has found no field empty. */
+/** The form's values as the `PUT` body, once `blankErrorsOf` hasn't found an empty field. */
 function payloadOf(draft: Draft): ReminderSchedulePayload {
   return {
     first_days_before: Number(draft.first_days_before),

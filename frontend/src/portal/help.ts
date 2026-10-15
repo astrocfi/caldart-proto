@@ -87,7 +87,10 @@ export const HELP_PAGES: readonly HelpPage[] = [
   { pattern: '/system/jobs/:job', slug: 'admin/job-log' },
 ];
 
-/** The user guide page for the screen at `pathname`, or the guide's front page for none. */
+/**
+ * The user guide page for the screen at `pathname`, or the guide's front page when there
+ * isn't one.
+ */
 export function helpPath(pathname: string): string {
   const page = HELP_PAGES.find(({ pattern }) => matchPath(pattern, pathname) !== null);
   return page ? `${GUIDE_PREFIX}${page.slug}/` : GUIDE_PREFIX;

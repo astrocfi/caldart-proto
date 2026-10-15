@@ -218,7 +218,7 @@ describe('EmailLogPanel', () => {
     );
   });
 
-  it('links no message that belongs to no record', async () => {
+  it("doesn't link a message that doesn't belong to a record", async () => {
     server.use(emailsHandler(ENTRIES));
     renderWithProviders(<EmailLogPanel />);
 
@@ -226,7 +226,7 @@ describe('EmailLogPanel', () => {
     expect(screen.queryByRole('link', { name: 'Receipt' })).toBeNull();
   });
 
-  it('reads a message with no account behind it by its address alone', async () => {
+  it('reads a message without an account behind it by its address alone', async () => {
     server.use(emailsHandler(ENTRIES));
     renderWithProviders(<EmailLogPanel />);
 
@@ -272,7 +272,7 @@ describe('EmailLogPanel', () => {
     expect(row).toHaveTextContent('10/01/2026');
   });
 
-  it('says nothing has gone out yet when the log is empty', async () => {
+  it('says that nothing has gone out yet when the log is empty', async () => {
     server.use(emailsHandler([]));
     renderWithProviders(<EmailLogPanel />);
 
@@ -414,7 +414,7 @@ describe('EmailLogPanel', () => {
     });
   });
 
-  it('shows no pager when the log fits on one page', async () => {
+  it("doesn't show a pager when the log fits on one page", async () => {
     server.use(emailsHandler(ENTRIES));
     renderWithProviders(<EmailLogPanel />);
 

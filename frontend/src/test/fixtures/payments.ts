@@ -88,10 +88,10 @@ export function makeMandate(overrides: Partial<RenewalMandate> = {}): RenewalMan
 
 /**
  * A recurring donation: a contribution alone, yearly unless `overrides` say
- * otherwise, with no plan to renew.
+ * otherwise, without a plan to renew.
  *
  * `plan`, `plan_name` and the plan half of `amount_cents` are all absent, which
- * is what the server sends for a mandate that names no plan.
+ * is what the server sends for a mandate that doesn't name a plan.
  */
 export function makeContributionMandate(overrides: Partial<RenewalMandate> = {}): RenewalMandate {
   return makeMandate({

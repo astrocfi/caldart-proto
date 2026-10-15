@@ -90,7 +90,7 @@ describe('kindState', () => {
     });
   });
 
-  it('gives a member with nothing current no end date', () => {
+  it('does not give a member without a current term an end date', () => {
     expect(kindState(makeUser(), EXPIRED_MEMBERSHIP)).toEqual({ kind: 'member', expiresOn: null });
   });
 });
@@ -109,23 +109,23 @@ describe('<KindSwitch/>', () => {
     expect(
       screen.getByText(
         'Your membership stays current through 06/30/2027. On 07/01/2027 you become a friend ' +
-          'of CalDART: no dues, no expiry, and no renewal reminders.',
+          'of CalDART, without dues, an expiry date, or renewal reminders.',
       ),
     ).toBeInTheDocument();
   });
 
-  it('says a member with nothing current becomes a friend today', async () => {
+  it('says a member without a current term becomes a friend today', async () => {
     setUp({ user: makeUser({ membership: EXPIRED_MEMBERSHIP }) });
     renderWithProviders(<KindSwitch />);
     await openPanel();
     expect(
       screen.getByText(
-        'You become a friend of CalDART today: no dues, no expiry, and no renewal reminders.',
+        'You become a friend of CalDART today, without dues, an expiry date, or renewal reminders.',
       ),
     ).toBeInTheDocument();
   });
 
-  it('confirms with an empty body when the renewal gives no contribution', async () => {
+  it("confirms with an empty body when the renewal doesn't give a contribution", async () => {
     const calls = setUp({ renewal: makeMandate({ contribution_cents: 0, kind: 'renewal' }) });
     renderWithProviders(<KindSwitch />);
     await openPanel();
@@ -174,7 +174,7 @@ describe('<KindSwitch/>', () => {
   });
 
   it.each(['canceled', 'paused'] as const)(
-    'asks nothing about a contribution on a %s renewal',
+    "doesn't ask about a contribution on a %s renewal",
     async (status) => {
       const calls = setUp({ renewal: makeMandate({ contribution_cents: 2500, status }) });
       renderWithProviders(<KindSwitch />);
@@ -251,7 +251,7 @@ describe('<KindCard/>', () => {
     renderWithProviders(<KindCard />);
     expect(
       await screen.findByText(
-        'You are a friend of CalDART: no dues, no expiry. Become a member any time.',
+        'You are a friend of CalDART, without dues or an expiry date. Become a member any time.',
       ),
     ).toBeInTheDocument();
   });

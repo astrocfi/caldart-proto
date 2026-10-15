@@ -87,9 +87,9 @@ export const AMOUNT_DEBOUNCE_MS = 500;
  *
  * The request travels through `useDebounced` as its own JSON, so a selection that
  * wanders and comes back to where it started settles on a value the panel already
- * holds and asks for no second PaymentIntent.  The object handed back keeps its
+ * holds and doesn't ask for a second PaymentIntent.  The object handed back keeps its
  * identity for as long as the JSON does, which is what lets the caller depend on it
- * and nothing else.
+ * alone.
  */
 function useSettledCheckout(fields: CheckoutFields): CheckoutRequest {
   const wanted = JSON.stringify(checkoutRequest(fields, 'stripe'));
@@ -118,7 +118,7 @@ export function StripePanel({
   const [intent, setIntent] = useState<Intent | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Each decline asks for a PaymentIntent of its own: the server cancels a declined
-  // intent, so its client secret takes no second card.  The reason stays on screen
+  // intent, so its client secret doesn't take a second card.  The reason stays on screen
   // over the fresh form.
   const [attempt, setAttempt] = useState(0);
   const [declined, setDeclined] = useState<string | null>(null);
@@ -209,7 +209,7 @@ interface StripeFormProps {
   paymentId: number;
   amountCents: number;
   endpoints: PaymentEndpoints;
-  /** Why the last payment was declined, shown until the next try; null for none. */
+  /** Why the last payment was declined, shown until the next try; null when it wasn't. */
   declined: string | null;
   onSuccess: ProviderPanelProps['onSuccess'];
   /** Called with Stripe's reason when a payment is declined, to start another. */
@@ -266,7 +266,7 @@ function StripeForm({
     try {
       await endpoints.confirmStripe(paymentId, intentId);
     } catch {
-      // The webhook reports the same decline, so a failure here costs nothing.
+      // The webhook reports the same decline, so a failure here doesn't cost anything.
     }
   }
 

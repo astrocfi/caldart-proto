@@ -1,7 +1,7 @@
 /**
  * The sign-in screen's second-factor steps, shown once the password was right: a code
  * from the authenticator app (or a backup code), or, for an account that must use two-factor
- * sign-in and has no app yet, setting one up and saving the backup codes.
+ * sign-in and doesn't have an app yet, setting one up and saving the backup codes.
  */
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent, JSX } from 'react';

@@ -117,7 +117,7 @@ describe('SentDetailPage', () => {
     );
   });
 
-  it('says nothing of fields when the message fills none in', async () => {
+  it("doesn't mention fields when the message doesn't fill any in", async () => {
     renderSent();
     await screen.findByTitle('The message as it was sent');
     expect(screen.queryByText(/Recipient fields show here/)).toBeNull();

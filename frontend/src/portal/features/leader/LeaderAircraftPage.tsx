@@ -28,7 +28,7 @@ function useAircraftMatches(term: string): LookupResults<Aircraft> {
   };
 }
 
-/** `?aircraft=` in any spelling of the registration; a blank one names no aircraft. */
+/** `?aircraft=` in any spelling of the registration; a blank one doesn't name an aircraft. */
 function parseRegistration(raw: string): string | null {
   const registration = normalizeNNumber(raw);
   return registration === '' ? null : registration;
@@ -79,8 +79,8 @@ interface AircraftCheckProps {
 }
 
 /**
- * The chosen aircraft's insurance card, or why there is none.  **Back to search** above
- * the card is the way back, so the card offers no second one.
+ * The chosen aircraft's insurance card, or why there isn't one.  **Back to search** above
+ * the card is the way back, so the card doesn't offer a second one.
  */
 function AircraftCheck({ nNumber }: AircraftCheckProps): JSX.Element {
   const query = useLeaderAircraft(nNumber);

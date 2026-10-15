@@ -34,7 +34,7 @@ async function registerAsFriend(page: Page, first: string, email: string): Promi
 
   await expect(page).toHaveURL(/\/portal\/join\/pay/);
   await expect(page.getByRole('heading', { name: 'Donate to CalDART' })).toBeVisible();
-  // A friend's checkout sells no plan.
+  // A friend's checkout doesn't sell a plan.
   await expect(page.getByRole('radio', { name: /Annual/ })).toHaveCount(0);
 }
 
@@ -48,7 +48,9 @@ test('a visitor joins as a friend and skips the contribution', async ({ page }) 
   await expect(page).toHaveURL(/\/portal\/join\/done/);
   await expect(page.getByRole('heading', { name: 'Welcome to CalDART' })).toBeVisible();
   await expect(
-    page.getByText('You are a friend of CalDART: no dues, no expiry. Become a member any time.'),
+    page.getByText(
+      'You are a friend of CalDART, without dues or an expiry date. Become a member any time.',
+    ),
   ).toBeVisible();
   // Nothing was paid, so no receipt is promised.
   await expect(page.getByText(/receipt/)).toHaveCount(0);
@@ -87,13 +89,13 @@ test('a friend stays on the pay step in that tab, and lands on done in another',
 }) => {
   await registerAsFriend(page, 'Fiona', uniqueEmail('friend-return'));
 
-  // The tab that reached the pay step holds it, reload and all, with no menu.
+  // The tab that reached the pay step holds it, reload and all, without a menu.
   await page.reload();
   await expect(page).toHaveURL(/\/portal\/join\/pay/);
   await expect(page.getByRole('heading', { name: 'Donate to CalDART' })).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Portal sections' })).toHaveCount(0);
 
-  // A friend owes nothing, so another tab finds them joined.
+  // A friend doesn't owe anything, so another tab finds them joined.
   const other = await page.context().newPage();
   await other.goto('portal/join');
   await expect(other).toHaveURL(/\/portal\/join\/done/);

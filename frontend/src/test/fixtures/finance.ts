@@ -130,7 +130,7 @@ export function makeMandate(overrides: Partial<RenewalMandate> = {}): RenewalMan
 
 /**
  * A life member's standing authority, which charges a contribution alone and
- * renews no plan, with `overrides` merged over it.
+ * doesn't renew a plan, with `overrides` merged over it.
  */
 export function makeContributionMandate(overrides: Partial<RenewalMandate> = {}): RenewalMandate {
   return makeMandate({

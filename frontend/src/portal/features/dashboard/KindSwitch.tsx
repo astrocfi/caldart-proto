@@ -62,9 +62,9 @@ function dayAfter(iso: IsoDate): IsoDate {
 }
 
 /**
- * What an active automatic renewal gives on top of the dues, in cents; 0 for none.  A
- * paused renewal's contribution is not offered: its card already failed, or its member
- * was told it is off, so switching simply stops it.
+ * What an active automatic renewal gives on top of the dues, in cents; 0 when it doesn't
+ * give any.  A paused renewal's contribution is not offered: its card already failed, or
+ * its member was told it is off, so switching simply stops it.
  */
 function renewalContribution(mandate: RenewalMandate | null | undefined): number {
   if (mandate?.status !== 'active') return 0;
@@ -114,7 +114,7 @@ export function KindCard(): JSX.Element | null {
 
 /** The sentence the profile card opens with for each state. */
 const KIND_SENTENCES: Record<KindState['kind'], string> = {
-  friend: 'You are a friend of CalDART: no dues, no expiry. Become a member any time.',
+  friend: 'You are a friend of CalDART, without dues or an expiry date. Become a member any time.',
   none: 'Your membership is not yet paid. Pay your dues to become a member of CalDART.',
   lifetime: 'You are a life member of CalDART.',
   pending: 'You are a member of CalDART.',
@@ -140,7 +140,7 @@ function BecomeFriend({ expiresOn }: { expiresOn: IsoDate | null }) {
   const renewal = useRenewal();
   const become = useBecomeFriend();
 
-  // Until the renewal has loaded nobody knows whether there is a contribution to ask
+  // Until the renewal has loaded, nobody knows whether there is a contribution to ask
   // about, so the confirm buttons wait for it.
   const isWaiting = renewal.isPending;
   const contribution = renewalContribution(renewal.data?.mandate);
@@ -171,10 +171,11 @@ function BecomeFriend({ expiresOn }: { expiresOn: IsoDate | null }) {
     <ConfirmButton label="Make me a friend" choices={choices} startOnCancel>
       <p>
         {expiresOn === null
-          ? 'You become a friend of CalDART today: no dues, no expiry, and no renewal reminders.'
+          ? 'You become a friend of CalDART today, without dues, an expiry date, or renewal ' +
+            'reminders.'
           : `Your membership stays current through ${formatDate(expiresOn)}. ` +
-            `On ${formatDate(dayAfter(expiresOn))} you become a friend of CalDART: no dues, ` +
-            'no expiry, and no renewal reminders.'}
+            `On ${formatDate(dayAfter(expiresOn))} you become a friend of CalDART, without ` +
+            'dues, an expiry date, or renewal reminders.'}
       </p>
       {contribution > 0 ? (
         <p>

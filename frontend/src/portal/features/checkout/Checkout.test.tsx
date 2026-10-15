@@ -202,7 +202,7 @@ describe('Checkout', () => {
     expect(screen.getByTestId('checkout-total')).toHaveTextContent('$650.00');
   });
 
-  it('pays for the first plan offered when there is no annual plan', async () => {
+  it("pays for the first plan offered when there isn't an annual plan", async () => {
     const user = userEvent.setup();
     serveConfig(config({ plans: [PLANS[1]!] }));
     const requests = serveCheckout();
@@ -227,7 +227,7 @@ describe('Checkout', () => {
     ).toBeInTheDocument();
   });
 
-  it('offers no way to pay when no membership plan is set up', async () => {
+  it("doesn't offer a way to pay when no membership plan is set up", async () => {
     serveConfig(config({ plans: [] }));
     renderWithProviders(<Checkout mode="renew" onSuccess={() => {}} />);
 
@@ -258,7 +258,7 @@ describe('Checkout', () => {
     expect(screen.getByRole('button', { name: 'Succeed' })).toBeInTheDocument();
   });
 
-  it('draws no card, eyebrow, or heading of its own inside its host', async () => {
+  it("doesn't draw a card, eyebrow, or heading of its own inside its host", async () => {
     serveConfig(config());
     const { container } = renderWithProviders(<Checkout mode="renew" onSuccess={() => {}} />);
 
@@ -668,7 +668,7 @@ describe('Checkout · PayPal', () => {
     );
   });
 
-  it('falls back to its own wording when the failure carries no server message', async () => {
+  it("falls back to its own wording when the failure doesn't carry a server message", async () => {
     const user = userEvent.setup();
     serveConfig(payPalConfig);
     // A checkout that comes back without an order id is not an `ApiError`.
@@ -846,7 +846,7 @@ describe('Checkout · contributing', () => {
     server.use(signedInAs(makeUser({ membership: LIFETIME_MEMBERSHIP })));
   }
 
-  it('offers a contribution and no plan at all', async () => {
+  it('offers a contribution without a plan', async () => {
     serveConfig(config());
     renderWithProviders(<Checkout mode="contribute" onSuccess={() => {}} />);
 
@@ -854,7 +854,7 @@ describe('Checkout · contributing', () => {
     expect(screen.queryByRole('radio', { name: /Annual/ })).not.toBeInTheDocument();
   });
 
-  it('posts no plan, so no membership term is bought', async () => {
+  it("doesn't post a plan, so no membership term is bought", async () => {
     const user = userEvent.setup();
     serveConfig(config());
     const requests = serveCheckout();
@@ -875,7 +875,7 @@ describe('Checkout · contributing', () => {
     );
   });
 
-  it('starts a donation with no amount chosen and no "No thank you" to choose', async () => {
+  it('starts a donation without an amount chosen or a "No thank you" to choose', async () => {
     serveConfig(config());
     renderWithProviders(<Checkout mode="contribute" onSuccess={() => {}} />);
 
@@ -936,7 +936,7 @@ describe('Checkout · contributing', () => {
 });
 
 describe('Checkout · a way to skip', () => {
-  it('offers no way out unless the host asks for one', async () => {
+  it("doesn't offer a way out unless the host asks for one", async () => {
     serveConfig(config());
     renderWithProviders(<Checkout mode="contribute" onSuccess={() => {}} />);
 
@@ -1094,7 +1094,7 @@ describe('Checkout · recurring donation', () => {
     );
   });
 
-  it('takes nothing today when the first charge is on a later day', async () => {
+  it("doesn't take anything today when the first charge is on a later day", async () => {
     const user = await checkRecurring();
 
     await user.clear(screen.getByLabelText('First charge on'));
@@ -1327,7 +1327,7 @@ describe('Checkout · changing one’s mind to a member', () => {
 });
 
 describe('Checkout · the words over a gift', () => {
-  it('calls a gift on its own a donation, with no talk of dues', async () => {
+  it('calls a gift on its own a donation, without any talk of dues', async () => {
     serveConfig(config());
     renderWithProviders(<Checkout mode="contribute" onSuccess={() => {}} />);
 

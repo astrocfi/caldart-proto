@@ -42,11 +42,11 @@ describe('the counting sentences', () => {
     expect(batchSentence(39, 0)).toBe('39 people will receive this email.');
   });
 
-  it('leaves out a count of nobody already there', () => {
+  it('leaves out the count already there when it is zero', () => {
     expect(addSentence({ added: 12, already_present: 0, count: 12 })).toBe('Added 12 people.');
   });
 
-  it('says nobody matches when an add found nobody at all', () => {
+  it("says that nobody matches when an add didn't find anybody at all", () => {
     expect(addSentence({ added: 0, already_present: 0, count: 5 })).toBe(
       'Nobody matches these filters.',
     );

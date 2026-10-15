@@ -4,7 +4,7 @@
  * `@fontsource-variable/fraunces` ships only combined subset files (`full.css`
  * and friends), each carrying a `vietnamese` `@font-face` rule alongside
  * `latin` and `latin-ext` -- unlike the static `@fontsource` packages, it
- * exposes no per-subset stylesheet to import instead.  These two rules are
+ * doesn't expose a per-subset stylesheet to import instead.  These two rules are
  * copied from `full.css`, minus the `vietnamese` one, and reference the same
  * package's `files/` directory so an upgrade still resolves them.
  */

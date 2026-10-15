@@ -3,7 +3,7 @@
  * "what did we send this person?" — who it went to, what it was for, when, and what
  * became of it.
  *
- * The log keeps no copy of a message's text, which for a password reset or a
+ * The log doesn't keep a copy of a message's text, which for a password reset or a
  * verification email would hold a working link.  A copy of a bulk email leads to that
  * email's page, where its message is.
  */

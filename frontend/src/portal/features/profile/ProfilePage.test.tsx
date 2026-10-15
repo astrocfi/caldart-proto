@@ -56,7 +56,7 @@ describe('<ProfilePage/>', () => {
     expect(actions).toHaveAttribute('data-dirty', 'true');
   });
 
-  it('leaves My aircraft to its link, with no sentence repeating it', async () => {
+  it('leaves My aircraft to its link, without a sentence repeating it', async () => {
     server.use(http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile())));
     renderWithProviders(<ProfilePage />, { route: '/profile' });
 
@@ -65,7 +65,7 @@ describe('<ProfilePage/>', () => {
     expect(screen.queryByText(/The planes you commonly fly are kept/)).not.toBeInTheDocument();
   });
 
-  it('offers no My aircraft link to somebody who may not use aircraft', async () => {
+  it("doesn't offer a My aircraft link to somebody who may not use aircraft", async () => {
     server.use(
       signedInAs(makeUser({ can_use_aircraft: false })),
       http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile())),
@@ -113,7 +113,7 @@ describe('<ProfilePage/>', () => {
     expect(save).not.toHaveBeenCalled();
   });
 
-  it('saves a profile with no phone number, which is optional', async () => {
+  it('saves a profile without a phone number, which is optional', async () => {
     const save = vi.fn();
     server.use(
       http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile({ phone: '' }))),
@@ -396,7 +396,7 @@ describe('<ProfilePage/> inline complaints', () => {
     expect(await screen.findByText('Use a ten-digit number like 415-555-0100.')).toBeVisible();
   });
 
-  it('says nothing about a blank optional field that is passed through', async () => {
+  it("doesn't say anything about a blank optional field that is passed through", async () => {
     const user = userEvent.setup();
     renderWithProviders(<ProfilePage />, { route: '/profile' });
 
@@ -448,7 +448,7 @@ describe('<ProfilePage/> inline complaints', () => {
     );
   });
 
-  it('draws no mark under an item the member does not hold, whatever is on file', async () => {
+  it("doesn't draw a mark under an item the member does not hold, whatever is on file", async () => {
     server.use(
       http.get(`${API}/me/profile`, () =>
         HttpResponse.json(

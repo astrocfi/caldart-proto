@@ -39,7 +39,7 @@ export function automaticKindLabel(kind: MandateKind): string {
 /**
  * The heading of the card that states the authority the dashboard reads.
  *
- * A life member has nothing to renew, so the authority that matters to them is
+ * A life member doesn't have anything to renew, so the authority that matters to them is
  * their recurring donation; everybody else's is their automatic renewal.
  */
 export function automaticCardTitle(isLifetime: boolean): string {
@@ -49,7 +49,7 @@ export function automaticCardTitle(isLifetime: boolean): string {
 /**
  * The My payments page's lede: what the screen covers, in reading order.
  *
- * Somebody with no membership to renew -- a life member or a friend -- is not
+ * Somebody without a membership to renew -- a life member or a friend -- is not
  * told about a renewal they will not get.
  */
 export function paymentsPageLede(renews: boolean): string {

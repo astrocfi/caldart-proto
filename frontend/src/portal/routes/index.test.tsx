@@ -482,7 +482,7 @@ describe('the paths outside the session', () => {
     );
   });
 
-  it('has no address that ends a session: /logout is not a route', async () => {
+  it("doesn't have an address that ends a session: /logout is not a route", async () => {
     server.use(signedInAs(makeUser()));
 
     renderRoutes(routes, { route: '/logout' });

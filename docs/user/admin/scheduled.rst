@@ -229,8 +229,8 @@ the time ran out it adds how many copies are still to go and that the server's s
 carries on with them within a minute. A table names each copy: **Who** it went to,
 **What** (*Sent* or *Failed*), and the **Subject or reason**. When no bulk email was
 waiting the panel says only *Nothing was due.* If the sender was already running, the
-panel says *The sender is already running, so this run did nothing. Try again in a
-minute.*
+panel says *The sender is already running, so this run didn't do anything. Try again in
+a minute.*
 
 
 If something looks wrong

@@ -60,7 +60,7 @@ describe('RecurringDonationCard', () => {
     expect(await screen.findByRole('heading', { name: 'Recurring donation' })).toBeInTheDocument();
   });
 
-  it('sends somebody with no donation to the Donate screen to set one up', async () => {
+  it('sends somebody without a donation to the Donate screen to set one up', async () => {
     mount(null);
 
     expect(await screen.findByRole('link', { name: 'Set up' })).toHaveAttribute('href', '/donate');
@@ -105,7 +105,7 @@ describe('RecurringDonationCard', () => {
     expect(await screen.findByText('We will email you 14 days before every charge.')).toBeVisible();
   });
 
-  it('names no plan, because a donation renews nothing', async () => {
+  it("doesn't name a plan, because a donation doesn't renew anything", async () => {
     mount(monthly());
 
     expect(await screen.findByText('Amount')).toBeInTheDocument();

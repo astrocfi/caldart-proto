@@ -3,7 +3,7 @@
  * CalDART subscribed to sign-ups, a visitor joining as a friend with a DART,
  * the sign-up email at that address and at the DART's roster contact, and an
  * edit that drops sign-ups, after which a second friend's sign-up reaches the
- * roster contact alone and a deactivation sends the address nothing.
+ * roster contact alone and a deactivation doesn't send the address anything.
  */
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
@@ -52,7 +52,7 @@ async function rosterDart(page: Page): Promise<RosterDart> {
 
 /**
  * End the session by dropping its cookies, which works from any screen,
- * including the join wizard's, where the portal shows no Sign out button.
+ * including the join wizard's, where the portal doesn't show a Sign out button.
  */
 async function signOut(page: Page): Promise<void> {
   await page.context().clearCookies();

@@ -55,7 +55,7 @@ test('a treasurer does not reach the member register', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Not allowed' })).toBeVisible();
 });
 
-test('a DART leader reaches none of the finance routes', async ({ page }) => {
+test('a DART leader cannot reach any of the finance routes', async ({ page }) => {
   await signIn(page, DEMO.leader);
 
   for (const path of [
@@ -117,7 +117,7 @@ test('a seeded refund is on the payment it came out of', async ({ page }) => {
 });
 
 // A payment recorded by hand is the one a refund can be demonstrated on without
-// a provider: a manual refund calls nobody, so the step holds whether the seed's
+// a provider: a manual refund doesn't call anybody, so the step holds whether the seed's
 // card payments went through the mock provider or through Stripe and PayPal.
 test('the treasurer refunds part of a payment and the status follows', async ({ page }) => {
   await openPaymentList(page);

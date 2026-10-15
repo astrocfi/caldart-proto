@@ -104,7 +104,7 @@ describe('PortalLayout', () => {
     ]);
   });
 
-  it('hides Renew from an effective friend, who has no membership to renew', async () => {
+  it("hides Renew from an effective friend, who doesn't have a membership to renew", async () => {
     const friend: MembershipStatus = { ...NO_MEMBERSHIP, status: 'friend' };
     server.use(signedInAs(makeUser({ roles: ['member'], kind: 'friend', membership: friend })));
     renderWithProviders(tree(), { route: '/' });
@@ -216,7 +216,7 @@ describe('PortalLayout', () => {
     ['an incomplete profile', makeUser({ profile_complete: false })],
     ['an unpaid member', makeUser({ membership: NO_MEMBERSHIP })],
   ])('for a reader with %s', (_label, user) => {
-    it('shows no rail', async () => {
+    it("doesn't show a rail", async () => {
       server.use(signedInAs(user));
       renderWithProviders(tree(), { route: '/' });
 
@@ -232,7 +232,7 @@ describe('PortalLayout', () => {
       expect(container.querySelector('.portal__frame')).toHaveClass('portal__frame--no-rail');
     });
 
-    it('offers no Menu toggle', async () => {
+    it("doesn't offer a Menu toggle", async () => {
       server.use(signedInAs(user));
       renderWithProviders(tree(), { route: '/' });
 
@@ -251,7 +251,7 @@ describe('PortalLayout', () => {
   it.each([
     ['/login', 'sign in body'],
     ['/forgot-password', 'forgot body'],
-  ])('offers no header Sign in on %s, the way in itself', async (route, body) => {
+  ])("doesn't offer a header Sign in on %s, the way in itself", async (route, body) => {
     renderWithProviders(tree(), { route });
 
     await screen.findByText(body);

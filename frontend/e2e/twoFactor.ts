@@ -8,8 +8,8 @@
  * later sign-in computes the code from it with the same RFC 6238 algorithm the server
  * uses.  Nothing about the second factor is fixed or switched off for the run.
  *
- * The server accepts each 30-second step's code once, and nothing older than the last
- * one accepted, so the step each account last used is kept in the same file and a code
+ * The server accepts each 30-second step's code once, and never a code older than the
+ * last one accepted, so the step each account last used is kept in the same file and a code
  * is never offered twice; when the steps the server would accept are used up, the
  * helper waits for the clock.  A session that has passed the second factor is kept per
  * account for the life of the worker and reused while the server still honors it, so a
@@ -90,7 +90,7 @@ async function nextCode(email: string): Promise<string> {
   const account = state[email];
   if (account === undefined) {
     throw new Error(
-      `${email} already has two-factor sign-in, but ${STATE_PATH} holds no key for it. ` +
+      `${email} already has two-factor sign-in, but ${STATE_PATH} doesn't hold a key for it. ` +
         'Reseed the database (make e2e does) so the run sets the account up itself.',
     );
   }

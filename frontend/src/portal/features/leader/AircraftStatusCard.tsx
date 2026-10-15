@@ -67,7 +67,7 @@ type InsuranceFacts = Pick<
 /**
  * The aircraft check's verdict: INSURED for a current, verified policy (one about
  * to expire included), NOT VERIFIED for a current one nobody has verified, and NOT
- * INSURED for no current policy.  The results list and the card read the same answer.
+ * INSURED when there isn't a current policy.  The results list and the card read the same answer.
  */
 export function insuranceVerdict(aircraft: InsuranceFacts, today?: Date): Verdict {
   const verdict = VERDICT[insuranceTone(aircraft, today)];

@@ -50,7 +50,7 @@ describe('insurancePayload', () => {
     });
   });
 
-  it('sends a blank hull as no hull value and a blank date as null', () => {
+  it('sends a blank hull and a blank date as null', () => {
     const draft = { ...INITIAL, hull: '', insurance_expiration: '' };
     expect(insurancePayload(INITIAL, draft)).toMatchObject({
       insurance_hull_cents: null,
@@ -58,7 +58,7 @@ describe('insurancePayload', () => {
     });
   });
 
-  it('never sends a policy with no expiry date as verified', () => {
+  it('never sends a policy without an expiry date as verified', () => {
     const draft = { ...INITIAL, insurance_expiration: '' };
     expect(insurancePayload(INITIAL, draft).verified).toBe(false);
   });

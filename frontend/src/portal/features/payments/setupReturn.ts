@@ -52,7 +52,7 @@ export interface SetupReturn {
  * donation's when the address carries `mandate=donation`, the renewal's otherwise.
  * The parameters are dropped from the address afterwards, whether the
  * confirmation was accepted or refused, so a reload does not send it again.
- * A visit carrying no `setup_intent` does nothing at all.
+ * A visit without a `setup_intent` doesn't do anything.
  */
 export function useSetupReturn(scope: MandateScope): SetupReturn {
   const [params, setParams] = useSearchParams();

@@ -75,7 +75,7 @@ describe('<DeactivateCard/>', () => {
     ).toBeInTheDocument();
   });
 
-  it('says nothing about a membership there is none of', async () => {
+  it("doesn't mention a membership when there isn't one", async () => {
     renderCard(NO_MEMBERSHIP);
     await screen.findByLabelText(/current password/i);
     expect(screen.queryByText(/Your membership is current/)).not.toBeInTheDocument();

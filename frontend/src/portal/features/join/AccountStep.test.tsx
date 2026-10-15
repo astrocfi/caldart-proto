@@ -65,7 +65,7 @@ describe('<AccountStep/>', () => {
     ).toBeInTheDocument();
   });
 
-  it('moves on to no other step, since nobody is signed in', async () => {
+  it("doesn't move on to another step, since nobody is signed in", async () => {
     serveRegistration();
     const handleDone = vi.fn();
     renderWithProviders(<AccountStep onDone={handleDone} />);

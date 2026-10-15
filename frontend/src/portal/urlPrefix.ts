@@ -7,10 +7,10 @@
  * read once, when this module is first imported. Every real URL the frontend
  * writes itself (a fetch, a plain link, a redirect address handed to a payment
  * provider) goes through `sitePath`; React Router paths are relative to
- * `PORTAL_BASENAME` and need nothing.
+ * `PORTAL_BASENAME` and don't need anything.
  */
 
-/** The prefix, with a leading slash and no trailing one, or the empty string. */
+/** The prefix, with a leading slash but not a trailing one, or the empty string. */
 export const URL_PREFIX: string = document.documentElement.dataset.urlPrefix ?? '';
 
 /**

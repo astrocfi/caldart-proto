@@ -72,7 +72,7 @@ export interface RunNowButtonProps {
   /** The job, heard after *Run now*, since the page holds several. */
   task: string;
   isRunning: boolean;
-  /** Hold the button back, such as while the job has nothing set up to run. */
+  /** Hold the button back, such as while the job doesn't have anything set up to run. */
   disabled?: boolean;
   onClick: () => void;
 }
@@ -100,7 +100,7 @@ export interface NothingDueProps {
   dryRun: boolean;
 }
 
-/** A run that found nothing at all to do: its heading and one line, and no table. */
+/** A run that didn't find anything to do: its heading and one line, without a table. */
 export function NothingDue({ dryRun }: NothingDueProps): JSX.Element {
   return (
     <div className="run-actions stack-tight">

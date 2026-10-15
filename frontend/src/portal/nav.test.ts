@@ -8,7 +8,7 @@ const labels = (roles: RoleSlug[], reader: NavReader = {}): string[] =>
   visibleNavItems(roles, reader).map((item) => item.label);
 
 describe('hasAnyRole', () => {
-  it('grants entries with no role requirement to any user', () => {
+  it('grants entries without a role requirement to any user', () => {
     expect(hasAnyRole(['member'], [])).toBe(true);
   });
 
@@ -44,7 +44,7 @@ describe('visibleNavItems', () => {
   });
 
   it('offers every route the portal can render', () => {
-    // A nav entry pointing at nothing, or a screen nothing links to, is the
+    // A nav entry that points nowhere, or a screen nothing links to, is the
     // integration bug this catches.
     expect(NAV_ITEMS.map((item) => item.to)).toContain('/change-password');
   });
@@ -147,7 +147,7 @@ describe('visibleNavItems', () => {
     expect(visible).not.toContain('Members');
   });
 
-  it('gives CalDART management the bulk email screens and nothing else on top of membership', () => {
+  it('gives CalDART management only the bulk email screens on top of membership', () => {
     const member = labels(['member']);
     expect(labels(['member', 'management']).filter((label) => !member.includes(label))).toEqual([
       'Compose',
@@ -159,7 +159,7 @@ describe('visibleNavItems', () => {
     ]);
   });
 
-  it('has no Mail delivery entry, since the check is a card on Health and database', () => {
+  it("doesn't have a Mail delivery entry, since the check is a card on Health and database", () => {
     expect(NAV_ITEMS.map((item) => item.label)).not.toContain('Mail delivery');
   });
 
@@ -210,7 +210,7 @@ describe('visibleNavItems', () => {
     expect(visible).toEqual(NAV_ITEMS.map((item) => item.to));
   });
 
-  it('hides Renew from an effective friend, who has no membership to renew', () => {
+  it("hides Renew from an effective friend, who doesn't have a membership to renew", () => {
     expect(labels(['member'], { isEffectiveFriend: true })).not.toContain('Renew');
   });
 
@@ -338,7 +338,7 @@ describe('the My account group', () => {
 });
 
 describe('groupedNavItems', () => {
-  it('drops groups with nothing in them', () => {
+  it('drops empty groups', () => {
     const groups = groupedNavItems(['member']).map((bucket) => bucket.group);
     expect(groups).toEqual(['My account']);
   });

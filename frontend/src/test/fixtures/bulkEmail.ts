@@ -344,7 +344,7 @@ export const LEADER_SENDER: BulkEmailSender = {
   default_reply_to: 'office@caldart.org',
 };
 
-/** Who a DART leader whose profile names no DART may send to: nobody. */
+/** Who a DART leader whose profile doesn't name a DART may send to: nobody. */
 export const NO_DART_SENDER: BulkEmailSender = {
   is_management: false,
   can_send: false,

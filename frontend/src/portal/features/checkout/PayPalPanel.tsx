@@ -65,7 +65,7 @@ export function PayPalPanel({
               }
               return checkout.client.order_id;
             } catch (caught) {
-              // PayPal's own error panel says nothing about why, so the server's
+              // PayPal's own error panel doesn't say why, so the server's
               // reason is put on screen here before the rejection goes back to it.
               hasOrderError.current = true;
               setError(

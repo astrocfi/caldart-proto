@@ -1,5 +1,5 @@
 /**
- * The public site's navigation bar, which is CSS and markup with no script
+ * The public site's navigation bar, which is CSS and markup without a script
  * behind it — so the browser is the only place its behavior can be checked.
  */
 import { expect, test } from '@playwright/test';

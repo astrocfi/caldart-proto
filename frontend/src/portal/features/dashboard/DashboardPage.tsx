@@ -127,16 +127,16 @@ export function DashboardPage(): JSX.Element {
   const membership = useMembership();
   const payments = useMyPayments();
   const renewal = useRenewal();
-  // A life member renews nothing, so the authority their line states is their
-  // recurring donation.
+  // A life member doesn't renew anything, so the authority their line states is
+  // their recurring donation.
   const donation = useDonation();
   const siteConfig = useSiteConfig();
 
   const status = membership.data ?? user?.membership ?? null;
   const tone = status ? membershipTone(status) : null;
-  // A friend owes nothing, so their card never takes the urgent edge.  A member who has
-  // not paid their first dues (`none`) has nothing to renew either, and is offered the
-  // dues instead.
+  // A friend doesn't owe anything, so their card never takes the urgent edge.  A member
+  // who has not paid their first dues (`none`) doesn't have anything to renew either, and
+  // is offered the dues instead.
   const isFriend = status?.status === 'friend';
   const isAwaitingDues = status?.status === 'none';
   const isWithoutRenewal = isFriend || isAwaitingDues;
@@ -151,8 +151,8 @@ export function DashboardPage(): JSX.Element {
     isLifetime: status?.is_lifetime === true,
     canUseAircraft: user?.can_use_aircraft === true,
   });
-  // A friend and a life member renew nothing, so the authority their line states is
-  // their recurring donation.
+  // A friend and a life member don't renew anything, so the authority their line
+  // states is their recurring donation.
   const givesOnly = isWithoutRenewal || status?.is_lifetime === true;
   // Only a member with a term to renew has renewals among their payments.
   const hasRenewals = !givesOnly;
@@ -283,15 +283,15 @@ interface RenewalLineProps {
   mandate: RenewalMandate | null;
   /** True for a friend or a life member, whose authority is a recurring donation. */
   givesOnly: boolean;
-  /** True for a friend, who is told nothing about an authority they do not hold. */
+  /** True for a friend, who isn't told anything about an authority they do not hold. */
   isFriend: boolean;
 }
 
 /**
  * One line on the dashboard saying what CalDART will charge, and when: "Automatic
  * renewal is on: $145.00 will be charged on 04/27/2027.", or the recurring donation's
- * for a friend or a life member.  A friend with no recurring donation gets no line,
- * since a friend has nothing to renew.
+ * for a friend or a life member.  A friend without a recurring donation doesn't get a
+ * line, since a friend doesn't have anything to renew.
  */
 function RenewalLine({ mandate, givesOnly, isFriend }: RenewalLineProps) {
   const authority = automaticCardTitle(givesOnly);

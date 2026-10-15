@@ -57,7 +57,7 @@ const STATUS_TEXT: Record<EmailStatus, (row: EmailLogEntry) => string> = {
   bounced: () => 'Bounced',
 };
 
-/** A dash for a cell with nothing in it. */
+/** A dash for an empty cell. */
 const NOTHING = <span className="muted">—</span>;
 
 /**

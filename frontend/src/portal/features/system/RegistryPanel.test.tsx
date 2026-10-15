@@ -88,7 +88,7 @@ describe('<RegistryPanel/>', () => {
     vi.useRealTimers();
   });
 
-  it('is the FAA aircraft data, with Run now and no practice run', async () => {
+  it('is the FAA aircraft data, with Run now but without a practice run', async () => {
     server.use(statusAnswers(makeRegistryStatus()));
     renderWithProviders(<RegistryPanel />);
     expect(await screen.findByRole('heading', { name: 'FAA aircraft data' })).toBeVisible();

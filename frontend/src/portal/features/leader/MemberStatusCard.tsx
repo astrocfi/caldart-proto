@@ -52,10 +52,10 @@ function membershipNoGo(state: MembershipState): string {
  * Why the member is a no-go, in the order a leader would say them out loud: the
  * membership, then one reason for each document that stops them.
  *
- * Each document gives at most one reason.  A non-pilot gets *Not a pilot* and nothing
- * about the certificate, medical, or photo ID they need not hold.  A pilot's medical
+ * Each document gives at most one reason.  A non-pilot gets *Not a pilot*, and isn't
+ * told anything about the certificate, medical, or photo ID they need not hold.  A pilot's medical
  * reads *No medical on file*, *No medical expiry on file*, or *Medical expired* before it
- * can read *Medical not verified*, since verifying a lapsed medical clears nobody.  A
+ * can read *Medical not verified*, since verifying a lapsed medical doesn't clear anybody.  A
  * photo ID of *Not provided* reads *No photo ID on file*, not *Photo ID not verified*.
  */
 export function noGoReasons(status: LeaderStatus): string[] {
@@ -84,7 +84,7 @@ function medicalNoGo(status: LeaderStatus): string | null {
   return status.medical.verification.verified ? null : 'Medical not verified';
 }
 
-/** The medical's currency chip: none for a member who holds no medical. */
+/** The medical's currency chip, or null for a member who doesn't hold a medical. */
 function MedicalDot({ medical }: { medical: LeaderStatus['medical'] }): JSX.Element | null {
   if (medical.is_current) return <StatusDot tone="current" label="Current" />;
   if (medical.type === 'none') return null;
@@ -194,7 +194,8 @@ export function MemberStatusCard({ userId, status, today }: MemberStatusCardProp
                   <DateText value={status.membership.expires_on} />
                 </>
               ) : status.membership.status === 'current' ? (
-                // Current with no end date is a lifetime membership; a friend has no date at all.
+                // Current without an end date is a lifetime membership; a friend doesn't have a
+                // date at all.
                 ' · lifetime'
               ) : null}
             </span>

@@ -85,7 +85,7 @@ describe('InsuranceVerificationPanel', () => {
     expect(calls.aircraft[0]?.body).toEqual({ insurance_carrier: 'AIG', verified: false });
   });
 
-  it('offers no box while no policy expiry is on file', () => {
+  it("doesn't offer a box while no policy expiry is on file", () => {
     renderWithProviders(
       <InsuranceVerificationPanel
         aircraft={makeVerifiedAircraft({

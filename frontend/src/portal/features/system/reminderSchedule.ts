@@ -44,7 +44,7 @@ export const SCHEDULE_FIELDS: readonly ScheduleField[] = [
 
 /**
  * How many days after a membership ends the expired reminder can still go: from the day
- * it ends through this many days after.  The schedule has no field for it.
+ * it ends through this many days after.  The schedule doesn't have a field for it.
  */
 export const EXPIRED_STAGE_DAYS = 6;
 

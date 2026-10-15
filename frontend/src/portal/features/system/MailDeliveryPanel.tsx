@@ -4,8 +4,8 @@
  *
  * Each line of the server's check (who may send for the domain, the message signature,
  * what to do with forged mail, the bounce address) shows a dot and a word beside its
- * name. A line that is good says nothing more; one that is not says what the record is
- * for and what was found, and what to ask for. On a narrow screen the dot and the word
+ * name. A line that is good doesn't say anything more; one that is not says what the
+ * record is for and what was found, and what to ask for. On a narrow screen the dot and the word
  * take a line of their own under the line's name. The page is written for a reader who
  * has never heard of SPF, DKIM, or DMARC.
  */

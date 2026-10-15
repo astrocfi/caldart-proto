@@ -110,7 +110,7 @@ describe('AutoRenewalCard', () => {
     );
   });
 
-  it('says nothing about running out when the charge falls on the expiry day itself', async () => {
+  it("doesn't say anything about running out when the charge falls on the expiry day itself", async () => {
     mount(makeMandate({ next_charge_on: '2027-06-30' }));
 
     expect(await screen.findByText('Next charge')).toBeInTheDocument();
@@ -371,7 +371,7 @@ describe('AutoRenewalCard', () => {
     expect(screen.getByLabelText('Contribution amount')).toHaveValue('75');
   });
 
-  it('offers no plan that never expires in the change form', async () => {
+  it("doesn't offer a plan that never expires in the change form", async () => {
     const user = userEvent.setup();
     mount(makeMandate());
 
@@ -380,7 +380,7 @@ describe('AutoRenewalCard', () => {
     expect(screen.queryByRole('radio', { name: /Life/ })).not.toBeInTheDocument();
   });
 
-  it('offers no first charge day when the membership could not be read', async () => {
+  it("doesn't offer a first charge day when the membership could not be read", async () => {
     const user = userEvent.setup();
     mount(null, { hasMembership: false });
 

@@ -118,7 +118,7 @@ function stubApi(user: User | null) {
 }
 
 describe('<JoinWizard/> resume logic', () => {
-  it('starts a visitor with no account on step 1', async () => {
+  it('starts a visitor without an account on step 1', async () => {
     stubApi(null);
     renderWizard('/join');
 
@@ -142,7 +142,7 @@ describe('<JoinWizard/> resume logic', () => {
     expect(path()).toBe('/join/verify');
   });
 
-  it('shows an account an administrator created the verify step alone, with no steps listed', async () => {
+  it('shows an account an administrator created the verify step alone, without any steps listed', async () => {
     stubApi(makeUser({ admin_created: true, email_verified: false, membership: UNPAID }));
     renderWizard('/join');
 
@@ -245,7 +245,7 @@ describe('<JoinWizard/> for somebody who has joined already', () => {
     expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
   });
 
-  it('holds nobody but a friend at the pay step', async () => {
+  it('holds only a friend at the pay step', async () => {
     stubApi(makeUser({ kind: 'member', profile_complete: false, membership: UNPAID }));
     server.use(http.put(`${API}/me/profile`, () => HttpResponse.json(makeProfile())));
     renderWizard('/join/profile');
@@ -282,7 +282,7 @@ describe('<JoinWizard/> layout', () => {
     expect(container.querySelector('.join-shell')?.className).toBe('join-shell');
   });
 
-  it('shows the step once, in the progress list, with no eyebrow over the card', async () => {
+  it('shows the step once, in the progress list, without an eyebrow over the card', async () => {
     stubApi(null);
     renderWizard('/join/account');
 
@@ -328,7 +328,7 @@ describe('<JoinWizard/> step progression', () => {
     );
   });
 
-  it('registers an account and asks for the email to be checked, signing nobody in', async () => {
+  it('registers an account and asks for the email to be checked, without signing anybody in', async () => {
     let registered: unknown = null;
     server.use(
       http.get(`${API}/auth/me`, () => HttpResponse.json({ detail: 'no' }, { status: 401 })),
@@ -462,7 +462,7 @@ describe('<JoinWizard/> step progression', () => {
     );
   });
 
-  it('promises no receipt to a member who did not pay in this visit', async () => {
+  it("doesn't promise a receipt to a member who did not pay in this visit", async () => {
     stubApi(makeUser());
     renderWizard('/join/done');
 
@@ -519,7 +519,7 @@ describe('<JoinWizard/> returning from a redirect payment', () => {
     expect(screen.getByRole('heading', { name: 'Almost there' })).toBeInTheDocument();
   });
 
-  it('offers no planes to add before the membership is current', async () => {
+  it("doesn't offer planes to add before the membership is current", async () => {
     const user = makeUser({ profile_complete: true, membership: UNPAID });
     server.use(
       signedInAs(user),
@@ -558,7 +558,7 @@ describe('<JoinWizard/> returning from a redirect payment', () => {
     );
   });
 
-  it('ignores a payment reference from someone with no session', async () => {
+  it('ignores a payment reference from someone without a session', async () => {
     stubApi(null);
     renderWizard(RETURN);
 
@@ -571,7 +571,7 @@ describe('<JoinWizard/> for a friend', () => {
   const FRIEND: MembershipStatus = FRIEND_STATUS;
   const FRIEND_DETAIL: MembershipDetail = { ...FRIEND, history: [] };
 
-  /** The pay step's config with a tier to give, since a friend's checkout has no plan. */
+  /** The pay step's config with a tier to give, since a friend's checkout doesn't have a plan. */
   const GIVING_CONFIG: PaymentsConfig = {
     ...PAYMENTS_CONFIG,
     contribution_tiers: [
@@ -602,7 +602,7 @@ describe('<JoinWizard/> for a friend', () => {
 
     expect(await screen.findByRole('heading', { name: 'Donate to CalDART' })).toBeInTheDocument();
     expect(path()).toBe('/join/pay');
-    // A friend's checkout sells no plan.
+    // A friend's checkout doesn't sell a plan.
     expect(await screen.findByRole('radio', { name: /Participating/ })).toBeInTheDocument();
     expect(screen.queryByRole('radio', { name: /Annual/ })).not.toBeInTheDocument();
   });
@@ -644,7 +644,7 @@ describe('<JoinWizard/> for a friend', () => {
     await waitFor(() => expect(heading).toHaveFocus());
   });
 
-  it('promises no receipt to a friend who gave nothing', async () => {
+  it("doesn't promise a receipt to a friend who didn't give anything", async () => {
     stubFriendApi(makeFriend({ profile_complete: false }));
     server.use(http.put(`${API}/me/profile`, () => HttpResponse.json(makeProfile())));
     renderWizard('/join');
@@ -654,7 +654,7 @@ describe('<JoinWizard/> for a friend', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Continue without a gift' }));
 
     await screen.findByText(
-      'You are a friend of CalDART: no dues, no expiry. Become a member any time.',
+      'You are a friend of CalDART, without dues or an expiry date. Become a member any time.',
     );
     expect(screen.queryByText(/receipt/)).not.toBeInTheDocument();
   });
@@ -723,7 +723,7 @@ describe('<JoinWizard/> for a friend', () => {
 
     expect(
       await screen.findByText(
-        'You are a friend of CalDART: no dues, no expiry. Become a member any time.',
+        'You are a friend of CalDART, without dues or an expiry date. Become a member any time.',
       ),
     ).toBeInTheDocument();
     expect(screen.getByText('Friend')).toBeInTheDocument();
@@ -731,7 +731,7 @@ describe('<JoinWizard/> for a friend', () => {
     expect(screen.queryByRole('link', { name: 'Ops manual' })).not.toBeInTheDocument();
   });
 
-  it('offers a friend no planes to add on the done step', async () => {
+  it("doesn't offer a friend planes to add on the done step", async () => {
     stubFriendApi(makeFriend());
     renderWizard('/join/done');
 
@@ -748,14 +748,14 @@ describe('<JoinWizard/> for a friend', () => {
 });
 
 describe('<JoinWizard/> ledes', () => {
-  it('names no prices before the pay step', async () => {
+  it("doesn't name a price before the pay step", async () => {
     stubApi(null);
     renderWizard('/join/account');
 
     expect(await screen.findByText('Joining takes about three minutes.')).toBeInTheDocument();
   });
 
-  it('says nothing else is available until the address is verified', async () => {
+  it('says that nothing else is available until the address is verified', async () => {
     stubApi(makeUser({ email_verified: false, profile_complete: false, membership: UNPAID }));
     renderWizard('/join/verify');
 

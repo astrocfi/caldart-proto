@@ -158,7 +158,7 @@ describe('<DashboardPage/>', () => {
     ).toHaveAttribute('href', '/renew');
   });
 
-  it('tells a member with no term yet that they have no membership, not that they are a friend', async () => {
+  it('tells a member without a term yet that their membership is not yet paid, not that they are a friend', async () => {
     const none: MembershipStatus = { ...FRIEND, status: 'none' };
     mount({
       user: makeUser({ kind: 'member', admin_created: true, membership: none }),
@@ -169,7 +169,7 @@ describe('<DashboardPage/>', () => {
     expect(screen.queryByText(/friend of CalDART/)).not.toBeInTheDocument();
   });
 
-  it('offers a member with no term yet Pay dues, which opens the checkout', async () => {
+  it('offers a member without a term yet Pay dues, which opens the checkout', async () => {
     const none: MembershipStatus = { ...FRIEND, status: 'none' };
     mount({
       user: makeUser({ kind: 'member', admin_created: true, membership: none }),
@@ -231,7 +231,7 @@ describe('<DashboardPage/>', () => {
       expect(status.queryByRole('link', { name: 'Join CalDART' })).not.toBeInTheDocument();
     });
 
-    it('gives the card no urgent edge', async () => {
+    it("doesn't give the card the urgent edge", async () => {
       mountFriend();
 
       await screen.findByRole('heading', { name: 'You are a friend of CalDART' });
@@ -250,7 +250,7 @@ describe('<DashboardPage/>', () => {
       expect(links.getByRole('link', { name: 'Donate' })).toHaveAttribute('href', '/donate');
     });
 
-    it('says nothing about a renewal a friend cannot have', async () => {
+    it("doesn't say anything about a renewal a friend cannot have", async () => {
       mountFriend();
 
       await screen.findByRole('heading', { name: 'You are a friend of CalDART' });
@@ -417,7 +417,7 @@ describe('<DashboardPage/>', () => {
     expect(await card('Recent payments').findByText('04/28/2026')).toBeInTheDocument();
   });
 
-  it('has an empty state when there are no payments', async () => {
+  it("has an empty state when there aren't any payments", async () => {
     mount({ user: makeUser({ membership: CURRENT }), status: CURRENT });
 
     expect(await screen.findByText('No payments yet')).toBeInTheDocument();
@@ -435,7 +435,7 @@ describe('DashboardPage · payments and renewal', () => {
     ).toHaveAttribute('href', '/payments');
   });
 
-  it('sends a life member on to their payments and receipts, with no word of renewals', async () => {
+  it('sends a life member on to their payments and receipts, without a word of renewals', async () => {
     mount({ user: makeUser({ membership: LIFETIME }), status: LIFETIME });
 
     expect(
@@ -443,7 +443,7 @@ describe('DashboardPage · payments and renewal', () => {
     ).toHaveAttribute('href', '/payments');
   });
 
-  it('says automatic renewal is off when the member has no mandate', async () => {
+  it("says automatic renewal is off when the member doesn't have a mandate", async () => {
     mount({ user: makeUser({ membership: CURRENT }), status: CURRENT });
 
     expect(await screen.findByText('Automatic renewal is off.')).toBeInTheDocument();

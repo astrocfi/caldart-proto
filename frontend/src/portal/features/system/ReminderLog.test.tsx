@@ -115,7 +115,7 @@ describe('ReminderLog', () => {
     ]);
   });
 
-  it('carries no controls for running the scan', async () => {
+  it("doesn't carry controls for running the scan", async () => {
     server.use(logHandler(ENTRIES));
     renderWithProviders(<ReminderLog />);
     await screen.findByText('Marta Reyes');
@@ -133,7 +133,7 @@ describe('ReminderLog', () => {
     expect(await screen.findByText('No reminders of this kind')).toBeInTheDocument();
   });
 
-  it('says no reminder has been sent, and when they go, without contradicting a run', async () => {
+  it('says that no reminder has been sent, and when they go, without contradicting a run', async () => {
     server.use(logHandler([]));
     renderWithProviders(<ReminderLog />);
 

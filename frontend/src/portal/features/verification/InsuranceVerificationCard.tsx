@@ -39,9 +39,9 @@ export interface InsuranceVerificationCardProps {
 }
 
 /**
- * Lists an aircraft's insurance with its mark, and opens the panel on **Verify**.  With
- * no policy on file there is nothing to verify, so there is no mark; a lapsed policy
- * reads *Expired* before its mark.
+ * Lists an aircraft's insurance with its mark, and opens the panel on **Verify**.
+ * Without a policy on file there isn't anything to verify, so there isn't a mark; a
+ * lapsed policy reads *Expired* before its mark.
  */
 export function InsuranceVerificationCard({
   aircraft,

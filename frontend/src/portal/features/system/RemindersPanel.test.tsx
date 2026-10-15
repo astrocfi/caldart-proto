@@ -70,7 +70,7 @@ describe('RemindersPanel', () => {
     expect(button.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
   });
 
-  it('says only that nothing is due when a practice run finds nothing at all', async () => {
+  it("says only that nothing is due when a practice run doesn't find anything", async () => {
     server.use(
       logHandler(ENTRIES),
       http.post(`${API}/system/reminders/run`, () =>
@@ -120,7 +120,7 @@ describe('RemindersPanel', () => {
     expect(row).toHaveTextContent('07/15/2026');
   });
 
-  it('says nothing was due when a run finds no actions', async () => {
+  it("says that nothing was due when a run doesn't find any actions", async () => {
     server.use(
       logHandler(ENTRIES),
       http.post(`${API}/system/reminders/run`, () =>

@@ -81,7 +81,7 @@ function unusedNNumber(): string {
 
 /**
  * A model no fixture type holds: `Zq` and five random letters, written as the register
- * prints a word of letters longer than three.  It carries no digits, because a query
+ * prints a word of letters longer than three.  It doesn't carry any digits, because a query
  * holding digits also finds every type whose model contains them.
  */
 function unusedModel(): string {

@@ -31,7 +31,7 @@ export const MAIL_DELIVERY = {
   ],
 };
 
-/** Handlers for every request a System page makes on mount, with nothing to list. */
+/** Handlers for every request a System page makes on mount, each with an empty list. */
 export function systemPageHandlers(): HttpHandler[] {
   return [
     http.get(`${API}/system/health`, () => HttpResponse.json(HEALTHY)),

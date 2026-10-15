@@ -151,13 +151,13 @@ test('a user administrator blocks an account, and its owner cannot bring it back
   await expect(status.getByRole('button', { name: 'Allow reactivation' })).toBeVisible();
   await expect(status.getByRole('button', { name: 'Reactivate account' })).toBeDisabled();
 
-  // Signing in with the right password is told the account is closed, and offered nothing.
+  // Signing in with the right password is told the account is closed, and isn't offered anything.
   await page.context().clearCookies();
   await signInAs(page, email);
   await expect(page.getByText(CLOSED)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Reactivate my account' })).toHaveCount(0);
 
-  // A password reset sends nothing.
+  // A password reset doesn't send anything.
   const before = emailCountTo(email);
   await page.goto('portal/forgot-password');
   await page.getByRole('textbox', { name: 'Email address' }).fill(email);

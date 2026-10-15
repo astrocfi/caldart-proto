@@ -12,7 +12,7 @@ describe('notBeforeToday', () => {
     expect(notBeforeToday('2026-01-31', new Date(2026, 8, 24))).toBe('2026-09-24');
   });
 
-  it('answers today for an authority with no charge waiting at all', () => {
+  it('answers today for an authority without a charge waiting', () => {
     expect(notBeforeToday(null, new Date(2026, 8, 24))).toBe('2026-09-24');
   });
 });
@@ -30,7 +30,7 @@ describe('isAfterExpiry', () => {
     expect(isAfterExpiry('2027-07-01', null)).toBe(false);
   });
 
-  it('is false when there is no charge date to compare', () => {
+  it("is false when there isn't a charge date to compare", () => {
     expect(isAfterExpiry(null, '2027-06-30')).toBe(false);
   });
 });

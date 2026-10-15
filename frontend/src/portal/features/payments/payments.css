@@ -1,7 +1,7 @@
 /*
  * The member's Payments screen: the renewal card's facts list, the payment
  * table, and the statement buttons.  Semantic tokens only, so the three themes
- * need no rules of their own.
+ * don't need rules of their own.
  */
 
 .renewal__facts {

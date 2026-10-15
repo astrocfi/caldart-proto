@@ -84,7 +84,7 @@ function initSkipLink(): void {
  *
  * The template sets `data-theme-preview="allowed"` on `<html>` when the signed
  * in user holds `website_admin` or `system_admin`, so this cannot be used to
- * deface the site for anybody else — and it changes nothing on the server.
+ * deface the site for anybody else — and it doesn't change anything on the server.
  */
 export function applyThemePreview(root: HTMLElement, search: string): void {
   if (root.dataset.themePreview !== 'allowed') return;

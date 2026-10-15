@@ -30,7 +30,7 @@ export function isTheme(value: string | null | undefined): value is Theme {
 }
 
 /**
- * Index of the nav entry that is current for `path`, or -1 for none.
+ * Index of the nav entry that is current for `path`, or -1 when no entry is.
  *
  * The longest matching href wins, so `/about/history/` highlights "About Us"
  * and not every entry whose path happens to be a prefix. `/` only ever matches

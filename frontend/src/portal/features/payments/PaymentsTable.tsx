@@ -110,7 +110,7 @@ export interface PaymentsTableProps {
   payments: PaymentSummary[];
 }
 
-/** The payments table, or an empty state when the member has paid nothing yet. */
+/** The payments table, or an empty state when the member hasn't paid anything yet. */
 export function PaymentsTable({ payments }: PaymentsTableProps): JSX.Element {
   const hasRefunds = payments.some((payment) => payment.refunded_cents > 0);
   return (

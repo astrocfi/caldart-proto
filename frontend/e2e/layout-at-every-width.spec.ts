@@ -2,7 +2,7 @@
  * What only a laid-out page can show: a press that lands where it was aimed, a status
  * read whole, a row of tabs on one line, and an error that takes its hint's line.
  *
- * jsdom lays nothing out, so these run in a browser at the widths the portal is
+ * jsdom doesn't lay anything out, so these run in a browser at the widths the portal is
  * checked at.
  */
 import { expect, test } from '@playwright/test';
@@ -26,7 +26,7 @@ async function labelToBox(page: Page, label: RegExp): Promise<number> {
   return box.y - (caption.y + caption.height);
 }
 
-/** Whether `cell` shows all it holds, with nothing cut off at its right edge. */
+/** Whether `cell` shows all it holds, without any of it cut off at its right edge. */
 async function isWhole(cell: Locator): Promise<boolean> {
   return cell.evaluate((element) => element.scrollWidth <= element.clientWidth + 1);
 }
@@ -99,7 +99,7 @@ test('the finance tabs stay on one line on a phone, the current one in view', as
   expect(new Set(tops).size).toBe(1);
 });
 
-test('an error on Change password takes its hint line, leaving no gap', async ({ page }) => {
+test('an error on Change password takes its hint line, without leaving a gap', async ({ page }) => {
   await page.setViewportSize(DESKTOP);
   await signIn(page, DEMO.member);
   await page.goto('portal/change-password');
@@ -152,7 +152,7 @@ test('Shift+Tab never leaves a field under the sticky header on a phone', async 
 });
 
 for (const size of [DESKTOP, TABLET]) {
-  test(`New DART refused empty leaves no blank band above its boxes at ${size.width}`, async ({
+  test(`New DART refused empty does not leave a blank band above its boxes at ${size.width}`, async ({
     page,
   }) => {
     await page.setViewportSize(size);
@@ -177,7 +177,7 @@ for (const size of [DESKTOP, TABLET]) {
       if (caption === null || drawn === null) throw new Error(`${label} is not laid out`);
       gaps.push(drawn.y - (caption.y + caption.height));
     }
-    // The label's own margin, and no hint row held open above either box.
+    // The label's own margin, without a hint row held open above either box.
     expect(gaps.every((gap) => gap < 10)).toBe(true);
     const [left, right] = [await name.boundingBox(), await airports.boundingBox()];
     expect(Math.abs((left?.y ?? 0) - (right?.y ?? 1))).toBeLessThan(1);

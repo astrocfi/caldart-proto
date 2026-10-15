@@ -7,7 +7,7 @@
 /** An address with something either side of one `@` and a dot in the domain. */
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/** Fewer digits than this is no phone number anybody could dial. */
+/** Fewer digits than this isn't a phone number anybody could dial. */
 const MIN_PHONE_DIGITS = 7;
 
 /** Anything a phone number may be written with: digits, spaces, and punctuation. */

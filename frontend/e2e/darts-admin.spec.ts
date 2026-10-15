@@ -11,7 +11,7 @@ import { DEMO, signIn } from './helpers';
 
 const NAME = 'Shelter Cove';
 
-/** The one seeded DART with a website page and nobody on it. */
+/** The one seeded DART with a website page and without anybody on it. */
 const DELETABLE = 'San Carlos';
 
 /** That team's own page on the public site, which outlives the team. */
@@ -61,8 +61,8 @@ test('deleting a DART leaves its website page standing', async ({ page }) => {
   await signIn(page, DEMO.accountadmin);
   await page.goto('portal/admin/darts');
 
-  // The seed puts nobody on San Carlos and gives it a page, so the delete has a
-  // page to unlink and no member to unaffiliate.
+  // The seed doesn't put anybody on San Carlos and gives it a page, so the delete has
+  // a page to unlink but doesn't have a member to unaffiliate.
   const row = page.getByRole('row').filter({ hasText: DELETABLE }).first();
   await expect(row.getByRole('cell', { name: '0', exact: true })).toBeVisible();
 

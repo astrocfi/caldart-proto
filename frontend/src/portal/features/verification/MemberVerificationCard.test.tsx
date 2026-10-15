@@ -45,7 +45,7 @@ describe('MemberVerificationCard', () => {
     expect(within(rows[2]!).getByText('Not verified')).toBeInTheDocument();
   });
 
-  it('draws no mark for an item the person does not hold', () => {
+  it("doesn't draw a mark for an item the person does not hold", () => {
     renderWithProviders(
       <MemberVerificationCard
         userId={7}
@@ -81,14 +81,14 @@ describe('MemberVerificationCard', () => {
     );
   });
 
-  it('offers no Verify to a reader without a verifying role', () => {
+  it("doesn't offer Verify to a reader without a verifying role", () => {
     renderWithProviders(
       <MemberVerificationCard userId={7} profile={makeAdminProfile()} checkable />,
     );
     expect(screen.queryByRole('button', { name: 'Verify' })).not.toBeInTheDocument();
   });
 
-  it('offers no Verify for a member the endpoint would refuse with a 404', () => {
+  it("doesn't offer Verify for a member the endpoint would refuse with a 404", () => {
     server.use(signedInAs(makeUser({ roles: ['member', 'account_admin'] })));
     renderWithProviders(
       <MemberVerificationCard userId={7} profile={makeAdminProfile()} checkable={false} />,

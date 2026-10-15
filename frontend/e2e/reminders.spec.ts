@@ -32,7 +32,7 @@ test('an account administrator reads the reminder log and filters it by kind', a
   await expect(page.getByText('No reminders of this kind')).toBeVisible();
 });
 
-test('the account administrator has no way to start a scan', async ({ page }) => {
+test('the account administrator does not have a way to start a scan', async ({ page }) => {
   await signIn(page, DEMO.accountadmin);
   await page.goto('portal/admin/reminders');
   await expect(page.getByRole('heading', { name: 'Renewal reminders' })).toBeVisible();
@@ -95,7 +95,7 @@ test('a system administrator keeps the run controls on the Scheduled tasks page'
   await expect(panel.getByRole('heading', { name: 'What this run would do' })).toBeVisible();
 
   // The fresh seed always leaves at least one member inside a reminder stage
-  // with no mandate covering them, so the rehearsal's table is never empty.
+  // without a mandate covering them, so the rehearsal's table is never empty.
   await expect(panel.getByRole('table', { name: /^[1-9]\d* actions?$/ })).toBeVisible();
 });
 

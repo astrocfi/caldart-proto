@@ -51,7 +51,7 @@ export function SentDetailPage(): JSX.Element {
   if (email.data === undefined) return <Loading />;
   const sent = email.data;
   // A DART leader may read another leader's email to their DART, and stop a callout's
-  // reminders, but acts on no other email of theirs.
+  // reminders, but doesn't act on any other email of theirs.
   const canAct = sender.data?.is_management === true || me.data?.id === sent.sender_id;
   const canStop = canAct || sent.is_callout;
 

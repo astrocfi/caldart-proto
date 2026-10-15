@@ -4,7 +4,7 @@
  * A member also sees the members-only pages they can now read.  A friend sees what
  * being a friend means instead, since those pages are for members.  The receipt is
  * mentioned only after a payment in this visit: a friend who skipped paying, or a
- * member who signed in and was sent here, has none coming.  Reaching this step lets go
+ * member who signed in and was sent here, doesn't have one coming.  Reaching this step lets go
  * of the pay step a friend's tab held (`holdFriendPayStep`).
  */
 import { useEffect } from 'react';
@@ -41,7 +41,7 @@ export function DoneStep({ joiningAs, hasPaid }: DoneStepProps): JSX.Element {
   const membersPages = siteConfig.data?.members_pages ?? [];
   const status = membership.data ?? null;
   // The kind being joined as, not the membership: a member whose payment has not
-  // settled has no term yet, and is told their membership is on its way.
+  // settled doesn't have a term yet, and is told their membership is on its way.
   const isFriend = joiningAs === 'friend';
 
   return (
@@ -70,9 +70,12 @@ export function DoneStep({ joiningAs, hasPaid }: DoneStepProps): JSX.Element {
           <div className="renew__status">
             <MembershipDot membership={status} />
             {isFriend ? (
-              <p>You are a friend of CalDART: no dues, no expiry. Become a member any time.</p>
+              <p>
+                You are a friend of CalDART, without dues or an expiry date. Become a member any
+                time.
+              </p>
             ) : status.is_lifetime ? (
-              <p>You are a life member. There is nothing more to pay, ever.</p>
+              <p>You are a life member. You never have to pay anything more.</p>
             ) : status.expires_on ? (
               <p>
                 Your membership runs until <DateText value={status.expires_on} />. We will email you

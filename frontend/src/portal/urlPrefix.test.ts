@@ -29,7 +29,7 @@ describe('urlPrefix without data-url-prefix', () => {
     expect(API_BASE).toBe('/api/v1');
   });
 
-  it('leaves a path alone when there is no prefix to strip', async () => {
+  it("leaves a path alone when there isn't a prefix to strip", async () => {
     clearUrlPrefix();
     const { stripUrlPrefix } = await loadUrlPrefix();
     expect(stripUrlPrefix('/about/')).toBe('/about/');

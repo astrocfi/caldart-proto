@@ -46,7 +46,7 @@ describe('changedFields', () => {
 });
 
 describe('useAutosave', () => {
-  it('says nothing about saving before anything is typed', () => {
+  it("doesn't say anything about saving before anything is typed", () => {
     const { result } = renderAutosave();
     expect(result.current.saveState).toBe('idle');
   });

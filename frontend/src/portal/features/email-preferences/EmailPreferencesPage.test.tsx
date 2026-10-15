@@ -145,10 +145,10 @@ describe('EmailPreferencesPage', () => {
     expect(screen.getByRole('switch', { name: 'Mission' })).toBeChecked();
   });
 
-  it('says so when there is nothing to turn off', async () => {
+  it('says so when nothing can be turned off', async () => {
     stubPreferences([]);
     renderPage();
 
-    expect(await screen.findByText('There is nothing to turn off')).toBeInTheDocument();
+    expect(await screen.findByText('Nothing can be turned off')).toBeInTheDocument();
   });
 });

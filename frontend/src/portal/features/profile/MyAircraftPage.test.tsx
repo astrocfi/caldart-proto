@@ -84,7 +84,7 @@ describe('<MyAircraftPage/>', () => {
     );
   });
 
-  it('shows somebody who may not use aircraft a notice and asks for no aircraft', async () => {
+  it("shows somebody who may not use aircraft a notice and doesn't ask for their aircraft", async () => {
     let asked = false;
     server.use(
       signedInAs(makeUser({ can_use_aircraft: false })),
@@ -127,7 +127,7 @@ describe('<MyAircraftPage/>', () => {
     ).toBeInTheDocument();
   });
 
-  it('ledes with the planes a member commonly flies and nothing more', async () => {
+  it('ledes with only the planes a member commonly flies', async () => {
     server.use(http.get(`${API}/me/profile`, () => HttpResponse.json(makeProfile())));
 
     renderWithProviders(<MyAircraftPage />, { route: '/profile/aircraft' });
@@ -150,7 +150,7 @@ describe('<MyAircraftPage/>', () => {
     );
   });
 
-  it('flags an aircraft with no insurance on file', async () => {
+  it('flags an aircraft without any insurance on file', async () => {
     server.use(
       http.get(`${API}/me/profile`, () =>
         HttpResponse.json(
@@ -187,7 +187,7 @@ describe('<MyAircraftPage/>', () => {
     );
   });
 
-  it('shows no note while the policy has none', async () => {
+  it("doesn't show a note while the policy doesn't have one", async () => {
     server.use(
       http.get(`${API}/me/profile`, () =>
         HttpResponse.json(makeProfile({ aircraft: [TEST_AIRCRAFT] })),
@@ -283,7 +283,7 @@ describe('<MyAircraftPage/>', () => {
     await waitFor(() => expect(screen.getByText('N54321').closest('li')).toHaveFocus());
   });
 
-  it('does nothing to an aircraft on the first press of its trashcan', async () => {
+  it("doesn't do anything to an aircraft on the first press of its trashcan", async () => {
     let deleted: string | null = null;
     server.use(
       http.get(`${API}/me/profile`, () =>
@@ -452,7 +452,7 @@ describe('<MyAircraftPage/> editing', () => {
     expect(expiry.compareDocumentPosition(next) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it('offers no Edit on a plane somebody else added, and says who to write to', async () => {
+  it("doesn't offer Edit on a plane somebody else added, and says who to write to", async () => {
     server.use(
       http.get(`${API}/me/profile`, () =>
         HttpResponse.json(makeProfile({ aircraft: [{ ...TEST_AIRCRAFT, created_by: 99 }] })),
@@ -520,7 +520,7 @@ describe('<MyAircraftPage/> editing', () => {
     expect(within(row).getByText(mark)).toBeInTheDocument();
   });
 
-  it('leaves an aircraft with no insurance on file without a verification mark', async () => {
+  it('leaves the verification mark off an aircraft without any insurance on file', async () => {
     server.use(
       http.get(`${API}/me/profile`, () =>
         HttpResponse.json(
@@ -545,7 +545,7 @@ describe('<MyAircraftPage/> editing', () => {
     expect(within(row).queryByText('Not yet verified')).not.toBeInTheDocument();
   });
 
-  it('draws no mark with no insurance on file, even over a stamp left on the record', async () => {
+  it("doesn't draw a mark without any insurance on file, even over a stamp left on the record", async () => {
     server.use(
       http.get(`${API}/me/profile`, () =>
         HttpResponse.json(

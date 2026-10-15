@@ -153,11 +153,11 @@ describe('helpPath', () => {
     expect(helpPath(pathname)).toBe(expectedHref);
   });
 
-  it('falls back to the guide front page for a route with no Help page', () => {
+  it('falls back to the guide front page for a route without a Help page', () => {
     expect(helpPath('/not-a-real-screen')).toBe('/docs/');
   });
 
-  it('falls into the /admin/payments/:id wildcard for an id that names none of the above', () => {
+  it("falls into the /admin/payments/:id wildcard for an id that doesn't name any of the above", () => {
     expect(helpPath('/admin/payments/7')).toBe('/docs/finance/payment-record/');
   });
 
@@ -186,7 +186,7 @@ const USER_GUIDE_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '../../.
  *
  * A route with a `path` or `index: true` is a screen; a pathless route (a role guard or
  * the session guard) only groups its children, and the `*` catch-all is the not-found
- * page, which has no Help page of its own.
+ * page, which doesn't have a Help page of its own.
  */
 function screenPatterns(tree: readonly RouteObject[], parent = ''): string[] {
   return tree.flatMap((route) => {

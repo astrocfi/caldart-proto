@@ -37,7 +37,7 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
-  /* Unlike the public site's `.shell`, the portal has no fixed page width: a
+  /* Unlike the public site's `.shell`, the portal doesn't have a fixed page width: a
    * wide report table should be able to use the whole window. */
   max-width: none;
   margin-inline: auto;
@@ -113,7 +113,7 @@
   }
 }
 
-/* A visitor who is not signed in gets no rail, and without this the page
+/* A visitor who is not signed in doesn't get a rail, and without this the page
  * would drop into the rail's narrow column.  It follows the rule above so it
  * wins at every width. */
 .portal__frame--no-rail {
@@ -376,8 +376,8 @@
   padding-top: 0;
 }
 
-/* An empty table's card draws no rule above its empty state: there is no table
- * for the rule to head. */
+/* An empty table's card doesn't draw a rule above its empty state: there isn't a
+ * table for the rule to head. */
 .data-table .empty-state {
   border-top: 0;
   padding-top: var(--space-4);
@@ -411,7 +411,7 @@
 }
 
 /* The rule above a table parts it from its filters and tools; a table with neither
- * starts under its card's title with no rule to part it from. */
+ * starts under its card's title without a rule to part it from. */
 .data-table .table-wrap {
   border-top: 0;
 }

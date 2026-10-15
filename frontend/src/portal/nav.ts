@@ -32,7 +32,7 @@ export interface NavItem {
   end?: boolean;
   /**
    * Hide this entry from an effective friend: a friend by `kind` or by a
-   * `friend_on` date that has arrived has no membership to renew.
+   * `friend_on` date that has arrived doesn't have a membership to renew.
    */
   hideForFriend?: boolean;
   /**
@@ -41,8 +41,8 @@ export interface NavItem {
    */
   needsAircraft?: boolean;
   /**
-   * Hide this entry from a lifetime member, who has no term to renew and gives through
-   * Donate like everyone else.
+   * Hide this entry from a lifetime member, who doesn't have a term to renew and gives
+   * through Donate like everyone else.
    */
   hideForLifetime?: boolean;
 }
@@ -220,10 +220,10 @@ export function hasAnyRole(userRoles: readonly RoleSlug[], required: readonly Ro
 export interface NavReader {
   /**
    * A friend by kind or by an arrived `friend_on` date, or a member who has not paid
-   * their first dues: somebody with no membership to renew.
+   * their first dues: somebody without a membership to renew.
    */
   isEffectiveFriend?: boolean;
-  /** A lifetime member, who has no term to renew. */
+  /** A lifetime member, who doesn't have a term to renew. */
   isLifetime?: boolean;
   /** False for somebody who may not use aircraft, who loses the aircraft entries. */
   canUseAircraft?: boolean;
@@ -273,7 +273,7 @@ function isWithin(to: string, pathname: string): boolean {
  *
  * A page nested under an entry (a member record under Members) takes that entry's,
  * the deepest entry wins (Aircraft check over Member check), and a screen outside
- * the rail, such as sign-in or the join wizard, has none.  Every entry counts,
+ * the rail, such as sign-in or the join wizard, doesn't have one.  Every entry counts,
  * whatever the reader's roles, so the eyebrow never depends on who is reading.
  */
 export function navEyebrow(pathname: string): string | null {

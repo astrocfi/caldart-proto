@@ -18,7 +18,7 @@ export const OTHER = 'other';
 /** Enough digits for the largest contribution the server accepts. */
 const DOLLAR_DIGITS = 6;
 
-/** A grouped dollar amount as integer cents; a blank box is nothing given. */
+/** A grouped dollar amount as integer cents; a blank box gives 0. */
 export function dollarsToCents(typed: string): number {
   const digits = typed.replace(/\D/g, '');
   return digits ? Number(digits) * 100 : 0;
@@ -29,7 +29,7 @@ export function dollarsToCents(typed: string): number {
  *
  * The cap is applied as the amount is typed, so a digit too many is refused at
  * the keyboard rather than at the payment provider.  A `maxCents` of `null` is
- * a cap not yet known, and caps nothing.
+ * a cap not yet known, and doesn't cap anything.
  */
 export function maskContribution(raw: string, maxCents: number | null): string {
   const masked = maskWholeDollars(raw, DOLLAR_DIGITS);
@@ -55,7 +55,7 @@ export interface ContributionChooserProps {
   legend?: string;
   /** The label over the box an amount of one's own is typed into. */
   amountLabel?: string;
-  /** The line under the legend; null for none. */
+  /** The line under the legend; null leaves it out. */
   hint?: string | null;
   /** Offer the server's zero tier as "No thank you"; false leaves it out. */
   offerNone?: boolean;
@@ -66,7 +66,7 @@ const DUES_HINT =
   'CalDART is a 501(c)(3); a contribution on top of your dues is tax deductible and pays for ' +
   'training, fuel, and equipment.';
 
-/** What the chooser says over a donation, where there are no dues to add it to. */
+/** What the chooser says over a donation, where there aren't any dues to add it to. */
 export const DONATION_HINT = 'Gifts to CalDART, a 501(c)(3), are tax deductible.';
 
 /** The amounts an amount of one's own may run between, as the box's hint says them. */

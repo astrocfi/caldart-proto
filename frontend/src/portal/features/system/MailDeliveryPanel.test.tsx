@@ -37,7 +37,7 @@ describe('summarize', () => {
     );
   });
 
-  it('counts the warnings when there is no problem', () => {
+  it("counts the warnings when there isn't a problem", () => {
     expect(summarize([finding(), finding({ status: 'warn' })])).toBe(
       'Email can be delivered, but 1 of 2 checks could be better.',
     );
@@ -71,7 +71,7 @@ describe('MailDeliveryPanel', () => {
     expect(screen.getByRole('heading', { name: /^Problem\s*Bounce address$/ })).toBeVisible();
   });
 
-  it('explains a finding that is not good, and says nothing more about a good one', async () => {
+  it("explains a finding that is not good, and doesn't say anything more about a good one", async () => {
     serve(
       report([
         finding(),
@@ -115,7 +115,7 @@ describe('MailDeliveryPanel', () => {
     ).toBeVisible();
   });
 
-  it('gives the fix of a finding that needs one, and none for a good one', async () => {
+  it('gives the fix of a finding that needs one, but not of a good one', async () => {
     serve(
       report([
         finding({ status: 'fail', fix: 'Ask whoever manages the DNS to add a TXT record.' }),

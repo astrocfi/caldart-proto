@@ -27,7 +27,7 @@ export function makeCalloutSummary(overrides: Partial<CalloutSummary> = {}): Cal
   };
 }
 
-/** One person a callout reached; Ann, with no answer, unless given. */
+/** One person a callout reached; Ann, without an answer, unless given. */
 export function makeCalloutRecipient(overrides: Partial<CalloutRecipient> = {}): CalloutRecipient {
   return {
     user_id: 1,

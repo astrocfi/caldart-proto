@@ -1,8 +1,8 @@
 /**
  * One download button per calendar year the member contributed in.
  *
- * A year in which only dues were paid has no statement: dues are not a gift,
- * so there is nothing for the 501(c)(3) wording to cover.
+ * A year in which only dues were paid doesn't have a statement: dues are not a gift,
+ * so the 501(c)(3) wording doesn't have anything to cover.
  */
 import type { JSX } from 'react';
 
@@ -30,7 +30,7 @@ export function StatementsCard(): JSX.Element {
       ) : years.length === 0 ? (
         <EmptyState
           title="No statements yet"
-          description="A statement covers a calendar year you contributed in. Dues on their own are not a contribution, so a year of dues alone has none."
+          description="A statement covers a calendar year you contributed in. Dues on their own are not a contribution, so a year of dues alone doesn't have one."
         />
       ) : (
         <>

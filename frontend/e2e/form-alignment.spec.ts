@@ -81,7 +81,7 @@ const HINTLESS_ROWS: Record<number, string[]> = {
 };
 
 for (const width of [1920, 390]) {
-  test(`a field with no hint keeps its box under its label at ${width} px`, async ({ page }) => {
+  test(`a field without a hint keeps its box under its label at ${width} px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 1000 });
     await signIn(page, DEMO.member);
     await page.goto('portal/profile');

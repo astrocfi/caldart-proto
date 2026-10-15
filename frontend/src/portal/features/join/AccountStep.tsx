@@ -47,7 +47,7 @@ export interface AccountStepProps {
  * Step 1 of the join wizard: sign in, or register through `useRegister` as a member
  * or as a friend.
  *
- * Registering signs nobody in, and the server answers every address the same way: the
+ * Registering doesn't sign anybody in, and the server answers every address the same way: the
  * next step arrives by email, a verification link for a new account and a way to sign
  * in for an address that already has one.  So every registration the server accepts
  * shows "Check your email" in place of the form.

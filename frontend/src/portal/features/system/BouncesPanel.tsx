@@ -6,8 +6,8 @@
  *
  * The check runs every hour on its own. A report it can tie to an email marks that
  * email **Bounced** in the email log and flags the address on its account; one it
- * cannot is listed as unmatched. A rehearsal changes nothing and leaves every report
- * unread for the next run.
+ * cannot is listed as unmatched. A rehearsal doesn't change anything and leaves every
+ * report unread for the next run.
  */
 import { useState } from 'react';
 import type { ChangeEvent, JSX } from 'react';

@@ -3,7 +3,7 @@
  * aircraft types and the registrations the N-number box offers were last
  * imported, and **Run now** to import them again.
  *
- * There is no dry run: the import changes nothing but those two reference
+ * There isn't a dry run: the import changes only those two reference
  * tables.  The server starts the import in its own process and answers at once,
  * so the panel shows it running and asks for its state every few seconds until
  * it ends.
@@ -68,7 +68,7 @@ export function RegistryPanel(): JSX.Element {
     >
       <p className="muted">
         Loads the FAA aircraft data, which is what the N-number box on an aircraft form offers. It
-        runs every night and changes nothing else.
+        runs every night and doesn&apos;t change anything else.
       </p>
 
       {status.data === undefined ? null : <p role="status">{registryImportSummary(status.data)}</p>}

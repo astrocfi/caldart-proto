@@ -2,8 +2,8 @@
  * Whether a person holds an item, and whether a date has passed.
  *
  * An item the person does not hold (a pilot certificate of *Not a pilot*, a medical
- * of *None*, a photo ID of *Not provided*) has nothing to verify, so every screen
- * draws it with no mark and the verification panel offers no box for it.  The
+ * of *None*, a photo ID of *Not provided*) doesn't have anything to verify, so every
+ * screen draws it without a mark and the verification panel doesn't offer a box for it.  The
  * server applies the same rule: it never stamps an item that is not held.
  */
 import type {
@@ -43,8 +43,8 @@ export function isItemHeld(item: VerificationItem, facts: HeldFacts): boolean {
 /**
  * True when `iso` names a day before `today`: a medical or a policy that has run out.
  *
- * A date counts as current up to and including its own day, and no date is never
- * lapsed.
+ * A date counts as current up to and including its own day, and a missing date is
+ * never lapsed.
  */
 export function isLapsed(iso: string | null, today: Date = new Date()): boolean {
   const days = daysUntil(iso, today);

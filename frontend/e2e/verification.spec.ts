@@ -12,7 +12,7 @@
  * desktop size only.  A second test has the account administrator verify another
  * airplane from its aircraft record.
  *
- * Isolation rests on nothing else in the suite reading `SEED.leaderCheck.unverifiedPilot`,
+ * Isolation holds while nothing else in the suite reads `SEED.leaderCheck.unverifiedPilot`,
  * the airplanes this spec picks from the register (one with current cover, one
  * without), or the account administrator's mail count: another spec touching any of
  * those would race this one.
@@ -76,7 +76,9 @@ async function unverifiedAirplane(page: Page): Promise<string> {
     (each) => each.is_active && each.insurance_is_current && !each.insurance_verification.verified,
   );
   if (airplane === undefined) {
-    throw new Error('The register holds no in-service airplane with unverified current cover.');
+    throw new Error(
+      "The register doesn't hold an in-service airplane with unverified current cover.",
+    );
   }
   return airplane.n_number;
 }
@@ -91,7 +93,8 @@ async function unverifiedLapsedAirplane(page: Page): Promise<RegisterRow> {
   expect(response.status()).toBe(200);
   const { results } = (await response.json()) as { results: RegisterRow[] };
   const airplane = results.find(
-    // A policy with no expiry on file has nothing to verify, so it carries no mark.
+    // A policy without an expiry on file doesn't have anything to verify, so it doesn't
+    // carry a mark.
     (each) =>
       each.is_active &&
       each.insurance_expiration !== null &&
@@ -99,7 +102,9 @@ async function unverifiedLapsedAirplane(page: Page): Promise<RegisterRow> {
       !each.insurance_verification.verified,
   );
   if (airplane === undefined) {
-    throw new Error('The register holds no in-service airplane with unverified lapsed cover.');
+    throw new Error(
+      "The register doesn't hold an in-service airplane with unverified lapsed cover.",
+    );
   }
   return airplane;
 }

@@ -132,7 +132,7 @@ describe('RenewalSetup', () => {
     ).toBeInTheDocument();
   });
 
-  it('offers no way to save a method when no membership plan is set up', async () => {
+  it("doesn't offer a way to save a method when no membership plan is set up", async () => {
     mount({ providers: ['mock'], plans: [] });
 
     await screen.findByText('No membership plan is set up yet. Ask an administrator.');

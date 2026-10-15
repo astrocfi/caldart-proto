@@ -2,7 +2,7 @@
  * The member list's table follows its column chooser at a laptop's width, and the
  * Columns panel stays on a phone's screen.
  *
- * jsdom lays nothing out, so whether a checked column survives the table's fitting to a
+ * jsdom doesn't lay anything out, so whether a checked column survives the table's fitting to a
  * real width is checked here, in a browser.
  */
 import { expect, test } from '@playwright/test';

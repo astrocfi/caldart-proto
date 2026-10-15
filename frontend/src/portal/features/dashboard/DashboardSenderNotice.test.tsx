@@ -25,7 +25,7 @@ const MEMBERSHIP: MembershipDetail = {
   history: [],
 };
 
-describe('<DashboardPage/> for a DART leader with no DART', () => {
+describe('<DashboardPage/> for a DART leader without a DART', () => {
   it('says bulk email needs a DART, with the way to My profile', async () => {
     server.use(
       signedInAs(makeUser({ roles: ['member', 'dart_leader'] })),

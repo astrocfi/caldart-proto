@@ -61,7 +61,7 @@ export function useMyPayments(): UseQueryResult<PaymentSummary[]> {
  * Idle for an empty `term`.  The server answers an empty list when suggestions
  * are switched off or the provider cannot be reached, and a failed request
  * (such as a 429 past the rate limit) leaves `data` undefined, so either way the
- * form simply offers nothing.
+ * form simply doesn't offer anything.
  */
 export function useAddressSuggestions(term: string): UseQueryResult<AddressSuggestion[]> {
   return useQuery({

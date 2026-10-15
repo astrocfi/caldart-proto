@@ -36,7 +36,7 @@ const NAME_MISSING = 'Give the template a name.';
 /** The longest name the server accepts. */
 const NAME_MAX_LENGTH = 80;
 
-/** The choice of no type, first in the list. */
+/** The choice that leaves the type unset, first in the list. */
 const NO_TYPE: TypeOption = {
   id: null,
   name: 'No type',
@@ -89,7 +89,7 @@ export function TemplateForm({
   const bodyError = fieldError(error, 'body');
   const formRef = useRef<HTMLFormElement>(null);
   const refusal = useRefusedSubmit(formRef, error);
-  // Set by a submit with no name, and dropped as soon as one is typed.
+  // Set by a submit without a name, and dropped as soon as one is typed.
   const [isNameMissing, setIsNameMissing] = useState(false);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {

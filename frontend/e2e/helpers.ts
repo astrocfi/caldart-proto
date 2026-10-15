@@ -46,7 +46,7 @@ const PLAN_SLUGS: readonly PlanSlug[] = ['annual', 'life'];
 /** One seeded member the leader check reads a particular way. */
 export interface LeaderSubject {
   name: string;
-  /** An aircraft they list, or empty when they list none. */
+  /** An aircraft they list, or empty when they don't list one. */
   nNumber: string;
 }
 
@@ -190,7 +190,7 @@ function checkedSeedFacts(parsed: unknown): SeedFacts {
 
   const manualPaymentCount = root.manualPaymentCount;
   if (typeof manualPaymentCount !== 'number' || manualPaymentCount <= 0) {
-    rejectFacts('`manualPaymentCount` is not a count above zero: the seed recorded no checks');
+    rejectFacts('`manualPaymentCount` is not a count above zero: the seed did not record a check');
   }
 
   const rawRefunded = objectField(root, 'refundedPayment');
@@ -229,7 +229,7 @@ function checkedSeedFacts(parsed: unknown): SeedFacts {
     const value = rawRegistry[field];
     if (typeof value !== 'string' || value.length === 0) {
       rejectFacts(
-        `\`registry.${field}\` is missing: the registry holds no registration to look up`,
+        `\`registry.${field}\` is missing: the registry doesn't hold a registration to look up`,
       );
     }
     return value;
@@ -237,7 +237,7 @@ function checkedSeedFacts(parsed: unknown): SeedFacts {
   const knownYear = rawRegistry.knownYear;
   if (typeof knownYear !== 'number' || !Number.isInteger(knownYear)) {
     rejectFacts(
-      '`registry.knownYear` is not a year: the registry holds no registration to look up',
+      '`registry.knownYear` is not a year: the registry does not hold a registration to look up',
     );
   }
   const registry: RegistryFacts = {
@@ -406,7 +406,7 @@ function messagesTo(address: string): string[] {
 }
 
 /**
- * The newest message file addressed to `address`, decoded, or null when there is none.
+ * The newest message file addressed to `address`, decoded, or null when there isn't one.
  *
  * Reads files newest first and stops at the first match, rather than decoding every
  * message in the directory to find the one that matters.
@@ -424,7 +424,7 @@ function newestMessageTo(address: string): string | null {
  *
  * Most messages are written before the response to the request that sent it, so a
  * count read once that response has landed is final for that request: compare
- * one taken before with one taken after to prove a request sent nothing.  A
+ * one taken before with one taken after to prove a request didn't send anything.  A
  * registration and a password reset request answer first and mail afterwards, so
  * their count is final only once the next request has been made.
  */

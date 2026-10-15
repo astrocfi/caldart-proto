@@ -31,7 +31,8 @@ export function CalloutsPage(): JSX.Element {
   const callouts = useCallouts();
   const sender = useBulkSender();
   const rows = callouts.data ?? [];
-  // A DART leader with no DART cannot write a callout, so the empty list offers no way to.
+  // A DART leader without a DART cannot write a callout, so the empty list doesn't offer
+  // a way to.
   const canSend = sender.data?.can_send !== false;
 
   return (
@@ -54,7 +55,7 @@ export function CalloutsPage(): JSX.Element {
             initialSort={{ key: 'started_at', direction: 'desc' }}
             caption={`${rows.length} ${rows.length === 1 ? 'callout' : 'callouts'}`}
             emptyTitle="No callout has been sent"
-            // A leader with no DART reads why in the notice above, so the empty list
+            // A leader without a DART reads why in the notice above, so the empty list
             // does not say it a second time.
             emptyDescription={
               canSend

@@ -18,7 +18,7 @@ import { todayIso } from '@/portal/components/DateText';
  * The given day, or today when it is null or has already gone by.
  *
  * The renewal setup opens on the day the membership runs out, and on today for a
- * member whose term has gone by or who has none.  A change form opens on the day
+ * member whose term has gone by or who doesn't have one.  A change form opens on the day
  * its authority carries, and that day can be in the past: it is the day of the
  * attempt already scheduled, which waits for the next scan rather than for the
  * calendar.  The box refuses a day before today, so the form opens on today and
@@ -34,7 +34,7 @@ export function notBeforeToday(day: IsoDate | null, today: Date = new Date()): I
  * True when a charge falls after the membership it renews has run out.
  *
  * The expiry day itself is still covered, so a charge on it is not late.  A
- * membership that never runs out, and a mandate with no charge waiting, are
+ * membership that never runs out, and a mandate without a charge waiting, are
  * never late either.
  */
 export function isAfterExpiry(chargeOn: IsoDate | null, expiresOn: IsoDate | null): boolean {

@@ -82,8 +82,8 @@ export function RecurringDonationFields({
 /**
  * What a recurring donation will do, in one or two sentences.
  *
- * A first charge today is taken now; a later one is taken on its day with
- * nothing charged today.  A yearly donation is announced two weeks ahead of
+ * A first charge today is taken now; a later one is taken on its day, and
+ * nothing is charged today.  A yearly donation is announced two weeks ahead of
  * every charge, and a monthly or quarterly one is not.
  */
 export function recurringSummary(

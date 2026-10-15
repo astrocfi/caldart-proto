@@ -4,7 +4,7 @@ import { ApiError } from '@/portal/api/client';
 export interface SaveErrors {
   /** Messages keyed by the API's field name, each shown under its field. */
   fields: Record<string, string>;
-  /** A message that belongs to no field: a refused item, or the request as a whole. */
+  /** A message that doesn't belong to a field: a refused item, or the request as a whole. */
   form: string | null;
 }
 

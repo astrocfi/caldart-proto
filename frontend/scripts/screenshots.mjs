@@ -103,7 +103,7 @@ async function readAccounts() {
   }));
   const password = /^DEMO_PASSWORD = "([^"]+)"/m.exec(text)?.[1];
   if (accounts.length === 0 || password === undefined) {
-    throw new Error(`Found no demo accounts or no password in ${SEED}`);
+    throw new Error(`Didn't find the demo accounts and their password in ${SEED}`);
   }
   return { accounts, password };
 }
@@ -205,8 +205,8 @@ function totpNow(secret) {
 /**
  * Sign in through the portal's login form; throws when the form does not take.
  *
- * A staff account must use two-factor sign-in, and the freshly seeded database gives
- * it none, so its first sign-in sets one up on the portal's own screen: the key the
+ * A staff account must use two-factor sign-in, and the freshly seeded database doesn't
+ * give it one, so its first sign-in sets one up on the portal's own screen: the key the
  * screen offers for typing in by hand gives the code, and the backup codes are
  * acknowledged unread.
  */
@@ -274,8 +274,9 @@ async function shoot(page, context, kind) {
 
 /**
  * Presses the first visible control the step's trigger names, shoots what it opens, and
- * closes it again. Does nothing when there is no such control or it opens nothing; a step
- * that fails is noted in `context.problems` and the page is left for the next load to reset.
+ * closes it again. Doesn't do anything when there isn't such a control or it doesn't open
+ * anything; a step that fails is noted in `context.problems` and the page is left for the
+ * next load to reset.
  */
 async function openAndShoot(page, context, step) {
   const trigger = step.trigger.filter({ visible: true }).first();

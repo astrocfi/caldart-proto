@@ -131,7 +131,7 @@ export function PortalLayout(): JSX.Element {
   }, [location.pathname]);
 
   // The drawer opens at the top of the page, under the bar, so a reader who scrolled
-  // down before pressing Menu is taken back up to it rather than seeing nothing change.
+  // down before pressing Menu is taken back up to it rather than seeing the page stay put.
   useEffect(() => {
     if (drawerOpen) window.scrollTo({ top: 0, left: 0 });
   }, [drawerOpen]);

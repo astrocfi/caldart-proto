@@ -1,12 +1,12 @@
 /**
  * Somebody gives on a schedule from the Donate screen: monthly with the first
- * gift taken now, or quarterly with the first charge on a later day and nothing
+ * gift taken now, or quarterly with the first charge on a later day, so nothing is
  * taken today.  Either way the My payments screen then shows the Recurring donation
  * card with its cadence and its next charge.
  *
  * The account is created here rather than borrowed from the seed, so its
- * payments and its mandates are this spec's alone.  It pays no dues: a
- * recurring donation accompanies no membership.
+ * payments and its mandates are this spec's alone.  It doesn't pay dues:
+ * a recurring donation doesn't accompany a membership.
  */
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
@@ -17,8 +17,8 @@ import { completeOnboarding, displayDate, uniqueEmail } from './helpers';
 const LATER_DAYS = 10;
 
 /**
- * Create an account and walk it through the join wizard as a friend, who pays no
- * dues, so the rest of the portal is open to it.
+ * Create an account and walk it through the join wizard as a friend, who doesn't
+ * pay dues, so the rest of the portal is open to it.
  */
 async function createAccount(page: Page, email: string): Promise<void> {
   await completeOnboarding(page, email, { as: 'friend', firstName: 'Ines' });
@@ -85,7 +85,7 @@ test('a monthly donation starting today is paid now and shows its next charge', 
   await expect(page.getByRole('link', { name: 'Receipt' })).toHaveCount(1);
 });
 
-test('a quarterly donation on a later day takes nothing today', async ({ page }) => {
+test('a quarterly donation on a later day does not take anything today', async ({ page }) => {
   await createAccount(page, uniqueEmail('quarterly'));
   await chooseRecurringGift(page);
 

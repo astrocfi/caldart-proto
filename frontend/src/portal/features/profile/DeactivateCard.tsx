@@ -21,7 +21,7 @@ import { useDeactivate } from './api';
 
 const DEACTIVATED_TOAST = 'Your account is deactivated. Sign in any time to reactivate it.';
 
-/** What deactivating does to a current membership, or null when there is none. */
+/** What deactivating does to a current membership, or null when there isn't one. */
 function membershipNotice(membership: MembershipStatus): string | null {
   if (membership.status !== 'current') return null;
   if (membership.expires_on === null) {
