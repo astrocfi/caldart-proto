@@ -24,7 +24,7 @@ def test_csrf_endpoint_sets_the_cookie(api_client: APIClient) -> None:
 
 
 def test_me_is_401_when_anonymous(api_client: APIClient) -> None:
-    """``GET /auth/me`` is 401 for a client with no session."""
+    """``GET /auth/me`` is 401 for a client without a session."""
     assert api_client.get("/api/v1/auth/me").status_code == 401
 
 
@@ -111,5 +111,5 @@ def test_logout_clears_the_session(api_client: APIClient, member: User, password
 
 
 def test_roles_endpoint_requires_authentication(api_client: APIClient) -> None:
-    """``GET /roles`` is 401 for a client with no session."""
+    """``GET /roles`` is 401 for a client without a session."""
     assert api_client.get("/api/v1/roles").status_code == 401

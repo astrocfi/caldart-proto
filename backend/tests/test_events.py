@@ -34,7 +34,7 @@ def test_a_handler_receives_the_slug_and_the_payload(
 def test_an_unknown_slug_is_refused_before_any_handler_runs(
     recorded: list[tuple[str, Mapping[str, object]]],
 ) -> None:
-    """A slug outside ``EVENT_SLUGS`` raises ``ValueError`` and reaches no handler."""
+    """A slug outside ``EVENT_SLUGS`` raises ``ValueError`` before reaching a handler."""
     with pytest.raises(ValueError, match="Unknown event 'signed_upp'"):
         events.emit("signed_upp", user="ada")
 
@@ -80,7 +80,7 @@ def test_subscribing_twice_registers_once() -> None:
 
 
 def test_unsubscribing_an_unknown_handler_leaves_the_others_in_place() -> None:
-    """``unsubscribe`` of a handler never registered raises nothing, removes nothing."""
+    """``unsubscribe`` of a handler never registered doesn't raise or remove anything."""
     calls: list[str] = []
 
     def kept(slug: str, payload: Mapping[str, object]) -> None:

@@ -2,12 +2,12 @@
 
 The user guide under ``docs/user/`` is published on its own, to people who are not
 programmers, so these tests hold every page to the rules the documentation page sets
-for it: no reference leaves the guide, and no page names the developer guide; none of
-the banned words and no contrast construction ("X, not Y"); no ``--``, at most two em
-dashes, no line that begins with a comma, and no more than 250 lines.  The guide
-describes every email a person can receive, so each email purpose label appears in it.
-Because no reference leaves the guide, the Sphinx configuration needs no special case
-for the guide build, and a test holds it to that too.  Every page a reader needs a role
+for it: no reference leaves the guide, and no page names the developer guide, uses a
+banned word or the contrast construction ("X, not Y"), or carries ``--``, more than two
+em dashes, a line that begins with a comma, or more than 250 lines.  The guide describes
+every email a person can receive, so each email purpose label appears in it.  Because no
+reference leaves the guide, the Sphinx configuration doesn't need a special case for the
+guide build, and a test holds it to that too.  Every page a reader needs a role
 for names those roles in a ``:roles:`` field, and the ``guide_roles`` extension turns the
 fields into the ``roles.json`` the site reads.
 """
@@ -261,8 +261,8 @@ def test_every_email_purpose_is_described_in_the_guide(label: str) -> None:
     "name",
     ["_unpublished_developer_reference", "_developer_titles", "missing-reference"],
 )
-def test_the_sphinx_configuration_has_no_developer_guide_special_case(name: str) -> None:
-    """``docs/conf.py`` carries no handler that renders links into the developer guide."""
+def test_the_sphinx_configuration_does_not_have_a_developer_guide_special_case(name: str) -> None:
+    """``docs/conf.py`` lacks any handler that renders links into the developer guide."""
     assert name not in CONF_PY.read_text(encoding="utf-8")
 
 
@@ -316,7 +316,7 @@ GROUP_ROLES: dict[str, frozenset[str]] = {
 
 
 def _roles_field(page: Path) -> list[str] | None:
-    """The slugs a page's ``:roles:`` field names, or ``None`` when it has no field."""
+    """The slugs a page's ``:roles:`` field names, or ``None`` without that field."""
     match = ROLES_FIELD.search(page.read_text(encoding="utf-8"))
     if match is None:
         return None
@@ -384,8 +384,8 @@ def test_every_administrator_page_names_the_roles_that_reach_it(page: Path) -> N
 
 
 @pytest.mark.parametrize("page", OPEN_PAGES, ids=_page_id)
-def test_a_page_for_every_reader_carries_no_roles(page: Path) -> None:
-    """A member page, a top-level page, and an index page carry no ``:roles:`` field.
+def test_a_page_for_every_reader_does_not_carry_roles(page: Path) -> None:
+    """A member page, a top-level page, and an index page don't carry a ``:roles:`` field.
 
     An index page's roles are computed from the pages under it.
     """
@@ -476,7 +476,7 @@ def test_the_extension_moves_roles_json_into_place_whole(
     assert "roles.json" in renamed
 
 
-def test_the_extension_leaves_no_temporary_file_behind(tmp_path: Path) -> None:
+def test_the_extension_does_not_leave_a_temporary_file_behind(tmp_path: Path) -> None:
     """Only ``roles.json`` is left in the output directory, no half-written copy."""
     source, out = _write_project(tmp_path, SAMPLE_GUIDE)
     assert build_main(["-q", "-W", "-b", "dirhtml", str(source), str(out)]) == 0

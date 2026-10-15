@@ -1,6 +1,6 @@
 """A donor's record, reached from the donors report, and the delete it offers.
 
-A donor is on no member list, so the donors report links each of its rows to the
+A donor isn't on a member list, so the donors report links each of its rows to the
 member record at ``/admin/members/{user_id}``.  The record answers for a donor, and
 ``DELETE`` on it removes the donor as it removes any account: the gifts move to the
 **Deleted member <id>** tombstone, and the donors report's totals for the year read
@@ -191,10 +191,10 @@ def test_granting_a_donor_a_term_is_refused(
     assert (response.status_code, response.json()) == (400, {"detail": DONOR_GRANT_REFUSED})
 
 
-def test_a_refused_grant_writes_no_term(
+def test_a_refused_grant_does_not_write_a_term(
     finance_admin_client: APIClient, donor: User, annual_plan: MembershipPlan
 ) -> None:
-    """The donor holds no term after the refusal."""
+    """The donor doesn't hold a term after the refusal."""
     finance_admin_client.post(
         f"{_record_url(donor)}/memberships", {"plan": annual_plan.slug}, format="json"
     )
@@ -202,7 +202,7 @@ def test_a_refused_grant_writes_no_term(
     assert not Membership.objects.filter(user=donor).exists()
 
 
-def test_a_refused_grant_raises_no_event(
+def test_a_refused_grant_does_not_raise_an_event(
     finance_admin_client: APIClient,
     donor: User,
     annual_plan: MembershipPlan,

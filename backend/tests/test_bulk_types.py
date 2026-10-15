@@ -205,10 +205,10 @@ def test_a_bulk_copy_footer_offers_the_link(management: User, mission: EmailType
 
 
 @pytest.mark.usefixtures("site")
-def test_a_type_that_cannot_be_turned_off_carries_no_headers(
+def test_a_type_that_cannot_be_turned_off_does_not_carry_the_headers(
     management: User, notices: EmailType
 ) -> None:
-    """Its copy has no unsubscribe header, and its footer says why it was sent."""
+    """Its copy lacks an unsubscribe header, and its footer says why it was sent."""
     ann = make_person("ann@example.test", "Ann", "Able")
     bulk = BulkEmailFactory(sender=management, email_type=notices)
     (row,) = add_to_batch(bulk, ann)
@@ -236,8 +236,8 @@ def test_the_type_is_stored_and_shown(management_client: APIClient, management: 
     )
 
 
-def test_a_draft_starts_with_no_type(management_client: APIClient) -> None:
-    """A fresh draft has no type until the sender chooses one."""
+def test_a_draft_starts_without_a_type(management_client: APIClient) -> None:
+    """A fresh draft doesn't have a type until the sender chooses one."""
     response = management_client.post("/api/v1/bulk-email/drafts", format="json")
 
     assert (response.json()["email_type"], response.json()["email_type_name"]) == (None, "")
@@ -339,7 +339,7 @@ def test_a_manager_types_and_sends_a_colleagues_draft(
 def test_a_caller_without_the_types_role_cannot_choose_it_for_anothers_draft(
     management_client: APIClient, colleague: User
 ) -> None:
-    """A type only DART leaders send is refused to a manager who leads no DART."""
+    """A type only DART leaders send is refused to a manager who doesn't lead a DART."""
     leaders = EmailTypeFactory(name="Leaders only", sender_roles=[DART_LEADER])
     bulk = BulkEmailFactory(sender=colleague, email_type=None)
 
@@ -353,7 +353,7 @@ def test_a_caller_without_the_types_role_cannot_choose_it_for_anothers_draft(
 def test_a_caller_without_the_types_role_cannot_send_anothers_draft(
     management_client: APIClient, colleague: User
 ) -> None:
-    """A leader chose the type; a manager who leads no DART may not send it."""
+    """A leader chose the type; a manager who doesn't lead a DART may not send it."""
     leaders = EmailTypeFactory(name="Leaders only", sender_roles=[DART_LEADER])
     bulk = BulkEmailFactory(sender=colleague, email_type=leaders)
     add_to_batch(bulk, make_person("ann@example.test"))

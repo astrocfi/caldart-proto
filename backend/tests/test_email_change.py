@@ -116,7 +116,7 @@ def test_the_old_address_still_signs_in(
 def test_the_new_address_does_not_sign_in_yet(
     vera: User, api_client: APIClient, signed_in: Callable[[User], APIClient], run_on_commit: None
 ) -> None:
-    """The pending address is nobody's login."""
+    """The pending address isn't anybody's login."""
     ask(signed_in(vera))
     api_client.logout()
 
@@ -161,7 +161,7 @@ def test_the_notice_names_the_new_address(
 def test_an_unverified_old_address_is_not_told(
     signed_in: Callable[[User], APIClient], run_on_commit: None
 ) -> None:
-    """An address nobody has proved may be somebody else's, so it gets no undo link."""
+    """An unproved address may be somebody else's, so it doesn't get an undo link."""
     joiner = UserFactory(email=OLD, roles=["member"], email_verified_at=None)
 
     ask(signed_in(joiner))
@@ -267,10 +267,10 @@ def test_a_taken_address_is_answered_like_a_free_one_everywhere(
     }
 
 
-def test_a_taken_address_is_sent_no_link(
+def test_a_taken_address_is_not_sent_a_link(
     vera: User, signed_in: Callable[[User], APIClient], run_on_commit: None
 ) -> None:
-    """The address's holder never asked for anything, so is mailed nothing."""
+    """The address's holder never asked for anything, so isn't mailed anything."""
     UserFactory(email=NEW)
     client = signed_in(vera)
 
@@ -294,7 +294,7 @@ def test_a_taken_address_still_tells_the_old_address(
 def test_a_failure_after_the_pending_address_is_saved_rolls_it_back(
     vera: User, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """The request is one transaction: a failure once the address is saved leaves none."""
+    """The request is one transaction: a failure once the address is saved undoes it."""
 
     def explode(*_args: object, **_kwargs: object) -> None:
         raise RuntimeError("audit exploded")
@@ -319,7 +319,7 @@ def test_the_change_mails_wait_for_the_caller(vera: User, run_on_commit: None) -
 def test_an_administrator_cannot_change_their_own_address_on_the_record(
     account_admin: User, signed_in: Callable[[User], APIClient]
 ) -> None:
-    """The member record asks for no password, so one's own address changes elsewhere."""
+    """The member record skips the password, so one's own address changes elsewhere."""
     response = signed_in(account_admin).patch(
         f"{MEMBERS_URL}/{account_admin.pk}", {"email": "mine@example.test"}, format="json"
     )
@@ -333,7 +333,7 @@ def test_an_administrator_cannot_change_their_own_address_on_the_record(
 def test_deactivating_drops_a_waiting_change(
     vera: User, signed_in: Callable[[User], APIClient], run_on_commit: None
 ) -> None:
-    """An account switched off waits for no new address."""
+    """An account switched off doesn't wait for a new address."""
     client = signed_in(vera)
     ask(client)
 
@@ -464,7 +464,7 @@ def test_completing_clears_a_bounce(
     assert vera.email_bounced_at is None
 
 
-def test_following_the_link_twice_changes_nothing_more(
+def test_following_the_link_twice_does_not_change_anything_more(
     vera: User, signed_in: Callable[[User], APIClient], run_on_commit: None
 ) -> None:
     """A second visit answers as the first did."""
@@ -481,7 +481,7 @@ def test_following_the_link_twice_changes_nothing_more(
 def test_a_later_request_spends_the_earlier_link(
     vera: User, signed_in: Callable[[User], APIClient], run_on_commit: None
 ) -> None:
-    """Asking for another address makes the first link do nothing."""
+    """Asking for another address makes the first link inert."""
     client = signed_in(vera)
     ask(client)
     first = confirm_token()
@@ -625,7 +625,7 @@ def test_a_donors_address_changes_at_once(account_admin: User, run_on_commit: No
     assert (donor.email, donor.pending_email) == (NEW, "")
 
 
-def test_a_donors_change_mails_nothing(account_admin: User, run_on_commit: None) -> None:
+def test_a_donors_change_does_not_mail_anything(account_admin: User, run_on_commit: None) -> None:
     """Nothing is sent for a donor's change of address."""
     donor = UserFactory(email=OLD, kind=AccountKind.DONOR, email_verified_at=None)
 
@@ -634,8 +634,8 @@ def test_a_donors_change_mails_nothing(account_admin: User, run_on_commit: None)
     assert mail.outbox == []
 
 
-def test_the_same_address_in_another_case_is_no_change(vera: User, run_on_commit: None) -> None:
-    """Resending the address in other capitals writes and mails nothing."""
+def test_the_same_address_in_another_case_is_not_a_change(vera: User, run_on_commit: None) -> None:
+    """Resending the address in other capitals doesn't write or mail anything."""
     request_email_change(vera, vera, OLD.upper())
 
     vera.refresh_from_db()

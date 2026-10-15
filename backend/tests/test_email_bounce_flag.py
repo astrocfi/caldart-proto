@@ -88,7 +88,7 @@ def test_a_change_of_case_keeps_the_bounce(bounced: User, user_admin: User) -> N
 
 
 def test_an_edit_that_leaves_the_address_keeps_the_bounce(bounced: User, user_admin: User) -> None:
-    """Correcting a name says nothing about the address."""
+    """Correcting a name doesn't say anything about the address."""
     update_account(user_admin, bounced, {"first_name": "Danielle"})
 
     assert _bounce(bounced) == (BOUNCED_AT, DETAIL)
@@ -168,10 +168,10 @@ def test_clear_bounce_is_audited(
     ]
 
 
-def test_clearing_no_bounce_records_nothing(
+def test_clearing_an_unflagged_account_does_not_record_anything(
     user_admin: User, member: User, audit_log: pytest.LogCaptureFixture
 ) -> None:
-    """An account with nothing to clear is left alone, and no line is written."""
+    """An account without a flag to clear is left alone, and no line is written."""
     clear_email_bounce(user_admin, member)
 
     assert audit_messages(audit_log) == []

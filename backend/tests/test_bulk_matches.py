@@ -1,9 +1,9 @@
 """The search on the compose screen: who the filters choose, before anybody is added.
 
 ``GET /bulk-email/{id}/batch/matches`` runs the member list's filters as an add would,
-pages the people they choose, and says whether each would receive a copy.  It stores
-nothing.  A DART leader's email is held to the leader's DART, and the ``dart`` filter
-takes several DARTs as a list of ids.
+pages the people they choose, and says whether each would receive a copy.  It doesn't
+store anything.  A DART leader's email is held to the leader's DART, and the ``dart``
+filter takes several DARTs as a list of ids.
 """
 
 from __future__ import annotations
@@ -115,7 +115,7 @@ def test_a_match_carries_what_a_batch_row_says(
 def test_a_match_who_would_be_skipped_says_why(
     management_client: APIClient, bulk: BulkEmail, people: dict[str, User]
 ) -> None:
-    """A deactivated account matches, as on an add, and would be sent no copy."""
+    """A deactivated account matches, as on an add, and wouldn't be sent a copy."""
     people["nat"].is_active = False
     people["nat"].save()
     body = management_client.get(matches_url(bulk), {"search": "nat@example.test"}).json()
@@ -124,7 +124,7 @@ def test_a_match_who_would_be_skipped_says_why(
     ]
 
 
-def test_searching_stores_nothing(
+def test_searching_does_not_store_anything(
     management_client: APIClient, bulk: BulkEmail, people: dict[str, User]
 ) -> None:
     """No add is recorded and the batch stays empty."""
@@ -261,10 +261,10 @@ def test_a_leaders_search_naming_other_darts_is_refused(
     assert response.json() == {"filters": {"dart": [NOT_YOUR_DART_MESSAGE]}}
 
 
-def test_a_leader_with_no_dart_cannot_search(
+def test_a_leader_without_a_dart_cannot_search(
     leader_client: APIClient, leader_draft: BulkEmail, leader: User
 ) -> None:
-    """Their profile names no DART, so nobody matches: 409."""
+    """Their profile doesn't name a DART, so nobody matches: 409."""
     leader.profile.dart = None
     leader.profile.save()
     response = leader_client.get(matches_url(leader_draft))

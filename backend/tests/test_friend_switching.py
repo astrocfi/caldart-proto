@@ -1,7 +1,7 @@
 """Switching between a member and a friend of CalDART, from the portal.
 
 ``POST /me/kind/friend`` asks to become a friend: a member whose term is current
-becomes one the day after it runs out, and one with no current term becomes one at
+becomes one the day after it runs out, and one without a current term becomes one at
 once.  The automatic renewal is canceled either way, and a contribution it carried can
 be kept as a yearly recurring donation.  ``DELETE /me/kind/friend`` undoes a pending
 change.  The API contract is ``docs/developer/api-profile.rst``.
@@ -109,7 +109,7 @@ def test_a_lifetime_member_is_refused(
 def test_a_refused_lifetime_member_keeps_their_kind(
     member_client: APIClient, member: User, life_plan: MembershipPlan
 ) -> None:
-    """The refusal writes nothing: no pending date."""
+    """The refusal doesn't write anything: no pending date."""
     MembershipFactory(user=member, plan=life_plan, ends_on=None)
     become_friend(member_client)
     assert fresh(member).friend_on is None
@@ -211,7 +211,7 @@ def test_the_change_is_audited_with_its_date(
 
 
 # --------------------------------------------------------------------------
-# A member with no current term
+# A member without a current term
 # --------------------------------------------------------------------------
 def test_an_expired_member_becomes_a_friend_at_once(
     member_client: APIClient, member: User, annual_plan: MembershipPlan
@@ -225,7 +225,7 @@ def test_an_expired_member_becomes_a_friend_at_once(
 def test_a_member_who_never_paid_is_stored_as_a_friend_at_once(
     member_client: APIClient, member: User
 ) -> None:
-    """A member with no term, a friend in effect already, is stored as a friend too."""
+    """A member without a term, a friend in effect already, is stored as a friend too."""
     status, body = become_friend(member_client)
     assert (status, body["membership"]["status"], fresh(member).kind) == (
         200,
@@ -282,19 +282,19 @@ def test_a_pending_renewal_is_thrown_away(
     assert not RenewalMandate.objects.filter(user=current_member).exists()
 
 
-def test_a_renewal_without_a_contribution_needs_no_answer(
+def test_a_renewal_without_a_contribution_does_not_need_an_answer(
     member_client: APIClient, current_member: User, annual_plan: MembershipPlan
 ) -> None:
-    """``keep_contribution`` is not asked for when there is nothing to keep."""
+    """``keep_contribution`` is not asked for when there isn't anything to keep."""
     renewal(current_member, annual_plan)
     status, _ = become_friend(member_client)
     assert status == 200
 
 
-def test_a_renewal_without_a_contribution_leaves_no_donation(
+def test_a_renewal_without_a_contribution_does_not_leave_a_donation(
     member_client: APIClient, current_member: User, annual_plan: MembershipPlan
 ) -> None:
-    """Keeping nothing creates nothing, whatever the body says."""
+    """Without a contribution to keep, nothing is created, whatever the body says."""
     renewal(current_member, annual_plan)
     become_friend(member_client, keep_contribution=True)
     assert not RenewalMandate.objects.filter(user=current_member, plan__isnull=True).exists()
@@ -308,7 +308,7 @@ def test_a_contribution_needs_an_answer(
     assert become_friend(member_client) == (400, KEEP_REQUIRED)
 
 
-def test_an_unanswered_contribution_changes_nothing(
+def test_an_unanswered_contribution_does_not_change_anything(
     member_client: APIClient, current_member: User, annual_plan: MembershipPlan
 ) -> None:
     """The refusal leaves the renewal on and the kind as it was."""
@@ -318,10 +318,10 @@ def test_an_unanswered_contribution_changes_nothing(
     assert (mandate.status, fresh(current_member).friend_on) == (MandateStatus.ACTIVE, None)
 
 
-def test_stopping_the_contribution_leaves_no_donation(
+def test_stopping_the_contribution_does_not_leave_a_donation(
     member_client: APIClient, current_member: User, annual_plan: MembershipPlan
 ) -> None:
-    """``keep_contribution: false`` cancels the renewal and gives nothing more."""
+    """``keep_contribution: false`` cancels the renewal and doesn't give anything more."""
     renewal(current_member, annual_plan, contribution_cents=CONTRIBUTION)
     become_friend(member_client, keep_contribution=False)
     assert not RenewalMandate.objects.filter(user=current_member, plan__isnull=True).exists()
@@ -418,7 +418,7 @@ def test_keeping_beside_a_live_donation_is_refused(
     assert become_friend(member_client, keep_contribution=True) == (400, DONATION_HELD)
 
 
-def test_a_refused_keep_changes_nothing(
+def test_a_refused_keep_does_not_change_anything(
     member_client: APIClient, current_member: User, annual_plan: MembershipPlan
 ) -> None:
     """The refusal leaves the renewal on, the donation as it was, and the kind alone."""
@@ -450,7 +450,7 @@ def test_a_kept_contribution_from_a_lapsed_renewal_is_first_charged_today(
     assert donation.next_charge_on == today
 
 
-def test_a_paused_renewals_contribution_needs_no_answer(
+def test_a_paused_renewals_contribution_does_not_need_an_answer(
     member_client: APIClient, current_member: User, annual_plan: MembershipPlan
 ) -> None:
     """A paused renewal's contribution is not offered, so no answer is asked for."""
@@ -464,7 +464,7 @@ def test_a_paused_renewals_contribution_needs_no_answer(
     assert status == 200
 
 
-def test_a_paused_renewal_is_canceled_and_leaves_no_donation(
+def test_a_paused_renewal_is_canceled_and_does_not_leave_a_donation(
     member_client: APIClient, current_member: User, annual_plan: MembershipPlan
 ) -> None:
     """A paused renewal is canceled and its contribution stops, whatever the body says."""
@@ -493,7 +493,7 @@ def test_an_anonymous_caller_cannot_undo(api_client: APIClient) -> None:
 def test_undo_clears_the_pending_date(
     member_client: APIClient, current_member: User, today: date
 ) -> None:
-    """The member stays a member with nothing pending, and the payload says so."""
+    """The member stays a member without anything pending, and the payload says so."""
     current_member.friend_on = today + timedelta(days=201)
     current_member.save(update_fields=["friend_on"])
     response = member_client.delete(FRIEND_URL)
@@ -508,7 +508,7 @@ def test_undo_clears_the_pending_date(
     )
 
 
-def test_undo_restores_no_canceled_renewal(
+def test_undo_does_not_restore_a_canceled_renewal(
     member_client: APIClient, current_member: User, annual_plan: MembershipPlan
 ) -> None:
     """The renewal the change canceled stays canceled."""
@@ -552,7 +552,7 @@ def test_undo_after_the_day_has_come_is_refused(
 
 
 def test_undo_for_a_friend_is_refused(api_client: APIClient, friend: User) -> None:
-    """A friend has nothing pending to undo."""
+    """A friend doesn't have anything pending to undo."""
     api_client.force_login(friend)
     response = api_client.delete(FRIEND_URL)
     assert (response.status_code, response.json()) == (400, NO_PENDING_CHANGE)

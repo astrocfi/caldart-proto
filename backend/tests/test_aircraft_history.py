@@ -78,15 +78,15 @@ def test_record_change_writes_one_row_naming_the_fields(member: User) -> None:
     assert change.fields == ["make", "model"]
 
 
-def test_record_change_keeps_no_fields_for_a_creation(member: User) -> None:
-    """A ``created`` row names no columns: the whole record is the change."""
+def test_record_change_does_not_keep_any_fields_for_a_creation(member: User) -> None:
+    """A ``created`` row doesn't name any columns: the whole record is the change."""
     aircraft = AircraftFactory(n_number="N13RC")
     change = record_change(aircraft, actor=member, kind=AircraftChangeKind.CREATED, fields=[])
     assert change.fields == []
 
 
-def test_record_change_accepts_no_actor() -> None:
-    """A change with nobody signed in stores ``changed_by`` as null."""
+def test_record_change_accepts_a_missing_actor() -> None:
+    """A change made while nobody is signed in stores ``changed_by`` as null."""
     aircraft = AircraftFactory(n_number="N14RC")
     change = record_change(aircraft, actor=None, kind=AircraftChangeKind.CREATED, fields=[])
     assert change.changed_by is None
@@ -100,7 +100,7 @@ def test_changed_fields_names_only_the_columns_whose_value_moves() -> None:
 
 
 def test_changed_fields_is_empty_when_nothing_moves() -> None:
-    """Resending the stored values names no column."""
+    """Resending the stored values doesn't name a column."""
     aircraft = AircraftFactory(n_number="N16RC", make="Cessna", model="182T Skylane")
     assert changed_fields(aircraft, {"type": aircraft.type}) == []
 
@@ -112,7 +112,7 @@ def test_changed_fields_ignores_a_key_the_model_does_not_carry() -> None:
 
 
 def test_a_change_row_orders_newest_first(member: User) -> None:
-    """``AircraftChange`` reads newest first, so a history needs no ordering."""
+    """``AircraftChange`` reads newest first, so a history doesn't need an ordering."""
     aircraft = AircraftFactory(n_number="N18RC")
     first = AircraftChangeFactory(aircraft=aircraft, changed_by=member)
     second = AircraftChangeFactory(aircraft=aircraft, changed_by=member)
@@ -157,7 +157,7 @@ def test_creating_an_aircraft_records_a_created_change(api_client: APIClient, me
     assert change.kind == AircraftChangeKind.CREATED
 
 
-def test_a_created_change_names_no_fields(api_client: APIClient, member: User) -> None:
+def test_a_created_change_does_not_name_any_fields(api_client: APIClient, member: User) -> None:
     """Nothing "changed" on a creation, so the row's field list is empty."""
     api_client.force_login(member)
     response = api_client.post(LIST_URL, creation_payload())
@@ -214,7 +214,7 @@ def test_putting_an_aircraft_records_the_changed_fields(
     assert AircraftChange.objects.get(aircraft=aircraft).fields == ["type"]
 
 
-def test_a_save_that_moves_nothing_still_records_the_write(
+def test_a_save_that_does_not_move_anything_still_records_the_write(
     api_client: APIClient, account_admin: User
 ) -> None:
     """The history records who wrote to the airframe, so an unchanged save is a row."""
@@ -225,26 +225,28 @@ def test_a_save_that_moves_nothing_still_records_the_write(
     assert AircraftChange.objects.get(aircraft=aircraft).fields == []
 
 
-def test_a_save_that_moves_nothing_records_an_updated_row(
+def test_a_save_that_does_not_move_anything_records_an_updated_row(
     api_client: APIClient, account_admin: User
 ) -> None:
-    """That row is an ``updated`` one, with no column named."""
+    """That row is an ``updated`` one, without a column named."""
     aircraft = AircraftFactory(n_number="N37PA", model="182T Skylane")
     api_client.force_login(account_admin)
     api_client.patch(detail_url(aircraft), {"type_id": aircraft.type_id})
     assert AircraftChange.objects.get(aircraft=aircraft).kind == AircraftChangeKind.UPDATED
 
 
-def test_a_refused_edit_records_nothing(api_client: APIClient, member: User) -> None:
-    """A 403 leaves no trail: nothing was changed."""
+def test_a_refused_edit_does_not_record_anything(api_client: APIClient, member: User) -> None:
+    """A 403 doesn't leave a trail: nothing was changed."""
     aircraft = AircraftFactory(n_number="N34PA", created_by=UserFactory(email="other@example.test"))
     api_client.force_login(member)
     assert api_client.patch(detail_url(aircraft), {"type_id": sr22_id()}).status_code == 403
     assert AircraftChange.objects.count() == 0
 
 
-def test_an_invalid_edit_records_nothing(api_client: APIClient, account_admin: User) -> None:
-    """A 400 leaves no trail either."""
+def test_an_invalid_edit_does_not_record_anything(
+    api_client: APIClient, account_admin: User
+) -> None:
+    """A 400 doesn't leave a trail either."""
     aircraft = AircraftFactory(n_number="N35PA")
     api_client.force_login(account_admin)
     assert api_client.patch(detail_url(aircraft), {"type_id": ""}).status_code == 400
@@ -281,7 +283,7 @@ def test_the_history_404s_for_an_unknown_aircraft(
 def test_the_history_is_empty_for_a_record_nobody_has_touched(
     api_client: APIClient, account_admin: User
 ) -> None:
-    """A seeded record with no writes since reads as an empty list."""
+    """A seeded record without any writes since reads as an empty list."""
     aircraft = AircraftFactory(n_number="N42HI")
     api_client.force_login(account_admin)
     assert api_client.get(changes_url(aircraft)).json() == []
@@ -314,8 +316,10 @@ def test_a_history_row_names_the_actor(api_client: APIClient, fixed_name_admin: 
     assert row["changed_by"] == {"id": fixed_name_admin.pk, "name": fixed_name_admin.display_name}
 
 
-def test_a_history_row_with_no_actor_reads_null(api_client: APIClient, account_admin: User) -> None:
-    """A change the seed or a command made carries no account."""
+def test_a_history_row_without_an_actor_reads_null(
+    api_client: APIClient, account_admin: User
+) -> None:
+    """A change the seed or a command made doesn't carry an account."""
     aircraft = AircraftFactory(n_number="N46HI")
     AircraftChangeFactory(aircraft=aircraft, changed_by=None)
     api_client.force_login(account_admin)

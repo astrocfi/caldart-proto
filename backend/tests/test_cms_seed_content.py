@@ -330,7 +330,7 @@ def test_definition_list_renders_one_bold_item_per_row() -> None:
     )
 
 
-def test_definition_list_of_no_rows_is_an_empty_list() -> None:
+def test_definition_list_without_rows_is_an_empty_list() -> None:
     """No rows give an empty ``<ul>`` rather than any item markup."""
     assert content.definition_list([]) == "<ul></ul>"
 

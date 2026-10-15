@@ -1,6 +1,6 @@
 """Members, friends, and donors: the kind of an account and what follows from it.
 
-A member pays dues; a friend is a person with a portal account and no dues, who
+A member pays dues; a friend is a person with a portal account who doesn't pay dues and
 is never current and never expired; a donor gives through the public site and
 cannot sign in.  ``docs/user/overview.rst`` says what each kind of person
 can do, and ``docs/developer/data-model.rst`` how the kind is stored and worked out.
@@ -92,7 +92,7 @@ type OnCommit = DjangoCaptureOnCommitCallbacks
 
 @pytest.fixture
 def donor(db: None) -> User:
-    """A donor: an account with no password, no role, and one settled gift."""
+    """A donor: an account without a password or a role, and with one settled gift."""
     user = create_account(
         email="giver@example.test", first_name="Gil", last_name="Ivers", kind=AccountKind.DONOR
     )
@@ -133,8 +133,8 @@ def test_the_three_kinds_and_their_labels() -> None:
     ]
 
 
-def test_a_new_account_is_a_member_with_no_pending_change(db: None) -> None:
-    """An account created without a kind is a member, with no ``friend_on`` date."""
+def test_a_new_account_is_a_member_without_a_pending_change(db: None) -> None:
+    """An account created without a kind is a member, without a ``friend_on`` date."""
     user = create_account(email="plain@example.test", password=GOOD_PASSWORD)
     assert user.kind == AccountKind.MEMBER
     assert user.friend_on is None
@@ -152,7 +152,7 @@ def test_a_new_account_is_a_member_with_no_pending_change(db: None) -> None:
 def test_create_account_gives_the_member_role_to_members_and_friends_only(
     db: None, kind: AccountKind, roles: list[str]
 ) -> None:
-    """Members and friends hold the ``member`` role; a donor holds no role at all."""
+    """Members and friends hold the ``member`` role; a donor doesn't hold any role."""
     user = create_account(email=f"{kind}@example.test", kind=kind)
     assert user.kind == kind
     assert user.roles == roles
@@ -214,7 +214,7 @@ def test_kind_annotation_agrees_with_account_kind(today: date) -> None:
 
 
 def test_convert_due_friends_writes_down_every_due_conversion(today: date) -> None:
-    """A due member becomes a friend with no pending date; one ahead is untouched."""
+    """A due member becomes a friend without a pending date; one ahead is untouched."""
     cases = _kind_cases(today)
     converted = convert_due_friends(today)
     assert converted == 2
@@ -264,8 +264,8 @@ def test_the_reminder_run_writes_down_due_conversions(today: date) -> None:
     assert user.kind == AccountKind.FRIEND
 
 
-def test_a_dry_reminder_run_converts_nobody(today: date) -> None:
-    """A rehearsal of the reminder run writes no conversion down."""
+def test_a_dry_reminder_run_does_not_convert_anybody(today: date) -> None:
+    """A rehearsal of the reminder run doesn't write a conversion down."""
     user = UserFactory(email="due@example.test", friend_on=today)
     send_renewal_reminders(today=today, dry_run=True)
     user.refresh_from_db()
@@ -296,8 +296,8 @@ def test_a_pending_friend_is_never_sent_renewal_reminders(
 # --------------------------------------------------------------------------
 # Membership state
 # --------------------------------------------------------------------------
-def test_a_friend_reads_as_friend_with_nothing_to_expire(friend: User) -> None:
-    """A friend's status is ``friend``, with no date, no plan, and never lifetime."""
+def test_a_friend_reads_as_friend_without_anything_to_expire(friend: User) -> None:
+    """A friend's status is ``friend``, without a date or a plan, and never lifetime."""
     assert membership_status(friend) == {
         "status": MembershipState.FRIEND,
         "expires_on": None,
@@ -348,7 +348,7 @@ def walled_page(site_settings: SiteSettings) -> StandardPage:
 
 
 def test_a_friend_is_refused_members_only_content(friend: User) -> None:
-    """A friend with no staff role may not read members-only pages."""
+    """A friend without a staff role may not read members-only pages."""
     assert friend.can_access_members_content is False
 
 
@@ -379,7 +379,7 @@ def test_the_wall_invites_a_friend_to_become_a_member(
 def test_the_wall_asks_a_member_who_has_not_paid_for_their_dues(
     client: Client, walled_page: StandardPage
 ) -> None:
-    """A member with no term yet is offered Pay dues, never called a friend."""
+    """A member without a term yet is offered Pay dues, never called a friend."""
     unpaid = UserFactory(email="unpaid@example.test")
     client.force_login(unpaid)
     body = client.get(walled_page.url).content.decode()
@@ -519,7 +519,7 @@ def test_registering_a_donors_address_asks_for_the_address_to_be_proved(
     )
 
 
-def test_registering_a_donors_address_signs_nobody_in(
+def test_registering_a_donors_address_does_not_sign_anybody_in(
     api_client: APIClient, donor_registration: ApiResponse
 ) -> None:
     """Whoever registered is not signed in, so the donor's gifts stay out of reach."""
@@ -529,7 +529,7 @@ def test_registering_a_donors_address_signs_nobody_in(
 def test_a_donor_upgrade_cannot_sign_in_before_the_address_is_proved(
     api_client: APIClient, donor: User, donor_registration: ApiResponse
 ) -> None:
-    """The password chosen at registration opens nothing until the link is followed."""
+    """The password chosen at registration stays unusable until the link is followed."""
     response = api_client.post(
         LOGIN_URL, {"email": donor.email, "password": GOOD_PASSWORD}, format="json"
     )
@@ -554,7 +554,7 @@ def test_registering_a_donors_address_leaves_the_donor_as_it_was(
     assert getattr(donor, field) == expected
 
 
-def test_registering_a_donors_address_writes_no_password(
+def test_registering_a_donors_address_does_not_write_a_password(
     donor: User, donor_registration: ApiResponse
 ) -> None:
     """The registration's password is never written to the donor's account."""
@@ -565,16 +565,16 @@ def test_registering_a_donors_address_writes_no_password(
 def test_following_a_donors_link_without_a_password_asks_for_one(
     donor_registration: ApiResponse,
 ) -> None:
-    """The link alone opens nothing: the answer asks for the password to sign in with."""
+    """The link alone doesn't sign in: the answer asks for the password to use."""
     response = _follow_link()
     assert response.status_code == 400
     assert response.json() == {"password": [DONOR_UPGRADE_PROMPT], "code": "password_required"}
 
 
-def test_following_a_donors_link_without_a_password_changes_nothing(
+def test_following_a_donors_link_without_a_password_does_not_change_anything(
     donor: User, donor_registration: ApiResponse
 ) -> None:
-    """A link followed with no password leaves the donor a donor, unverified."""
+    """A link followed without a password leaves the donor a donor, unverified."""
     _follow_link()
     donor.refresh_from_db()
     assert (donor.kind, donor.email_verified) == (AccountKind.DONOR, False)
@@ -592,7 +592,7 @@ def test_a_donors_link_refuses_a_password_the_validators_reject(
 def test_a_refused_password_leaves_the_donor_a_donor(
     donor: User, donor_registration: ApiResponse
 ) -> None:
-    """A rejected password writes nothing: no password, no upgrade."""
+    """A rejected password doesn't write anything: no password, no upgrade."""
     _follow_link(password=WEAK_PASSWORD)
     donor.refresh_from_db()
     assert (donor.kind, donor.has_usable_password()) == (AccountKind.DONOR, False)
@@ -633,7 +633,7 @@ def test_the_upgraded_donor_signs_in_with_the_password_chosen_at_the_link(
 def test_the_registrations_password_never_signs_the_upgraded_donor_in(
     api_client: APIClient, upgraded_donor: User
 ) -> None:
-    """The password typed when registering opens nothing, even after the upgrade."""
+    """The password typed when registering stays unusable, even after the upgrade."""
     response = api_client.post(
         LOGIN_URL, {"email": upgraded_donor.email, "password": GOOD_PASSWORD}, format="json"
     )
@@ -674,7 +674,7 @@ def test_register_member_with_a_kind_creates_that_kind(db: None) -> None:
 # --------------------------------------------------------------------------
 @pytest.fixture
 def donor_with_password(donor: User) -> User:
-    """A donor whose account somehow holds a password, which must still open nothing."""
+    """A donor whose account somehow holds a password, which still must not open it."""
     donor.set_password(DEFAULT_PASSWORD)
     donor.save(update_fields=["password"])
     return donor
@@ -698,27 +698,29 @@ def test_a_session_naming_a_donor_reads_as_signed_out(donor: User) -> None:
     assert client.get(ME_URL).status_code == 401
 
 
-def test_a_donor_is_sent_no_password_reset(donor: User) -> None:
+def test_a_donor_is_not_sent_a_password_reset(donor: User) -> None:
     """``send_password_reset_email`` skips a donor and says so."""
     assert send_password_reset_email(donor) is False
     assert mail.outbox == []
 
 
-def test_the_reset_endpoint_mails_a_donor_nothing(api_client: APIClient, donor: User) -> None:
-    """``POST /auth/password/reset`` answers 204 for a donor and sends nothing."""
+def test_the_reset_endpoint_does_not_mail_a_donor_anything(
+    api_client: APIClient, donor: User
+) -> None:
+    """``POST /auth/password/reset`` answers 204 for a donor and doesn't send anything."""
     response = api_client.post(RESET_URL, {"email": donor.email}, format="json")
     assert response.status_code == 204
     assert mail.outbox == []
 
 
-def test_a_donor_is_sent_no_invitation(donor: User) -> None:
-    """``send_password_invitation`` sends a donor nothing."""
+def test_a_donor_is_not_sent_an_invitation(donor: User) -> None:
+    """``send_password_invitation`` doesn't send a donor anything."""
     send_password_invitation(donor)
     assert mail.outbox == []
 
 
-def test_a_donor_is_sent_no_verification_message(donor: User) -> None:
-    """``send_email_verification`` sends a donor nothing."""
+def test_a_donor_is_not_sent_a_verification_message(donor: User) -> None:
+    """``send_email_verification`` doesn't send a donor anything."""
     send_email_verification(donor)
     assert mail.outbox == []
 
@@ -943,13 +945,13 @@ def test_saving_a_pending_friend_with_the_same_kind_keeps_the_pending_date(
 def test_a_friend_with_a_live_term_is_never_listed_as_expiring(
     account_admin_client: APIClient, friend: User, annual_plan: MembershipPlan
 ) -> None:
-    """``?expiring_within=`` lists members only: a friend has nothing to expire."""
+    """``?expiring_within=`` lists members only, since a friend never expires."""
     grant_membership(friend, annual_plan, days_left=10)
     rows = account_admin_client.get(MEMBERS_URL, {"expiring_within": 30}).json()["results"]
     assert [row["email"] for row in rows] == []
 
 
-def test_a_friend_with_a_live_term_sorts_with_those_who_have_no_expiry(
+def test_a_friend_with_a_live_term_sorts_with_those_who_do_not_have_an_expiry(
     account_admin_client: APIClient,
     friend: User,
     member: User,

@@ -67,7 +67,7 @@ def test_an_unusable_choice_falls_back_to_the_directory(
 
 
 def test_without_a_directory_the_reader_goes_home(client: Client, dart: Dart) -> None:
-    """With no DART directory published, the finder falls back to the site root."""
+    """Without a DART directory published, the finder falls back to the site root."""
     response = client.get(URL, {"dart": str(dart.pk)})
 
     assert response.status_code == 302

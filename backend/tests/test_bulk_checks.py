@@ -120,8 +120,8 @@ def web() -> Iterator[respx.Router]:
 
 
 # -- errors -----------------------------------------------------------------------
-def test_a_complete_email_has_no_findings(web: respx.Router) -> None:
-    """A subject, a message, and a valid ``Reply-To``, with no links: nothing to say."""
+def test_a_complete_email_does_not_have_any_findings(web: respx.Router) -> None:
+    """A subject, a message, and a valid ``Reply-To``, without links: nothing to say."""
     assert findings_for(message("Join us at Livermore.")) == []
 
 
@@ -133,7 +133,7 @@ def test_an_empty_subject_is_an_error() -> None:
 
 
 def test_a_message_of_empty_paragraphs_is_an_error() -> None:
-    """A message that reads as no text stops the send."""
+    """A message without any text stops the send."""
     assert findings_for("<p> </p><p></p>") == [
         Finding(NO_BODY, Level.ERROR, checks.NO_BODY_MESSAGE)
     ]
@@ -165,7 +165,7 @@ def test_errors_come_before_warnings() -> None:
 # -- a field empty for most of the batch ---------------------------------------------
 @pytest.fixture
 def three_people(management: User) -> BulkEmail:
-    """A draft greeting by ``{dart_name}`` three people, two of them with no DART."""
+    """A draft greeting by ``{dart_name}`` three people, two of them without a DART."""
     bulk = BulkEmailFactory(
         sender=management, body=message("Your DART is {dart_name}."), reply_to=""
     )
@@ -176,7 +176,7 @@ def three_people(management: User) -> BulkEmail:
 
 
 def test_a_field_empty_for_most_of_the_batch_is_a_warning(three_people: BulkEmail) -> None:
-    """Two of three people have no DART: the warning says so with the counts."""
+    """Two of three people don't have a DART: the warning says so with the counts."""
     assert run_checks(three_people) == [
         Finding(
             EMPTY_FIELD,
@@ -242,7 +242,7 @@ def test_words_that_only_contain_a_placeholder_pass() -> None:
 
 # -- pictures -------------------------------------------------------------------------
 def test_a_picture_without_a_description_is_a_warning() -> None:
-    """A picture pasted in with no ``alt`` is caught, though the editor took it."""
+    """A picture pasted in without an ``alt`` is caught, though the editor took it."""
     found = findings_for(message("The ramp:", '<img src="https://example.org/a.png">'))
     assert found == [
         Finding(
@@ -267,7 +267,7 @@ def test_pictures_with_blank_descriptions_are_counted_together() -> None:
 
 
 def test_a_picture_with_a_description_passes() -> None:
-    """A described picture of a modest width says nothing."""
+    """A described picture of a modest width doesn't say anything."""
     assert findings_for(message('<img src="https://example.org/a.png" alt="A Cessna 172">')) == []
 
 
@@ -295,7 +295,7 @@ def test_an_uploaded_picture_stored_too_wide_is_a_warning(settings: Settings) ->
 
 # -- links ----------------------------------------------------------------------------
 def test_a_link_that_loads_passes(web: respx.Router) -> None:
-    """A ``HEAD`` answered 200 says nothing."""
+    """A ``HEAD`` answered 200 doesn't say anything."""
     web.head(host=PUBLIC, path="/ok").respond(200)
     assert findings_for(message('<a href="https://example.org/ok">Go</a>')) == []
 
@@ -626,7 +626,7 @@ def test_a_leader_cannot_check_another_leader_s_draft(api_client: APIClient) -> 
 
 
 def test_people_outside_a_leader_s_dart_are_not_counted_for_empty_fields() -> None:
-    """People the DART limit skips receive nothing, so their empty fields do not count."""
+    """People the DART limit skips don't get a copy, so their empty fields don't count."""
     marin = DartFactory(name="Marin")
     leader = make_dart_leader("lane@example.test", marin)
     bulk = BulkEmailFactory(
@@ -677,7 +677,7 @@ def test_the_endpoint_answers_the_findings(management_client: APIClient, managem
 def test_warnings_do_not_stop_a_send(
     management_client: APIClient, management: User, web: respx.Router
 ) -> None:
-    """An email with only warnings queues, and the send fetches no link."""
+    """An email with only warnings queues, and the send doesn't fetch a link."""
     route = web.route().respond(404)
     bulk = BulkEmailFactory(
         sender=management,

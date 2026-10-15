@@ -55,7 +55,7 @@ def forwarded_for(*addresses: str) -> str:
 def attempt_login(api_client: APIClient, member: User, chain: str = "") -> int:
     """One failed sign-in: a 400 while the throttle allows it, then a 429.
 
-    ``chain`` is the ``X-Forwarded-For`` value to send; the default sends no such
+    ``chain`` is the ``X-Forwarded-For`` value to send; the default doesn't send that
     header, so the request arrives as if straight off the socket.
     """
     credentials = {"email": member.email, "password": "wrong"}
@@ -68,7 +68,7 @@ def attempt_login(api_client: APIClient, member: User, chain: str = "") -> int:
 def test_a_rotating_forwarded_prefix_shares_one_budget(
     api_client: APIClient, member: User, login_twice_a_minute: None
 ) -> None:
-    """A different spoofed prefix on every guess buys no extra attempts."""
+    """A different spoofed prefix on every guess doesn't buy extra attempts."""
     for spoofed in SPOOFED[:2]:
         assert attempt_login(api_client, member, forwarded_for(spoofed, CLIENT)) == 400
 

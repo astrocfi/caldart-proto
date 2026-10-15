@@ -129,7 +129,7 @@ def test_a_record_without_a_target_writes_a_dash(
     audit_log: pytest.LogCaptureFixture,
     member: UserModel,
 ) -> None:
-    """A record with no ``target`` renders ``target=-``."""
+    """A record without a ``target`` renders ``target=-``."""
     audit.record("thing.done", actor=member)
     assert one_message(audit_log) == f"action=thing.done actor={member.pk} target=-"
 
@@ -154,7 +154,7 @@ def test_a_command_is_its_own_actor(
 def test_a_record_takes_an_integer_target(
     audit_log: pytest.LogCaptureFixture,
 ) -> None:
-    """An integer ``target`` renders as its own value, with no lookup."""
+    """An integer ``target`` renders as its own value, without a lookup."""
     audit.record("thing.done", actor=audit.COMMAND_ACTOR, target=17)
     assert one_message(audit_log) == "action=thing.done actor=command target=17"
 
@@ -291,7 +291,7 @@ def test_a_record_survives_a_root_logger_raised_to_warning(
     assert one_message(audit_log) == f"action=thing.done actor={member.pk} target=-"
 
 
-def test_the_audit_module_imports_nothing_from_an_app() -> None:
+def test_the_audit_module_does_not_import_anything_from_an_app() -> None:
     """It sits under every app, like the other project foundation modules."""
     path = Path(audit.__file__)
     tree = ast.parse(path.read_text(encoding="utf-8"))
@@ -392,7 +392,7 @@ def test_an_activation_is_its_own_action(
     )
 
 
-def test_an_edit_that_changes_nothing_records_nothing(
+def test_an_edit_that_does_not_change_anything_is_not_recorded(
     api_client: APIClient,
     account_admin: UserModel,
     target_member: UserModel,
@@ -652,14 +652,14 @@ def test_correcting_a_term_records_the_changed_field_names(
     )
 
 
-def test_a_correction_that_changes_nothing_records_no_field(
+def test_a_correction_that_does_not_change_anything_does_not_record_a_field(
     api_client: APIClient,
     account_admin: UserModel,
     target_member: UserModel,
     annual_plan: MembershipPlan,
     audit_log: pytest.LogCaptureFixture,
 ) -> None:
-    """A correction that resends the stored status records no changed field."""
+    """A correction that resends the stored status doesn't record a changed field."""
     term = activate_term(target_member, annual_plan, source=MembershipSource.MANUAL)
     api_client.force_login(account_admin)
     response = api_client.patch(
@@ -713,12 +713,12 @@ def test_editing_an_aircraft_records_the_columns_that_changed(
     )
 
 
-def test_an_edit_that_moves_no_aircraft_column_records_a_dash(
+def test_an_edit_that_does_not_move_an_aircraft_column_records_a_dash(
     api_client: APIClient,
     account_admin: UserModel,
     audit_log: pytest.LogCaptureFixture,
 ) -> None:
-    """A save that alters nothing is still a write, with no column named."""
+    """A save that doesn't alter anything is still a write, without a column named."""
     aircraft = AircraftFactory(n_number="N78AU", make="Cessna", model="182T Skylane")
     api_client.force_login(account_admin)
     response = api_client.patch(

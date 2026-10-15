@@ -64,7 +64,7 @@ def test_register_member_keeps_the_names() -> None:
 
 
 def test_register_member_rolls_back_a_half_made_account(monkeypatch: pytest.MonkeyPatch) -> None:
-    """A failure while creating the profile leaves no account behind."""
+    """A failure while creating the profile doesn't leave an account behind."""
     monkeypatch.setattr(MemberProfile.objects, "get_or_create", _boom)
     with pytest.raises(RuntimeError, match="profile exploded"):
         register_member(email="joan.ames@example.test", password=PASSWORD)
@@ -110,19 +110,19 @@ def test_the_invitation_is_the_set_your_password_email(
 def test_the_invitation_waits_for_the_commit(
     account_admin: User, site_settings: SiteSettings
 ) -> None:
-    """Without the commit the mail is never sent, so a rollback mails nobody."""
+    """Without the commit the mail is never sent, so a rollback doesn't mail anybody."""
     create_member(account_admin, email="joan.ames@example.test")
     assert len(mail.outbox) == 0
 
 
 def test_create_member_leaves_the_account_without_a_password(account_admin: User) -> None:
-    """An invited account holds no usable password until it is set."""
+    """An invited account doesn't hold a usable password until it is set."""
     user = create_member(account_admin, email="joan.ames@example.test")
     assert user.has_usable_password() is False
 
 
 def test_create_member_creates_a_profile_even_without_one(account_admin: User) -> None:
-    """A member created with no profile data still gets a profile row."""
+    """A member created without profile data still gets a profile row."""
     user = create_member(account_admin, email="joan.ames@example.test")
     assert MemberProfile.objects.filter(user=user).count() == 1
 
@@ -130,7 +130,7 @@ def test_create_member_creates_a_profile_even_without_one(account_admin: User) -
 def test_create_member_rolls_back_a_half_made_member(
     account_admin: User, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """A failure while creating the profile leaves no account behind."""
+    """A failure while creating the profile doesn't leave an account behind."""
     monkeypatch.setattr(MemberProfile.objects, "create", _boom)
     with pytest.raises(RuntimeError, match="profile exploded"):
         create_member(account_admin, email="joan.ames@example.test")
@@ -160,7 +160,7 @@ def test_update_member_writes_the_profile_half(
 
 
 def test_update_member_creates_a_missing_profile(account_admin: User) -> None:
-    """A profile-half edit creates the profile row when the target has none."""
+    """A profile-half edit creates the profile row when the target doesn't have one."""
     target = UserFactory(email="target@example.test", roles=[MEMBER])
     update_member(account_admin, target, account={}, profile={"phone": "530-555-0142"})
     assert MemberProfile.objects.get(user=target).phone == "530-555-0142"
@@ -285,6 +285,8 @@ def test_a_renewal_does_not_move_member_since(
     assert member.profile.member_since == today - timedelta(days=900)
 
 
-def test_a_member_with_no_profile_is_left_alone(member: User, annual_plan: MembershipPlan) -> None:
-    """An account with no profile row still gets its term, and nothing raises."""
+def test_a_member_without_a_profile_is_left_alone(
+    member: User, annual_plan: MembershipPlan
+) -> None:
+    """An account without a profile row still gets its term, and nothing raises."""
     assert activate_term(member, annual_plan).pk is not None

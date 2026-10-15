@@ -76,7 +76,7 @@ def _env(etc: Path, **extra: str) -> dict[str, str]:
 
 
 def _machine_path(tmp_path: Path) -> str:
-    """A ``PATH`` whose ``ss`` and ``docker`` describe a machine with nothing running.
+    """A ``PATH`` whose ``ss`` and ``docker`` describe a machine without anything running.
 
     ``postgres_check_port`` and the gunicorn equivalent run ``ss`` and ``docker
     container inspect`` even in a dry run, so a real listener on this host's
@@ -149,14 +149,14 @@ def test_seed_demo_runs_between_the_roles_and_the_content(tmp_path: Path, etc: P
 
 
 def test_every_install_seeds_the_membership_plans(tmp_path: Path, etc: Path) -> None:
-    """The database step runs ``seed_plans`` after the roles, flags or no flags."""
+    """The database step runs ``seed_plans`` after the roles, with or without flags."""
     commands = _commands(_install_dry_run(tmp_path, etc))
     assert _position(commands, "manage.py seed_roles") < _position(commands, "manage.py seed_plans")
     assert not any("manage.py seed_demo" in command for command in commands)
 
 
 def test_seed_demo_alone_runs_after_the_roles(tmp_path: Path, etc: Path) -> None:
-    """``--seed-demo`` alone still runs and loads no example pages."""
+    """``--seed-demo`` alone still runs and doesn't load the example pages."""
     commands = _commands(_install_dry_run(tmp_path, etc, "--seed-demo"))
     assert _position(commands, "manage.py seed_roles") < _position(commands, "manage.py seed_demo")
     assert not any("manage.py seed_content" in command for command in commands)
@@ -201,8 +201,8 @@ def test_bootstrap_passes_seed_demo_through(tmp_path: Path) -> None:
 def test_seed_commands_import_under_production_settings(command: str) -> None:
     """``--settings caldart.settings.prod`` loads the command without error.
 
-    ``--help`` exits before ``handle()`` runs, so this needs no database; it
-    proves the command and the seed modules it imports carry no assumption
+    ``--help`` exits before ``handle()`` runs, so this doesn't need a database; it
+    proves the command and the seed modules it imports don't carry an assumption
     ``caldart.settings.prod`` does not meet, such as reading ``DEBUG``.
     """
     base = {key: os.environ[key] for key in ("PATH", "HOME", "LANG") if key in os.environ}
@@ -218,7 +218,7 @@ def test_seed_commands_import_under_production_settings(command: str) -> None:
 
 
 def test_no_seed_module_reads_debug() -> None:
-    """The seed command and every app seeder it runs read no ``DEBUG`` setting.
+    """The seed command and every app seeder it runs don't read the ``DEBUG`` setting.
 
     ``manage.sh`` always runs under ``caldart.settings.prod``, where ``DEBUG``
     is off; a seeder that branched on it would behave differently than a

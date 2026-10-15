@@ -334,7 +334,7 @@ def test_an_account_holding_roles_you_lack_is_refused(
     assert post(account_admin_client, member_url(other, "deactivate")) == (400, ROLES_REFUSED)
 
 
-def test_a_refused_deactivation_changes_nothing(
+def test_a_refused_deactivation_does_not_change_anything(
     account_admin_client: APIClient, user_admin: User
 ) -> None:
     """The guarded account stays active."""
@@ -366,7 +366,7 @@ def test_a_system_administrator_may_deactivate_another(
 
 
 def test_a_donor_cannot_be_deactivated(account_admin_client: APIClient) -> None:
-    """A donor has no portal account."""
+    """A donor doesn't have a portal account."""
     giver = UserFactory(email="giver@example.test", kind=AccountKind.DONOR, roles=[])
     assert post(account_admin_client, member_url(giver, "deactivate")) == (
         400,
@@ -515,7 +515,7 @@ def test_reactivating_an_account_holding_roles_you_lack_is_refused(
 
 
 def test_a_donor_cannot_be_reactivated(account_admin_client: APIClient) -> None:
-    """A donor has no portal account, even a deactivated one."""
+    """A donor doesn't have a portal account, even a deactivated one."""
     giver = UserFactory(email="giver@example.test", kind=AccountKind.DONOR, roles=[])
     deactivated(giver)
     assert post(account_admin_client, member_url(giver, "reactivate")) == (
@@ -527,7 +527,7 @@ def test_a_donor_cannot_be_reactivated(account_admin_client: APIClient) -> None:
 # --------------------------------------------------------------------------
 # Making a friend
 # --------------------------------------------------------------------------
-def test_a_member_with_nothing_current_becomes_a_friend_at_once(
+def test_a_member_without_a_current_term_becomes_a_friend_at_once(
     account_admin_client: APIClient, target: User
 ) -> None:
     """The answer is the member record, the kind now friend."""

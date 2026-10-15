@@ -288,7 +288,7 @@ def test_a_real_reminder_run_now_is_recorded_under_the_caller(
     )
 
 
-def test_a_practice_run_now_leaves_no_record(admin_client: APIClient) -> None:
+def test_a_practice_run_now_does_not_leave_a_record(admin_client: APIClient) -> None:
     """A practice run doesn't change anything, so it isn't recorded."""
     admin_client.post(REMINDERS_RUN_URL, {"dry_run": True}, format="json")
     assert JobRun.objects.count() == 0

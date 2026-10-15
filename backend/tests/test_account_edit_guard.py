@@ -6,7 +6,7 @@ two-factor role the target holds; member, DART leader, and verifier do not count
 user record never changes the address at all.  A Django superuser counts as a system
 administrator whether or not the role group was ever added.
 These cases replay the takeover the guard closes, check the edits that stay allowed,
-and mark that a caller who may also write roles reaches no further over a second
+and mark that a caller who may also write roles doesn't reach any further over a second
 request, since nobody changes their own roles.  What a refusal writes to the audit log
 is ``tests/test_audit_logging.py``.
 """
@@ -144,7 +144,7 @@ def test_a_user_admin_cannot_deactivate_a_treasurer(
 def test_a_user_admin_may_deactivate_an_account_with_only_open_roles(
     api_client: APIClient, user_admin: User, request: pytest.FixtureRequest, target_fixture: str
 ) -> None:
-    """DART leader and verifier are not two-factor roles, so they protect nobody."""
+    """DART leader and verifier aren't two-factor roles, so they don't protect anybody."""
     target: User = request.getfixturevalue(target_fixture)
     api_client.force_login(user_admin)
     api_client.post(f"{user_detail(target)}/deactivate")
@@ -209,7 +209,7 @@ def test_a_role_less_superuser_may_change_a_system_admins_email(
 def test_resending_the_stored_values_with_a_name_change_succeeds(
     api_client: APIClient, account_admin: User, system_admin: User
 ) -> None:
-    """The portal sends the whole form, so an unchanged protected field is no change."""
+    """The portal sends the whole form, so an unchanged protected field isn't a change."""
     api_client.force_login(account_admin)
     response = api_client.patch(
         member_detail(system_admin),
@@ -233,10 +233,10 @@ def test_an_email_that_differs_only_in_case_is_not_a_change(
     assert system_admin.email == "sysadmin@example.test"
 
 
-def test_a_change_of_case_alone_is_no_change_of_address(
+def test_a_change_of_case_alone_is_not_a_change_of_address(
     api_client: APIClient, system_admin: User, member: User
 ) -> None:
-    """The stored address in other capitals asks for nothing, whoever sends it."""
+    """The stored address in other capitals doesn't ask for anything, whoever sends it."""
     api_client.force_login(system_admin)
     response = api_client.patch(member_detail(member), {"email": member.email.upper()})
 
@@ -321,8 +321,8 @@ def test_the_roles_guard_keeps_a_role_less_superuser_active(
 ) -> None:
     """The two-request lockout: try to drop the flag first, then deactivate the account.
 
-    Resending the stored role list changes nothing, so the account still counts as a
-    system administrator when the second request arrives.
+    Resending the stored role list doesn't change anything, so the account still counts
+    as a system administrator when the second request arrives.
     """
     api_client.force_login(user_admin)
     api_client.patch(user_detail(bare_superuser), {"roles": [MEMBER]}, format="json")
@@ -444,7 +444,7 @@ def test_a_role_less_superuser_may_delete_a_system_admin(
 # The takeover, end to end
 # --------------------------------------------------------------------------
 @pytest.mark.parametrize(("actor_role", "detail"), BOTH_ENDPOINTS)
-def test_a_refused_email_edit_leaves_the_attacker_no_reset_email(
+def test_a_refused_email_edit_does_not_leave_the_attacker_a_reset_email(
     request: pytest.FixtureRequest,
     api_client: APIClient,
     system_admin: User,

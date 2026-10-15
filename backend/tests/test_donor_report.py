@@ -119,7 +119,7 @@ def test_donor_rows_read_contact_and_dart_from_the_profile(dart: Dart) -> None:
 
 
 def test_donor_rows_read_a_blank_profile_gracefully() -> None:
-    """A donor with no profile row at all reports blank contact fields, not an error."""
+    """A donor without any profile row reports blank contact fields, not an error."""
     donor = _donor()
     MemberProfile.objects.filter(user=donor).delete()
     settled_gift(donor, cents=1_000, on=date(2026, 2, 1))

@@ -651,7 +651,7 @@ def test_nul_characters_are_left_out_of_the_error(
     assert _only_run().error == "RuntimeError: badbyte"
 
 
-def test_a_scan_that_finds_another_under_way_leaves_no_record(
+def test_a_scan_that_finds_another_under_way_does_not_leave_a_record(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A renewal scan that finds a live one running stops, and it isn't recorded."""

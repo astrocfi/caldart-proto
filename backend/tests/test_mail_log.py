@@ -68,7 +68,7 @@ def test_the_row_carries_the_address_and_the_subject(email_template: str) -> Non
 
 
 def test_the_purpose_defaults_to_the_template_name(email_template: str) -> None:
-    """A caller that names no purpose gets the template's own name."""
+    """A caller that doesn't name a purpose gets the template's own name."""
     send_templated(to="marta@example.org", subject="CalDART: hello", template=email_template)
 
     assert EmailLog.objects.get().purpose == "statement_of_fact"
@@ -86,7 +86,7 @@ def test_a_caller_may_name_the_purpose_itself(email_template: str) -> None:
     assert EmailLog.objects.get().purpose == "reminder_second"
 
 
-def test_a_successful_send_is_recorded_as_sent_with_no_error(email_template: str) -> None:
+def test_a_successful_send_is_recorded_as_sent_without_an_error(email_template: str) -> None:
     """A send the mail server took reads ``sent``, and its error is blank."""
     send_templated(to="marta@example.org", subject="CalDART: hello", template=email_template)
 
@@ -118,8 +118,8 @@ def test_the_row_names_the_account_the_email_concerned(email_template: str) -> N
     assert EmailLog.objects.get().user == member
 
 
-def test_an_email_to_nobody_in_particular_has_no_account(email_template: str) -> None:
-    """A caller that names no account leaves the row's account null, not a guess."""
+def test_an_email_to_a_bare_address_does_not_have_an_account(email_template: str) -> None:
+    """A caller that doesn't name an account leaves the account null, not guessed."""
     send_templated(to="stranger@example.org", subject="CalDART: hello", template=email_template)
 
     assert EmailLog.objects.get().user is None
@@ -140,8 +140,8 @@ def test_the_row_lists_the_attachment_filenames(email_template: str) -> None:
     assert EmailLog.objects.get().attachments == "receipt-0001.pdf, statement-2026.pdf"
 
 
-def test_a_send_without_attachments_lists_none(email_template: str) -> None:
-    """An email with nothing attached records an empty list, not a placeholder."""
+def test_a_send_without_attachments_records_an_empty_list(email_template: str) -> None:
+    """An email without attachments records an empty list, not a placeholder."""
     send_templated(to="marta@example.org", subject="CalDART: hello", template=email_template)
 
     assert EmailLog.objects.get().attachments == ""
@@ -303,10 +303,10 @@ def test_a_row_carries_the_recipient_account(api_client: APIClient, system_admin
     assert row["user_name"] == "Marta Reyes"
 
 
-def test_a_row_for_an_unknown_address_names_no_account(
+def test_a_row_for_an_unknown_address_does_not_name_an_account(
     api_client: APIClient, system_admin: User
 ) -> None:
-    """A message to an address with no account reads ``null`` and an empty name."""
+    """A message to an address without an account reads ``null`` and an empty name."""
     EmailLogFactory(user=None, to_email="stranger@example.org", to_name="")
     api_client.force_login(system_admin)
 
@@ -316,7 +316,7 @@ def test_a_row_for_an_unknown_address_names_no_account(
     assert row["user_name"] == ""
 
 
-def test_a_row_for_a_named_recipient_with_no_account_carries_that_name(
+def test_a_row_for_a_named_recipient_without_an_account_carries_that_name(
     api_client: APIClient, system_admin: User
 ) -> None:
     """``user_name`` reads the row's own recorded name, such as a DART contact's."""
@@ -436,7 +436,7 @@ def test_the_search_matches_the_recipient_name(api_client: APIClient, system_adm
 def test_the_search_finds_a_roster_row_by_the_contacts_recorded_name(
     api_client: APIClient, system_admin: User
 ) -> None:
-    """``?q=`` also matches the name recorded on a row with no account behind it."""
+    """``?q=`` also matches the name recorded on a row without an account behind it."""
     EmailLogFactory(
         user=None, to_email="lee@example.test", to_name="Lee Park", purpose="dart_roster"
     )

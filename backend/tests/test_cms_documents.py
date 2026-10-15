@@ -80,7 +80,7 @@ def config_text(config: Path) -> str:
 def document_storage(settings: Settings, tmp_path: Path) -> None:
     """Store uploads on a real filesystem, as the deployed site does.
 
-    The suite's default in-memory storage has no readable path, so the serve
+    The suite's default in-memory storage doesn't have a readable path, so the serve
     view cannot stream a file back from it.
     """
     settings.MEDIA_ROOT = tmp_path
@@ -164,7 +164,7 @@ def test_a_lapsed_member_is_offered_renewal(
 def test_a_member_who_never_paid_is_refused(
     client: Client, site_settings: SiteSettings, members_document: WagtailDocument, member: User
 ) -> None:
-    """A signed-in user with no membership at all is refused the document."""
+    """A signed-in user without any membership is refused the document."""
     client.force_login(member)
 
     assert client.get(members_document.url).status_code == 403
@@ -191,7 +191,7 @@ def test_a_dart_leader_without_a_membership_is_served_the_file(
     members_document: WagtailDocument,
     dart_leader: User,
 ) -> None:
-    """A DART leader with no membership of their own still downloads the file."""
+    """A DART leader without a membership of their own still downloads the file."""
     assert dart_leader.membership_status["status"] == "none"
     client.force_login(dart_leader)
 

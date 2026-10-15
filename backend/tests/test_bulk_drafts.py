@@ -57,8 +57,8 @@ def status_of(bulk: BulkEmail) -> str:
 # --------------------------------------------------------------------------
 # Opening a draft
 # --------------------------------------------------------------------------
-def test_opening_a_draft_makes_one_for_a_sender_with_none(management: User) -> None:
-    """A sender with no empty draft gets a fresh one, owned by them."""
+def test_opening_a_draft_makes_one_for_a_sender_without_one(management: User) -> None:
+    """A sender without an empty draft gets a fresh one, owned by them."""
     opened = drafts.open_draft(management)
     assert (opened.created, opened.bulk.sender, opened.bulk.status) == (
         True,
@@ -229,7 +229,9 @@ def test_send_queues_the_email_to_start_after_the_undo_window(
     )
 
 
-def test_send_sends_nothing_in_the_request(management_client: APIClient, ready: BulkEmail) -> None:
+def test_send_does_not_send_anything_in_the_request(
+    management_client: APIClient, ready: BulkEmail
+) -> None:
     """The request only queues the email; no copy goes."""
     management_client.post(url(ready, "send"), {}, format="json")
     assert len(mail.outbox) == 0
@@ -409,8 +411,8 @@ def test_cancel_before_the_start_returns_the_email_to_a_draft(
     ) == (BulkEmailStatus.DRAFT, None, "Spring safety seminar", 1)
 
 
-def test_a_canceled_email_sends_nothing(ready: BulkEmail, management: User) -> None:
-    """The sender finds nothing to start once the email is a draft again."""
+def test_a_canceled_email_does_not_send_anything(ready: BulkEmail, management: User) -> None:
+    """The sender doesn't find anything to start once the email is a draft again."""
     with freeze_time(NOW):
         drafts.queue(ready, confirm_count=None, start_at=None, actor=management)
         drafts.cancel(ready, actor=management)
@@ -517,8 +519,8 @@ def test_only_bulk_senders_list_and_open_drafts(
 ) -> None:
     """``/bulk-email/drafts`` answers CalDART management and DART leaders.
 
-    The DART leader here has no DART on a profile, so opening a draft is a 403 with the
-    reason; ``test_bulk_leaders.py`` opens one for a leader with a DART.
+    The DART leader here doesn't have a DART on a profile, so opening a draft is a 403
+    with the reason; ``test_bulk_leaders.py`` opens one for a leader with a DART.
     """
     api_client.force_login(all_role_users[role])
     response = getattr(api_client, method)(DRAFTS_URL)
@@ -542,5 +544,5 @@ def test_an_anonymous_caller_is_turned_away(
 
 
 def test_an_unknown_email_is_not_found(management_client: APIClient) -> None:
-    """An id that names no email is a 404."""
+    """An id that doesn't name an email is a 404."""
     assert management_client.get("/api/v1/bulk-email/999999").status_code == 404

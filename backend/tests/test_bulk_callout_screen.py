@@ -162,10 +162,10 @@ def test_the_detail_has_one_row_per_person_with_what_the_member_check_shows(
     }
 
 
-def test_the_detail_lists_people_in_surname_order_with_no_answer_blank(
+def test_the_detail_lists_people_in_surname_order_with_a_missing_answer_blank(
     management_client: APIClient, callout: BulkEmail
 ) -> None:
-    """Bea and Cy have not answered: null, with no note and no time."""
+    """Bea and Cy have not answered: null, without a note or a time."""
     rows = management_client.get(url(callout)).json()["recipients"]
     assert [(row["name"], row["answer"], row["note"], row["answered_at"]) for row in rows] == [
         ("Ann Able", "limited", "Saturday only", rows[0]["answered_at"]),
@@ -360,7 +360,7 @@ def test_send_the_rest_of_a_reminder_round_skips_a_person_who_answered_since(
     ]
 
 
-def test_send_the_rest_of_a_reminder_round_sends_nothing_to_a_person_who_answered(
+def test_send_the_rest_of_a_reminder_round_does_not_send_to_a_person_who_answered(
     stopped_reminders: BulkEmail, management: User, bea: User
 ) -> None:
     """Only Cy, who has still not answered, is sent the rest."""
@@ -421,7 +421,7 @@ def test_nobody_is_reminded_once_everybody_has_answered(
     )
 
 
-def test_a_reminder_everybody_would_skip_changes_nothing(
+def test_a_reminder_everybody_would_skip_does_not_change_anything(
     management_client: APIClient, callout: BulkEmail, bea: User, cy: User
 ) -> None:
     """When nobody left can be sent one, no round is made and nothing is queued.
@@ -458,7 +458,7 @@ def test_a_callout_never_sent_is_not_reminded(management: User) -> None:
 def test_close_now_closes_the_callout(
     management_client: APIClient, management: User, callout: BulkEmail
 ) -> None:
-    """**Close now** names who closed it, and the callout takes no more answers."""
+    """**Close now** names who closed it, and the callout stops taking answers."""
     with freeze_time("2026-04-07T15:00:00Z"):
         body = management_client.post(url(callout, "close")).json()
     assert (body["is_open"], body["closed_at"], body["closed_by"]) == (
@@ -668,7 +668,7 @@ def test_close_now_calls_off_a_queued_round_of_reminders(
     )
 
 
-def test_send_the_rest_of_a_closed_callout_sends_nothing(
+def test_send_the_rest_of_a_closed_callout_does_not_send_anything(
     management_client: APIClient, management: User, bea: User, cy: User
 ) -> None:
     """A stopped callout closed meanwhile skips the rest as *Callout closed*."""
@@ -683,7 +683,7 @@ def test_send_the_rest_of_a_closed_callout_sends_nothing(
     assert (row.status, row.reason, mail.outbox) == (RecipientStatus.SKIPPED, CLOSED_REASON, [])
 
 
-def test_a_late_run_sends_no_copy_of_a_callout_already_closed(
+def test_a_late_run_does_not_send_a_copy_of_a_callout_already_closed(
     management_client: APIClient, management: User, bea: User
 ) -> None:
     """The timer came after ``closes_at``: no copy goes, and the detail says so."""
@@ -701,7 +701,7 @@ def test_a_late_run_sends_no_copy_of_a_callout_already_closed(
     assert (mail.outbox, body["closed_skipped"]) == ([], 1)
 
 
-def test_a_callout_closing_during_a_paced_send_sends_no_more_copies(
+def test_a_callout_closing_during_a_paced_send_does_not_send_any_more_copies(
     management: User, bea: User, cy: User, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The answers close while the sender waits between copies: Cy is skipped."""

@@ -79,7 +79,7 @@ def test_the_signature_does_not_match_another_message_id() -> None:
 
 
 def test_each_id_has_its_own_signature() -> None:
-    """Two ids are signed differently, so one row's address says nothing of the next."""
+    """Two ids are signed differently, so one row's address can't predict the next."""
     first = _signature(signed_bounce_address(42, MESSAGE_ID))
     second = _signature(signed_bounce_address(43, MESSAGE_ID))
 
@@ -137,8 +137,8 @@ def test_a_display_name_on_the_setting_still_verifies(settings: Settings) -> Non
     ],
     ids=["bare", "no-signature", "empty-signature", "zero-id", "19-digit-id", "empty", "no-at"],
 )
-def test_an_address_without_a_signed_tag_reads_as_no_tag(address: str) -> None:
-    """The bare address, an unsigned tag, and an id out of range carry no tag."""
+def test_an_address_without_a_signed_tag_reads_as_untagged(address: str) -> None:
+    """The bare address, an unsigned tag, and an id out of range don't carry a tag."""
     assert bounce_tag(address) is None
 
 
@@ -148,7 +148,7 @@ def test_a_made_up_signature_does_not_verify() -> None:
 
 
 def test_a_signature_moved_to_another_id_does_not_verify() -> None:
-    """Row 42's signature on row 43's id is no signature for 43."""
+    """Row 42's signature on row 43's id isn't a signature for 43."""
     signature = _signature(signed_bounce_address(42, MESSAGE_ID))
 
     assert not _verifies(f"bounces+43.{signature}@caldart.example.org")
@@ -159,7 +159,7 @@ def test_a_signature_moved_to_another_id_does_not_verify() -> None:
     [("bounces+", "other+"), ("@caldart.example.org", "@elsewhere.example.org")],
     ids=["other-local-part", "other-domain"],
 )
-def test_a_signed_tag_on_another_address_reads_as_no_tag(change: tuple[str, str]) -> None:
+def test_a_signed_tag_on_another_address_reads_as_untagged(change: tuple[str, str]) -> None:
     """The tag only counts on the configured bounce address itself."""
     assert bounce_tag(signed_bounce_address(42, MESSAGE_ID).replace(*change)) is None
 
@@ -203,7 +203,7 @@ def test_without_a_bounce_address_nothing_reads_as_a_tag(settings: Settings) -> 
 def test_the_check_passes_an_unset_or_usable_bounce_address(
     configured: str, settings: Settings
 ) -> None:
-    """No setting, a bare address, and a 28-character local part raise nothing."""
+    """No setting, a bare address, and a 28-character local part don't raise anything."""
     settings.BOUNCE_ADDRESS = configured
 
     assert check_bounce_address() == []
@@ -228,7 +228,7 @@ def test_the_check_refuses_an_address_that_is_not_bare(configured: str, settings
     assert [message.id for message in check_bounce_address()] == [NOT_BARE_ID]
 
 
-def test_the_check_refuses_a_local_part_with_no_room_for_the_tag(settings: Settings) -> None:
+def test_the_check_refuses_a_local_part_without_room_for_the_tag(settings: Settings) -> None:
     """A 29-character local part is error ``mail.E002``."""
     settings.BOUNCE_ADDRESS = f"{'b' * (BOUNCE_LOCAL_PART_MAX_LENGTH + 1)}@caldart.example.org"
 

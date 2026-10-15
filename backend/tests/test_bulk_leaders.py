@@ -2,7 +2,7 @@
 
 A DART leader's DART is the one on their own member profile.  Every add to a leader's
 email is forced to that DART, a person outside it is skipped, the background sender
-checks it once more when the send starts, and a leader whose profile names no DART
+checks it once more when the send starts, and a leader whose profile doesn't name a DART
 cannot send.  A leader sees only their own emails; CalDART management sees everyone's,
 with the sender and the DART.
 """
@@ -48,7 +48,7 @@ pytestmark = pytest.mark.django_db
 API = "/api/v1/bulk-email"
 NOW = datetime(2026, 4, 6, 17, 0, tzinfo=UTC)
 
-#: Why nobody can be added to the Marin leader's email once their profile names no DART.
+#: Why nobody can be added to the Marin leader's email once their profile loses its DART.
 OWNER_NOTICE = (
     "This email belongs to Lane Lead, whose profile doesn't name a DART, so nobody can be added."
 )
@@ -70,7 +70,7 @@ def refreshed(bulk: BulkEmail) -> BulkEmail:
 
 
 def make_leader(email: str, dart: Dart | None, first: str = "Lane", last: str = "Lead") -> User:
-    """A DART leader whose profile names ``dart``, or names none when it is ``None``."""
+    """A DART leader whose profile names ``dart``, or leaves it empty for ``None``."""
     leader = UserFactory(email=email, first_name=first, last_name=last, roles=[MEMBER, DART_LEADER])
     MemberProfileFactory(user=leader, dart=dart)
     return leader
@@ -133,7 +133,7 @@ def no_pause(monkeypatch: pytest.MonkeyPatch) -> None:
 # Who may send to whom
 # --------------------------------------------------------------------------
 def test_management_sends_to_everyone(management: User) -> None:
-    """CalDART management's context has no DART and can send."""
+    """CalDART management's context doesn't have a DART and can send."""
     context = sender_context(management)
     assert (context.is_management, context.dart, context.can_send, context.reason) == (
         True,
@@ -155,8 +155,8 @@ def test_a_leader_sends_to_the_dart_on_their_profile(leader: User, marin: Dart) 
 
 
 @pytest.mark.parametrize("has_profile", [True, False], ids=["profile-no-dart", "no-profile"])
-def test_a_leader_with_no_dart_cannot_send(dart_leader: User, has_profile: bool) -> None:
-    """A leader whose profile names no DART, or who has none, has nobody to send to."""
+def test_a_leader_without_a_dart_cannot_send(dart_leader: User, has_profile: bool) -> None:
+    """A leader whose profile doesn't name a DART, or who doesn't have one, can't send."""
     if has_profile:
         MemberProfileFactory(user=dart_leader, dart=None)
     context = sender_context(dart_leader)
@@ -181,7 +181,7 @@ def test_the_sender_endpoint_answers_a_leader_s_dart(
 def test_the_sender_endpoint_says_why_a_leader_cannot_send(
     api_client: APIClient, dart_leader: User, settings: Settings
 ) -> None:
-    """A leader with no DART is told why there is nobody to send to."""
+    """A leader without a DART is told why there isn't anybody to send to."""
     settings.BULK_EMAIL_REPLY_TO = "office@example.test"
     api_client.force_login(dart_leader)
     assert api_client.get(f"{API}/sender").json() == {
@@ -197,7 +197,7 @@ def test_the_sender_endpoint_says_why_a_leader_cannot_send(
 def test_the_sender_endpoint_answers_management(
     management_client: APIClient, settings: Settings
 ) -> None:
-    """CalDART management sends to everyone, with no DART of its own."""
+    """CalDART management sends to everyone, without a DART of its own."""
     settings.BULK_EMAIL_REPLY_TO = "office@example.test"
     assert management_client.get(f"{API}/sender").json() == {
         "is_management": True,
@@ -212,7 +212,7 @@ def test_the_sender_endpoint_answers_management(
 def test_the_sender_endpoint_names_the_caller_s_own_address_without_a_site_reply_to(
     api_client: APIClient, management: User, settings: Settings
 ) -> None:
-    """With no ``BULK_EMAIL_REPLY_TO``, replies default to the caller's own address."""
+    """Without a ``BULK_EMAIL_REPLY_TO``, replies default to the caller's own address."""
     settings.BULK_EMAIL_REPLY_TO = ""
     api_client.force_login(management)
     assert api_client.get(f"{API}/sender").json()["default_reply_to"] == management.email
@@ -232,10 +232,10 @@ def test_a_leader_s_draft_records_their_dart(leader_client: APIClient, marin: Da
     )
 
 
-def test_a_leader_with_no_dart_cannot_open_a_draft(
+def test_a_leader_without_a_dart_cannot_open_a_draft(
     api_client: APIClient, dart_leader: User
 ) -> None:
-    """Compose refuses a leader with no DART with the reason, and makes no draft."""
+    """Compose refuses a DART-less leader with the reason, and doesn't make a draft."""
     api_client.force_login(dart_leader)
     response = api_client.post(f"{API}/drafts")
     assert (response.status_code, response.json(), BulkEmail.objects.count()) == (
@@ -245,7 +245,7 @@ def test_a_leader_with_no_dart_cannot_open_a_draft(
     )
 
 
-def test_management_s_draft_has_no_dart(management_client: APIClient) -> None:
+def test_management_s_draft_does_not_have_a_dart(management_client: APIClient) -> None:
     """CalDART management's draft goes to anybody: no DART, a blank name."""
     response = management_client.post(f"{API}/drafts")
     bulk = BulkEmail.objects.get(pk=response.json()["id"])
@@ -255,7 +255,7 @@ def test_management_s_draft_has_no_dart(management_client: APIClient) -> None:
 # --------------------------------------------------------------------------
 # The batch stays inside the DART
 # --------------------------------------------------------------------------
-def test_an_add_with_no_filters_adds_only_the_leader_s_dart(
+def test_an_add_without_filters_adds_only_the_leader_s_dart(
     leader_client: APIClient, leader_draft: BulkEmail, people: dict[str, User], marin: Dart
 ) -> None:
     """Everybody, for a leader, is everybody in their DART, the leader included."""
@@ -290,7 +290,10 @@ def test_a_crafted_dart_filter_is_refused(
     napa: Dart,
     value: str,
 ) -> None:
-    """Another DART, by id or by name, is a 400 and adds nobody; only the id is taken."""
+    """Another DART, by id or by name, is a 400 and doesn't add anybody.
+
+    Only the id is taken.
+    """
     dart = str(napa.pk) if value == "other-id" else value
     response = leader_client.post(
         url(leader_draft, "batch/add"), {"filters": {"dart": dart}}, format="json"
@@ -325,7 +328,7 @@ def test_management_adding_to_a_leader_s_email_stays_in_the_dart(
 def test_management_s_add_reaches_every_dart(
     management_client: APIClient, management: User, people: dict[str, User]
 ) -> None:
-    """CalDART management's email has no limit: all three are added."""
+    """CalDART management's email doesn't have a limit: all three are added."""
     bulk = BulkEmailFactory(sender=management)
     management_client.post(url(bulk, "batch/add"), {"filters": {"county": "Marin"}}, format="json")
     assert bulk.recipients.count() == 3
@@ -334,7 +337,7 @@ def test_management_s_add_reaches_every_dart(
 def test_someone_outside_the_dart_in_the_batch_is_skipped(
     leader_client: APIClient, leader_draft: BulkEmail, people: dict[str, User]
 ) -> None:
-    """A row that is not in the DART, however it got there, receives nothing."""
+    """A row that is not in the DART, however it got there, doesn't receive anything."""
     add_to_batch(leader_draft, people["ann"], people["nat"])
     assert batch_reasons(leader_client, leader_draft) == {
         "ann@example.test": "",
@@ -374,7 +377,7 @@ def test_the_audience_follows_the_leader_s_profile(
 def test_a_leader_who_loses_their_dart_cannot_add(
     leader_client: APIClient, leader: User, leader_draft: BulkEmail, people: dict[str, User]
 ) -> None:
-    """An add to the email of a leader whose profile names no DART is a 409."""
+    """An add to the email of a leader whose profile doesn't name a DART is a 409."""
     leader.profile.dart = None
     leader.profile.save()
     response = leader_client.post(url(leader_draft, "batch/add"), {"filters": {}}, format="json")
@@ -382,7 +385,7 @@ def test_a_leader_who_loses_their_dart_cannot_add(
 
 
 @pytest.mark.parametrize("viewer", ["leader", "management"])
-def test_an_email_whose_sender_has_no_dart_says_whose_it_is(
+def test_an_email_whose_sender_does_not_have_a_dart_says_whose_it_is(
     api_client: APIClient,
     leader: User,
     management: User,
@@ -397,14 +400,14 @@ def test_an_email_whose_sender_has_no_dart_says_whose_it_is(
     assert (body["sender_notice"], body["dart_name"]) == (OWNER_NOTICE, "")
 
 
-def test_an_email_whose_sender_has_a_dart_has_no_notice(
+def test_an_email_whose_sender_has_a_dart_does_not_have_a_notice(
     leader_client: APIClient, leader_draft: BulkEmail
 ) -> None:
     """A leader with a DART can add people: the notice is blank."""
     assert leader_client.get(url(leader_draft)).json()["sender_notice"] == ""
 
 
-def test_a_manager_adding_to_a_no_dart_leader_s_email_reads_whose_it_is(
+def test_a_manager_adding_to_the_email_of_a_leader_without_a_dart_reads_whose_it_is(
     management_client: APIClient, leader: User, leader_draft: BulkEmail
 ) -> None:
     """The refusal names the email's sender, not the manager's own profile."""
@@ -422,7 +425,7 @@ def test_a_manager_adding_to_a_no_dart_leader_s_email_reads_whose_it_is(
 def test_a_leader_who_loses_their_dart_cannot_send(
     leader_client: APIClient, leader: User, leader_draft: BulkEmail, people: dict[str, User]
 ) -> None:
-    """Send refuses a leader with no DART with the reason, under ``batch``."""
+    """Send refuses a leader without a DART with the reason, under ``batch``."""
     add_to_batch(leader_draft, people["ann"])
     leader.profile.dart = None
     leader.profile.save()
@@ -499,7 +502,7 @@ def test_a_queued_email_of_a_leader_who_lost_their_dart_is_not_sent(
     people: dict[str, User],
     audit_log: pytest.LogCaptureFixture,
 ) -> None:
-    """The sender returns it to the drafts with the reason, and sends nothing."""
+    """The sender returns it to the drafts with the reason, and doesn't send anything."""
     BulkEmail.objects.filter(pk=leader_draft.pk).update(status=BulkEmailStatus.QUEUED, start_at=NOW)
     add_to_batch(leader_draft, people["ann"])
     leader.profile.dart = None
@@ -555,7 +558,7 @@ def test_send_the_rest_skips_someone_who_left_the_dart_after_stop(
 def test_a_resumed_run_skips_everyone_once_the_leader_s_dart_changed(
     leader: User, people: dict[str, User], napa: Dart, no_pause: None
 ) -> None:
-    """A send left part way and resumed after the leader's DART changed sends no more."""
+    """A part-way send resumed after the leader's DART changed doesn't send any more."""
     bulk = BulkEmailFactory(
         sender=leader, status=BulkEmailStatus.SENDING, start_at=NOW, started_at=NOW
     )

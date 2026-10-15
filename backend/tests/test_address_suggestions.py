@@ -36,7 +36,7 @@ API_KEY = "test-geoapify-key"  # a stand-in; nothing is sent anywhere
 
 #: Geoapify's answer to ``text=1600 Amph``, trimmed to the fields the client reads plus a
 #: few it ignores.  The second result is outside California, and the third is a city
-#: with no street, which cannot fill an address line.
+#: without a street, which cannot fill an address line.
 GEOAPIFY_RESPONSE: dict[str, Any] = {
     "results": [
         {
@@ -177,7 +177,7 @@ def test_the_query_goes_to_geoapify_limited_to_the_us_and_biased_to_california(
 
 
 def test_the_key_never_reaches_the_client(member_client: APIClient, geoapify: respx.Router) -> None:
-    """The response body carries nothing of the Geoapify key."""
+    """The response body doesn't carry any part of the Geoapify key."""
     response = member_client.get(SUGGEST_URL, {"q": "1600 Amph"})
 
     assert API_KEY not in response.content.decode()
@@ -200,7 +200,7 @@ def test_the_outbound_request_is_not_logged(
 
 
 @pytest.mark.parametrize("query", ["", "16", "  16  "], ids=["empty", "two", "two-padded"])
-def test_a_query_shorter_than_three_characters_answers_nothing(
+def test_a_query_shorter_than_three_characters_answers_an_empty_list(
     member_client: APIClient, geoapify: respx.Router, query: str
 ) -> None:
     """A query too short to narrow anything answers ``[]`` without calling Geoapify."""
@@ -210,7 +210,9 @@ def test_a_query_shorter_than_three_characters_answers_nothing(
     assert geoapify.calls.call_count == 0
 
 
-def test_a_missing_query_answers_nothing(member_client: APIClient, geoapify: respx.Router) -> None:
+def test_a_missing_query_answers_an_empty_list(
+    member_client: APIClient, geoapify: respx.Router
+) -> None:
     """No ``q`` at all is the same as an empty one."""
     response = member_client.get(SUGGEST_URL)
 
@@ -223,13 +225,14 @@ def test_an_overlong_query_is_refused(member_client: APIClient, geoapify: respx.
     response = member_client.get(SUGGEST_URL, {"q": "x" * 201})
 
     assert response.status_code == 400
+    # Django's own message, quoted exactly.  wording:ignore-next-line
     assert response.json() == {"q": ["Ensure this field has no more than 200 characters."]}
 
 
 def test_a_blank_key_turns_the_feature_off(
     member_client: APIClient, geoapify: respx.Router, settings: Settings
 ) -> None:
-    """With no key configured the endpoint answers ``200 []`` and calls nobody."""
+    """Without a key configured the endpoint answers ``200 []`` and skips Geoapify."""
     settings.GEOAPIFY_API_KEY = ""
 
     response = member_client.get(SUGGEST_URL, {"q": "1600 Amph"})
@@ -250,7 +253,7 @@ def test_a_blank_key_turns_the_feature_off(
     ],
     ids=["server-error", "refused-key", "not-json", "no-results", "wrong-shape"],
 )
-def test_a_bad_answer_from_geoapify_degrades_to_no_suggestions(
+def test_a_bad_answer_from_geoapify_degrades_to_an_empty_list(
     member_client: APIClient, geoapify: respx.Router, answer: httpx.Response
 ) -> None:
     """An error status or an unreadable body answers ``200 []``, never an error."""
@@ -267,7 +270,7 @@ def test_a_bad_answer_from_geoapify_degrades_to_no_suggestions(
     [httpx.ConnectTimeout("slow"), httpx.ConnectError("refused")],
     ids=["timeout", "unreachable"],
 )
-def test_an_unreachable_geoapify_degrades_to_no_suggestions(
+def test_an_unreachable_geoapify_degrades_to_an_empty_list(
     member_client: APIClient, geoapify: respx.Router, error: httpx.HTTPError
 ) -> None:
     """A call that never completes answers ``200 []``."""
@@ -386,7 +389,7 @@ def test_the_county_maps_onto_the_california_choices(
 def test_a_state_named_without_a_code_is_still_read(
     geoapify: respx.Router,
 ) -> None:
-    """A result with a state name but no ``state_code`` takes the code from the name."""
+    """A result missing ``state_code`` takes the code from its state name."""
     result = dict(GEOAPIFY_RESPONSE["results"][0])
     del result["state_code"]
     geoapify.get(GEOAPIFY_URL).mock(return_value=httpx.Response(200, json={"results": [result]}))

@@ -201,7 +201,7 @@ def test_search_does_not_treat_a_name_as_a_registration(
 def test_search_result_shape(
     api_client: APIClient, dart_leader: User, pilot: User, dart: Dart
 ) -> None:
-    """A search result row carries the member's id, name, DART, and status, and no email.
+    """A search result row carries the member's id, name, DART, and status, not an email.
 
     The medical and the go/no-go the same row carries are covered in
     ``test_leader_search_readiness.py``.
@@ -236,19 +236,19 @@ def test_search_reports_an_expired_membership(
     assert api_client.get(SEARCH_URL, {"q": "Past"}).json()[0]["membership_status"] == "expired"
 
 
-def test_search_with_no_query_returns_nothing(
+def test_search_without_a_query_does_not_return_anything(
     api_client: APIClient, dart_leader: User, pilot: User
 ) -> None:
-    """A missing or blank query returns no results rather than everyone."""
+    """A missing or blank query returns an empty list rather than everyone."""
     api_client.force_login(dart_leader)
     assert api_client.get(SEARCH_URL).json() == []
     assert api_client.get(SEARCH_URL, {"q": "   "}).json() == []
 
 
-def test_search_finds_nothing_for_an_unknown_name(
+def test_search_does_not_find_anything_for_an_unknown_name(
     api_client: APIClient, dart_leader: User, pilot: User
 ) -> None:
-    """A query that matches nobody returns an empty list, not an error."""
+    """A query that doesn't match anybody returns an empty list, not an error."""
     api_client.force_login(dart_leader)
     assert api_client.get(SEARCH_URL, {"q": "Nobody At All"}).json() == []
 
@@ -367,7 +367,7 @@ def test_a_medical_expiring_today_is_still_current(
 
 
 def test_no_medical_on_file_is_never_current(api_client: APIClient, dart_leader: User) -> None:
-    """A member with no medical on file is never a go for medical."""
+    """A member without a medical on file is never a go for medical."""
     user = UserFactory(email="nomed@example.test", first_name="No", last_name="Medical")
     MemberProfileFactory(user=user, medical_type=MedicalType.NONE, medical_expiration=None)
     api_client.force_login(dart_leader)
@@ -396,7 +396,7 @@ def test_a_member_who_never_paid_reads_not_yet_paid_and_is_a_no_go(
 def test_a_friend_is_a_no_go_for_membership(
     api_client: APIClient, dart_leader: User, friend: User, annual_plan: MembershipPlan
 ) -> None:
-    """A friend's card reads ``friend``, with no plan or expiry, and is a no-go.
+    """A friend's card reads ``friend``, without a plan or an expiry, and is a no-go.
 
     The friend's past term does not make them expired: a friend is never expired.
     """
@@ -429,7 +429,7 @@ def test_the_search_names_a_friend_as_a_friend(
 def test_a_lifetime_member_is_current_without_an_expiry(
     api_client: APIClient, dart_leader: User, life_plan: MembershipPlan
 ) -> None:
-    """A lifetime member is current with no expiration date to report."""
+    """A lifetime member is current without an expiration date to report."""
     user = UserFactory(email="life@example.test", first_name="Life", last_name="Member")
     MemberProfileFactory(user=user)
     MembershipFactory(user=user, plan=life_plan, ends_on=None)
@@ -463,10 +463,10 @@ def test_status_card_lists_every_attached_aircraft(
     assert by_number["N9021K"]["insurance_summary"] == "No insurance on file"
 
 
-def test_status_card_for_a_member_with_no_aircraft(
+def test_status_card_for_a_member_without_aircraft(
     api_client: APIClient, dart_leader: User, member: User
 ) -> None:
-    """The status card reports an empty aircraft list for a member who flies none."""
+    """The status card reports an empty aircraft list for a member who doesn't fly any."""
     MemberProfileFactory(user=member)
     api_client.force_login(dart_leader)
     assert api_client.get(status_url(member)).json()["aircraft"] == []
@@ -519,7 +519,7 @@ def test_aircraft_card_lists_the_pilots_who_fly_it(
 def test_aircraft_card_404s_for_an_unknown_n_number(
     api_client: APIClient, dart_leader: User
 ) -> None:
-    """The aircraft card returns a 404 for an N-number on file for no aircraft."""
+    """The aircraft card returns a 404 for an N-number that isn't on file."""
     api_client.force_login(dart_leader)
     assert api_client.get(AIRCRAFT_URL, {"n_number": "N0000X"}).status_code == 404
 
@@ -527,7 +527,7 @@ def test_aircraft_card_404s_for_an_unknown_n_number(
 def test_aircraft_card_without_an_n_number_is_a_400(
     api_client: APIClient, dart_leader: User
 ) -> None:
-    """The aircraft card refuses a request with no ``n_number`` query parameter."""
+    """The aircraft card refuses a request without an ``n_number`` query parameter."""
     api_client.force_login(dart_leader)
     response = api_client.get(AIRCRAFT_URL)
     assert response.status_code == 400

@@ -138,7 +138,7 @@ def test_a_lapsed_medical_is_a_no_go_on_the_medical(
 def test_no_medical_on_file_is_a_no_go_on_the_medical(
     leader_client: APIClient, annual_plan: MembershipPlan, today: date
 ) -> None:
-    """A member with no medical at all reads as a no-go on the medical."""
+    """A member without any medical reads as a no-go on the medical."""
     user = make_member(
         email="nomedical@example.test",
         annual_plan=annual_plan,
@@ -169,8 +169,8 @@ def test_a_medical_that_expires_today_is_still_current(
     assert search_row(leader_client, user)["go_no_go"]["medical"] is True
 
 
-def test_a_member_with_no_profile_is_a_no_go_on_both_counts(leader_client: APIClient) -> None:
-    """That same account has no term either, so both booleans are false."""
+def test_a_member_without_a_profile_is_a_no_go_on_both_counts(leader_client: APIClient) -> None:
+    """That same account doesn't have a term either, so both booleans are false."""
     user = UserFactory(email="bare2@example.test", first_name="Cy", last_name=SURNAME)
     assert search_row(leader_client, user)["go_no_go"] == {
         "membership": False,
@@ -186,7 +186,7 @@ def test_the_list_and_the_card_give_the_same_verdict(leader_client: APIClient, g
 
 
 def test_a_search_result_carries_exactly_these_fields(leader_client: APIClient, go: User) -> None:
-    """The row holds the five fields the list draws and nothing else, so no email."""
+    """The row holds only the five fields the list draws, so it leaves the email out."""
     assert set(search_row(leader_client, go)) == {
         "user_id",
         "name",

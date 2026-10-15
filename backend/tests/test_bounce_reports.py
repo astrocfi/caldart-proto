@@ -93,7 +93,7 @@ def test_a_gmail_hard_bounce_reports_its_failure(bounce_report: BounceReport) ->
 def test_a_report_without_the_original_still_reports_its_failure(
     bounce_report: BounceReport,
 ) -> None:
-    """A report carrying no copy of the original message reads all the same."""
+    """A report without a copy of the original message reads all the same."""
     report = parse_report(bounce_report("no_original", status="5.1.10"))
 
     assert report is not None
@@ -106,8 +106,8 @@ def test_a_report_without_the_original_still_reports_its_failure(
     )
 
 
-def test_a_delay_reports_no_failure(bounce_report: BounceReport) -> None:
-    """``Action: delayed`` with ``4.4.1`` is a warning, so the report lists no failure."""
+def test_a_delay_does_not_report_a_failure(bounce_report: BounceReport) -> None:
+    """``Action: delayed`` with ``4.4.1`` is a warning, so the failure list is empty."""
     report = parse_report(bounce_report("delay"))
 
     assert report is not None
@@ -122,7 +122,7 @@ def test_a_delay_reports_no_failure(bounce_report: BounceReport) -> None:
 def test_only_a_failed_action_with_a_5xx_status_is_a_failure(
     action: str, status: str, bounce_report: BounceReport
 ) -> None:
-    """A transient ``4.x.x`` failure, a success, and a delay are none permanent."""
+    """A transient ``4.x.x`` failure, a success, and a delay aren't permanent."""
     report = parse_report(bounce_report("hard_bounce", action=action, status=status))
 
     assert report is not None
@@ -150,7 +150,7 @@ def test_control_characters_are_read_as_spaces(bounce_report: BounceReport) -> N
 
 
 def test_an_auto_reply_is_not_a_report(bounce_report: BounceReport) -> None:
-    """An out-of-office answer carries no delivery-status part, so it is not a report."""
+    """An out-of-office answer lacks a delivery-status part, so it is not a report."""
     assert parse_report(bounce_report("auto_reply")) is None
 
 

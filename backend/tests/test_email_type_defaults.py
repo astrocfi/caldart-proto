@@ -37,7 +37,7 @@ def test_a_fresh_database_holds_the_three_default_types() -> None:
 DEFAULT_TYPES_MIGRATION = import_module("apps.mail.migrations.0004_default_email_types")
 
 
-def test_running_the_migration_again_adds_no_copy_of_a_renamed_type() -> None:
+def test_running_the_migration_again_does_not_add_a_copy_of_a_renamed_type() -> None:
     """After a rollback, a renamed Operational is not joined by a second Operational."""
     operational = EmailType.objects.get(slug="operational")
     operational.name = "Club news"
@@ -62,7 +62,7 @@ def test_running_the_migration_again_does_not_bring_back_a_deleted_type() -> Non
 
 
 def test_the_migration_creates_the_three_types_in_an_empty_table() -> None:
-    """With no type at all, the three defaults are created again in their order."""
+    """Without any type, the three defaults are created again in their order."""
     EmailType.objects.all().delete()
 
     DEFAULT_TYPES_MIGRATION.create_default_types(django_apps, None)
@@ -82,8 +82,8 @@ def test_the_seed_turns_fundraising_off_for_the_demo_friend(friend: User) -> Non
     assert (opt_out.email_type.slug, opt_out.source) == ("fundraising", OptOutSource.PROFILE)
 
 
-def test_the_seed_creates_no_type_and_runs_twice_safely(friend: User) -> None:
-    """The seed adds no type of its own, and a second run adds nothing."""
+def test_the_seed_does_not_create_a_type_and_runs_twice_safely(friend: User) -> None:
+    """The seed doesn't add a type of its own, and a second run doesn't add anything."""
     seed.run({"demo_users": {"friend": friend}})
     seed.run({"demo_users": {"friend": friend}})
 
@@ -91,8 +91,8 @@ def test_the_seed_creates_no_type_and_runs_twice_safely(friend: User) -> None:
     assert EmailOptOut.objects.filter(user=friend).count() == 1
 
 
-def test_the_seed_records_nothing_once_fundraising_is_deleted(friend: User) -> None:
-    """A site whose administrator deleted Fundraising seeds no opt-out."""
+def test_the_seed_does_not_record_anything_once_fundraising_is_deleted(friend: User) -> None:
+    """A site whose administrator deleted Fundraising doesn't seed an opt-out."""
     EmailType.objects.filter(slug="fundraising").delete()
 
     seed.run({"demo_users": {"friend": friend}})

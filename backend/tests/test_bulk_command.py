@@ -89,7 +89,7 @@ def test_the_command_sends_every_due_email(due: BulkEmail) -> None:
 
 
 def test_the_command_prints_its_counts_and_each_email_by_id(due: BulkEmail) -> None:
-    """The summary counts the run and names each email by its id, and nobody by name."""
+    """The summary counts the run and names each email by id, never a person by name."""
     lines = run_command().splitlines()
     assert lines == [
         "emails           1",
@@ -101,14 +101,14 @@ def test_the_command_prints_its_counts_and_each_email_by_id(due: BulkEmail) -> N
     ]
 
 
-def test_the_command_with_nothing_due_sends_nothing(management: User) -> None:
+def test_the_command_does_not_send_anything_when_nothing_is_due(management: User) -> None:
     """A draft is not the sender's business."""
     BulkEmailFactory(sender=management)
     output = run_command()
     assert (len(mail.outbox), output.splitlines()[0]) == (0, "emails           0")
 
 
-def test_the_command_does_nothing_while_another_run_works(
+def test_the_command_leaves_the_email_alone_while_another_run_works(
     due: BulkEmail, another_run_working: None
 ) -> None:
     """A second run says so and leaves the email for the first."""
@@ -116,7 +116,7 @@ def test_the_command_does_nothing_while_another_run_works(
 
 
 def test_running_twice_sends_each_copy_once(due: BulkEmail) -> None:
-    """A second run finds nothing left to send."""
+    """A second run doesn't find anything left to send."""
     run_command()
     run_command()
     assert len(mail.outbox) == 1
@@ -182,7 +182,7 @@ def test_only_a_system_administrator_runs_the_sender(
 # --------------------------------------------------------------------------
 # The timer
 # --------------------------------------------------------------------------
-def test_the_service_runs_the_command_with_no_time_limit() -> None:
+def test_the_service_runs_the_command_without_a_time_limit() -> None:
     """The oneshot runs ``send_bulk_emails``, and a long send is never cut short."""
     service = (SYSTEMD_DIR / "caldart-bulk-email.service").read_text()
     assert "manage.py run_job send_bulk_emails" in service
@@ -191,7 +191,7 @@ def test_the_service_runs_the_command_with_no_time_limit() -> None:
 
 
 def test_the_timer_fires_every_minute_on_the_minute() -> None:
-    """Every minute, to the second, with no randomized delay to spread it."""
+    """Every minute, to the second, without a randomized delay to spread it."""
     timer = (SYSTEMD_DIR / "caldart-bulk-email.timer").read_text()
     assert "OnCalendar=*-*-* *:*:00" in timer
     assert "AccuracySec=1s" in timer

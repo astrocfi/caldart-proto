@@ -90,7 +90,7 @@ def _payload(**overrides: Any) -> dict[str, Any]:
     ],
 )
 def test_each_type_acft_code_maps_to_its_category(code: str, expected: str) -> None:
-    """``TYPE-ACFT`` names the category; a blank or unknown code names none."""
+    """``TYPE-ACFT`` names the category; a blank or unknown code doesn't name one."""
     assert category_for(code) == expected
 
 
@@ -112,7 +112,7 @@ def test_each_type_acft_code_maps_to_its_category(code: str, expected: str) -> N
     ],
 )
 def test_each_certification_maps_to_its_airworthiness(certification: str, expected: str) -> None:
-    """The first character of ``CERTIFICATION`` names the classification, or none."""
+    """The first character of ``CERTIFICATION`` names the classification, if any."""
     assert airworthiness_for(certification) == expected
 
 
@@ -139,7 +139,7 @@ def test_the_fixture_holds_every_category() -> None:
 
 
 def test_the_fixture_holds_every_airworthiness_and_a_blank() -> None:
-    """Each classification is held by a registration, and some registrations hold none."""
+    """Each classification is held by a registration, and some registrations lack one."""
     import_registry(str(FIXTURE_DIR))
     found = set(Registration.objects.values_list("airworthiness", flat=True))
     assert found == {*Airworthiness.values, ""}

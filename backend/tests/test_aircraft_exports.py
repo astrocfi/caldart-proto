@@ -25,7 +25,7 @@ pytestmark = pytest.mark.django_db
 CSV_URL = "/api/v1/reports/aircraft/export.csv"
 PDF_URL = "/api/v1/reports/aircraft/export.pdf"
 
-#: The header the CSV prints when the caller chooses no columns: the labels of
+#: The header the CSV prints when the caller doesn't choose any columns: the labels of
 #: the nine default columns.
 EXPECTED_HEADER = [
     "N-number",
@@ -53,8 +53,8 @@ PDF_FOOTER = -2
 def drawn_mark(mark: str) -> str:
     """``mark`` as the page's content stream shows it.
 
-    Helvetica has no check mark or X, so reportlab draws each in ZapfDingbats, where it
-    is a different character code; the date before it is a string of its own.
+    Helvetica doesn't have a check mark or an X, so reportlab draws each in ZapfDingbats,
+    where it is a different character code; the date before it is a string of its own.
     """
     body = getFont(BODY_FONT)
     ((font, code),) = unicode2T1(mark, [body, *body.substitutionFonts])
@@ -264,7 +264,7 @@ def test_pdf_paginates_a_large_register(api_client: APIClient, account_admin: Us
 def test_pdf_survives_an_empty_result_set(
     api_client: APIClient, account_admin: User, register: RegisterDict, pdf_text: PdfText
 ) -> None:
-    """A filter that matches nothing returns a PDF with a header and no rows."""
+    """A filter that doesn't match anything returns a PDF with a header alone."""
     api_client.force_login(account_admin)
     response = api_client.get(PDF_URL, {"search": "no-such-aircraft"})
     assert response.status_code == 200
@@ -282,7 +282,7 @@ def test_pdf_states_the_filters_it_was_run_with(
     assert page[1] == "insurance: expired"
 
 
-def test_pdf_says_when_it_was_run_with_no_filters(
+def test_pdf_says_when_it_was_run_without_filters(
     api_client: APIClient, account_admin: User, register: RegisterDict, pdf_text: PdfText
 ) -> None:
     """An unfiltered export says so in the same subtitle line."""

@@ -2,13 +2,13 @@
 
 ``EmailLog.to_name`` carries the recipient's name as it was at the moment the email
 went, so a report or a search can show who a message was for even when the
-recipient holds no account -- a DART contact, most often.  ``caldart.mail._record``
+recipient doesn't hold an account -- a DART contact, most often.  ``caldart.mail._record``
 fills it in from the linked account's ``display_name`` when a caller names only
 ``user_id``, and :attr:`~apps.mail.models.EmailLog.recipient_name` falls back the
 same way for a row whose ``to_name`` is blank.  These tests drive the funnel
 directly for that storage behavior, then the two senders that pass their own name
 explicitly: the DART roster (the contact's own name) and a report subscription
-(the recipient account's display name, or nothing for a bare address).  ``GET
+(the recipient account's display name, or an empty name for a bare address).  ``GET
 /system/emails`` reading the name back is covered in ``test_mail_log.py``, and the
 report's ``Name`` column in ``test_email_log_report.py``.
 """
@@ -57,7 +57,7 @@ def test_a_caller_provided_name_is_stored_as_given(email_template: str) -> None:
     assert EmailLog.objects.get().to_name == "Lee Park"
 
 
-def test_a_caller_with_no_name_but_an_account_gets_its_display_name_stored(
+def test_a_caller_without_a_name_but_with_an_account_gets_its_display_name_stored(
     email_template: str,
 ) -> None:
     """A caller naming only ``user_id`` has the account's own name written in."""
@@ -97,8 +97,8 @@ def test_a_long_display_name_is_truncated_to_the_fields_max_length(email_templat
     assert row.to_name == f"{first_name} {last_name}"[:200]
 
 
-def test_a_caller_with_no_name_and_no_account_stores_a_blank_name(email_template: str) -> None:
-    """A message to a bare address with no account behind it stores no name at all."""
+def test_a_caller_without_a_name_or_an_account_stores_a_blank_name(email_template: str) -> None:
+    """A message to a bare address without an account doesn't store a name at all."""
     send_templated(to="stranger@example.org", subject="CalDART: hello", template=email_template)
 
     assert EmailLog.objects.get().to_name == ""
@@ -116,7 +116,7 @@ def test_recipient_name_falls_back_to_the_accounts_display_name_when_blank() -> 
 
 
 def test_recipient_name_is_blank_with_neither_a_name_nor_an_account() -> None:
-    """A row naming nobody at all reads as an empty name, not a guess."""
+    """A row that doesn't name anybody reads as an empty name, not a guess."""
     row = EmailLogFactory(user=None, to_name="")
 
     assert row.recipient_name == ""
@@ -147,7 +147,7 @@ def test_a_roster_email_logs_the_contacts_name(mailoutbox: list[EmailMessage]) -
 def test_a_subscription_to_an_outside_address_logs_an_empty_name(
     mailoutbox: list[EmailMessage],
 ) -> None:
-    """A subscription bound to no account logs no name, only its bare address."""
+    """A subscription without an account doesn't log a name, only its bare address."""
     ReportSubscriptionFactory(next_due_on=TODAY)
 
     run_scheduled_reports(today=TODAY)

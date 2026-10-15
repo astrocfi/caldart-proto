@@ -25,7 +25,7 @@ APP_LAYERS: dict[str, int] = {
     # A DART is named by a member's profile and by a website page, and knows
     # about neither, so it sits below the app that points at it.
     "darts": 2,
-    # The email log records what was mailed to an account and nothing else, so
+    # The email log records only what was mailed to an account, so
     # it sits beside darts, below everything that sends an email.
     "mail": 2,
     "members": 3,
@@ -50,7 +50,7 @@ EXEMPT_DIRECTORIES = frozenset({"api", "management", "migrations"})
 #: ``admin.py`` is a composition point too: it wires models into the Django admin.
 EXEMPT_FILENAMES = frozenset({"admin.py"})
 
-#: The project modules every app builds on.  They may import no app at all.
+#: The project modules every app builds on.  They may not import any app.
 #: ``org.py`` is deliberately not among them: it reads the Wagtail site settings
 #: through one inline import.  Neither is ``mail.py``, which writes the email log
 #: through another.  Both imports are declared in
@@ -221,7 +221,7 @@ def test_every_inline_cross_app_import_is_sanctioned() -> None:
 
 
 def test_every_sanctioned_inline_import_still_exists() -> None:
-    """The list carries no entry the code has stopped needing."""
+    """The list doesn't carry an entry the code has stopped needing."""
     present = {
         (module_name(path), record.target)
         for path in domain_modules()
@@ -282,8 +282,8 @@ def test_short_import_forms_name_the_module_they_depend_on(tmp_path: Path) -> No
     ]
 
 
-def test_the_bare_package_names_no_app() -> None:
-    """``import apps`` has no app for the layer table, so the layer test rejects it."""
+def test_the_bare_package_does_not_name_an_app() -> None:
+    """The layer table doesn't list ``import apps``, so the layer test rejects it."""
     assert app_of("apps") == ""
 
 
@@ -304,7 +304,7 @@ def test_the_comment_block_is_read_from_its_first_line(lines: list[str], expecte
     assert _comment_block_above(lines, len(lines)) == expected
 
 
-def test_project_foundation_modules_import_nothing_from_apps() -> None:
+def test_project_foundation_modules_do_not_import_anything_from_apps() -> None:
     """The project's models, reports, receipts, exceptions and pagination sit below.
 
     Each of them is read by several apps, so none may read an app back.  ``mail.py``
@@ -351,7 +351,7 @@ def test_every_app_import_in_a_project_module_is_inline_and_sanctioned() -> None
 
 
 def test_every_sanctioned_project_inline_import_still_exists() -> None:
-    """The project list carries no entry the code has stopped needing."""
+    """The project list doesn't carry an entry the code has stopped needing."""
     present = {
         (module_name(path), record.target)
         for path in project_modules()

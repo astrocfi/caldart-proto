@@ -67,7 +67,7 @@ def test_a_permission_error_becomes_a_403() -> None:
 
 
 def test_a_permission_error_body_is_a_bare_detail() -> None:
-    """The 403 body is ``{"detail": <message>}`` with no field key."""
+    """The 403 body is ``{"detail": <message>}`` without a field key."""
     response = caldart_exception_handler(DomainPermissionError(SELF_DELETE), {})
     assert response is not None
     assert response.data == {"detail": SELF_DELETE}
@@ -79,7 +79,7 @@ def test_an_exception_the_handler_does_not_know_is_left_to_django() -> None:
 
 
 def test_an_unauthenticated_request_is_still_401(api_client: APIClient) -> None:
-    """A request with no session cookie gets a 401 from the ``me`` endpoint."""
+    """A request without a session cookie gets a 401 from the ``me`` endpoint."""
     assert api_client.get(ME_URL).status_code == 401
 
 

@@ -118,9 +118,9 @@ class UserFactory(ModelFactory["UserModel"]):
     """Builds a ``User``, reusing an existing row with the same email.
 
     ``roles=[...]`` grants each named role slug through ``User.add_role`` after
-    creation; omitting it leaves the user with no roles.  The address is verified
+    creation; omitting it leaves the user without any roles.  The address is verified
     (``email_verified_at`` is the time of creation), since an unverified account may
-    use almost none of the API; pass ``email_verified_at=None`` for one that is not.
+    use very little of the API; pass ``email_verified_at=None`` for one that is not.
     The user's password is set to ``DEFAULT_PASSWORD`` unless ``password=...``
     supplies another plaintext value.
     """
@@ -149,7 +149,7 @@ class UserFactory(ModelFactory["UserModel"]):
 
     @factory.post_generation  # type: ignore[untyped-decorator]
     def roles(self: UserModel, create: bool, extracted: list[str] | None, **kwargs: Any) -> None:
-        """Grant the user each role slug in ``extracted``, or none if it is falsy."""
+        """Grant the user each role slug in ``extracted``, if it is truthy."""
         if not create or not extracted:
             return
         for slug in extracted:
@@ -395,8 +395,8 @@ class EmailLogFactory(ModelFactory[EmailLog]):
 
     ``user`` defaults to a new account and ``to_email`` and ``to_name`` to that
     account's own address and display name, so a row always names somebody; pass
-    ``user=None`` for a message sent to an address with no account behind it.  Pass
-    ``to_name=""`` with a ``user`` to build a row that names nobody of its own,
+    ``user=None`` for a message sent to an address without an account behind it.  Pass
+    ``to_name=""`` with a ``user`` to build a row without a name of its own,
     which falls back to the account's current name when read.  Pass
     ``status=EmailStatus.FAILED`` with an ``error`` to record a send the mail server
     refused.  Each row carries its own ``message_id``,
@@ -574,8 +574,8 @@ def settled_gift(
 ) -> Payment:
     """A contribution-only gift of ``cents`` from ``user`` on ``on``, settled by default.
 
-    It buys no plan, so the whole amount is the contribution, and it completed at noon
-    UTC on ``on``, the ledger date the donors and contributions reports count it by.
+    It doesn't buy a plan, so the whole amount is the contribution, and it completed at
+    noon UTC on ``on``, the ledger date the donors and contributions reports count it by.
     """
     return PaymentFactory(
         user=user,
@@ -592,7 +592,7 @@ class RenewalMandateFactory(ModelFactory[RenewalMandate]):
     """Builds an active mock mandate on a test card ending 4242, no contribution.
 
     The next charge falls today unless ``next_charge_on`` says otherwise.  Pass
-    ``plan=None`` for a life member's contribution-only authority, which renews no
+    ``plan=None`` for a life member's contribution-only authority, which doesn't renew a
     term and charges its contribution once a year.
     """
 
@@ -711,8 +711,8 @@ def make_person(
 ) -> UserModel:
     """A member or friend with the member role and a profile in ``county``.
 
-    The role fixtures have no profile, so a filter on ``county`` chooses the people a
-    bulk email test makes and nobody else.  ``dart`` is the profile's DART, a fresh one
+    The role fixtures don't have a profile, so a filter on ``county`` chooses only the
+    people a bulk email test makes.  ``dart`` is the profile's DART, a fresh one
     unless given; ``user`` sets any other account field, such as ``kind``.
     """
     account = UserFactory(email=email, first_name=first, last_name=last, roles=[MEMBER], **user)
@@ -731,7 +731,7 @@ def make_dart_leader(email: str, dart: Dart, first: str = "Lane", last: str = "L
 
 
 def add_to_batch(bulk: BulkEmail, *accounts: UserModel) -> list[BulkEmailRecipient]:
-    """Put ``accounts`` in ``bulk``'s batch as ``batched`` rows, with no add behind them.
+    """Put ``accounts`` in ``bulk``'s batch as ``batched`` rows, without a recorded add.
 
     Each row carries the account's name and address as they are now.
     """
@@ -750,7 +750,7 @@ def add_to_batch(bulk: BulkEmail, *accounts: UserModel) -> list[BulkEmailRecipie
 
 
 class EmailTemplateFactory(ModelFactory[EmailTemplate]):
-    """Builds a saved bulk email template with a subject, a message, and no type."""
+    """Builds a saved bulk email template with a subject and a message, but untyped."""
 
     class Meta:
         model = EmailTemplate

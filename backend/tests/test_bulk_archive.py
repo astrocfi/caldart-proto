@@ -88,7 +88,7 @@ def test_a_recipient_finds_the_message_in_their_list(
 ) -> None:
     """Ann's list holds the email, with her own subject, its type, and who sent it.
 
-    It is no mission callout, so it has no answer page.
+    It isn't a mission callout, so it doesn't have an answer page.
     """
     with freeze_time("2026-04-07T15:00:00Z"):
         bulk = sent_to(ann, bea)
@@ -277,7 +277,7 @@ def test_hiding_is_audited(
 
 
 def test_a_draft_cannot_be_hidden(management: User) -> None:
-    """Nobody received a draft, so there is nothing to hide."""
+    """Nobody received a draft, so there isn't anything to hide."""
     draft = BulkEmailFactory(sender=management)
     with pytest.raises(DomainError, match=re.escape(delivery.NOT_STARTED_MESSAGE)):
         delivery.set_hidden(draft, hidden=True, actor=management)
@@ -328,8 +328,10 @@ def test_the_link_carries_the_site_s_url_prefix(ann: User, settings: Settings) -
     )
 
 
-def test_a_test_copy_carries_no_link_to_messages(management: User, settings: Settings) -> None:
-    """A ``[Test]`` copy is nobody's message, so it has no View in browser line."""
+def test_a_test_copy_does_not_carry_a_link_to_messages(
+    management: User, settings: Settings
+) -> None:
+    """A ``[Test]`` copy isn't anybody's message, so it omits the View in browser line."""
     settings.SITE_URL = "https://caldart.example.org"
     send_test(BulkEmailFactory(sender=management), actor=management)
     assert "/portal/messages/" not in str(only_copy().body)
@@ -358,7 +360,7 @@ def test_every_signed_in_recipient_opens_their_message(
 
 
 @pytest.mark.parametrize("path", ["", "/1"])
-def test_an_anonymous_caller_reads_no_messages(api_client: APIClient, path: str) -> None:
+def test_an_anonymous_caller_does_not_read_any_messages(api_client: APIClient, path: str) -> None:
     """No session is a 401."""
     assert api_client.get(MESSAGES_URL + path).status_code == 401
 

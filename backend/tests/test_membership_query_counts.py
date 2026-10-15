@@ -203,7 +203,7 @@ def test_leader_search_costs_a_fixed_number_of_queries(
 
 
 @pytest.mark.parametrize("size", PAGE_SIZES)
-def test_the_readiness_on_a_search_result_costs_no_query_of_its_own(
+def test_the_readiness_on_a_search_result_does_not_cost_a_query_of_its_own(
     api_client: APIClient,
     dart_leader: User,
     population: Callable[[int], list[User]],

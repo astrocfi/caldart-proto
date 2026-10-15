@@ -94,7 +94,7 @@ def stored(image: BulkEmailImage) -> Image.Image:
 
 @pytest.fixture
 def site(settings: Settings) -> None:
-    """Serve the site from ``https://caldart.example.org`` with no URL prefix."""
+    """Serve the site from ``https://caldart.example.org`` without a URL prefix."""
     settings.SITE_URL = "https://caldart.example.org"
     settings.MEDIA_URL = "/media/"
 
@@ -118,8 +118,8 @@ def test_an_anonymous_caller_cannot_upload(api_client: APIClient) -> None:
     assert response.status_code == 401
 
 
-def test_a_refused_caller_stores_nothing(api_client: APIClient, member: User) -> None:
-    """A 403 leaves no image behind."""
+def test_a_refused_caller_does_not_store_anything(api_client: APIClient, member: User) -> None:
+    """A 403 doesn't leave an image behind."""
     api_client.force_login(member)
     api_client.post(IMAGES_URL, {"image": upload(picture())}, format="multipart")
     assert BulkEmailImage.objects.count() == 0
@@ -231,7 +231,7 @@ def test_a_truncated_image_is_refused(management_client: APIClient) -> None:
 
 
 def test_a_missing_file_is_refused(management_client: APIClient) -> None:
-    """A body with no ``image`` is DRF's own message."""
+    """A body without an ``image`` is DRF's own message."""
     response = management_client.post(IMAGES_URL, {}, format="multipart")
     assert (response.status_code, response.json()) == (
         400,

@@ -3,7 +3,7 @@
 ``apps.mail.bounces.check_bounces`` reads every unseen message from the mailbox
 ``BOUNCE_IMAP_URL`` names, through a fake IMAP server here, matches each report to the
 email log row its signed bounce address names, and marks the row and its account.  A
-report not addressed to a valid signed address marks nothing.  See
+report not addressed to a valid signed address doesn't mark anything.  See
 ``docs/developer/email.rst``, "Bounces".
 """
 
@@ -182,10 +182,10 @@ def test_the_report_is_pinned_on_the_signed_rows_recipient(
     assert flagged == {olga.pk}
 
 
-def test_a_signed_row_needs_no_account_at_the_address(
+def test_a_signed_row_does_not_need_an_account_at_the_address(
     fake_mailbox: FakeMailbox, bounce_report: BounceReport
 ) -> None:
-    """A row sent to an address with no account behind it is marked all the same."""
+    """A row sent to an address without an account behind it is marked all the same."""
     row = EmailLogFactory(user=None, to_email="contact@dart.example.org")
     fake_mailbox(
         bounce_report("hard_bounce", recipient="contact@dart.example.org", envelope=_signed(row))
@@ -233,18 +233,18 @@ def forged_run(
 
 
 def test_a_forged_report_leaves_the_row_sent(forged_run: BounceRun, sent: EmailLog) -> None:
-    """A report anybody could write changes no row."""
+    """A report anybody could write doesn't change a row."""
     sent.refresh_from_db()
     assert sent.status == EmailStatus.SENT
 
 
-def test_a_forged_report_flags_nobody(forged_run: BounceRun, gone: User) -> None:
-    """A report anybody could write flags no account."""
+def test_a_forged_report_does_not_flag_anybody(forged_run: BounceRun, gone: User) -> None:
+    """A report anybody could write doesn't flag an account."""
     gone.refresh_from_db()
     assert gone.email_bounced_at is None
 
 
-def test_a_forged_report_counts_no_bounce(forged_run: BounceRun) -> None:
+def test_a_forged_report_does_not_count_a_bounce(forged_run: BounceRun) -> None:
     """A report anybody could write is not counted as bounced."""
     assert forged_run.bounced == 0
 
@@ -279,7 +279,7 @@ def test_a_report_of_a_refused_send_leaves_the_row_failed(
     assert row.status == EmailStatus.FAILED
 
 
-def test_a_report_of_a_refused_send_flags_nobody(
+def test_a_report_of_a_refused_send_does_not_flag_anybody(
     refused_run: tuple[EmailLog, BounceRun], gone: User
 ) -> None:
     """The account at the refused row's address is not flagged."""
@@ -322,7 +322,7 @@ def test_a_report_to_a_reused_id_leaves_the_new_row_sent(reused: tuple[EmailLog,
     assert row.status == EmailStatus.SENT
 
 
-def test_a_report_to_a_reused_id_flags_nobody(reused: tuple[EmailLog, User]) -> None:
+def test_a_report_to_a_reused_id_does_not_flag_anybody(reused: tuple[EmailLog, User]) -> None:
     """The second message's recipient is not flagged by a report about the first."""
     _row, olga = reused
     olga.refresh_from_db()
@@ -344,7 +344,7 @@ def test_a_report_counts_only_for_a_send_of_the_last_30_days(
     fake_mailbox: FakeMailbox,
     bounce_report: BounceReport,
 ) -> None:
-    """A genuine report of a message sent more than 30 days ago marks nothing."""
+    """A genuine report of a message sent more than 30 days ago doesn't mark anything."""
     row = EmailLogFactory(user=gone, sent_at=timezone.now() - age)
     fake_mailbox(bounce_report("hard_bounce", envelope=_signed(row)))
 
@@ -409,10 +409,10 @@ def test_a_refusal_of_the_message_still_marks_its_row(
     assert sent.status == EmailStatus.BOUNCED
 
 
-def test_an_unmatched_failure_flags_nobody(
+def test_an_unmatched_failure_does_not_flag_anybody(
     gone: User, fake_mailbox: FakeMailbox, bounce_report: BounceReport
 ) -> None:
-    """With no sent message to pin it on, a report changes no account."""
+    """Without a sent message to pin it on, a report doesn't change an account."""
     fake_mailbox(bounce_report("no_original"))
 
     check_bounces()
@@ -437,7 +437,7 @@ def test_an_account_that_moved_address_is_not_flagged(
 def test_the_account_at_the_address_is_flagged_even_from_a_row_without_one(
     gone: User, fake_mailbox: FakeMailbox, bounce_report: BounceReport
 ) -> None:
-    """A row naming no account still flags the account whose address it was sent to."""
+    """A row without an account still flags the account whose address it was sent to."""
     row = EmailLogFactory(user=None, to_email="gone@example.com")
     fake_mailbox(bounce_report("hard_bounce", envelope=_signed(row)))
 
@@ -456,14 +456,17 @@ def test_the_account_at_the_address_is_flagged_even_from_a_row_without_one(
     ],
     ids=["delay", "auto-reply", "transient-failure"],
 )
-def test_a_message_reporting_no_permanent_failure_is_ignored(
+def test_a_message_without_a_permanent_failure_is_ignored(
     report: str,
     fields: dict[str, str],
     sent: EmailLog,
     fake_mailbox: FakeMailbox,
     bounce_report: BounceReport,
 ) -> None:
-    """Delays, transient failures and auto-replies count as ignored and change nothing."""
+    """Delays, transient failures, and auto-replies count as ignored.
+
+    The row they report on stays sent.
+    """
     fake_mailbox(bounce_report(report, envelope=_signed(sent), **fields))
 
     run = check_bounces()
@@ -490,7 +493,7 @@ def test_every_processed_message_is_marked_seen(
 def test_a_seen_message_is_not_read_again(
     sent: EmailLog, fake_mailbox: FakeMailbox, bounce_report: BounceReport
 ) -> None:
-    """A second run finds nothing unseen, so it counts nothing."""
+    """A second run doesn't find anything unseen, so it doesn't count anything."""
     fake_mailbox(bounce_report("hard_bounce", envelope=_signed(sent)))
     check_bounces()
 
@@ -546,7 +549,7 @@ def test_the_run_signs_in_to_the_configured_mailbox(fake_mailbox: FakeMailbox) -
     )
 
 
-def test_a_dry_run_changes_no_row_and_no_account(
+def test_a_dry_run_does_not_change_a_row_or_an_account(
     sent: EmailLog, gone: User, fake_mailbox: FakeMailbox, bounce_report: BounceReport
 ) -> None:
     """A rehearsal reads and matches, but the row stays sent and the account unflagged."""
@@ -559,7 +562,7 @@ def test_a_dry_run_changes_no_row_and_no_account(
     assert (sent.status, sent.bounced_at, gone.email_bounced_at) == (EmailStatus.SENT, None, None)
 
 
-def test_a_dry_run_marks_nothing_seen(
+def test_a_dry_run_does_not_mark_anything_seen(
     sent: EmailLog, fake_mailbox: FakeMailbox, bounce_report: BounceReport
 ) -> None:
     """A rehearsal leaves every message unseen for the live run that follows."""
@@ -584,10 +587,10 @@ def test_a_dry_run_reports_what_a_live_run_would_do(
     assert rehearsal == live
 
 
-def test_with_no_mailbox_configured_checking_is_off(
+def test_without_a_mailbox_configured_checking_is_off(
     settings: Settings, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """An empty ``BOUNCE_IMAP_URL`` reads nothing and says checking is off."""
+    """An empty ``BOUNCE_IMAP_URL`` doesn't read anything and says checking is off."""
     settings.BOUNCE_IMAP_URL = ""
 
     def refuse(*args: object, **kwargs: object) -> None:
@@ -740,7 +743,7 @@ def test_control_characters_never_reach_the_database(
     assert sent.bounce_detail == POSTFIX_DETAIL
 
 
-def test_a_nul_in_the_recipient_is_no_error(
+def test_a_nul_in_the_recipient_is_not_an_error(
     fake_mailbox: FakeMailbox, bounce_report: BounceReport
 ) -> None:
     """A report naming an address with a NUL in it is read, left unmatched, and seen."""
@@ -797,7 +800,7 @@ class _RefusingManager:
         raise DataError("invalid byte sequence")
 
 
-def test_a_refused_report_keeps_nothing_it_wrote(
+def test_a_refused_report_does_not_keep_anything_it_wrote(
     sent: EmailLog,
     fake_mailbox: FakeMailbox,
     bounce_report: BounceReport,

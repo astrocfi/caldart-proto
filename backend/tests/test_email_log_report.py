@@ -33,7 +33,7 @@ LIST_URL = "/api/v1/system/emails"
 #: The installation's own timezone, in which ``Sent`` and the date range are read.
 PACIFIC = ZoneInfo("America/Los_Angeles")
 
-#: The labels of the columns the report carries when the caller chooses none.
+#: The labels of the columns the report carries when the caller doesn't choose any.
 DEFAULT_LABELS = ["Sent", "Purpose", "To", "Name", "Subject", "Status"]
 
 
@@ -98,7 +98,7 @@ def test_the_columns_are_choosable_with_error_attachments_and_bounce_off(
 # The cells
 # --------------------------------------------------------------------------
 def test_the_csv_header_is_the_default_labels(system_admin_client: APIClient) -> None:
-    """With no ``columns`` the file carries the six default columns, in order."""
+    """Without ``columns`` the file carries the six default columns, in order."""
     assert read_csv(system_admin_client.get(CSV_URL))[0] == DEFAULT_LABELS
 
 
@@ -124,24 +124,24 @@ def test_a_row_reads_as_a_reader_would_say_it(system_admin_client: APIClient) ->
     ]
 
 
-def test_a_purpose_with_no_label_prints_its_slug(system_admin_client: APIClient) -> None:
+def test_a_purpose_without_a_label_prints_its_slug(system_admin_client: APIClient) -> None:
     """A template the labels do not name still reads, by its own name."""
     EmailLogFactory(purpose="board_minutes")
 
     assert column(read_csv(system_admin_client.get(CSV_URL)), "Purpose") == ["board_minutes"]
 
 
-def test_a_message_to_nobody_in_particular_has_a_blank_name(
+def test_a_message_to_a_bare_address_has_a_blank_name(
     system_admin_client: APIClient,
 ) -> None:
-    """A send to an address with no account behind it leaves ``Name`` empty."""
+    """A send to an address without an account behind it leaves ``Name`` empty."""
     EmailLogFactory(user=None, to_email="info@example.org", to_name="")
 
     assert column(read_csv(system_admin_client.get(CSV_URL)), "Name") == [""]
 
 
 def test_a_roster_row_shows_the_contacts_recorded_name(system_admin_client: APIClient) -> None:
-    """``Name`` reads a row's own recorded name even with no account behind it."""
+    """``Name`` reads a row's own recorded name even without an account behind it."""
     EmailLogFactory(
         user=None, to_email="lee@example.test", to_name="Lee Park", purpose="dart_roster"
     )
@@ -197,7 +197,7 @@ def test_the_file_is_named_for_the_email_log(
 # The filters and the order
 # --------------------------------------------------------------------------
 def test_the_rows_come_newest_first(system_admin_client: APIClient) -> None:
-    """With no ordering the latest send leads."""
+    """Without an ordering the latest send leads."""
     EmailLogFactory(subject="older", sent_at=pacific(2026, 1, 1))
     EmailLogFactory(subject="newer", sent_at=pacific(2026, 1, 2))
 

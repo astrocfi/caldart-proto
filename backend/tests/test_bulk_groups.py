@@ -144,7 +144,7 @@ def test_a_live_group_is_the_union_of_its_filter_sets(ann: User) -> None:
     assert emails(groups.group_accounts(group)) == ["ann@example.test", "nora@example.test"]
 
 
-def test_a_live_group_without_filters_holds_nobody(ann: User) -> None:
+def test_a_live_group_without_filters_is_empty(ann: User) -> None:
     """A live group whose filter sets were all taken out is empty, not everybody."""
     group = make_group("Empty", filter_sets=(FRIENDS_IN_MARIN,))
     group.filter_sets.all().delete()
@@ -331,7 +331,7 @@ def test_a_fixed_group_from_a_search_ignores_who_is_in_the_batch(
     assert emails(groups.group_accounts(group)) == ["ann@example.test"]
 
 
-def test_a_search_matching_nobody_still_saves(
+def test_a_search_without_matches_still_saves(
     management_client: APIClient, bulk: BulkEmail
 ) -> None:
     """Saving is always possible: an empty search saves an empty group."""
@@ -393,7 +393,7 @@ def test_a_live_group_lists_its_filter_sets_in_words(
 
 
 def test_making_an_empty_group(management_client: APIClient, management: User) -> None:
-    """``POST`` makes a group with nobody and no filters in it."""
+    """``POST`` makes a group without people or filters in it."""
     response = management_client.post(
         GROUPS_URL, {"name": "Seminar", "kind": "live"}, format="json"
     )
@@ -450,7 +450,7 @@ def test_a_groups_people_download_as_a_csv(
 def test_a_group_whose_name_cannot_be_slugged_downloads_under_its_id(
     management_client: APIClient, board: RecipientGroup
 ) -> None:
-    """A name with no letter or digit names the file for the group's id instead."""
+    """A name without a letter or a digit names the file for the group's id instead."""
     RecipientGroup.objects.filter(pk=board.pk).update(name="!!!")
     response = management_client.get(group_url(board, "/members.csv"))
     assert response["Content-Disposition"] == (
@@ -506,7 +506,7 @@ def test_removing_somebody_not_in_the_group_is_not_found(
     assert management_client.delete(group_url(board, f"/members/{cal.pk}")).status_code == 404
 
 
-def test_a_live_group_has_no_people_to_add(
+def test_people_cannot_be_added_to_a_live_group(
     management_client: APIClient, ann: User, marin_friends: RecipientGroup
 ) -> None:
     """People are added to a fixed group only: 409."""
@@ -552,7 +552,7 @@ def test_removing_a_filter_set_from_a_live_group(
     assert not marin_friends.filter_sets.exists()
 
 
-def test_a_fixed_group_has_no_filters_to_add(
+def test_filter_sets_cannot_be_added_to_a_fixed_group(
     management_client: APIClient, board: RecipientGroup
 ) -> None:
     """Filter sets belong to a live group only: 409."""
@@ -579,7 +579,9 @@ def test_the_people_search_finds_members_and_friends(
     assert response.json() == [{"id": ann.pk, "name": "Ann Able", "email": "ann@example.test"}]
 
 
-def test_a_blank_people_search_finds_nobody(management_client: APIClient, ann: User) -> None:
+def test_a_blank_people_search_does_not_find_anybody(
+    management_client: APIClient, ann: User
+) -> None:
     """Nothing typed, nothing found."""
     assert management_client.get(f"{GROUPS_URL}/people", {"search": " "}).json() == []
 
@@ -595,7 +597,7 @@ def test_deleting_one_group_leaves_the_others(
 def test_removing_a_member_from_a_live_group_is_refused(
     ann: User, marin_friends: RecipientGroup
 ) -> None:
-    """A live group has no list of people to take somebody out of."""
+    """A live group doesn't have a list of people to take somebody out of."""
     with pytest.raises(DomainError, match="Only a fixed group lists its people"):
         groups.remove_member(marin_friends, ann.pk)
 
@@ -631,7 +633,7 @@ def test_a_broken_group_marks_the_filter_set_that_needs_fixing(
 def test_adding_a_broken_group_alone_is_refused(
     management_client: APIClient, bulk: BulkEmail, broken: RecipientGroup
 ) -> None:
-    """The add says the filters need fixing, and adds nobody."""
+    """The add says the filters need fixing, and doesn't add anybody."""
     response = management_client.post(
         f"/api/v1/bulk-email/{bulk.pk}/batch/add-group", {"group": broken.pk}, format="json"
     )
@@ -639,7 +641,7 @@ def test_adding_a_broken_group_alone_is_refused(
     assert response.json() == {"group": [groups.FILTERS_NEED_FIXING_MESSAGE]}
 
 
-def test_a_refused_add_of_a_broken_group_records_no_add(
+def test_a_refused_add_of_a_broken_group_does_not_record_an_add(
     management_client: APIClient, bulk: BulkEmail, broken: RecipientGroup
 ) -> None:
     """Nothing about the batch changes."""
@@ -677,7 +679,7 @@ def test_taking_out_the_refused_filters_fixes_the_group(
 def test_a_live_group_refuses_a_filter_set_it_has_already(
     management_client: APIClient, marin_friends: RecipientGroup
 ) -> None:
-    """The same filters twice would find nobody new: 400 keyed ``filters``."""
+    """The same filters twice wouldn't find anybody new: 400 keyed ``filters``."""
     response = management_client.post(
         group_url(marin_friends, "/filters"),
         {"filters": {**FRIENDS_IN_MARIN, "search": ""}},

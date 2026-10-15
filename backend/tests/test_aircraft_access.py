@@ -1,10 +1,10 @@
 """Aircraft are for current members: friends, unpaid and expired members are refused.
 
-A friend of CalDART pays no dues and has nothing to do with aircraft; a member who has
-joined and not yet paid has none until they pay; a member whose membership has expired
-keeps the aircraft on their profile but cannot see or change them; a current member
-uses the register and their own aircraft; the roles that check members and aircraft
-use the register whatever their own membership.  See ``apps.aircraft.access``.
+A friend of CalDART doesn't pay dues and isn't concerned with aircraft; a member who has
+joined and not yet paid doesn't have access until they pay; a member whose membership
+has expired keeps the aircraft on their profile but cannot see or change them; a current
+member uses the register and their own aircraft; the roles that check members and
+aircraft use the register whatever their own membership.  See ``apps.aircraft.access``.
 """
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ pytestmark = pytest.mark.django_db
 REFUSED = {"detail": "Aircraft are for members with a current membership."}
 
 #: The accounts the register refuses: a friend, a member who has not yet paid (the
-#: ``member`` fixture holds no term), and a member whose membership has expired.
+#: ``member`` fixture doesn't hold a term), and a member whose membership has expired.
 REFUSED_ACCOUNTS = ["friend", "member", "expired_member"]
 PROFILE_URL = "/api/v1/me/profile"
 ATTACH_URL = "/api/v1/me/profile/aircraft"
@@ -149,7 +149,7 @@ def test_anyone_but_a_current_member_cannot_detach_an_aircraft(
 
 
 def test_an_anonymous_caller_is_asked_to_sign_in(api_client: APIClient) -> None:
-    """The register still answers 401, not 403, to nobody."""
+    """The register still answers 401, not 403, to an anonymous caller."""
     assert api_client.get("/api/v1/aircraft").status_code == 401
 
 
@@ -188,7 +188,7 @@ def lapsed_with_aircraft(expired_member: User, aircraft: Aircraft) -> MemberProf
     return profile
 
 
-def test_an_expired_members_profile_lists_no_aircraft(
+def test_an_expired_members_profile_does_not_list_any_aircraft(
     expired_member: User, lapsed_with_aircraft: MemberProfile
 ) -> None:
     """``/me/profile`` hides the aircraft while the membership is expired."""

@@ -361,7 +361,7 @@ def test_a_refusal_is_logged_by_its_class(
 def test_a_refusal_is_logged_without_a_traceback(
     mail_errors: pytest.LogCaptureFixture, exchange: Exchange
 ) -> None:
-    """The record carries no traceback, whose exception text can name an address."""
+    """The record doesn't carry a traceback, whose exception text can name an address."""
     assert [record.exc_info for record in mail_records(mail_errors)] == [None]
 
 
@@ -381,10 +381,10 @@ def recipient_refusing_mail_server(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.usefixtures("recipient_refusing_mail_server")
-def test_a_refused_recipient_leaves_no_address_in_the_log(
+def test_a_refused_recipient_does_not_leave_an_address_in_the_log(
     caplog: pytest.LogCaptureFixture, api_client: APIClient
 ) -> None:
-    """The record names the class and the SMTP code, and no address."""
+    """The record names the class and the SMTP code, but not the address."""
     caplog.set_level(logging.ERROR, logger="caldart.mail")
     UserFactory(email=REFUSED_ADDRESS, roles=[MEMBER])
 
@@ -398,7 +398,7 @@ def test_a_refused_recipient_leaves_no_address_in_the_log(
 
 
 @pytest.mark.usefixtures("recipient_refusing_mail_server")
-def test_a_refused_recipient_leaves_no_traceback_in_the_log(
+def test_a_refused_recipient_does_not_leave_a_traceback_in_the_log(
     caplog: pytest.LogCaptureFixture, api_client: APIClient
 ) -> None:
     """No record carries the exception, whose text names the address."""
@@ -551,7 +551,7 @@ def test_a_refused_admin_send_is_not_audited_as_sent(
 def test_a_refused_admin_send_is_logged_by_its_class(
     mail_errors: pytest.LogCaptureFixture, admin_send: tuple[int, object, User]
 ) -> None:
-    """The refusal reaches the operators through ``caldart.mail``, with no traceback."""
+    """The refusal reaches the operators through ``caldart.mail``, without a traceback."""
     records = mail_records(mail_errors)
 
     assert [record.getMessage().endswith("(SMTPException)") for record in records] == [True]
@@ -609,7 +609,7 @@ def test_send_logging_refusal_lets_any_other_error_through() -> None:
     ids=["authentication", "recipient", "connection"],
 )
 def test_a_refusal_reads_as_its_class_and_code(transport: OSError, message: str) -> None:
-    """``MailRefusedError`` says the transport's class and SMTP code, and nothing else."""
+    """``MailRefusedError`` says only the transport's class and SMTP code."""
     assert str(MailRefusedError.from_transport(transport)) == message
 
 

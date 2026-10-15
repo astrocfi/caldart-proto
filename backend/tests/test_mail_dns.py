@@ -71,7 +71,7 @@ class FakeResolver:
     instances: list[FakeResolver] = []
 
     def __init__(self) -> None:
-        """Start with no timeout set, as the real resolver's defaults are replaced."""
+        """Start without a timeout set, as the real resolver's defaults are replaced."""
         self.timeout = 0.0
         self.lifetime = 0.0
         type(self).instances.append(self)
@@ -128,7 +128,7 @@ def run(**kwargs: Any) -> DnsReport:
 # The whole report
 # --------------------------------------------------------------------------
 def test_a_domain_with_every_record_in_place_passes_every_line(dns_zone: Zone) -> None:
-    """SPF, DKIM, DMARC, and the bounce address all pass, with nothing to fix."""
+    """SPF, DKIM, DMARC, and the bounce address all pass, without anything to fix."""
     report = run()
 
     assert [(f.name, f.status, f.fix) for f in report.findings] == [
@@ -156,7 +156,7 @@ def test_every_lookup_waits_at_most_three_seconds(dns_zone: Zone) -> None:
 def test_a_from_address_without_a_domain_is_one_failing_line(
     dns_zone: Zone, settings: Settings
 ) -> None:
-    """There is nothing to look up, and no lookup is made."""
+    """There isn't anything to look up, and no lookup is made."""
     settings.DEFAULT_FROM_EMAIL = "noreply"
 
     report = run()
@@ -223,7 +223,7 @@ def test_spf_passes_for_a_hard_fail_policy(dns_zone: Zone) -> None:
 
 
 def test_a_missing_spf_record_fails_and_says_what_to_publish(dns_zone: Zone) -> None:
-    """With no TXT record at the domain the fix names the mail server's address."""
+    """Without a TXT record at the domain the fix names the mail server's address."""
     del dns_zone[("example.org", "TXT")]
 
     result = finding(run(), SPF_NAME)
@@ -312,7 +312,7 @@ def test_a_negated_term_does_not_authorize(dns_zone: Zone) -> None:
 def test_an_spf_record_that_does_not_turn_strangers_away_warns(
     dns_zone: Zone, record: str, words: str
 ) -> None:
-    """``+all``, ``?all``, and no ``all`` each warn and name the stricter ending."""
+    """``+all``, ``?all``, and a missing ``all`` warn and name the stricter ending."""
     dns_zone[("example.org", "TXT")] = [record]
 
     result = finding(run(), SPF_NAME)
@@ -388,7 +388,7 @@ def test_an_included_list_that_allows_everything_authorizes_the_host(dns_zone: Z
 
 
 def test_an_included_list_that_refuses_the_host_does_not_match(dns_zone: Zone) -> None:
-    """A fail inside the included record is no match, so the outer ``all`` decides."""
+    """A fail inside the included record isn't a match, so the outer ``all`` decides."""
     dns_zone[("example.org", "TXT")] = ["v=spf1 include:inc.example.net -all"]
     dns_zone[("inc.example.net", "TXT")] = ["v=spf1 -ip4:192.0.2.25 +all"]
 
@@ -433,7 +433,7 @@ def test_an_mx_term_naming_more_than_ten_servers_fails(dns_zone: Zone) -> None:
 def test_every_lookup_causing_term_counts_toward_the_limit_whatever_its_qualifier(
     dns_zone: Zone,
 ) -> None:
-    """Eleven negated ``a`` terms that match nothing still cost eleven lookups."""
+    """Eleven negated ``a`` terms that don't match anything still cost eleven lookups."""
     terms = " ".join(f"-a:h{n}.example.net" for n in range(11))
     dns_zone[("example.org", "TXT")] = [f"v=spf1 {terms} ip4:192.0.2.25 -all"]
 
@@ -504,7 +504,7 @@ def test_an_spf_record_needing_more_than_ten_lookups_fails(dns_zone: Zone) -> No
 def test_a_mail_server_on_the_same_machine_warns_instead_of_failing(
     dns_zone: Zone, settings: Settings
 ) -> None:
-    """A loopback host says nothing about the public address, so the check warns."""
+    """A loopback host doesn't tell us the public address, so the check warns."""
     settings.MAILERS = {"default": {"BACKEND": SMTP_BACKEND, "OPTIONS": {"host": "localhost"}}}
     dns_zone[("localhost", "A")] = ["127.0.0.1"]
     dns_zone[("example.org", "TXT")] = ["v=spf1 ip4:192.0.2.25 ~all"]
@@ -515,8 +515,8 @@ def test_a_mail_server_on_the_same_machine_warns_instead_of_failing(
     assert "same machine (localhost)" in result.detail
 
 
-def test_a_site_with_no_mail_server_setting_warns(dns_zone: Zone, settings: Settings) -> None:
-    """With no SMTP host (console or file mail) there is no server to look for."""
+def test_a_site_without_a_mail_server_setting_warns(dns_zone: Zone, settings: Settings) -> None:
+    """Without an SMTP host (console or file mail) there isn't a server to look for."""
     settings.MAILERS = {"default": {"BACKEND": "django.core.mail.backends.console.EmailBackend"}}
 
     result = finding(run(), SPF_NAME)
@@ -526,7 +526,7 @@ def test_a_site_with_no_mail_server_setting_warns(dns_zone: Zone, settings: Sett
 
 
 def test_a_mail_server_that_does_not_resolve_fails(dns_zone: Zone) -> None:
-    """A host with no address cannot be on any list."""
+    """A host without an address cannot be on any list."""
     del dns_zone[("smtp.relay.net", "A")]
 
     result = finding(run(), SPF_NAME)
@@ -548,7 +548,7 @@ def test_a_mail_server_that_does_not_resolve_fails(dns_zone: Zone) -> None:
 def test_a_lookup_that_times_out_fails_the_line_in_plain_words(
     dns_zone: Zone, name: tuple[str, str], label: str
 ) -> None:
-    """A timeout is a failing line saying no answer came in time, never an exception."""
+    """A timeout is a failing line saying the lookup timed out, never an exception."""
     dns_zone[name] = dns.exception.Timeout()  # type: ignore[no-untyped-call]  # dnspython
 
     result = finding(run(), label)
@@ -602,7 +602,7 @@ def test_dkim_passes_when_the_selectors_key_is_published(dns_zone: Zone) -> None
     assert ("mail._domainkey.example.org", "TXT") in FakeResolver.queries
 
 
-def test_dkim_without_a_selector_warns_and_looks_nothing_up(
+def test_dkim_without_a_selector_warns_and_does_not_look_anything_up(
     dns_zone: Zone, settings: Settings
 ) -> None:
     """No ``DKIM_SELECTOR`` is a warning that says so."""
@@ -632,7 +632,7 @@ def test_a_missing_dkim_record_fails_and_names_where_it_belongs(dns_zone: Zone) 
     ids=["no-key", "revoked-key", "not-dkim"],
 )
 def test_a_dkim_record_without_a_key_fails(dns_zone: Zone, record: str) -> None:
-    """A record with no ``p=`` value (or an empty, revoked one) is not a usable key."""
+    """A record without a ``p=`` value (or an empty, revoked one) is not a usable key."""
     dns_zone[("mail._domainkey.example.org", "TXT")] = [record]
 
     result = finding(run(), DKIM_NAME)
@@ -661,7 +661,7 @@ def test_dmarc_passes_for_a_policy_that_acts_on_forgeries(
 
 
 def test_a_monitor_only_dmarc_policy_warns(dns_zone: Zone) -> None:
-    """``p=none`` publishes a policy that asks receivers to do nothing."""
+    """``p=none`` publishes a policy that asks receivers not to act."""
     dns_zone[("_dmarc.example.org", "TXT")] = ["v=DMARC1; p=none"]
 
     result = finding(run(), DMARC_NAME)
@@ -697,7 +697,7 @@ def test_dmarc_report_addresses_read_without_their_scheme_or_size_limit(
 
 
 def test_two_dmarc_records_fail_because_receivers_apply_neither(dns_zone: Zone) -> None:
-    """RFC 7489 has a receiver apply no policy when more than one is published."""
+    """RFC 7489 has a receiver not apply any policy when more than one is published."""
     dns_zone[("_dmarc.example.org", "TXT")] = ["v=DMARC1; p=reject", "v=DMARC1; p=none"]
 
     result = finding(run(), DMARC_NAME)
@@ -724,7 +724,7 @@ def test_a_missing_dmarc_record_fails_with_a_record_to_publish(dns_zone: Zone) -
     "record", ["v=DMARC1", "v=DMARC1; p=maybe"], ids=["no-policy", "bad-policy"]
 )
 def test_a_malformed_dmarc_policy_fails(dns_zone: Zone, record: str) -> None:
-    """A record with no valid ``p=`` is no policy."""
+    """A record without a valid ``p=`` isn't a policy."""
     dns_zone[("_dmarc.example.org", "TXT")] = [record]
 
     result = finding(run(), DMARC_NAME)
@@ -735,7 +735,7 @@ def test_a_malformed_dmarc_policy_fails(dns_zone: Zone, record: str) -> None:
 
 @pytest.fixture
 def subdomain_sender(settings: Settings) -> None:
-    """Send from ``caldart.example.org``, a subdomain with no DMARC record of its own."""
+    """Send from ``caldart.example.org``, a subdomain lacking its own DMARC record."""
     settings.DEFAULT_FROM_EMAIL = "CalDART <noreply@caldart.example.org>"
 
 
@@ -795,7 +795,7 @@ def test_a_record_at_the_subdomain_itself_wins_over_the_organizational_one(
 def test_a_subdomain_with_neither_record_fails_with_a_record_for_itself(
     dns_zone: Zone, subdomain_sender: None
 ) -> None:
-    """With no policy at either name, the fix is still the subdomain's own record."""
+    """Without a policy at either name, the fix is still the subdomain's own record."""
     del dns_zone[("_dmarc.example.org", "TXT")]
 
     result = finding(run(), DMARC_NAME)
@@ -857,7 +857,7 @@ def test_the_bounce_address_is_judged_against_the_from_domain(
 # --------------------------------------------------------------------------
 # The cache
 # --------------------------------------------------------------------------
-def test_a_second_run_reads_the_cache_and_queries_nothing(dns_zone: Zone) -> None:
+def test_a_second_run_reads_the_cache_and_does_not_query_anything(dns_zone: Zone) -> None:
     """The cached report keeps its original ``checked_at``."""
     first = run()
     queries = len(FakeResolver.queries)

@@ -37,7 +37,7 @@ def frozen() -> Iterator[date]:
 
 
 def test_no_memberships_is_not_yet_paid(member: User, frozen: date) -> None:
-    """A member with no membership terms at all has never paid, so reports ``none``."""
+    """A member without any membership terms has never paid, so reports ``none``."""
     assert membership_status(member) == {
         "status": "none",
         "expires_on": None,
@@ -94,7 +94,7 @@ def test_expiry_yesterday_is_expired(
 def test_term_starting_tomorrow_is_not_yet_current(
     member: User, annual_plan: MembershipPlan, frozen: date
 ) -> None:
-    """A term that starts tomorrow does not yet count, so the member reads none yet."""
+    """A term that starts tomorrow does not count yet, so the member reads ``none``."""
     MembershipFactory(
         user=member,
         plan=annual_plan,
@@ -114,10 +114,10 @@ def test_term_starting_today_is_current(
     assert membership_status(member)["status"] == "current"
 
 
-def test_a_lifetime_term_reports_current_with_no_expiry(
+def test_a_lifetime_term_reports_current_without_an_expiry(
     member: User, life_plan: MembershipPlan, frozen: date
 ) -> None:
-    """A lifetime term reports current with no expiry date."""
+    """A lifetime term reports current without an expiry date."""
     MembershipFactory(
         user=member, plan=life_plan, starts_on=TODAY - timedelta(days=900), ends_on=None
     )
@@ -237,8 +237,10 @@ def test_renewal_on_the_expiry_day_starts_tomorrow(
     assert term.starts_on == TODAY + timedelta(days=1)
 
 
-def test_lifetime_plan_has_no_end(member: User, life_plan: MembershipPlan, frozen: date) -> None:
-    """Activating a lifetime plan creates a term with no end date."""
+def test_lifetime_plan_does_not_have_an_end(
+    member: User, life_plan: MembershipPlan, frozen: date
+) -> None:
+    """Activating a lifetime plan creates a term without an end date."""
     term = activate_term(member, life_plan, source=MembershipSource.MANUAL)
     assert term.ends_on is None
     assert membership_status(member)["is_lifetime"] is True

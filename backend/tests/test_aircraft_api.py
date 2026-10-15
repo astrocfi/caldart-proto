@@ -186,7 +186,7 @@ def test_an_account_admin_reads_who_last_wrote_a_record(
 def test_updated_by_is_null_on_a_record_nobody_has_written(
     api_client: APIClient, account_admin: User, aircraft: Aircraft
 ) -> None:
-    """A seeded record carries no last writer until somebody edits it."""
+    """A seeded record doesn't carry a last writer until somebody edits it."""
     api_client.force_login(account_admin)
     assert api_client.get(detail_url(aircraft)).json()["updated_by"] is None
 
@@ -296,7 +296,7 @@ def test_a_created_aircraft_answers_with_its_type(api_client: APIClient, member:
 
 
 def test_a_make_and_model_in_the_body_are_not_written(api_client: APIClient, member: User) -> None:
-    """``make`` and ``model`` come from the type; a body naming them changes nothing."""
+    """``make`` and ``model`` come from the type; a body naming them leaves them alone."""
     api_client.force_login(member)
     response = api_client.post(
         LIST_URL, valid_payload(make="Piper", model="PA-28-181"), format="json"
@@ -359,7 +359,7 @@ def test_another_member_may_not_update_someone_elses_aircraft(
 
 
 def test_nobody_owns_an_aircraft_created_by_the_seed(api_client: APIClient, member: User) -> None:
-    """An aircraft with no creator (seeded) cannot be patched by a plain member."""
+    """An aircraft without a creator (seeded) cannot be patched by a plain member."""
     aircraft = AircraftFactory(n_number="N57CR", created_by=None)
     api_client.force_login(member)
     assert api_client.patch(detail_url(aircraft), {"owner_name": "x"}).status_code == 403
@@ -462,13 +462,13 @@ def test_lookup_finds_an_aircraft_however_the_n_number_is_typed(
 
 
 def test_lookup_404s_for_an_unknown_n_number(api_client: APIClient, member: User) -> None:
-    """Looking up an N-number with no matching aircraft returns 404."""
+    """Looking up an N-number without a matching aircraft returns 404."""
     api_client.force_login(member)
     assert api_client.get(LOOKUP_URL, {"n_number": "N0000X"}).status_code == 404
 
 
 def test_lookup_without_an_n_number_is_a_400(api_client: APIClient, member: User) -> None:
-    """Looking up with no ``n_number`` query parameter returns 400 naming that field."""
+    """Looking up without an ``n_number`` query parameter is a 400 naming that field."""
     api_client.force_login(member)
     response = api_client.get(LOOKUP_URL)
     assert response.status_code == 400
@@ -665,7 +665,7 @@ def test_ordering_puts_the_expected_aircraft_first(
 def test_aircraft_without_insurance_sort_last_either_way(
     api_client: APIClient, member: User, register: RegisterDict, ordering: str
 ) -> None:
-    """An aircraft with no insurance expiration sorts last, ascending or descending."""
+    """An aircraft without an insurance expiration sorts last, ascending or descending."""
     api_client.force_login(member)
     response = api_client.get(LIST_URL, {"ordering": ordering})
     assert numbers(response)[-1] == "N44BE"

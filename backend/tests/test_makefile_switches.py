@@ -122,7 +122,7 @@ def test_switch_stops_make_on_an_unknown_value(
 
 
 @pytest.mark.parametrize(("target", "arguments", "variable", "command", "option"), SWITCH_CASES)
-def test_unknown_value_runs_nothing(
+def test_unknown_value_does_not_run_anything(
     target: str, arguments: list[str], variable: str, command: str, option: str
 ) -> None:
     """The error comes before the recipe, so no command is printed to run."""

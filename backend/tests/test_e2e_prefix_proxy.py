@@ -32,7 +32,7 @@ POLL_INTERVAL = 0.01
 
 
 def _load_proxy() -> ModuleType:
-    """Import ``prefix_proxy.py`` from its path, since ``frontend/e2e`` is no package."""
+    """Import ``prefix_proxy.py`` by path, since ``frontend/e2e`` isn't a package."""
     spec = importlib.util.spec_from_file_location("caldart_prefix_proxy", PROXY_SOURCE)
     assert spec is not None
     assert spec.loader is not None
@@ -264,7 +264,7 @@ def test_a_method_besides_get_and_post_is_forwarded(running: _Running, method: s
     assert _echoed(response)["method"] == method
 
 
-def test_a_head_request_reaches_the_upstream_with_no_body_in_the_answer(
+def test_a_head_request_reaches_the_upstream_without_a_body_in_the_answer(
     running: _Running,
 ) -> None:
     """A HEAD gets the same status and headers a GET would, but never a body."""
@@ -335,7 +335,7 @@ def test_the_forwarded_headers_describe_the_original_request(
 
 
 def test_an_unreachable_upstream_answers_bad_gateway() -> None:
-    """With nothing listening upstream the proxy answers ``502``, not a hung request."""
+    """When nothing listens upstream the proxy answers ``502``, not a hung request."""
     closed = ThreadingHTTPServer(("127.0.0.1", 0), _RecordingHandler)
     upstream_port = closed.server_address[1]
     closed.server_close()

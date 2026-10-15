@@ -20,7 +20,7 @@ pytestmark = pytest.mark.django_db
 
 @pytest.fixture
 def calendar(site_settings: SiteSettings) -> EventIndexPage:
-    """An event index under the site root, with nothing below it yet."""
+    """An event index under the site root, without anything below it yet."""
     return make_event_index(site_settings.site.root_page.specific)
 
 
@@ -99,13 +99,13 @@ def test_an_event_page_shows_when_and_where_it_is(client: Client, calendar: Even
 
 
 def test_when_and_where_reads_whichever_half_is_set(calendar: EventIndexPage) -> None:
-    """A place with no time reads as the place alone."""
+    """A place without a time reads as the place alone."""
     event = make_event_page(calendar, "meeting", "Leaders meeting", location="San Martin (E16)")
     assert event.when_and_where == "San Martin (E16)"
 
 
 def test_when_and_where_is_empty_when_neither_is_set(calendar: EventIndexPage) -> None:
-    """Neither half gives an empty string, so the template prints nothing."""
+    """Neither half gives an empty string, so the template doesn't print anything."""
     event = make_event_page(calendar, "meeting", "Leaders meeting")
     assert event.when_and_where == ""
 

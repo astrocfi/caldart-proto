@@ -6,7 +6,7 @@ the payments move, in the same transaction, to a new *tombstone* account named
 **Deleted member <id>**, a deactivated donor that cannot sign in.  The member's
 automatic payments are canceled first, and the accounts read the same afterwards.
 An
-account that never paid is deleted with no tombstone.
+account that never paid is deleted without a tombstone.
 """
 
 from __future__ import annotations
@@ -128,7 +128,7 @@ def test_a_refund_stays_attached_to_its_payment(
     assert refund.payment.user_id == tombstone_of(target_id).pk
 
 
-def test_a_moved_payment_keeps_no_donor_details(
+def test_a_moved_payment_does_not_keep_donor_details(
     account_admin_client: APIClient, payer: User
 ) -> None:
     """A public gift's stored giver details are wiped as it moves to the tombstone."""
@@ -190,24 +190,24 @@ def test_a_gift_settling_after_the_delete_leaves_the_profile_blank(
     assert MemberProfile.objects.get(user=tombstone_of(settled_after_delete)).phone == ""
 
 
-def test_a_plan_payment_settling_after_the_delete_grants_no_term(
+def test_a_plan_payment_settling_after_the_delete_does_not_grant_a_term(
     settled_after_delete: int,
 ) -> None:
     """The tombstone never becomes a member."""
     assert not Membership.objects.filter(user=tombstone_of(settled_after_delete)).exists()
 
 
-def test_a_payment_settling_after_the_delete_sends_no_mail(
+def test_a_payment_settling_after_the_delete_does_not_send_mail(
     settled_after_delete: int,
 ) -> None:
     """No receipt, and nothing else, goes to the tombstone's address."""
     assert [message.to for message in mail.outbox] == []
 
 
-def test_a_member_who_never_paid_leaves_no_tombstone(
+def test_a_member_who_never_paid_does_not_leave_a_tombstone(
     account_admin_client: APIClient, payer: User
 ) -> None:
-    """Without payments there is nothing to keep, so no tombstone is made."""
+    """Without payments there isn't anything to keep, so no tombstone is made."""
     target_id = payer.pk
 
     assert account_admin_client.delete(detail_url(payer)).status_code == 204
@@ -223,7 +223,7 @@ def test_the_tombstone_reads_deleted_member_and_the_old_id(payer: User) -> None:
 
 
 def test_the_tombstone_is_a_donor(payer: User) -> None:
-    """A donor holds no password and no role, so the tombstone cannot sign in."""
+    """A donor doesn't hold a password or a role, so the tombstone cannot sign in."""
     assert tombstone_for(payer).kind == AccountKind.DONOR
 
 
@@ -232,12 +232,12 @@ def test_the_tombstone_is_deactivated(payer: User) -> None:
     assert tombstone_for(payer).is_active is False
 
 
-def test_the_tombstone_holds_no_usable_password(payer: User) -> None:
+def test_the_tombstone_does_not_hold_a_usable_password(payer: User) -> None:
     """Nobody can sign in as the tombstone."""
     assert tombstone_for(payer).has_usable_password() is False
 
 
-def test_the_tombstone_holds_no_role(payer: User) -> None:
+def test_the_tombstone_does_not_hold_a_role(payer: User) -> None:
     """Not even the member role that lets an account into the portal."""
     assert tombstone_for(payer).groups.count() == 0
 
@@ -346,7 +346,7 @@ def test_the_notice_that_the_automatic_payment_is_off_says_the_account_was_delet
     annual_plan: MembershipPlan,
     recorded_events: RecordedEvents,
 ) -> None:
-    """``auto_renewal_off`` says ``deleted``, so its email links to no member record."""
+    """``auto_renewal_off`` says ``deleted``, so its email doesn't link a record."""
     PaymentFactory(user=payer, plan=annual_plan)
     RenewalMandateFactory(user=payer, plan=annual_plan)
 
@@ -362,7 +362,7 @@ def test_the_email_log_keeps_the_message_without_the_deleted_account(
     annual_plan: MembershipPlan,
     django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
 ) -> None:
-    """The log row is written after the account is gone, so it names no account."""
+    """The log row is written after the account is gone, so it doesn't name an account."""
     PaymentFactory(user=payer, plan=annual_plan)
     RenewalMandateFactory(user=payer, plan=annual_plan)
 
@@ -379,7 +379,7 @@ def test_a_canceled_mandate_is_not_canceled_again(
     annual_plan: MembershipPlan,
     audit_log: pytest.LogCaptureFixture,
 ) -> None:
-    """An authority already withdrawn needs nothing more."""
+    """An authority already withdrawn doesn't need anything more."""
     PaymentFactory(user=payer, plan=annual_plan)
     RenewalMandateFactory(user=payer, plan=annual_plan, status=MandateStatus.CANCELED)
 
@@ -411,7 +411,7 @@ def test_the_audit_line_counts_the_payments_and_names_their_owner(
     ]
 
 
-def test_the_audit_line_of_a_member_who_never_paid_carries_no_owner(
+def test_the_audit_line_of_a_member_who_never_paid_does_not_carry_an_owner(
     account_admin_client: APIClient,
     account_admin: User,
     payer: User,
@@ -443,8 +443,10 @@ def test_the_self_delete_guard_still_applies_to_a_payer(
     assert response.json()["detail"] == "You cannot delete your own account."
 
 
-def test_a_refused_delete_moves_nothing(api_client: APIClient, annual_plan: MembershipPlan) -> None:
-    """A refusal writes nothing: the payments stay with the account."""
+def test_a_refused_delete_does_not_move_anything(
+    api_client: APIClient, annual_plan: MembershipPlan
+) -> None:
+    """A refusal doesn't write anything: the payments stay with the account."""
     admin = UserFactory(email="selfpayer@example.test", roles=[MEMBER, ACCOUNT_ADMIN])
     payment = PaymentFactory(user=admin, plan=annual_plan)
     api_client.force_login(admin)
@@ -516,7 +518,7 @@ def test_the_payment_list_names_the_tombstone_as_the_payer(
 def test_the_member_list_does_not_show_the_tombstone(
     account_admin_client: APIClient, payer: User, annual_plan: MembershipPlan
 ) -> None:
-    """A deactivated donor is on none of the lists of people."""
+    """A deactivated donor isn't on any of the lists of people."""
     PaymentFactory(user=payer, plan=annual_plan)
     target_id = payer.pk
 

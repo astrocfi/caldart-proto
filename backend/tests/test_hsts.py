@@ -91,7 +91,7 @@ def test_the_hsts_header_does_not_consent_to_preloading(
 def test_no_hsts_header_on_a_first_deploy(
     client: Client, site_settings: SiteSettings, settings: Settings
 ) -> None:
-    """``SECURE_HSTS_SECONDS=0`` has to reach the browser, or it means nothing."""
+    """``SECURE_HSTS_SECONDS=0`` has to reach the browser, or it doesn't mean anything."""
     settings.SECURE_HSTS_SECONDS = 0
     assert HSTS_HEADER not in secure_response(client).headers
 
