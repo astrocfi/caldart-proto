@@ -9,9 +9,9 @@
  * them as any charge does; or, once the treasurer has checked that they didn't find
  * a payment, **No payment found**, which lets the next run charge it again, or **Close
  * as failed**, which doesn't charge it, pauses the member's automatic renewal or
- * recurring donation, and emails them that it is paused. The panel asks the treasurer
- * to get in touch with the member too, and hands the answer to a closed charge, which
- * carries the member's phone number and address, to `onClosed`.
+ * recurring donation if it is on, and emails them that it is paused. The panel asks the
+ * treasurer to get in touch with the member too, and hands the answer to a closed
+ * charge, which carries the member's phone number and address, to `onClosed`.
  */
 import { useState } from 'react';
 import type { ChangeEvent, JSX } from 'react';
@@ -132,9 +132,9 @@ export function SettleChargeButton({ attempt, onClosed }: SettleChargeButtonProp
       </label>
       <p className="muted">
         No payment found lets the next run charge it again. Close as failed doesn&rsquo;t charge it
-        again and pauses {name}&rsquo;s {MANDATE_KIND_LABELS[attempt.mandate_kind].toLowerCase()}.
-        They are emailed that it is paused; please get in touch with them too. Either needs the
-        search confirmed.
+        again, pauses {name}&rsquo;s {MANDATE_KIND_LABELS[attempt.mandate_kind].toLowerCase()} if it
+        is on, and emails them that it is paused; please get in touch with them too. Either needs
+        the search confirmed.
       </p>
     </ConfirmButton>
   );

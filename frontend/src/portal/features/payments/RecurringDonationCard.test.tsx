@@ -122,6 +122,17 @@ describe('RecurringDonationCard', () => {
     expect(screen.getByRole('link', { name: 'Set up' })).toBeInTheDocument();
   });
 
+  it('says a donation the treasurer closed couldn’t be completed, and never says refused', async () => {
+    mount(monthly({ status: 'paused', last_charge_closed: true }));
+
+    expect(
+      await screen.findByText(
+        'Your recurring donation is paused because the last charge couldn’t be completed, so you won’t be charged automatically.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/refused|could not charge/)).not.toBeInTheDocument();
+  });
+
   it('opens the change form with the cadence the donation already carries', async () => {
     const user = userEvent.setup();
     mount(monthly());

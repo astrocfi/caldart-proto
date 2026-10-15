@@ -37,6 +37,7 @@ const SETTLED: RenewalSettleResult = {
   outcome: 'succeeded',
   user_email: 'ben@example.org',
   user_phone: '415-555-0142',
+  mandate_paused: true,
   member_emailed: true,
 };
 
@@ -140,7 +141,9 @@ describe('SettleChargeButton', () => {
     await openPanel();
 
     expect(
-      screen.getByText(/They are emailed that it is paused; please get in touch with them too\./),
+      screen.getByText(
+        /if it is on, and emails them that it is paused; please get in touch with them too\./,
+      ),
     ).toBeInTheDocument();
   });
 
@@ -154,7 +157,9 @@ describe('SettleChargeButton', () => {
     );
     await userEvent.click(screen.getByRole('button', { name: 'Settle the charge for Ben Ortiz' }));
 
-    expect(screen.getByText(/pauses Ben Ortiz’s recurring donation\./)).toBeInTheDocument();
+    expect(
+      screen.getByText(/pauses Ben Ortiz’s recurring donation if it is on/),
+    ).toBeInTheDocument();
   });
 
   it('says why when the provider will not confirm the id', async () => {

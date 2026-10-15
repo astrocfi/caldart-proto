@@ -27,6 +27,7 @@ const CLOSED: RenewalSettleResult = {
   created_at: '2026-03-01T06:30:11Z',
   user_email: 'ben@example.org',
   user_phone: '415-555-0142',
+  mandate_paused: true,
   member_emailed: true,
 };
 
@@ -87,11 +88,19 @@ describe('ClosedChargeNotice', () => {
     expect(noticeText()).toContain('their recurring donation is paused');
   });
 
-  it('says the member isn’t emailed when the close didn’t email them', () => {
-    renderNotice({ ...CLOSED, member_emailed: false });
+  it('says the renewal is paused for a member who isn’t emailed', () => {
+    renderNotice({ ...CLOSED, member_emailed: false, user_email: '' });
 
     expect(noticeText()).toContain(
-      'The charge for Ben Ortiz is closed, and they aren’t emailed about it. Please get in touch with them: call',
+      'The charge for Ben Ortiz is closed and their automatic renewal is paused. They aren’t emailed about it. Please get in touch with them: call 415-555-0142.',
+    );
+  });
+
+  it('doesn’t call a renewal that was already off paused', () => {
+    renderNotice({ ...CLOSED, mandate_paused: false, member_emailed: false });
+
+    expect(noticeText()).toContain(
+      'The charge for Ben Ortiz is closed. They aren’t emailed about it. Please get in touch with them: call',
     );
   });
 

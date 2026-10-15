@@ -36,6 +36,7 @@ const ACTIVE: RenewalMandate = {
   failure_count: 0,
   next_charge_on: '2027-03-14',
   last_error: '',
+  last_charge_closed: false,
   last_charged_at: '2026-03-14T18:22:05Z',
   canceled_at: null,
   created_at: '2025-03-14T18:21:58Z',
@@ -347,6 +348,7 @@ describe('RenewalsPage', () => {
       outcome: 'failed',
       user_email: 'ben@example.org',
       user_phone: '415-555-0142',
+      mandate_paused: true,
       member_emailed: true,
     };
     server.use(

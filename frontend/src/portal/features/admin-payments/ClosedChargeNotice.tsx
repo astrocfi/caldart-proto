@@ -1,7 +1,8 @@
 /**
- * What the Renewals tab says once a treasurer has closed a charge as failed: the
- * member's standing charge is paused and they are emailed so, and the treasurer is
- * asked to get in touch with them too, by the phone number and the address the answer
+ * What the Renewals tab says once a treasurer has closed a charge as failed: whether the
+ * member's standing charge is paused (`mandate_paused`) and whether they are emailed so
+ * (`member_emailed`), each on its own, and the treasurer is asked to get in touch with
+ * them, by the phone number and the address the answer
  * carries, with a link to the member's money history (and their member record, for an
  * account administrator).
  */
@@ -30,18 +31,14 @@ export function ClosedChargeNotice({
   return (
     <div className="settle-result stack" role="status">
       <p>
+        The charge for {name} is closed
+        {result.mandate_paused ? <> and their {kind} is paused</> : null}.{' '}
         {result.member_emailed ? (
-          <>
-            The charge for {name} is closed and their {kind} is paused. They are emailed that it is
-            paused. Please get in touch with them too
-          </>
+          <>They are emailed that it is paused. Please get in touch with them too</>
         ) : (
-          <>
-            The charge for {name} is closed, and they aren&rsquo;t emailed about it. Please get in
-            touch with them
-          </>
+          <>They aren&rsquo;t emailed about it. Please get in touch with them</>
         )}
-        <ContactWays phone={result.user_phone} email={result.user_email} />.
+        <ContactWays phone={result.user_phone ?? ''} email={result.user_email ?? ''} />.
       </p>
       <p className="cluster">
         <Link to={`/admin/payments/members/${result.user_id}`}>{name}&rsquo;s money history</Link>

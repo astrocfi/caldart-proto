@@ -243,13 +243,7 @@ function RenewalSummary({ mandate, expiresOn }: RenewalSummaryProps): JSX.Elemen
     return (
       <div className="stack">
         <StatusDot tone="expired" label="Stopped" />
-        <p>
-          {authority} stopped because CalDART could not charge{' '}
-          {mandate.method_label || 'your saved payment method'}.
-        </p>
-        {mandate.last_error ? (
-          <p className="renewal__error">The last attempt was refused: {mandate.last_error}</p>
-        ) : null}
+        <PausedReason mandate={mandate} authority={authority} />
         <p>
           Nothing about your current membership has changed. Save another method to start it up
           again, or renew by hand from the Renew screen.
@@ -332,13 +326,7 @@ function DonationSummary({ mandate }: { mandate: RenewalMandate | null }): JSX.E
     return (
       <div className="stack">
         <StatusDot tone="expired" label="Stopped" />
-        <p>
-          Your recurring donation stopped because CalDART could not charge{' '}
-          {mandate.method_label || 'your saved payment method'}.
-        </p>
-        {mandate.last_error ? (
-          <p className="renewal__error">The last attempt was refused: {mandate.last_error}</p>
-        ) : null}
+        <PausedReason mandate={mandate} authority="Your recurring donation" />
         <p>Set it up again with another method from the Donate screen.</p>
       </div>
     );
@@ -376,5 +364,37 @@ function DonationSummary({ mandate }: { mandate: RenewalMandate | null }): JSX.E
           : 'We email you a receipt after every charge.'}
       </p>
     </div>
+  );
+}
+
+/**
+ * Why a paused mandate stopped: the card the provider refused, with its reason, or a
+ * last charge a treasurer closed, which couldn't be completed and was never refused.
+ */
+function PausedReason({
+  mandate,
+  authority,
+}: {
+  mandate: RenewalMandate;
+  authority: string;
+}): JSX.Element {
+  if (mandate.last_charge_closed) {
+    return (
+      <p>
+        {authority} is paused because the last charge couldn’t be completed, so you won&rsquo;t be
+        charged automatically.
+      </p>
+    );
+  }
+  return (
+    <>
+      <p>
+        {authority} stopped because CalDART could not charge{' '}
+        {mandate.method_label || 'your saved payment method'}.
+      </p>
+      {mandate.last_error ? (
+        <p className="renewal__error">The last attempt was refused: {mandate.last_error}</p>
+      ) : null}
+    </>
   );
 }

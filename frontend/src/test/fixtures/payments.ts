@@ -78,6 +78,7 @@ export function makeMandate(overrides: Partial<RenewalMandate> = {}): RenewalMan
     failure_count: 0,
     next_charge_on: '2027-03-12',
     last_error: '',
+    last_charge_closed: false,
     last_charged_at: '2026-03-14T18:22:05Z',
     canceled_at: null,
     created_at: '2025-03-14T18:21:58Z',
