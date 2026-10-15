@@ -381,7 +381,7 @@ def test_a_declined_capture_keeps_the_stored_order(
 def test_a_declined_order_is_never_captured_again(
     api_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """After a decline, capturing the same order again asks PayPal nothing."""
+    """After a decline, capturing the same order again doesn't ask PayPal anything."""
     payment = pending_paypal_payment(member)
     token_route(respx.mock)
     route = respx.post(f"{ORDERS_URL}/ORDER1/capture").mock(

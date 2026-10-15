@@ -246,7 +246,7 @@ for constantly:
    * - ``superuser``
      - ``is_superuser=True`` as well as the ``system_admin`` role
    * - ``no_role_user``
-     - a signed-up user with **no** roles at all
+     - a signed-up user without any roles at all
    * - ``all_role_users``
      - a ``{slug: user}`` dict, for allow/deny matrix tests
    * - ``account_admin_client``
@@ -1286,7 +1286,7 @@ Linting and type-checking
    $ make lint-shell      # shellcheck over deploy/ and scripts/
    $ make lint-frontend   # tsc --noEmit, eslint --max-warnings 0, prettier --check
    $ make lint-spelling   # codespell over the prose, the code and the tests
-   $ make lint-wording    # a negative object or complement, against its baseline
+   $ make lint-wording    # a negative object or complement, which fails on any hit
    $ make format          # fix what can be fixed automatically
 
 ``ruff`` is configured in ``pyproject.toml``: line length 100, target
@@ -1414,43 +1414,82 @@ lists it, minus generated files (the OpenAPI description and its snapshot,
 whose text comes from the serializer docstrings the check reads at their
 source, and the golden files under ``backend/tests/golden/``), lock files, and
 binaries, it reports a flagged word followed by ``no``, ``nothing``, ``nobody``,
-``none``, or ``no one``.  The word lists live beside the script in
+``none``, ``no one``, or ``nobody's`` or ``no one's`` as a determiner, and fails
+on any hit.  The word lists live beside the script in
 ``scripts/wording_words.py``.  The flagged words are the verb forms in
-``FLAGGED_VERBS``; the forms of *be* and the prepositions in
-``FLAGGED_WORDS``, so that *there is* and *with* before a negative count as
-well; and any other word ending in *-ed*, read as a past tense, outside
+``FLAGGED_VERBS``, past participles such as *given*, *sent*, and *told*
+included; the forms of *be* and the prepositions in ``FLAGGED_WORDS``, so that
+*there is* and *with* before a negative count as well; the contractions of
+*be* and *have* in ``CONTRACTIONS`` (*there's*, *we're*, *you've*, *they'd*);
+and any other word ending in *-ed*, read as a past tense, outside
 ``ALLOWED_WORDS`` and ``NOT_PAST_TENSE``.  One pronoun from ``PRONOUNS`` or one
 adverb from ``ADVERBS`` may stand between the two, except that a pronoun
 after a preposition is its object ("without it" before a negative subject),
 and a pronoun followed by a negative and a verb starts a clause of its own.
-The words are separated by a single space or tab, so a table's padding
-never joins two cells, or by one line break, which may carry a comment
-leader.  The match ignores case, an underscore joins words into an identifier
-that never matches, and ``None`` spelled that way is Python's value.  It
-passes over an all-caps negative after a verb in lower case, such as a
-constant; ``no`` followed by punctuation, which is an answer; a verb form
-after an article or another determiner, which makes it a noun; and ``no
-longer``, ``no matter``, and the other adverbs listed in ``NOT_OBJECTS``.
-``ALLOWED_WORDS`` records the words left alone on purpose, in four groups: the
-modals, which always wait for a verb; the conjunctions, relative words, and
-adverbs (*and*, *or*, *but*, *so*, *when*, *since*, *until*, and the rest),
-after which a negative is a subject; *than*, which compares with zero ("more
-than nothing"); and the pronouns and articles (*it*, *them*, *you*, *the*,
-*not*, *sure*, *true*), which aren't verbs.  To flag one, move it to
-``FLAGGED_WORDS``.  Each hit prints as ``path:line: text``, with a suggested
-rewrite below it when the verb is a simple present or past form, a form of
-*be*, or *with*.  A bound keeps its meaning: *no more than 255* becomes *at
-most 255*, and *no fewer than* or *no less than* becomes *at least*.
 
-Three gaps are known, and the sweep reviews them by hand.  A noun between the
-verb and the negative, an indirect object such as "a donor", puts the verb
-out of reach.  A coordinated object after *and*, *or*, or *but* ("gets 400
-and" followed by a negative message, "a JSON body or" followed by a negative)
-breaks the rule, but the check can't tell it from a new negative subject
-("and no email is sent"), so ``--coordinated`` lists every such candidate,
-with the same exemptions and markers, and always exits 0.  And text inside a
-literal or code-block body can't carry a marker without it showing on the
-rendered page.
+The words are separated by a single space or tab, so a table's padding
+never joins two cells; by one line break, which may carry a comment leader;
+or by the join between two string literals, a closing quote, an optional
+``+``, an optional line break, and an opening quote, so a message split
+across literals is read whole.  Bold or italic markup around a word or the
+whole phrase (``**``, ``*``, ``<b>``, ``<strong>``, ``<em>``, ``<i>``) counts
+as part of the space between words; an inline literal (````none````) is a
+value and never matches.  The match ignores case, an underscore joins words
+into an identifier that never matches, and ``None`` spelled that way is
+Python's value.  An apostrophe between letters joins a contraction into one
+word, but a quote that opens or closes a string literal belongs to neither
+word beside it, so a phrase at the start or the end of a test name, a
+message, or a docstring is checked like any other.
+
+It passes over an all-caps negative after a verb in lower case, such as a
+constant; a capitalized negative after a verb in lower case, followed by a
+word in lower case or none, such as a quoted message (a capitalized word after
+it reads as a title, which is flagged); a negative that starts a clause of
+its own: *nothing*, *nobody*, *none*, or *no one* before a form of *be*, a
+modal, *has*, *have*, or *had* (``SUBJECT_AUXILIARIES``), or *nothing* or
+*none* before a present verb (``SUBJECT_VERBS``), such as the clause
+*nothing needs fixing*; *nobody's* meaning "nobody is" or "nobody has", which
+is read from the words after it (a participle spelled unlike its base and its
+past, or an *-ing*, *-ed*, or base-form participle followed by a particle, a
+preposition, a pronoun, an adverb, a determiner, or nothing at all); ``no``
+followed by punctuation, which is an answer; a verb form after an article or
+another determiner, which makes it a noun; and ``no longer``, ``no matter``,
+and the other adverbs listed in ``NOT_OBJECTS``.  ``ALLOWED_WORDS`` records
+the words left alone on purpose, in four groups: the modals, which always wait
+for a verb; the conjunctions, relative words, and adverbs (*and*, *or*,
+*but*, *so*, *when*, *since*, *until*, and the rest), after which a negative
+is a subject; *than*, which compares with zero ("more than nothing"); and the
+pronouns and articles (*it*, *them*, *you*, *the*, *not*, *sure*, *true*),
+which aren't verbs.  To flag one, move it to ``FLAGGED_WORDS``.
+
+Each hit prints as ``path:line: text``, with a suggested rewrite below it
+when the word is a simple present or past form, a past participle after
+*has*, a form of *be*, *get*, or a contraction (*isn't sent anything*), a form
+of *be* (*there isn't a payment*), a contraction (*there's* becomes *there
+isn't*), or *with*.  A bound keeps its meaning: *no more than 255* becomes
+*at most 255*, and *no fewer than* or *no less than* becomes *at least*.
+
+The check doesn't catch everything; these gaps are known, and are reviewed by
+hand:
+
+* A noun between the verb and the negative, an indirect object such as "a
+  donor", puts the verb out of reach.
+* A coordinated object after *and*, *or*, or *but* ("gets 400 and" followed
+  by a negative message) breaks the rule, but the check can't tell it from a
+  new negative subject ("and no email is sent"), so ``--coordinated`` lists
+  every such candidate, with the same exemptions and markers, and always
+  exits 0.
+* Text inside a literal or code-block body can't carry a marker without it
+  showing on the rendered page.
+* *nobody's* before an *-ing* form, an *-ed* word, or a participle spelled
+  like its base or past is read from the next word alone: a plain noun object
+  after the participle (*paying dues*) is flagged as a possessive, and a preposition after a noun use (*nobody's set of
+  roles*) is passed over as a contraction.
+* A contracted *'s* or *'d* is read as *is* or *had*, so a possessive before
+  a negative is flagged as a contraction, and a capitalized possessive before
+  a quoted message is flagged too: rewrite the sentence around the quote.
+* The literal join needs straight quotes on both sides; a JavaScript template
+  literal or a typographic quote between two literals isn't joined.
 
 To keep a line verbatim, such as a third party's error message, end it with a
 ``wording:ignore`` comment, or put a ``wording:ignore-next-line`` comment on
@@ -1459,22 +1498,12 @@ comment, so there a comment line holding only ``.. wording:ignore-next-line``,
 followed by a blank line, covers the whole next paragraph, through the next
 blank line.
 
-``scripts/wording-baseline.txt`` lists every file that held hits when the
-check arrived, with its count.  The check fails when a file has more hits
-than its count, when a file outside the list has any, and when a file has
-fewer: a change that rewrites hits runs ``uv run python
-scripts/check_wording.py --update-baseline`` and commits the lowered
-baseline with it.  ``--update-baseline`` refuses to raise a count unless
-``--accept-new`` is given as well.  ``--all`` lists every hit, ignoring the
-baseline, and exits 1 while any remains; ``--path`` limits it, or
-``--coordinated``, to a subtree, so ``--all --path docs/user`` shows what is
-left to rewrite in the user guide.  ``--update-baseline`` writes only the files git tracks, and names
-any untracked file it leaves out.  Renaming a file that has hits moves its
-count to a path the baseline doesn't list, so the rename runs
-``--update-baseline --accept-new``, and its review reads the baseline's diff
-to confirm that the count moved unchanged.
-``backend/tests/test_check_wording.py`` covers the matching, the markers,
-the suggestions, and the baseline.
+The check prints every hit, then the total, and exits 1 while any remains;
+it exits 0 once the tree is clean.  ``--path`` (repeatable) limits it, or
+``--coordinated``, to a file or a subtree, so ``uv run python
+scripts/check_wording.py --path docs/user`` checks the user guide alone.
+``backend/tests/test_check_wording.py`` covers the matching, the exemptions,
+the markers, the suggestions, and the command line.
 
 System checks and dependency audits
 ===================================

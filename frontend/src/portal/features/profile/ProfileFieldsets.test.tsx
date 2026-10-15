@@ -707,7 +707,7 @@ describe('<ProfileFieldsets/> address suggestions', () => {
     expect(screen.queryByRole('listbox')).toBeNull();
   });
 
-  it('keeps what was typed when the member picks nothing', async () => {
+  it("keeps what was typed when the member doesn't pick anything", async () => {
     suggestAddresses([AMPHITHEATRE]);
     const user = userEvent.setup();
     renderStateful();

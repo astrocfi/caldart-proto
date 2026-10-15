@@ -4,10 +4,9 @@ Renew
 
 The **Renew your membership** screen pays for your next term. While you are current
 it says *A renewal starts the day after your current term ends, so you don't lose
-any days by renewing early*: you never lose days you have already paid for. Once
-your membership has lapsed it says *Your new year starts today.* Open it from **Renew** in the menu, from
-the **Renew** button on your :doc:`dashboard`, or from the link in any renewal
-reminder email.
+any days by renewing early.* Once your membership has lapsed it says *Your new year
+starts today.* Open it from **Renew** in the menu, from the **Renew** button on your
+:doc:`dashboard`, or from the link in any renewal reminder email.
 
 
 What you see

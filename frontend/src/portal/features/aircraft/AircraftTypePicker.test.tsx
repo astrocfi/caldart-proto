@@ -107,7 +107,7 @@ describe('<AircraftTypePicker/>', () => {
     expect(screen.queryByRole('button', { name: 'New aircraft type' })).toBeNull();
   });
 
-  it('offers an account administrator New aircraft type when the search finds nothing', async () => {
+  it("offers an account administrator New aircraft type when the search doesn't find anything", async () => {
     const user = renderPicker(['account_admin']);
     await search(user, 'zzzz');
     expect(await screen.findByRole('button', { name: 'New aircraft type' })).toBeVisible();

@@ -53,7 +53,7 @@ describe('BackupsPanel', () => {
     );
   });
 
-  it('shows an empty state when there are none', async () => {
+  it("shows an empty state when there aren't any", async () => {
     server.use(listHandler([]));
     renderWithProviders(<BackupsPanel />);
 

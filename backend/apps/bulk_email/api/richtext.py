@@ -83,9 +83,9 @@ class ImageUploadView(APIView):
         """201 with the stored image; 400 under ``image`` for a file it refuses.
 
         The file is checked, scaled, and stored by ``apps.bulk_email.images.store``,
-        with the caller as the uploader.  A missing file is DRF's *No file was
-        submitted.*; a file too large, of the wrong type, or with too many pixels
-        is refused with the reason in words.
+        with the caller as the uploader.  A missing file is refused with the message
+        DRF gives, *No file was submitted.*; a file too large, of the wrong type, or
+        with too many pixels is refused with the reason in words.
         """
         payload = BulkEmailImageUploadSerializer(data=request.data)
         payload.is_valid(raise_exception=True)

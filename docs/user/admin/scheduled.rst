@@ -149,7 +149,7 @@ Scheduled reports
 
 Every morning at 6:00 AM CalDART sends the emailed reports set up on :doc:`subscriptions`,
 and early each month it sends each DART's roster. The box reads **Practice run: show what
-would happen, send nothing**.
+would happen without sending anything**.
 
 The result reads, for example, *Would send 5 emails, skipped 1.* When something was
 skipped, a line gives the reasons: *no longer permitted* (the recipient has lost the role

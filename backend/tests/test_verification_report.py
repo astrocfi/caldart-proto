@@ -535,7 +535,7 @@ def test_a_verified_person_names_who_verified_them_and_when(dart_leader: User) -
 def test_a_partly_verified_person_names_the_latest_verification(
     dart_leader: User, verifier: User
 ) -> None:
-    """Verified *No*, with the verifier and the day of the most recent item verified."""
+    """The Verified column reads *No*, with the verifier and the latest item's day."""
     profile = person()
     profile.photo_id_verified_at = datetime(2026, 9, 1, 19, 0, tzinfo=UTC)
     profile.photo_id_verified_by = verifier

@@ -106,7 +106,7 @@ describe('<ReminderScheduleCard/>', () => {
     expect(lapsed).toHaveAttribute('aria-invalid', 'true');
   });
 
-  it('asks for a number in a field left empty, and sends nothing', async () => {
+  it("asks for a number in a field left empty, and doesn't send anything", async () => {
     const bodies: unknown[] = [];
     server.use(
       http.put(`${API}/admin/reminders/schedule`, async ({ request }) => {

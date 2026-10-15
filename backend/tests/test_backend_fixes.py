@@ -77,7 +77,7 @@ def test_checkout_accepts_a_contribution_at_the_cap(
 
 
 # --------------------------------------------------------------------------
-# A login tells a wrong password nothing about the account
+# A login doesn't tell a wrong password anything about the account
 # --------------------------------------------------------------------------
 @pytest.mark.django_db
 def test_login_with_a_wrong_password_on_an_active_account(

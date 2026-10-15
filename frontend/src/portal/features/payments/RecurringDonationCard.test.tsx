@@ -66,7 +66,7 @@ describe('RecurringDonationCard', () => {
     expect(await screen.findByRole('link', { name: 'Set up' })).toHaveAttribute('href', '/donate');
   });
 
-  it('says what a donation would do when there is none', async () => {
+  it("says what a donation would do when there isn't one", async () => {
     mount(null);
 
     expect(
@@ -162,7 +162,7 @@ describe('RecurringDonationCard', () => {
     );
   });
 
-  it('will not save a donation of nothing', async () => {
+  it('will not save a donation without an amount', async () => {
     const user = userEvent.setup();
     mount(monthly());
 

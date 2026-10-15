@@ -24,8 +24,8 @@ One form, with these fields:
   **Plan**. Enter in the
   search box never records the payment. **Choose somebody else** clears the choice and
   takes you back to the search.
-* **Plan**, the membership plan the money pays for. Choose **No membership** for a
-  contribution on its own.
+* **Plan**, the membership plan the money pays for. Choose the plan **No membership**
+  for a contribution on its own.
 * **Contribution**, the gift in dollars, after a **$**, on top of any dues. It starts at
   0.00.
 * **Method**: **Check**, **Cash**, **Bank transfer**, or **Other**.
@@ -35,7 +35,7 @@ One form, with these fields:
 
 Above **Record the payment**, one line adds up what will be recorded, such as *Dues
 $45.00 + contribution $0.00 = $45.00*, so you can check it against the check in your
-hand. With **No membership** chosen the dues read *$0.00*.
+hand. When **No membership** is chosen, the dues read *$0.00*.
 
 What you can do
 ===============

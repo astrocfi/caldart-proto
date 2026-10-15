@@ -546,8 +546,8 @@ def _spf_host_problem(
     if inputs.host == "":
         return _Problem(
             DnsStatus.WARN,
-            "The site is not set up to send through an outside mail server, so there is "
-            "no server to look for in the list.",
+            "The site is not set up to send through an outside mail server, so there "
+            "isn't a server to look for in the list.",
             "Nothing to do unless the site is meant to send through a mail server; then "
             "ask the person who runs it to set the mail server address.",
         )

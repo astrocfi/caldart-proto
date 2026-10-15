@@ -115,7 +115,7 @@ describe('the category and airworthiness', () => {
     expect(picked.category).toBe('gyroplane');
   });
 
-  it('keep the category when the picked type records none', () => {
+  it("keep the category when the picked type doesn't record one", () => {
     const before = { ...emptyAircraftValues(), category: 'balloon' as const };
     expect(withPickedType(before, makeAircraftType({ category: '' })).category).toBe('balloon');
   });

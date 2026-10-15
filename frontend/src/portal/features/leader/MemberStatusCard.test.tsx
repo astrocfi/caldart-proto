@@ -423,7 +423,7 @@ describe('MemberStatusCard verification', () => {
     expect(await screen.findByRole('button', { name: 'Verify' })).toBeInTheDocument();
   });
 
-  it('offers a plain member no Verify button', async () => {
+  it("doesn't offer a plain member a Verify button", async () => {
     await renderAs(['member']);
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Verify' })).toBeNull());
   });

@@ -1,6 +1,0 @@
-# The hits scripts/check_wording.py accepts per file: a path and its count, sorted.
-# Rewrite a hit, then lower this file with scripts/check_wording.py --update-baseline
-# in the same change.
-docs/user/admin/scheduled.rst 1
-docs/user/bulk-email/compose.rst 1
-docs/user/finance/payment-record.rst 1

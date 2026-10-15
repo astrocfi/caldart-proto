@@ -1205,7 +1205,7 @@ The vhost:
 * denies ``/opt/caldart/media/documents``, the directory Wagtail writes
   document uploads to, with ``Require all denied``.  The deeper ``<Directory>``
   section is applied after the one above it, so it wins;
-* sets **no** security headers of its own on proxied responses.  HSTS,
+* doesn't set any security headers of its own on proxied responses.  HSTS,
   ``X-Content-Type-Options``, ``Referrer-Policy``, and ``X-Frame-Options`` all
   come from ``prod.py``, where they are configurable per deployment.  A second
   copy from the vhost would both duplicate the header and override the

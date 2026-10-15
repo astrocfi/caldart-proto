@@ -189,7 +189,7 @@ describe('PortalLayout', () => {
     expect(railLinkNames()).not.toContain('Roles and status');
   });
 
-  it('gives an anonymous visitor no rail at all', async () => {
+  it("doesn't give an anonymous visitor a rail at all", async () => {
     renderWithProviders(tree(), { route: '/' });
 
     await screen.findByText('dashboard body');
@@ -438,7 +438,7 @@ describe('PortalLayout', () => {
     expect(scrollTo).toHaveBeenCalledWith({ top: 0, left: 0 });
   });
 
-  it('gives an anonymous visitor no drawer toggle', async () => {
+  it("doesn't give an anonymous visitor a drawer toggle", async () => {
     renderWithProviders(tree(), { route: '/' });
 
     await screen.findByText('dashboard body');

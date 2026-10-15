@@ -465,7 +465,7 @@ describe('the paths outside the session', () => {
     ).toHaveAttribute('href', '/');
   });
 
-  it('offers a signed-out visitor no dashboard from the not-found page', async () => {
+  it("doesn't offer a signed-out visitor a dashboard from the not-found page", async () => {
     renderRoutes(routes, { route: '/no-such-screen' });
 
     await screen.findByRole('link', { name: 'Go to the CalDART home page' });

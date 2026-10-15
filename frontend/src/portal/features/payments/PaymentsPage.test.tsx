@@ -92,7 +92,7 @@ describe('PaymentsPage', () => {
     expect(screen.queryByRole('heading', { name: 'Automatic renewal' })).not.toBeInTheDocument();
   });
 
-  it('offers a member who has not paid their first dues no automatic renewal', async () => {
+  it("doesn't offer a member who has not paid their first dues an automatic renewal", async () => {
     mount({
       membership: { ...CURRENT_MEMBERSHIP, status: 'none', plan: null, expires_on: null },
     });

@@ -465,7 +465,7 @@ describe('DashboardPage · payments and renewal', () => {
     );
   });
 
-  it('says the recurring donation is off for a life member who has none', async () => {
+  it("says the recurring donation is off for a life member who doesn't have one", async () => {
     mount({ user: makeUser({ membership: LIFETIME }), status: LIFETIME });
 
     expect(await screen.findByText('Recurring donation is off.')).toBeInTheDocument();

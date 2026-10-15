@@ -384,9 +384,8 @@ list, in full:
    * - ``lint-spelling``
      - ``codespell`` — American spelling and common typos
    * - ``lint-wording``
-     - ``scripts/check_wording.py`` — a negative object or complement, held
-       to the per-file counts in ``scripts/wording-baseline.txt``; see
-       :doc:`testing`
+     - ``scripts/check_wording.py`` — a negative object or complement,
+       failing on any hit; see :doc:`testing`
    * - ``format``
      - ``ruff format``, ``ruff check --fix``, ``prettier --write``
    * - ``check``

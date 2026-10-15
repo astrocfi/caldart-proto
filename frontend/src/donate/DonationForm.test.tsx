@@ -79,7 +79,7 @@ async function fillInGift(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe('DonationForm', () => {
-  it('offers every tier but the one that gives nothing', async () => {
+  it("offers every tier but the one that doesn't give anything", async () => {
     serveGift();
     renderForm();
 

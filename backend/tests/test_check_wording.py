@@ -1,8 +1,8 @@
 """``scripts/check_wording.py``, the wording check ``make lint-wording`` runs.
 
 The check flags a verb whose object is a negative (``no``, ``nothing``, ``nobody``,
-``none``, or ``no one``), the wording the project's prose rule forbids, and holds the
-repository to a committed per-file baseline of hits.  Each flagged example below ends
+``none``, ``no one``, ``nobody's``, or ``no one's``), the wording the project's prose
+rule forbids, and fails on any hit.  Each flagged example below ends
 its line with the ignore marker, so the check passes over this file itself.
 """
 
@@ -25,20 +25,17 @@ CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "ci.yml"
 #: The resolved ``git``, or ``None`` on a machine without one.
 GIT = shutil.which("git")
 
-#: The baseline's path relative to the root the check runs from.
-BASELINE = "scripts/wording-baseline.txt"
-
 #: The same-line marker, split so that this line itself is still checked.
 MARKER = "wording" + ":ignore"
 
-#: The page every ``tree`` starts with: two hits, which its baseline allows.
-PAGE = "It has no token.\nIt sends nothing.\n"  # wording:ignore
+#: The page every ``tree`` starts with, which doesn't hold a hit.
+CLEAN_PAGE = "No token found.\nIt doesn't send anything.\n"
 
-#: The same page with a third hit.
-PAGE_WITH_THREE = PAGE + "It took none.\n"  # wording:ignore
+#: A page with two hits.
+PAGE = "It has no token.\nIt took none.\n"  # wording:ignore
 
-#: The same page with its first hit rewritten.
-PAGE_WITH_ONE = "It doesn't have a token.\nIt sends nothing.\n"  # wording:ignore
+#: The opening and closing typographic single quotes, kept out of this file's source.
+OPEN_QUOTE, CLOSE_QUOTE = chr(0x2018), chr(0x2019)
 
 
 def _load(name: str, source: Path) -> ModuleType:
@@ -110,6 +107,39 @@ FLAGGED = {
     "as-no": "It is stored as no account.",  # wording:ignore
     "to-nothing": "A name that normalizes to nothing is refused.",  # wording:ignore
     "remains-nothing": "Once settled, there remains nothing to charge.",  # wording:ignore
+    "after-an-opening-quote": "it('offers no reset', () => {",  # wording:ignore
+    "before-a-closing-quote": "it('says leaving changes nothing')",  # wording:ignore
+    "after-docstring-quotes": '"""Has no term."""',  # wording:ignore
+    "typographic-quotes": f"It reads {OPEN_QUOTE}sends nothing{CLOSE_QUOTE}.",  # wording:ignore
+    "nobody-s": "It changes nobody's role.",  # wording:ignore
+    "no-one-s": "It sets no one's password.",  # wording:ignore
+    "nobody-s-typographic": f"It changes nobody{CLOSE_QUOTE}s role.",  # wording:ignore
+    "nobody-s-wrapped": "It changes\nnobody's role.",  # wording:ignore
+    "nobody-s-before-an-ing-noun": "It changes nobody's billing address.",  # wording:ignore
+    "nobody-s-before-an-ed-noun": "It keeps nobody's saved filters.",  # wording:ignore
+    "split-literal": '"so there is " "no server"',  # wording:ignore
+    "split-literal-space-after": '"so there is" " no server"',  # wording:ignore
+    "split-literal-plus": "'it has ' + 'nothing'",  # wording:ignore
+    "split-literal-line-break": '"so there is "\n    "no server"',  # wording:ignore
+    "split-literal-plus-line-break": '"so there is " +\n    "no server"',  # wording:ignore
+    "bold-negative": "It sets **no** security headers.",  # wording:ignore
+    "bold-phrase": "It **has no** default.",  # wording:ignore
+    "italic-negative": "A user with *no* roles.",  # wording:ignore
+    "strong-tag": "<strong>has no</strong> term",  # wording:ignore
+    "b-tag": "It has <b>no</b> term.",  # wording:ignore
+    "em-tag": "It sends <em>nothing</em>.",  # wording:ignore
+    "i-tag": "It sends <i>nothing</i>.",  # wording:ignore
+    "there-s": "There's no payment.",  # wording:ignore
+    "it-s": "It's no help.",  # wording:ignore
+    "that-s": "That's none of it.",  # wording:ignore
+    "we-re": "We're no help.",  # wording:ignore
+    "you-ve": "You've no account.",  # wording:ignore
+    "they-d": "They'd no term.",  # wording:ignore
+    "typographic-contraction": f"There{CLOSE_QUOTE}s no payment.",  # wording:ignore
+    "nobody-before-a-plural-noun": "It sends nobody emails.",  # wording:ignore
+    "no-one-before-a-plural-noun": "It gives no one refunds.",  # wording:ignore
+    "capitalized-title": "Members with No Term",  # wording:ignore
+    "capitalized-after-a-lower-case-verb": "It has No Account.",  # wording:ignore
 }
 
 
@@ -117,6 +147,29 @@ FLAGGED = {
 def test_a_verb_with_a_negative_object_is_flagged(text: str) -> None:
     """Each phrase puts the negation on a verb's object, so it is one hit."""
     assert _hit_count(text) == 1
+
+
+#: Irregular pasts and past participles, each of which can stand before a negative.
+PARTICIPLES = (
+    "given", "sent", "found", "shown", "taken", "written", "kept", "held", "told", "paid",
+    "made", "done", "left", "put", "set", "read", "mailed", "charged",
+)  # fmt: skip
+
+#: Where a participle stands: after a form of "be", after "has", or after another verb.
+PARTICIPLE_FRAMES = {
+    "after-is": "The member is {} nothing.",
+    "after-was": "The member was {} none.",
+    "after-has": "The member has {} nothing.",
+    "after-gets": "The member gets {} nothing.",
+    "after-a-noun": "The run {} nobody.",
+}
+
+
+@pytest.mark.parametrize("form", PARTICIPLES)
+@pytest.mark.parametrize("frame", list(PARTICIPLE_FRAMES.values()), ids=list(PARTICIPLE_FRAMES))
+def test_a_participle_before_a_negative_is_flagged(form: str, frame: str) -> None:
+    """A past or a participle before a negative ("is sent", "gets paid") is one hit."""
+    assert _hit_count(frame.format(form)) == 1
 
 
 ALLOWED = {
@@ -145,6 +198,32 @@ ALLOWED = {
     "pronoun-then-a-modal": "Tell them nobody can sign in.",
     "indeed-no": "Indeed no payment was found.",
     "noun-object-known-gap": "It sends a donor nothing.",
+    "clause-after-a-verb": "It says nothing is hidden.",
+    "clause-past-else": "It says nothing else needs fixing.",
+    "clause-with-has": "It says nothing has gone yet.",
+    "clause-with-a-modal": "It says no one can sign in.",
+    "clause-with-a-present-verb": "It shows that nobody matches.",
+    "inverted-question": "Has nothing been sent?",
+    "quoted-label": "The row reads No insurance on file.",
+    "quoted-message": "The page says Nothing to charge.",
+    "nobody-s-as-a-subject": "Nobody's role changes.",
+    "nobody-s-before-a-participle": "It says nobody's signed in.",
+    "nobody-s-before-here": "It says nobody's here.",
+    "nobody-s-before-been": "It says nobody's been charged.",
+    "no-one-s-before-an-ing-form": "It says no one's going.",
+    "nobody-s-before-a-base-form-participle": "It says nobody's set up yet.",
+    "nobody-s-before-an-ed-word-and-an-adverb": "It says nobody's charged twice.",
+    "nobody-s-before-an-irregular-participle": "It says nobody's given consent.",
+    "nobody-s-at-the-end": "It says nobody's signed.",
+    "nothing-before-a-present-verb": "It says nothing changes.",
+    "none-before-a-present-verb": "It says none applies.",
+    "nobody-before-a-modal": "It says nobody can.",
+    "no-one-before-have": "It says no one have.",
+    "nobody-before-had": "It says nobody had.",
+    "quoted-message-at-the-end": "The page says No.",
+    "contraction-before-no-longer": "It's no longer due.",
+    "split-literal-without-a-space": '"is" "no"',
+    "emphasis-before-a-subject": "It says **nothing** is hidden.",
 }
 
 
@@ -152,8 +231,10 @@ ALLOWED = {
 def test_wording_the_rule_allows_is_not_flagged(text: str) -> None:
     """A negative subject, an idiom after ``no``, an answer, a value, or a noun is passed.
 
-    ``noun-object-known-gap`` is a gap the check documents: a noun between the verb and
-    the negative puts the verb out of reach.
+    A negative subject includes one that opens a clause after a verb ("says nothing is
+    hidden") and ``nobody's`` meaning "nobody is"; a capitalized negative after a
+    lower-case verb is a quoted label.  ``noun-object-known-gap`` is a gap the check
+    documents: a noun between the verb and the negative puts the verb out of reach.
     """
     assert _hit_count(text) == 0
 
@@ -166,6 +247,10 @@ IDENTIFIERS = {
     "flag": "send --no-input",
     "hyphen": "Cache-Control: has no-store",
     "quoted": "takes 'none' as its value",
+    "hyphenated-after-a-possessive": "the member's no-show",
+    "inline-literal": "It takes ``none`` as its value.",
+    "inline-literal-after-is": "The default is ``none``.",
+    "list-of-literals": '["has", "no"]',
 }
 
 
@@ -288,6 +373,61 @@ SUGGESTIONS = {
     "was": ("There was none.", "was none -> wasn't any"),  # wording:ignore
     "with": ("A member with no term.", "with no term -> without a term"),  # wording:ignore
     "with-nobody": ("Run with nobody.", "with nobody -> without anybody"),  # wording:ignore
+    "after-is": ("It is sent nothing.", "is sent nothing -> isn't sent anything"),  # wording:ignore
+    "after-was": (
+        "He was given no reason.",  # wording:ignore
+        "was given no reason -> wasn't given a reason",  # wording:ignore
+    ),
+    "after-gets": (
+        "It gets paid none.",  # wording:ignore
+        "gets paid none -> doesn't get paid any",  # wording:ignore
+    ),
+    "after-got": (
+        "It got told nothing.",  # wording:ignore
+        "got told nothing -> didn't get told anything",  # wording:ignore
+    ),
+    "nobody-s": (
+        "It changes nobody's role.",  # wording:ignore
+        "changes nobody's role -> doesn't change anybody's role",  # wording:ignore
+    ),
+    "no-one-s": (
+        "It sets no one's password.",  # wording:ignore
+        "sets no one's password -> doesn't set anyone's password",  # wording:ignore
+    ),
+    "opening-quote": (
+        "it('offers no reset')",  # wording:ignore
+        "offers no reset -> doesn't offer a reset",  # wording:ignore
+    ),
+    "there-s": (
+        "There's no payment.",  # wording:ignore
+        "There's no payment -> There isn't a payment",  # wording:ignore
+    ),
+    "we-re": ("We're none.", "We're none -> We aren't any"),  # wording:ignore
+    "you-ve": (
+        "You've no idea.",  # wording:ignore
+        "You've no idea -> You don't have an idea",  # wording:ignore
+    ),
+    "they-d": ("They'd none.", "They'd none -> They didn't have any"),  # wording:ignore
+    "participle-after-it-s": (
+        "It's sent nothing.",  # wording:ignore
+        "It's sent nothing -> It isn't sent anything",  # wording:ignore
+    ),
+    "participle-after-they-d": (
+        "They'd sent nothing.",  # wording:ignore
+        "They'd sent nothing -> They hadn't sent anything",  # wording:ignore
+    ),
+    "participle-after-we-ve": (
+        "We've sent none.",  # wording:ignore
+        "We've sent none -> We haven't sent any",  # wording:ignore
+    ),
+    "split-literal": (
+        '"so there is " "no server"',  # wording:ignore
+        "is no server -> isn't a server",  # wording:ignore
+    ),
+    "bold": (
+        "It sets **no** headers.",  # wording:ignore
+        "sets no headers -> doesn't set any headers",  # wording:ignore
+    ),
 }
 
 
@@ -309,13 +449,19 @@ def test_a_preposition_other_than_with_has_a_suggestion_of_none() -> None:
     assert hit.suggestion is None
 
 
+def test_a_participle_after_been_has_a_suggestion_of_none() -> None:
+    """``has been sent`` takes its negative on ``has``, out of reach: ``None``."""
+    hit = checker.find_hits("It has been sent nothing.", "page.rst")[0]  # wording:ignore
+    assert hit.suggestion is None
+
+
 def test_a_base_form_has_a_suggestion_of_none() -> None:
     """An infinitive such as ``to change`` followed by a negative gets ``None``."""
     hit = checker.find_hits("Asked to change nothing.", "page.rst")[0]  # wording:ignore
     assert hit.suggestion is None
 
 
-# -- the command line and the baseline --------------------------------------------
+# -- the command line ------------------------------------------------------------
 
 
 def _write(path: Path, text: str) -> None:
@@ -324,22 +470,15 @@ def _write(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
 
 
-def _baseline(root: Path) -> list[str]:
-    """The baseline's entries under ``root``, without its comment lines."""
-    lines = (root / BASELINE).read_text(encoding="utf-8").splitlines()
-    return [line for line in lines if not line.startswith("#")]
-
-
 @pytest.fixture
 def tree(tmp_path: Path) -> Path:
-    """A throwaway git checkout with one scanned page holding two hits, both allowed."""
+    """A throwaway git checkout with one scanned page that doesn't hold a hit."""
     if GIT is None:
         pytest.skip("git is not installed")
     subprocess.run(  # noqa: S603 - fixed argv, GIT is a resolved path
         [GIT, "init", "-q", str(tmp_path)], check=True
     )
-    _write(tmp_path / "docs" / "page.rst", PAGE)
-    _write(tmp_path / BASELINE, "docs/page.rst 2\n")
+    _write(tmp_path / "docs" / "page.rst", CLEAN_PAGE)
     _track(tmp_path)
     return tmp_path
 
@@ -352,149 +491,84 @@ def _track(root: Path) -> None:
     )
 
 
-def test_a_tree_within_its_baseline_passes(tree: Path) -> None:
-    """Two hits against a baseline of two is a pass."""
+def test_a_clean_tree_passes(tree: Path) -> None:
+    """A tree without a hit exits 0."""
     assert checker.main([], root=tree) == 0
 
 
-def test_a_file_over_its_baseline_fails(tree: Path) -> None:
-    """A third hit in the page fails the check."""
-    _write(tree / "docs" / "page.rst", PAGE_WITH_THREE)
-    assert checker.main([], root=tree) == 1
-
-
-def test_a_file_over_its_baseline_prints_each_hit_with_a_suggestion(
-    tree: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
-    """The failure names the line and suggests the rewrite."""
-    _write(tree / "docs" / "page.rst", PAGE_WITH_THREE)
+def test_a_clean_tree_says_it_passed(tree: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """The pass prints one line."""
     checker.main([], root=tree)
-    expected = "docs/page.rst:3: It took none.\n    took none -> didn't take any"  # wording:ignore
-    assert expected in capsys.readouterr().out
+    assert capsys.readouterr().out == "Wording check passed.\n"
 
 
-def test_a_file_missing_from_the_baseline_fails(tree: Path) -> None:
-    """A hit in a file the baseline does not list fails the check."""
+def test_any_hit_fails(tree: Path) -> None:
+    """One hit anywhere in the tree exits 1."""
     _write(tree / "frontend" / "src" / "Page.tsx", "<p>It holds no charge.</p>\n")  # wording:ignore
     assert checker.main([], root=tree) == 1
 
 
-def test_a_file_under_its_baseline_fails(tree: Path) -> None:
-    """A rewrite that lowers a file's count must lower the baseline in the same change."""
-    _write(tree / "docs" / "page.rst", PAGE_WITH_ONE)
+def test_each_hit_prints_with_its_suggestion(
+    tree: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The failure names the line and suggests the rewrite."""
+    _write(tree / "docs" / "page.rst", PAGE)
+    checker.main([], root=tree)
+    expected = (
+        "docs/page.rst:2: It took none.\n    took none -> didn't take any\n"  # wording:ignore
+    )
+    assert expected in capsys.readouterr().out
+
+
+def test_the_failure_ends_with_the_total_and_the_remedy(
+    tree: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The last line counts the hits and files and names the ignore marker."""
+    _write(tree / "docs" / "page.rst", PAGE)
+    checker.main([], root=tree)
+    last = capsys.readouterr().out.splitlines()[-1]
+    assert last == (
+        "2 hits in 1 file.  Put the negation on the verb, as each suggestion shows, or end "
+        f"a line that must stay verbatim with a {MARKER} comment."
+    )
+
+
+def test_an_untracked_file_is_checked(tree: Path) -> None:
+    """A file git doesn't track yet, and ``.gitignore`` doesn't exclude, is checked."""
+    _write(tree / "backend" / "a.py", '"""It took none."""\n')  # wording:ignore
     assert checker.main([], root=tree) == 1
 
 
-def test_a_file_under_its_baseline_names_the_update_switch(
-    tree: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
-    """The failure says how to lower the baseline."""
-    _write(tree / "docs" / "page.rst", PAGE_WITH_ONE)
-    checker.main([], root=tree)
-    assert "--update-baseline" in capsys.readouterr().out
-
-
-def test_update_baseline_lowers_a_count(tree: Path) -> None:
-    """``--update-baseline`` writes the lower count."""
-    _write(tree / "docs" / "page.rst", PAGE_WITH_ONE)
-    checker.main(["--update-baseline"], root=tree)
-    assert _baseline(tree) == ["docs/page.rst 1"]
-
-
-def test_update_baseline_passes_once_lowered(tree: Path) -> None:
-    """After the update, the check passes against the lowered baseline."""
-    _write(tree / "docs" / "page.rst", PAGE_WITH_ONE)
-    checker.main(["--update-baseline"], root=tree)
+def test_a_gitignored_file_is_never_checked(tree: Path) -> None:
+    """A file ``.gitignore`` excludes is left out of the scan."""
+    _write(tree / ".gitignore", "docs/scratch.rst\n")
+    _write(tree / "docs" / "scratch.rst", "It took none.\n")  # wording:ignore
     assert checker.main([], root=tree) == 0
 
 
-def test_update_baseline_drops_a_cleared_file(tree: Path) -> None:
-    """A file without a hit left leaves the baseline."""
-    _write(tree / "docs" / "page.rst", "No token found.\n")
-    checker.main(["--update-baseline"], root=tree)
-    assert _baseline(tree) == []
-
-
-def test_update_baseline_refuses_to_raise_a_count(tree: Path) -> None:
-    """A new hit is rewritten, not recorded, so the update fails."""
-    _write(tree / "docs" / "page.rst", PAGE_WITH_THREE)
-    assert checker.main(["--update-baseline"], root=tree) == 1
-
-
-def test_a_refused_update_leaves_the_baseline_as_it_was(tree: Path) -> None:
-    """The refused update doesn't change the baseline."""
-    _write(tree / "docs" / "page.rst", PAGE_WITH_THREE)
-    checker.main(["--update-baseline"], root=tree)
-    assert _baseline(tree) == ["docs/page.rst 2"]
-
-
-def test_update_baseline_with_accept_new_records_every_hit(tree: Path) -> None:
-    """``--accept-new`` records the counts as they stand, new files included, sorted."""
-    _write(tree / "backend" / "a.py", '"""It took none."""\n')  # wording:ignore
-    _track(tree)
-    checker.main(["--update-baseline", "--accept-new"], root=tree)
-    assert _baseline(tree) == ["backend/a.py 1", "docs/page.rst 2"]
-
-
-def test_update_baseline_leaves_an_untracked_file_out(tree: Path) -> None:
-    """A file git doesn't track yet stays out of the baseline, even with accept-new."""
-    _write(tree / "backend" / "a.py", '"""It took none."""\n')  # wording:ignore
-    checker.main(["--update-baseline", "--accept-new"], root=tree)
-    assert _baseline(tree) == ["docs/page.rst 2"]
-
-
-def test_update_baseline_names_the_untracked_file_it_leaves_out(
+def test_path_limits_the_listing_to_a_subtree(
     tree: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """The update warns about each untracked file with hits."""
+    """``--path`` narrows the check to the files under it."""
+    _write(tree / "docs" / "page.rst", PAGE)
     _write(tree / "backend" / "a.py", '"""It took none."""\n')  # wording:ignore
-    checker.main(["--update-baseline", "--accept-new"], root=tree)
-    assert "doesn't track it yet: backend/a.py (1 hit)" in capsys.readouterr().out
-
-
-def test_a_deleted_file_in_the_baseline_fails(tree: Path) -> None:
-    """A baselined file that is gone counts as under its baseline."""
-    _write(tree / BASELINE, "docs/gone.rst 1\ndocs/page.rst 2\n")
-    assert checker.main([], root=tree) == 1
-
-
-def test_update_baseline_drops_a_deleted_file(tree: Path) -> None:
-    """The update writes the deleted file out of the baseline."""
-    _write(tree / BASELINE, "docs/gone.rst 1\ndocs/page.rst 2\n")
-    checker.main(["--update-baseline"], root=tree)
-    assert _baseline(tree) == ["docs/page.rst 2"]
-
-
-def test_all_lists_every_hit_ignoring_the_baseline(
-    tree: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
-    """``--all`` prints the two hits the baseline allows."""
-    checker.main(["--all"], root=tree)
+    checker.main(["--path", "backend"], root=tree)
     out = capsys.readouterr().out
-    listed = [line.split(":")[1] for line in out.splitlines() if line.startswith("docs/")]
-    assert listed == ["1", "2"]
+    hit_lines = out.splitlines()[:-1]
+    listed = [line.split(":")[0] for line in hit_lines if not line.startswith(" ")]
+    assert listed == ["backend/a.py"]
 
 
-def test_all_fails_while_any_hit_remains(tree: Path) -> None:
-    """``--all`` exits 1 when it lists a hit, so a sweep can confirm a clean area."""
-    assert checker.main(["--all"], root=tree) == 1
-
-
-def test_all_with_path_limits_the_listing_to_a_subtree(
-    tree: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
-    """``--path`` narrows ``--all`` to the files under it."""
-    _write(tree / "backend" / "a.py", '"""It took none."""\n')  # wording:ignore
-    checker.main(["--all", "--path", "backend"], root=tree)
-    out = capsys.readouterr().out
-    listed = [line.split(":")[0] for line in out.splitlines() if not line.startswith(" ")]
-    assert listed == ["backend/a.py", "1 hit in 1 file"]
-
-
-def test_all_with_path_passes_for_a_clean_subtree(tree: Path) -> None:
+def test_path_passes_for_a_clean_subtree(tree: Path) -> None:
     """A subtree without a hit exits 0, even while another holds some."""
-    _write(tree / "backend" / "a.py", '"""No token found."""\n')
-    assert checker.main(["--all", "--path", "backend"], root=tree) == 0
+    _write(tree / "backend" / "a.py", '"""It took none."""\n')  # wording:ignore
+    assert checker.main(["--path", "docs"], root=tree) == 0
+
+
+def test_path_is_repeatable(tree: Path) -> None:
+    """Two ``--path`` switches check both subtrees, the first as well as the last."""
+    _write(tree / "backend" / "a.py", '"""It took none."""\n')  # wording:ignore
+    assert checker.main(["--path", "backend/a.py", "--path", "docs"], root=tree) == 1
 
 
 SKIPPED = {
@@ -514,13 +588,13 @@ SKIPPED = {
 
 
 @pytest.mark.parametrize("relative", list(SKIPPED.values()), ids=list(SKIPPED))
-def test_a_skipped_file_is_never_counted(tree: Path, relative: str) -> None:
+def test_a_skipped_file_is_never_checked(tree: Path, relative: str) -> None:
     """A file outside the scanned tree, a generated file, or a lock file is skipped."""
     _write(tree / relative, "It took nothing.\n")  # wording:ignore
     assert checker.main([], root=tree) == 0
 
 
-def test_a_binary_file_is_never_counted(tree: Path) -> None:
+def test_a_binary_file_is_never_checked(tree: Path) -> None:
     """A file holding a NUL byte is skipped, whatever text it also holds."""
     (tree / "docs" / "image.dat").write_bytes(b"\x00It took nothing.\n")  # wording:ignore
     assert checker.main([], root=tree) == 0
@@ -558,7 +632,7 @@ def test_coordinated_always_exits_0(tree: Path) -> None:
 
 
 def test_coordinated_candidates_are_never_hits(tree: Path) -> None:
-    """The check against the baseline ignores the conjunctions."""
+    """The check itself passes over the conjunctions."""
     _write(tree / "docs" / "other.rst", COORDINATED_PAGE)
     _track(tree)
     assert checker.main([], root=tree) == 0
@@ -571,18 +645,6 @@ def test_coordinated_skips_a_marked_line(tree: Path, capsys: pytest.CaptureFixtu
     )  # wording:ignore
     checker.main(["--coordinated", "--path", "docs/other.rst"], root=tree)
     assert _listed(capsys.readouterr().out) == []
-
-
-def test_accept_new_without_update_baseline_is_refused(tree: Path) -> None:
-    """``--accept-new`` only means something with ``--update-baseline``."""
-    with pytest.raises(SystemExit, match="2"):
-        checker.main(["--accept-new"], root=tree)
-
-
-def test_update_baseline_refuses_path(tree: Path) -> None:
-    """The baseline covers the whole tree, so a subtree never rewrites it."""
-    with pytest.raises(SystemExit, match="2"):
-        checker.main(["--update-baseline", "--path", "docs"], root=tree)
 
 
 # -- the wiring ------------------------------------------------------------------

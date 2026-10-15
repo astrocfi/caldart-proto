@@ -33,7 +33,7 @@ heading shows the order, and **Website** and **Actions** do not sort:
 On a narrower screen the table leaves out **Website**, then **People**, **Airport**,
 **Roster**, and **Members**, so the name, the status, and **Edit** stay in sight on a phone.
 
-Until a team is added, the table says *No DARTs yet*.
+Until a team is added, the table shows the message *No DARTs yet*.
 
 
 Adding a DART

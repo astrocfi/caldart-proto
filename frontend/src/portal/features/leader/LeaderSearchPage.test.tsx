@@ -282,7 +282,7 @@ describe('LeaderSearchPage', () => {
     );
   });
 
-  it('suggests another search when a name matches nobody', async () => {
+  it("suggests another search when a name doesn't match anybody", async () => {
     const user = setupUser();
     server.use(searchReturns([]));
 

@@ -76,8 +76,8 @@ IsUserAdmin = HasRole(USER_ADMIN)
 IsAccountAdmin = HasRole(ACCOUNT_ADMIN)
 IsSystemAdmin = HasRole(SYSTEM_ADMIN)
 
-#: CalDART management's screens, such as the bulk email templates and groups, and nobody
-#: else's but the system administrator's.
+#: CalDART management's screens, such as the bulk email templates and groups, which only
+#: management and the system administrator open.
 IsManagement = HasRole(MANAGEMENT)
 
 #: Bulk email: CalDART management, who send to everyone, and DART leaders, who send to

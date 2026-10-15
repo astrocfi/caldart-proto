@@ -53,7 +53,7 @@ Where settings are read
    stdout, persistent database connections, a database-backed cache.  It reads
    the environment alone — no ``.env`` anywhere in its import chain — so a
    missing variable cannot be filled in from a file that happens to sit beside
-   the code.  Four variables have **no default** and a missing one is a
+   the code.  Four variables don't have a default, and a missing one is a
    start-up error: ``SECRET_KEY``, ``ALLOWED_HOSTS``, ``SITE_URL``, and
    ``EMAIL_URL``.  A ``SECRET_KEY`` equal to the published development key is a
    start-up error too, and so is a ``SITE_URL`` whose path is not the
