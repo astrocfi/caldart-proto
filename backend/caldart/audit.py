@@ -253,7 +253,7 @@ def _rendered(name: str, value: object) -> str:
 
     A bool renders as ``true`` or ``false``, any other int as its digits, a slug
     verbatim, and a list or tuple of slugs as the slugs joined with commas. An empty
-    string, list or tuple renders as ``-``, never as an empty string.
+    string, list, or tuple renders as ``-``, never as an empty string.
 
     Raises the error :func:`_field_error` builds when ``value`` is not an id, a count, a
     flag or a slug (or a list/tuple of slugs).
