@@ -60,7 +60,7 @@ from apps.payments.renewals.mandates import (
     discard_pending_mandate,
 )
 from apps.payments.services import create_checkout
-from apps.payments.webhook_throttling import PaymentsWebhookThrottle
+from apps.payments.webhook_throttling import PayPalWebhookThrottle
 
 #: What the webhook endpoints answer with.  The provider chooses the body, and
 #: neither portal screen reads it, so the schema describes only the status.
@@ -374,7 +374,6 @@ class StripeWebhookView(APIView):
 
     authentication_classes = []
     permission_classes = []
-    throttle_classes = [PaymentsWebhookThrottle]
 
     @extend_schema(
         request=None,
@@ -395,7 +394,7 @@ class PayPalWebhookView(APIView):
 
     authentication_classes = []
     permission_classes = []
-    throttle_classes = [PaymentsWebhookThrottle]
+    throttle_classes = [PayPalWebhookThrottle]
 
     @extend_schema(
         request=None,

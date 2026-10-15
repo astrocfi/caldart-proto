@@ -684,14 +684,15 @@ verifies whichever of the keys below are set before you open a browser.
    :Development: blank
    :Production: the webhook id from the PayPal dashboard
 
-``PAYMENTS_WEBHOOK_THROTTLE_RATE``
-   How many deliveries one client address may make to the two payment webhooks
-   together (``POST /payments/stripe/webhook`` and
-   ``POST /payments/paypal/webhook``), as a DRF rate read and checked like the
+``PAYPAL_WEBHOOK_THROTTLE_RATE``
+   How many deliveries one client address may make to
+   ``POST /payments/paypal/webhook``, as a DRF rate read and checked like the
    authentication rates: empty turns the limit off, and an unreadable value stops
-   start-up.  Past it a delivery is answered 429, which the provider sends again
-   later; the limit keeps a caller who is not the provider from spending the
-   server, and PayPal's verification calls, on deliveries without end.  Read by
+   start-up.  An IPv6 address is counted by its ``/64``.  Past the rate a
+   delivery is answered 429, which PayPal sends again later; the limit keeps a
+   caller who is not PayPal from spending the server, and PayPal's verification
+   calls, on deliveries without end.  The Stripe webhook is not limited, because
+   its signature is checked locally.  Read by
    ``apps.payments.webhook_throttling``; ``caldart.settings.test`` sets it to
    ``None``.
 
