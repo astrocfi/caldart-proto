@@ -30,7 +30,7 @@ have `-backend` and `-frontend` halves for iterating on one side.
 
 | Scope | Target | Runs |
 |-------|--------|------|
-| Code | `make lint` | `ruff check`, `ruff format --check`, `mypy backend frontend/e2e/prefix_proxy.py scripts/check_wording.py`, `tsc --noEmit`, ESLint (`--max-warnings 0`), `prettier --check`, `codespell`, and `make lint-wording` |
+| Code | `make lint` | `ruff check`, `ruff format --check`, `mypy backend frontend/e2e/prefix_proxy.py scripts/check_wording.py scripts/wording_words.py`, `tsc --noEmit`, ESLint (`--max-warnings 0`), `prettier --check`, `codespell`, and `make lint-wording` |
 | Wording | `make lint-wording` (part of `make lint`) | `scripts/check_wording.py`: a verb, a form of "be", or a preposition followed by `no`, `nothing`, `nobody`, `none`, or `no one`, held to the per-file counts in `scripts/wording-baseline.txt` (see `doc_python`) |
 | Tests | `make test` | pytest (needs `make up`; warnings are errors) and vitest |
 | Coverage (opt-in) | `make coverage` | `make coverage-backend` (pytest-cov over `backend/apps` and `backend/caldart`) and `make coverage-frontend` (vitest with `@vitest/coverage-v8`), production code only; reports are written, nothing gates on them |

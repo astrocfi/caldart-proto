@@ -373,7 +373,8 @@ list, in full:
        ``lint-spelling``, then ``lint-wording``
    * - ``lint-backend``
      - ``ruff check``, ``ruff format --check`` and ``mypy`` over ``backend``,
-       ``frontend/e2e/prefix_proxy.py``, and ``scripts/check_wording.py``
+       ``frontend/e2e/prefix_proxy.py``, ``scripts/check_wording.py``, and
+       ``scripts/wording_words.py``
    * - ``lint-shell``
      - ``shellcheck`` over every script under ``deploy/`` and ``scripts/``
    * - ``lint-frontend``

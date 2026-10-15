@@ -64,12 +64,18 @@ Sphinx build requirements for all documentation in this repository. Docstring ru
   This holds for UI labels, messages, emails, docs, docstrings, comments, and test names
   alike. `make lint` enforces it with `make lint-wording`, which runs
   `scripts/check_wording.py` over the tree codespell scans (minus generated files, lock
-  files, and binaries): it flags a verb from the script's `FLAGGED_VERBS`, a form of
-  "be" or a preposition from its `FLAGGED_WORDS`, or an unlisted `-ed` word, followed by
-  `no`, `nothing`, `nobody`, `none`, or `no one`, with at most one pronoun or adverb
-  between them, and prints a suggested rewrite where the word is simple. The script's
-  `ALLOWED_WORDS` records the words deliberately left alone (modals, conjunctions, and
-  adverbs, after which a negative is a subject). To keep text that must stay verbatim,
+  files, and binaries): it flags a verb from `FLAGGED_VERBS`, a form of "be" or a
+  preposition from `FLAGGED_WORDS`, or an unlisted `-ed` word, followed by `no`,
+  `nothing`, `nobody`, `none`, or `no one`, with at most one pronoun or adverb between
+  them, and prints a suggested rewrite where the word is simple. The word lists live in
+  `scripts/wording_words.py`. Its `ALLOWED_WORDS` records the words deliberately left
+  alone, in four groups: the modals; the conjunctions, relative words, and adverbs,
+  after which a negative is a subject; "than", which compares with zero; and the
+  pronouns and articles, which aren't verbs. Three gaps are known: a noun between the
+  verb and the negative; a coordinated object after "and", "or", or "but" (a negative
+  object in "gets 400 and ..."), which the rule covers but the check can't tell from a
+  new negative subject, so `--coordinated` lists those candidates for review by hand;
+  and text inside a literal or code-block body, which a marker can't reach. To keep text that must stay verbatim,
   such as a third party's error message or a test that pins one, end the line with a
   `wording:ignore` comment, or precede it with a `wording:ignore-next-line` comment; in
   reStructuredText, a comment line holding only `.. wording:ignore-next-line`, followed
@@ -80,7 +86,7 @@ Sphinx build requirements for all documentation in this repository. Docstring ru
   count and writes only the files git tracks. A rename moves a count to a path the
   baseline doesn't list, so it needs `--update-baseline --accept-new` and a review of
   the baseline's diff. `--all` lists every hit, ignoring the baseline, and
-  `--path <dir>` limits it to a subtree.
+  `--path <dir>` limits it, or `--coordinated`, to a subtree.
 - Define each CalDART-specific term on first use, such as DART. Don't define
   standard aviation terms (N-number, BasicMed, medical classes, flight review):
   the readers are pilots and DART volunteers.

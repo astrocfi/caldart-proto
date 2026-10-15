@@ -1315,9 +1315,10 @@ every diagnostic it raises is a Django or DRF signature such as ``get(self,
 request, *args, **kwargs)``, where the framework dictates the parameter list.
 
 ``mypy`` type-checks ``backend`` — the application and the tests alike — and
-the two Python files kept outside it, ``frontend/e2e/prefix_proxy.py`` and
-``scripts/check_wording.py``, as the third step of ``make lint-backend``.
-``[tool.mypy]`` in ``pyproject.toml`` sets ``strict = true``, the ``mypy_django_plugin`` and ``mypy_drf_plugin`` plugins,
+the three Python files kept outside it, ``frontend/e2e/prefix_proxy.py``,
+``scripts/check_wording.py``, and ``scripts/wording_words.py``, as the third
+step of ``make lint-backend``.  ``[tool.mypy]`` in ``pyproject.toml`` sets
+``strict = true``, the ``mypy_django_plugin`` and ``mypy_drf_plugin`` plugins,
 and ``caldart.settings.test`` as the settings module the Django plugin reads;
 migrations are excluded.  ``disallow_subclassing_any`` is off because Wagtail's
 page, block, and settings base classes carry no types, and Wagtail, the four
@@ -1413,13 +1414,16 @@ lists it, minus generated files (the OpenAPI description and its snapshot,
 whose text comes from the serializer docstrings the check reads at their
 source, and the golden files under ``backend/tests/golden/``), lock files, and
 binaries, it reports a flagged word followed by ``no``, ``nothing``, ``nobody``,
-``none``, or ``no one``.  The flagged words are the verb forms in
+``none``, or ``no one``.  The word lists live beside the script in
+``scripts/wording_words.py``.  The flagged words are the verb forms in
 ``FLAGGED_VERBS``; the forms of *be* and the prepositions in
 ``FLAGGED_WORDS``, so that *there is* and *with* before a negative count as
 well; and any other word ending in *-ed*, read as a past tense, outside
 ``ALLOWED_WORDS`` and ``NOT_PAST_TENSE``.  One pronoun from ``PRONOUNS`` or one
-adverb from ``ADVERBS`` may stand between the two; a noun there is a known
-gap.  The words are separated by a single space or tab, so a table's padding
+adverb from ``ADVERBS`` may stand between the two, except that a pronoun
+after a preposition is its object ("without it" before a negative subject),
+and a pronoun followed by a negative and a verb starts a clause of its own.
+The words are separated by a single space or tab, so a table's padding
 never joins two cells, or by one line break, which may carry a comment
 leader.  The match ignores case, an underscore joins words into an identifier
 that never matches, and ``None`` spelled that way is Python's value.  It
@@ -1427,11 +1431,26 @@ passes over an all-caps negative after a verb in lower case, such as a
 constant; ``no`` followed by punctuation, which is an answer; a verb form
 after an article or another determiner, which makes it a noun; and ``no
 longer``, ``no matter``, and the other adverbs listed in ``NOT_OBJECTS``.
-``ALLOWED_WORDS`` records the modals, conjunctions, and adverbs left alone on
-purpose, since a negative after them is a subject; to flag one, move it to
+``ALLOWED_WORDS`` records the words left alone on purpose, in four groups: the
+modals, which always wait for a verb; the conjunctions, relative words, and
+adverbs (*and*, *or*, *but*, *so*, *when*, *since*, *until*, and the rest),
+after which a negative is a subject; *than*, which compares with zero ("more
+than nothing"); and the pronouns and articles (*it*, *them*, *you*, *the*,
+*not*, *sure*, *true*), which aren't verbs.  To flag one, move it to
 ``FLAGGED_WORDS``.  Each hit prints as ``path:line: text``, with a suggested
 rewrite below it when the verb is a simple present or past form, a form of
-*be*, or *with*.
+*be*, or *with*.  A bound keeps its meaning: *no more than 255* becomes *at
+most 255*, and *no fewer than* or *no less than* becomes *at least*.
+
+Three gaps are known, and the sweep reviews them by hand.  A noun between the
+verb and the negative, an indirect object such as "a donor", puts the verb
+out of reach.  A coordinated object after *and*, *or*, or *but* ("gets 400
+and" followed by a negative message, "a JSON body or" followed by a negative)
+breaks the rule, but the check can't tell it from a new negative subject
+("and no email is sent"), so ``--coordinated`` lists every such candidate,
+with the same exemptions and markers, and always exits 0.  And text inside a
+literal or code-block body can't carry a marker without it showing on the
+rendered page.
 
 To keep a line verbatim, such as a third party's error message, end it with a
 ``wording:ignore`` comment, or put a ``wording:ignore-next-line`` comment on
@@ -1447,9 +1466,9 @@ fewer: a change that rewrites hits runs ``uv run python
 scripts/check_wording.py --update-baseline`` and commits the lowered
 baseline with it.  ``--update-baseline`` refuses to raise a count unless
 ``--accept-new`` is given as well.  ``--all`` lists every hit, ignoring the
-baseline, and exits 1 while any remains; ``--path`` limits it to a subtree,
-so ``--all --path docs/user`` shows what is left to rewrite in the user
-guide.  ``--update-baseline`` writes only the files git tracks, and names
+baseline, and exits 1 while any remains; ``--path`` limits it, or
+``--coordinated``, to a subtree, so ``--all --path docs/user`` shows what is
+left to rewrite in the user guide.  ``--update-baseline`` writes only the files git tracks, and names
 any untracked file it leaves out.  Renaming a file that has hits moves its
 count to a path the baseline doesn't list, so the rename runs
 ``--update-baseline --accept-new``, and its review reads the baseline's diff
