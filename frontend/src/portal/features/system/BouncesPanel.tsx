@@ -79,7 +79,7 @@ export function BouncesPanel(): JSX.Element {
           checked={dryRun}
           onChange={handleDryRunChange}
           task="bounce check"
-          leaves="change nothing"
+          leaves="changing anything"
         />
       }
       action={

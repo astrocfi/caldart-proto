@@ -1,6 +1,6 @@
 /**
  * The **Practice run** box beside a job's **Run now**: checked, the run shows what it
- * would do and does nothing.  Several jobs share a screen, so each box is named after
+ * would do and doesn't do it.  Several jobs share a screen, so each box is named after
  * its job for a screen reader, after the words everyone sees.
  */
 import type { ChangeEvent, JSX } from 'react';
@@ -10,21 +10,21 @@ export interface PracticeRunCheckboxProps {
   onChange: (event: ChangeEvent<HTMLInputElement>) => void;
   /** The job the box belongs to, such as `scheduled reports`, heard after the label. */
   task: string;
-  /** What a practice run leaves undone: `send nothing`, `charge nothing`, ... */
+  /** What a practice run leaves undone: `sending anything`, `charging anything`, ... */
   leaves?: string;
 }
 
-/** A checkbox reading *Practice run: show what would happen, send nothing*. */
+/** A checkbox reading *Practice run: show what would happen without sending anything*. */
 export function PracticeRunCheckbox({
   checked,
   onChange: handleChange,
   task,
-  leaves = 'send nothing',
+  leaves = 'sending anything',
 }: PracticeRunCheckboxProps): JSX.Element {
   return (
     <label className="cluster">
       <input type="checkbox" checked={checked} onChange={handleChange} />
-      Practice run: show what would happen, {leaves}
+      Practice run: show what would happen without {leaves}
       <span className="visually-hidden"> ({task})</span>
     </label>
   );

@@ -85,7 +85,9 @@ describe('BouncesPanel', () => {
     renderWithProviders(<BouncesPanel />);
 
     await userEvent.click(
-      screen.getByLabelText('Practice run: show what would happen, change nothing (bounce check)'),
+      screen.getByLabelText(
+        'Practice run: show what would happen without changing anything (bounce check)',
+      ),
     );
     await userEvent.click(await enabledRunNow());
 

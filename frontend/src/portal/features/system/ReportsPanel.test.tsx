@@ -48,7 +48,7 @@ describe('ReportsPanel', () => {
 
     expect(
       screen.getByLabelText(
-        'Practice run: show what would happen, send nothing (scheduled reports)',
+        'Practice run: show what would happen without sending anything (scheduled reports)',
       ),
     ).toBeChecked();
     await userEvent.click(screen.getByRole('button', { name: 'Run now: scheduled reports' }));
@@ -79,7 +79,7 @@ describe('ReportsPanel', () => {
 
     await userEvent.click(
       screen.getByLabelText(
-        'Practice run: show what would happen, send nothing (scheduled reports)',
+        'Practice run: show what would happen without sending anything (scheduled reports)',
       ),
     );
     await userEvent.click(screen.getByRole('button', { name: 'Run now: scheduled reports' }));

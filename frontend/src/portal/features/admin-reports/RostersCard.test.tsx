@@ -80,7 +80,9 @@ describe('RostersCard', () => {
     await renderCard(bodies);
 
     expect(
-      screen.getByLabelText('Practice run: show what would happen, send nothing (DART rosters)'),
+      screen.getByLabelText(
+        'Practice run: show what would happen without sending anything (DART rosters)',
+      ),
     ).toBeChecked();
     await userEvent.click(screen.getByRole('button', { name: 'Preview rosters' }));
 
@@ -98,7 +100,9 @@ describe('RostersCard', () => {
     await renderCard(bodies);
 
     await userEvent.click(
-      screen.getByLabelText('Practice run: show what would happen, send nothing (DART rosters)'),
+      screen.getByLabelText(
+        'Practice run: show what would happen without sending anything (DART rosters)',
+      ),
     );
     await userEvent.click(screen.getByRole('button', { name: 'Send rosters now' }));
 
@@ -110,7 +114,7 @@ describe('RostersCard', () => {
     await renderCard();
 
     const box = screen.getByLabelText(
-      'Practice run: show what would happen, send nothing (DART rosters)',
+      'Practice run: show what would happen without sending anything (DART rosters)',
     );
     const button = screen.getByRole('button', { name: 'Preview rosters' });
     expect(box.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -120,13 +124,15 @@ describe('RostersCard', () => {
     await renderCard();
 
     await userEvent.click(
-      screen.getByLabelText('Practice run: show what would happen, send nothing (DART rosters)'),
+      screen.getByLabelText(
+        'Practice run: show what would happen without sending anything (DART rosters)',
+      ),
     );
 
     expect(screen.getByRole('button', { name: 'Send rosters now' })).toBeInTheDocument();
   });
 
-  it('says the rosters could not be loaded rather than that there are no DARTs', async () => {
+  it("says the rosters could not be loaded rather than that there aren't any DARTs", async () => {
     server.use(
       http.get(`${API}/reports/rosters`, () =>
         HttpResponse.json({ detail: 'Server error.' }, { status: 500 }),

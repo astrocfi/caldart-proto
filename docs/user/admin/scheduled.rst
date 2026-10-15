@@ -49,7 +49,7 @@ schedule. The panel names the days the stored schedule uses. It sends email only
 charges anyone. A member whose automatic renewal is on is skipped. The
 :doc:`reminders` page describes the stages and the subject line of each email.
 
-The box reads **Practice run: show what would happen, send nothing**. The result reads, for
+The box reads **Practice run: show what would happen without sending anything**. The result reads, for
 example, *Would send 4 emails, skipped 2.* When something was skipped, a line gives the
 reasons in the panel's
 words: *already sent*, *already renewed*, *auto-renew on*, *lifetime member*, *account
@@ -106,7 +106,7 @@ that are due (*your membership has been renewed*, or *we could not renew your me
 A life member's recurring donation is charged once a year by the same job, and its emails
 speak of the donation.
 
-#. Leave **Practice run: show what would happen, charge nothing** checked the first time.
+#. Leave **Practice run: show what would happen without charging anything** checked the first time.
    Nobody is charged or emailed.
 #. Press **Run now**. The result reads, for example, *Would notice 2, warn 0, charge 1, fail
    0, pause 0, and skip 3.* *Notice* counts the two-week notices, *warn* the members whose
@@ -171,7 +171,7 @@ The subject reads *CalDART: your 2025 contribution statement*, with the year and
 organization's name.
 
 #. Check the **Year** box; it starts at last year.
-#. Leave **Practice run: show what would happen, send nothing** checked the first time.
+#. Leave **Practice run: show what would happen without sending anything** checked the first time.
 #. Press **Run now**. The result reads, for example, *Would send 6, skip 0, and fail 0.*
    *Skip* counts accounts already sent that year's statement, and *fail* an address the mail
    server refused or an account without an address.
@@ -193,7 +193,7 @@ and temporary failures, which the other server is still retrying, are ignored. T
 until the address is changed, until the person follows a verification or password reset link
 sent to it, or until a user administrator clears it on :doc:`user-record`.
 
-#. Leave **Practice run: show what would happen, change nothing** checked the first time.
+#. Leave **Practice run: show what would happen without changing anything** checked the first time.
    Nothing is marked, and every message stays in the mailbox for the next run.
 #. Press **Run now**. The result reads, for example, *Would mark 1 bounced, leave 1
    unmatched, ignore 2, and skip 0.* *Bounced* counts the emails matched to a bounce,

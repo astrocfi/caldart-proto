@@ -66,7 +66,7 @@ describe('StatementsPanel', () => {
     expect(screen.getByLabelText('Year')).toHaveValue(2025);
     expect(
       screen.getByLabelText(
-        'Practice run: show what would happen, send nothing (year-end statements)',
+        'Practice run: show what would happen without sending anything (year-end statements)',
       ),
     ).toBeChecked();
 
@@ -120,7 +120,7 @@ describe('StatementsPanel', () => {
 
     await userEvent.click(
       screen.getByLabelText(
-        'Practice run: show what would happen, send nothing (year-end statements)',
+        'Practice run: show what would happen without sending anything (year-end statements)',
       ),
     );
     await userEvent.click(screen.getByRole('button', { name: 'Run now: year-end statements' }));
@@ -149,7 +149,7 @@ describe('StatementsPanel', () => {
     for (const field of [
       screen.getByLabelText('Year'),
       screen.getByLabelText(
-        'Practice run: show what would happen, send nothing (year-end statements)',
+        'Practice run: show what would happen without sending anything (year-end statements)',
       ),
     ]) {
       expect(field.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);

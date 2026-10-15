@@ -94,7 +94,7 @@ export function RenewalsPanel(): JSX.Element {
           checked={dryRun}
           onChange={handleDryRunChange}
           task="automatic renewal charges"
-          leaves="charge nothing"
+          leaves="charging anything"
         />
       }
       action={
