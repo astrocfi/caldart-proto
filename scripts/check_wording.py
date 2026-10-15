@@ -11,28 +11,36 @@ A hit is a flagged word followed by ``no``, ``nothing``, ``nobody``, ``none``, `
 one``, or ``nobody's`` or ``no one's`` as a determiner (``nobody's role``).  The
 flagged words are every form in ``FLAGGED_VERBS`` (past participles such as ``given``
 and ``sent`` included, after a form of "be" too), every word in ``FLAGGED_WORDS``
-(the forms of "be" and the prepositions), and any other word ending in ``-ed`` (a past
-tense) outside ``ALLOWED_WORDS`` and ``NOT_PAST_TENSE``.  One pronoun from ``PRONOUNS``
-(an indirect object) or one adverb from ``ADVERBS`` may stand between the two; a noun
-there (an indirect object such as "a donor") is a known gap.  The words are separated by
-a single space or tab, so a table's padding never joins two cells, or by one line break,
-after which the continuation may open with a comment leader (``#``, ``#:``, ``//``, or
-``*``), so a phrase wrapped in a docstring or a comment is still found.  The match
-ignores case.  An underscore or a letter joins words into an identifier, so
-``has_no_term`` and ``hasNoTerm`` never match, and an apostrophe between letters joins a
-contraction ("doesn't") into one word.  A quote that opens or closes a string literal,
-straight or typographic, belongs to neither word beside it, so a phrase at the start or
-the end of a literal (``it('offers ... reset')``, a docstring's opening quotes) is
-checked like any other.  These are passed over:
+(the forms of "be" and the prepositions), a contraction of "be" or "have" in
+``CONTRACTIONS`` (``there's``, ``we're``, ``you've``, ``they'd``), and any other word
+ending in ``-ed`` (a past tense) outside ``ALLOWED_WORDS`` and ``NOT_PAST_TENSE``.  One
+pronoun from ``PRONOUNS`` (an indirect object) or one adverb from ``ADVERBS`` may stand
+between the two; a noun there (an indirect object such as "a donor") is a known gap.
+The words are separated by a single space or tab, so a table's padding never joins two
+cells; by one line break, after which the continuation may open with a comment leader
+(``#``, ``#:``, ``//``, or ``*``), so a phrase wrapped in a docstring or a comment is
+still found; or by the join between two string literals (a closing quote, an optional
+``+``, an optional line break, and an opening quote), so a message split across literals
+is read whole.  Bold or italic markup (``**``, ``*``, ``<b>``, ``<strong>``, ``<em>``,
+or ``<i>``) around a word or the phrase counts as part of the space between words; an
+inline literal (````none````) is a value, and never matches.  The match ignores case.
+An underscore or a letter joins words into an identifier, so ``has_no_term`` and
+``hasNoTerm`` never match, and an apostrophe between letters joins a contraction
+("doesn't") into one word.  A quote that opens or closes a string literal, straight or
+typographic, belongs to neither word beside it, so a phrase at the start or the end of a
+literal (``it('offers ... reset')``, a docstring's opening quotes) is checked like any
+other.  These are passed over:
 
 * a negative that is a value or an answer: ``None`` spelled that way (Python's value),
   an all-caps negative after a verb that isn't all caps (``NONE``), a capitalized
-  negative after a lower-case verb (a quoted label: "reads No insurance on file"), and
-  ``no`` with punctuation right after it ("the member said no.");
+  negative after a lower-case verb, followed by a lower-case word or none (a quoted
+  message: "reads No insurance on file"), and ``no`` with punctuation right after it
+  ("the member said no.");
 * a negative that is the subject of a clause of its own: ``nothing``, ``nobody``,
-  ``none``, or ``no one`` (past an ``else``) before a word in ``SUBJECT_VERBS`` ("says
-  nothing is hidden"), and ``nobody's`` or ``no one's`` meaning "nobody is" or "nobody
-  has" ("says nobody's signed in");
+  ``none``, or ``no one`` (past an ``else``) before a word in ``SUBJECT_AUXILIARIES``
+  ("says nobody is signed in"), ``nothing`` or ``none`` before a word in
+  ``SUBJECT_VERBS`` ("says nothing needs fixing"), and ``nobody's`` or ``no one's``
+  meaning "nobody is" or "nobody has" ("says nobody's signed in");
 * a verb form preceded by a determiner (``a``, ``the``, ``every``, ...), which makes it a
   noun ("a change nobody made");
 * ``no`` followed by a word in ``NOT_OBJECTS`` (``longer``, ``matter``, ``later``,
@@ -72,7 +80,15 @@ Known gaps, reviewed by hand:
   negative), which the rule covers but the check can't tell from a new negative subject;
   ``--coordinated`` lists every such candidate and always exits 0;
 * text inside a literal or code-block body, which a marker can't reach without showing
-  in the rendered page.
+  in the rendered page;
+* ``nobody's`` before an ``-ing`` form, an ``-ed`` word, or a participle spelled like its
+  base or its past, which is read from the one word after the participle: a noun there
+  reads as a possessive, so a contraction with a noun object is flagged, and a
+  preposition there reads as a contraction, so a possessive noun before one is missed;
+* a contracted ``'s`` or ``'d``, read as "is" or "had", so a possessive before a
+  negative is flagged as a contraction;
+* a join between two string literals with a typographic quote or a backtick, which
+  isn't read.
 """
 
 import argparse
@@ -92,6 +108,8 @@ from wording_words import (
     ANY_BEFORE,
     BE_FORMS,
     BOUNDS,
+    CONTRACTED_AUXILIARIES,
+    CONTRACTIONS,
     DETERMINERS,
     FLAGGED_VERBS,
     FLAGGED_WORDS,
@@ -99,6 +117,7 @@ from wording_words import (
     NEGATED_WORDS,
     NOT_OBJECTS,
     NOT_PAST_TENSE,
+    PARTICLES,
     PERFECT_AUXILIARIES,
     POSITIVES,
     PREPOSITIONS,
@@ -184,14 +203,23 @@ CLAUSE_VERBS = frozenset(
 )
 
 #: A word after ``nothing``, ``nobody``, ``none``, or ``no one`` (past an ``else``) that
-#: makes the negative the subject of a clause of its own ("says nothing is hidden",
-#: "says nothing else needs fixing"): a form of "be", a modal, a perfect auxiliary, or a
-#: third-person present verb.
-SUBJECT_VERBS = frozenset(
-    [family.split()[1] for family in FLAGGED_VERBS]
-    + BE_FORMS.split()
-    + MODALS.split()
-    + list(PERFECT_AUXILIARIES)
+#: makes the negative the subject of a clause of its own ("says nobody is signed in",
+#: "says nothing has gone"): a form of "be", a modal, or a perfect auxiliary.
+SUBJECT_AUXILIARIES = frozenset(BE_FORMS.split() + MODALS.split() + list(PERFECT_AUXILIARIES))
+
+#: A third-person present verb, which does the same after ``nothing`` or ``none`` alone
+#: ("says nothing else needs fixing").  After ``nobody`` or ``no one`` the same word is
+#: as often a plural noun after an indirect object (a verb, the negative, "emails"), so
+#: it is flagged there.
+SUBJECT_VERBS = frozenset(family.split()[1] for family in FLAGGED_VERBS)
+
+#: The words after the participle in ``nobody's <participle>`` that make the ``'s`` "is"
+#: or "has": a particle, a preposition, a pronoun, an adverb, or a determiner.
+PARTICLE_FORMS = (
+    PARTICLES
+    | frozenset(word for group in PREPOSITIONS for word in group.split())
+    | frozenset(PRONOUNS + ADVERBS)
+    | DETERMINERS
 )
 
 #: A word after ``nobody's`` or ``no one's`` that makes the ``'s`` a contraction of "is"
@@ -203,9 +231,22 @@ CONTRACTION_COMPLEMENTS = frozenset((*BE_FORMS.split(), "here", "there"))
 #: "the member said no."
 ANSWER_ENDINGS = frozenset(".,;:!?)]}\"'" + chr(0x2019) + chr(0x201D))
 
-# A single space or tab, so that a table's padding never joins two cells; or one line
-# break, with the continuation's indentation and comment leader.
-_SEPARATOR = r"(?:[ \t]|[ \t]*\r?\n[ \t]*(?:(?:\#:?|//|\*)[ \t]*)?)"
+# Where one string literal ends and the next begins: a closing quote, an optional ``+``,
+# an optional line break with its indentation, and an opening quote ('x ' + 'y').  A
+# space must stand on one side of the quotes, inside one literal or the other, or the
+# two words would run together.
+_JOIN = r"[ \t]*\+?[ \t]*(?:\r?\n[ \t]*\+?[ \t]*)?"
+_LITERAL_JOIN = rf"(?:[ \t]+[\"']{_JOIN}[\"']|[\"']{_JOIN}[\"'][ \t]+)"
+
+# A single space or tab, so that a table's padding never joins two cells; one line
+# break, with the continuation's indentation and comment leader; or a literal join.
+_SEPARATOR = r"(?:[ \t]|[ \t]*\r?\n[ \t]*(?:(?:\#:?|//|\*)[ \t]*)?|" + _LITERAL_JOIN + ")"
+
+# Emphasis may close before a separator and open after it ("**x** y", "<em>x</em> y"),
+# so that bold or italic text is checked like plain text.
+_OPEN_EMPHASIS = r"(?:\*\*?|<(?:b|strong|em|i)>)"
+_CLOSE_EMPHASIS = r"(?:\*\*?|</(?:b|strong|em|i)>)"
+_GAP = rf"{_CLOSE_EMPHASIS}?{_SEPARATOR}{_OPEN_EMPHASIS}?"
 
 #: The apostrophes that join a contraction into one word: straight and typographic.
 _APOSTROPHES = "'" + chr(0x2019)
@@ -221,12 +262,16 @@ _WORD_START = rf"(?<!\w)(?<!\w[{_APOSTROPHES}])"
 _WORD_END = rf"(?![\w-])(?![{_APOSTROPHES}]\w)"
 
 # A lookahead, so that every word start is tried and one candidate never hides the next.
+# A contraction of "be" or "have" ("there's", "we're", "you've", "they'd") is one word,
+# flagged before a negative like the form it stands for.
+_CONTRACTION = rf"[{_APOSTROPHES}](?:{'|'.join(sorted(CONTRACTIONS))})"
+
 _CANDIDATE = re.compile(
     _WORD_START
-    + r"(?=(?P<verb>[A-Za-z]+)"
-    + _SEPARATOR
+    + rf"(?=(?P<verb>[A-Za-z]+(?:{_CONTRACTION})?)"
+    + _GAP
     + rf"(?:(?P<middle>{'|'.join(PRONOUNS + ADVERBS)})"
-    + _SEPARATOR
+    + _GAP
     + ")?"
     + rf"(?P<negative>nobody[{_APOSTROPHES}]s|no{_SEPARATOR}one[{_APOSTROPHES}]s"
     + r"|nothing|nobody|none|no)"
@@ -235,9 +280,9 @@ _CANDIDATE = re.compile(
     re.IGNORECASE,
 )
 
-_NEXT_WORD = re.compile(_SEPARATOR + r"([A-Za-z]+)")
+_NEXT_WORD = re.compile(_GAP + r"([A-Za-z]+)", re.IGNORECASE)
 
-_THAN = re.compile(_SEPARATOR + r"[A-Za-z]+" + _SEPARATOR + r"than\b", re.IGNORECASE)
+_THAN = re.compile(_GAP + r"[A-Za-z]+" + _GAP + r"than\b", re.IGNORECASE)
 
 # A coordinating conjunction before a negative: "gets 400 and no message".  The rule
 # covers a coordinated object, but the check can't tell one from a new negative subject
@@ -252,7 +297,9 @@ _COORDINATED = re.compile(
     re.IGNORECASE,
 )
 
-_PREVIOUS_WORD = re.compile(rf"(?<![\w{_APOSTROPHES}])([A-Za-z]+)" + _SEPARATOR + r"\Z")
+_PREVIOUS_WORD = re.compile(
+    rf"(?<![\w{_APOSTROPHES}])([A-Za-z]+(?:{_CONTRACTION})?)" + _GAP + r"\Z", re.IGNORECASE
+)
 
 _MARKER = "wording:ignore"
 
@@ -349,10 +396,10 @@ def _find(text: str, path: str, *, coordinated: bool) -> list[Hit]:
         middle = None if coordinated else match["middle"]
         if not coordinated and not _is_flagged(verb):
             continue
-        if _is_not_an_object(text, match):
-            continue
         next_match = _NEXT_WORD.match(text, match.end("negative"))
         next_word = next_match[1] if next_match is not None else None
+        if _is_not_an_object(text, match, next_word):
+            continue
         is_adverb = next_word is not None and next_word.lower() in NOT_OBJECTS
         if negative.lower() == "no" and is_adverb:
             continue
@@ -408,34 +455,52 @@ def _is_a_subject(text: str, match: re.Match[str], next_word: str | None) -> boo
     """Whether the matched negative is a subject rather than an object.
 
     The caller asks only after a word other than a preposition, whose object a negative
-    always is, even before a verb.  ``nothing``, ``nobody``,
-    ``none``, or ``no one`` followed (past an ``else``) by a word in ``SUBJECT_VERBS``
-    starts a clause of its own ("says nothing is hidden").  ``nobody's`` or ``no
-    one's`` followed by a word in ``CONTRACTION_COMPLEMENTS``, a past
-    participle, an ``-ing`` form, or an ``-ed`` word is a contraction of "is" or "has"
-    ("says nobody's signed in"), never a possessive.
+    always is, even before a verb.  ``nothing``, ``nobody``, ``none``, or ``no one``
+    followed (past an ``else``) by a word in ``SUBJECT_AUXILIARIES`` starts a clause of
+    its own ("says nobody is signed in"), and so do ``nothing`` and ``none`` before a
+    word in ``SUBJECT_VERBS`` ("says nothing needs fixing").  ``nobody's`` or ``no
+    one's`` is a contraction of "is" or "has", never a possessive, by the test
+    ``_is_a_contraction`` describes.
     """
     lower = match["negative"].lower()
-    if lower.endswith("s") and next_word is not None:
-        return _is_a_complement(next_word.lower())
     words = _words_after(text, match.end("negative"), 3)
+    if lower.endswith("s"):
+        return _is_a_contraction(words)
     if lower == "no":
         if len(words) == 0 or words[0] != "one":
             return False
         words = words[1:]
     if len(words) > 0 and words[0] == "else":
         words = words[1:]
-    return len(words) > 0 and words[0] in SUBJECT_VERBS
-
-
-def _is_a_complement(word: str) -> bool:
-    """Whether ``word`` after ``nobody's`` makes the ``'s`` mean "is" or "has"."""
-    if word in CONTRACTION_COMPLEMENTS or word.endswith(("ing", "ed")):
-        return True
-    if word not in _FAMILY_OF:
+    if len(words) == 0:
         return False
-    family = _FAMILY_OF[word]
-    return word == family.participle != family.base
+    if words[0] in SUBJECT_AUXILIARIES:
+        return True
+    return lower in ("nothing", "none") and words[0] in SUBJECT_VERBS
+
+
+def _is_a_contraction(words: list[str]) -> bool:
+    """Whether the ``words`` after ``nobody's`` make the ``'s`` mean "is" or "has".
+
+    The first word does when it is in ``CONTRACTION_COMPLEMENTS`` ("nobody's here") or a
+    past participle spelled unlike its base form and its past ("nobody's given").  An
+    ``-ing`` form, an ``-ed`` word, or a participle spelled like its base or its past
+    does when nothing follows it, or a word in ``PARTICLE_FORMS`` does ("nobody's
+    signed in", "nobody's set up yet"); a noun after it makes ``nobody's`` a possessive
+    ("nobody's billing address").
+    """
+    if len(words) == 0:
+        return False
+    first = words[0]
+    if first in CONTRACTION_COMPLEMENTS:
+        return True
+    family = _FAMILY_OF.get(first)
+    is_participle = family is not None and first == family.participle
+    if is_participle and family is not None and first not in (family.base, family.past):
+        return True
+    if not (is_participle or first.endswith(("ing", "ed"))):
+        return False
+    return len(words) == 1 or words[1] in PARTICLE_FORMS
 
 
 def _words_after(text: str, end: int, count: int) -> list[str]:
@@ -452,27 +517,38 @@ def _words_after(text: str, end: int, count: int) -> list[str]:
 
 
 def _is_flagged(word: str) -> bool:
-    """Whether ``word`` is a listed form, or an unlisted word that reads as past tense."""
+    """Whether ``word`` is a listed form, a contraction, or an unlisted past tense."""
     lower = word.lower()
-    if lower in FLAGGED_FORMS:
+    if _contraction(lower) is not None or lower in FLAGGED_FORMS:
         return True
     return lower.endswith("ed") and lower not in ALLOWED_FORMS and lower not in NOT_PAST_TENSE
 
 
-def _is_not_an_object(text: str, match: re.Match[str]) -> bool:
+def _contraction(word: str) -> tuple[str, str] | None:
+    """``word`` split into its base and its contracted ending, if it is a contraction."""
+    for apostrophe in _APOSTROPHES:
+        if apostrophe in word:
+            base, ending = word.split(apostrophe, 1)
+            return (base, ending) if ending in CONTRACTIONS else None
+    return None
+
+
+def _is_not_an_object(text: str, match: re.Match[str], next_word: str | None) -> bool:
     """Whether the matched negative is a value or an answer rather than an object.
 
     That is ``None`` spelled that way (Python's value), an all-caps negative after a verb
     that isn't all caps (``NONE``, a constant), a capitalized negative after a lower-case
-    verb (a quoted label or message: "reads No insurance on file"), and ``no`` with
-    punctuation right after it ("said no.").
+    verb with a lower-case word or none after it (a quoted label or message: "reads No
+    insurance on file"), and ``no`` with punctuation right after it ("said no.").  A
+    capitalized word after the negative reads as a title, which is flagged.
     """
     verb, negative = match["verb"], match["negative"]
     if negative == "None":
         return True
     if negative.isupper() and not verb.isupper():
         return True
-    if negative[0].isupper() and verb[0].islower():
+    is_lower_after = next_word is None or next_word[0].islower()
+    if negative[0].isupper() and verb[0].islower() and is_lower_after:
         return True
     end = match.end("negative")
     is_answer = end < len(text) and text[end] in ANSWER_ENDINGS
@@ -547,6 +623,10 @@ def _suggestion(phrase: _Phrase) -> str | None:
         objects, positive = f"{middle} {objects}", f"{middle} {positive}"
     if form in NEGATED_WORDS:
         return f"{verb} {objects} -> {_like(verb, NEGATED_WORDS[form])} {positive}"
+    contraction = _contraction(form)
+    if contraction is not None:
+        base, ending = contraction
+        return f"{verb} {objects} -> {_like(verb, base)} {CONTRACTIONS[ending]} {positive}"
     if form not in _FAMILY_OF:
         return None
     family = _FAMILY_OF[form]
@@ -568,6 +648,9 @@ def _suggestion(phrase: _Phrase) -> str | None:
 
 def _negated_auxiliary(word: str) -> str | None:
     """The negative of ``word`` as an auxiliary before a past participle, if it is one."""
+    contraction = _contraction(word)
+    if contraction is not None:
+        return f"{contraction[0]} {CONTRACTED_AUXILIARIES[contraction[1]]}"
     if word in PERFECT_AUXILIARIES:
         return f"{word}n't"
     if word in BE_FORMS.split() and word in NEGATED_WORDS:

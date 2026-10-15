@@ -297,3 +297,21 @@ POSITIVES = {"nothing": "anything", "nobody": "anybody", "none": "any"}
 
 #: The perfect auxiliaries a past participle is rewritten with.
 PERFECT_AUXILIARIES = frozenset(("had", "has", "have"))
+
+#: The contracted forms of "be" and "have" a negative can follow ("there's no", "we're
+#: no", "you've no", "they'd no"), each with its rewrite when a negative object follows
+#: it directly: ``'s`` reads as "is", and ``'ve`` and ``'d`` as "have" and "had".
+CONTRACTIONS = {"d": "didn't have", "re": "aren't", "s": "isn't", "ve": "don't have"}
+
+#: The same contractions as the auxiliary before a past participle, as in "it isn't
+#: sent anything" and "they hadn't sent anything".
+CONTRACTED_AUXILIARIES = {"d": "hadn't", "re": "aren't", "s": "isn't", "ve": "haven't"}
+
+#: A word after an ``-ing`` form, an ``-ed`` word, or a participle spelled like its base
+#: form that follows ``nobody's``, showing that the ``'s`` is "is" or "has" ("nobody's
+#: set up yet", "nobody's charged twice").  A preposition, a pronoun, an adverb, or a
+#: determiner there does the same; any other word makes ``nobody's`` a possessive
+#: ("nobody's billing address").
+PARTICLES = frozenset((
+    "again", "away", "back", "down", "off", "once", "out", "twice", "up", "yet",
+))  # fmt: skip

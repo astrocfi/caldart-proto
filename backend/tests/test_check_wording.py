@@ -115,6 +115,31 @@ FLAGGED = {
     "no-one-s": "It sets no one's password.",  # wording:ignore
     "nobody-s-typographic": f"It changes nobody{CLOSE_QUOTE}s role.",  # wording:ignore
     "nobody-s-wrapped": "It changes\nnobody's role.",  # wording:ignore
+    "nobody-s-before-an-ing-noun": "It changes nobody's billing address.",  # wording:ignore
+    "nobody-s-before-an-ed-noun": "It keeps nobody's saved filters.",  # wording:ignore
+    "split-literal": '"so there is " "no server"',  # wording:ignore
+    "split-literal-space-after": '"so there is" " no server"',  # wording:ignore
+    "split-literal-plus": "'it has ' + 'nothing'",  # wording:ignore
+    "split-literal-line-break": '"so there is "\n    "no server"',  # wording:ignore
+    "split-literal-plus-line-break": '"so there is " +\n    "no server"',  # wording:ignore
+    "bold-negative": "It sets **no** security headers.",  # wording:ignore
+    "bold-phrase": "It **has no** default.",  # wording:ignore
+    "italic-negative": "A user with *no* roles.",  # wording:ignore
+    "strong-tag": "<strong>has no</strong> term",  # wording:ignore
+    "b-tag": "It has <b>no</b> term.",  # wording:ignore
+    "em-tag": "It sends <em>nothing</em>.",  # wording:ignore
+    "i-tag": "It sends <i>nothing</i>.",  # wording:ignore
+    "there-s": "There's no payment.",  # wording:ignore
+    "it-s": "It's no help.",  # wording:ignore
+    "that-s": "That's none of it.",  # wording:ignore
+    "we-re": "We're no help.",  # wording:ignore
+    "you-ve": "You've no account.",  # wording:ignore
+    "they-d": "They'd no term.",  # wording:ignore
+    "typographic-contraction": f"There{CLOSE_QUOTE}s no payment.",  # wording:ignore
+    "nobody-before-a-plural-noun": "It sends nobody emails.",  # wording:ignore
+    "no-one-before-a-plural-noun": "It gives no one refunds.",  # wording:ignore
+    "capitalized-title": "Members with No Term",  # wording:ignore
+    "capitalized-after-a-lower-case-verb": "It has No Account.",  # wording:ignore
 }
 
 
@@ -177,7 +202,7 @@ ALLOWED = {
     "clause-past-else": "It says nothing else needs fixing.",
     "clause-with-has": "It says nothing has gone yet.",
     "clause-with-a-modal": "It says no one can sign in.",
-    "clause-with-a-present-verb": "It shows nobody matches.",
+    "clause-with-a-present-verb": "It shows that nobody matches.",
     "inverted-question": "Has nothing been sent?",
     "quoted-label": "The row reads No insurance on file.",
     "quoted-message": "The page says Nothing to charge.",
@@ -186,6 +211,19 @@ ALLOWED = {
     "nobody-s-before-here": "It says nobody's here.",
     "nobody-s-before-been": "It says nobody's been charged.",
     "no-one-s-before-an-ing-form": "It says no one's going.",
+    "nobody-s-before-a-base-form-participle": "It says nobody's set up yet.",
+    "nobody-s-before-an-ed-word-and-an-adverb": "It says nobody's charged twice.",
+    "nobody-s-before-an-irregular-participle": "It says nobody's given consent.",
+    "nobody-s-at-the-end": "It says nobody's signed.",
+    "nothing-before-a-present-verb": "It says nothing changes.",
+    "none-before-a-present-verb": "It says none applies.",
+    "nobody-before-a-modal": "It says nobody can.",
+    "no-one-before-have": "It says no one have.",
+    "nobody-before-had": "It says nobody had.",
+    "quoted-message-at-the-end": "The page says No.",
+    "contraction-before-no-longer": "It's no longer due.",
+    "split-literal-without-a-space": '"is" "no"',
+    "emphasis-before-a-subject": "It says **nothing** is hidden.",
 }
 
 
@@ -210,6 +248,9 @@ IDENTIFIERS = {
     "hyphen": "Cache-Control: has no-store",
     "quoted": "takes 'none' as its value",
     "hyphenated-after-a-possessive": "the member's no-show",
+    "inline-literal": "It takes ``none`` as its value.",
+    "inline-literal-after-is": "The default is ``none``.",
+    "list-of-literals": '["has", "no"]',
 }
 
 
@@ -357,6 +398,36 @@ SUGGESTIONS = {
         "it('offers no reset')",  # wording:ignore
         "offers no reset -> doesn't offer a reset",  # wording:ignore
     ),
+    "there-s": (
+        "There's no payment.",  # wording:ignore
+        "There's no payment -> There isn't a payment",  # wording:ignore
+    ),
+    "we-re": ("We're none.", "We're none -> We aren't any"),  # wording:ignore
+    "you-ve": (
+        "You've no idea.",  # wording:ignore
+        "You've no idea -> You don't have an idea",  # wording:ignore
+    ),
+    "they-d": ("They'd none.", "They'd none -> They didn't have any"),  # wording:ignore
+    "participle-after-it-s": (
+        "It's sent nothing.",  # wording:ignore
+        "It's sent nothing -> It isn't sent anything",  # wording:ignore
+    ),
+    "participle-after-they-d": (
+        "They'd sent nothing.",  # wording:ignore
+        "They'd sent nothing -> They hadn't sent anything",  # wording:ignore
+    ),
+    "participle-after-we-ve": (
+        "We've sent none.",  # wording:ignore
+        "We've sent none -> We haven't sent any",  # wording:ignore
+    ),
+    "split-literal": (
+        '"so there is " "no server"',  # wording:ignore
+        "is no server -> isn't a server",  # wording:ignore
+    ),
+    "bold": (
+        "It sets **no** headers.",  # wording:ignore
+        "sets no headers -> doesn't set any headers",  # wording:ignore
+    ),
 }
 
 
@@ -495,9 +566,9 @@ def test_path_passes_for_a_clean_subtree(tree: Path) -> None:
 
 
 def test_path_is_repeatable(tree: Path) -> None:
-    """Two ``--path`` switches check both subtrees."""
+    """Two ``--path`` switches check both subtrees, the first as well as the last."""
     _write(tree / "backend" / "a.py", '"""It took none."""\n')  # wording:ignore
-    assert checker.main(["--path", "docs", "--path", "backend/a.py"], root=tree) == 1
+    assert checker.main(["--path", "backend/a.py", "--path", "docs"], root=tree) == 1
 
 
 SKIPPED = {

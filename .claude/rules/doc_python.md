@@ -65,22 +65,30 @@ Sphinx build requirements for all documentation in this repository. Docstring ru
   alike. `make lint` enforces it with `make lint-wording`, which runs
   `scripts/check_wording.py` over the tree codespell scans (minus generated files, lock
   files, and binaries): it flags a verb from `FLAGGED_VERBS`, a form of "be" or a
-  preposition from `FLAGGED_WORDS`, or an unlisted `-ed` word, followed by `no`,
-  `nothing`, `nobody`, `none`, `no one`, or `nobody's` or `no one's` as a determiner,
-  with at most one pronoun or adverb between them, and prints a suggested rewrite where
-  the word is simple. A quote that opens or closes a string literal never joins the
-  word beside it, so a test name or a message is checked to its first and last word.
-  The word lists live in `scripts/wording_words.py`. Its `ALLOWED_WORDS` records the
-  words deliberately left alone, in four groups: the modals; the conjunctions, relative
-  words, and adverbs, after which a negative is a subject; "than", which compares with
-  zero; and the pronouns and articles, which aren't verbs. Three gaps are known: a noun
-  between the verb and the negative; a coordinated object after "and", "or", or "but"
-  (a negative object in "gets 400 and ..."), which the rule covers but the check can't
-  tell from a new negative subject, so `--coordinated` lists those candidates for review
-  by hand; and text inside a literal or code-block body, which a marker can't reach. To
-  keep text that must stay verbatim, such as a third party's error message or a test
-  that pins one, end the line with a
-  `wording:ignore` comment, or precede it with a `wording:ignore-next-line` comment; in
+  preposition from `FLAGGED_WORDS`, a contraction of "be" or "have" ("there's",
+  "we're", "you've", "they'd"), or an unlisted `-ed` word, followed by `no`, `nothing`,
+  `nobody`, `none`, `no one`, or `nobody's` or `no one's` as a determiner, with at most
+  one pronoun or adverb between them, and prints a suggested rewrite where the word is
+  simple. A quote that opens or closes a string literal never joins the word beside it,
+  so a test name or a message is checked to its first and last word; the join between
+  two string literals (a closing quote, an optional `+` and line break, and an opening
+  quote) reads as a space, so a split message is read whole; and bold or italic markup
+  (`**`, `*`, `<b>`, `<strong>`, `<em>`, `<i>`) reads as part of the space. An inline
+  literal stays a value. The word lists live in `scripts/wording_words.py`. Its
+  `ALLOWED_WORDS` records the words deliberately left alone, in four groups: the
+  modals; the conjunctions, relative words, and adverbs, after which a negative is a
+  subject; "than", which compares with zero; and the pronouns and articles, which aren't
+  verbs. The check doesn't catch everything. Its known gaps are a noun between the verb
+  and the negative; a coordinated object after "and", "or", or "but" (a negative object
+  in "gets 400 and ..."), which the rule covers but the check can't tell from a new
+  negative subject, so `--coordinated` lists those candidates for review by hand; text
+  inside a literal or code-block body, which a marker can't reach; "nobody's" before an
+  `-ing`, `-ed`, or base-form participle, which is read from the next word alone; a
+  contracted "'s" or "'d", read as "is" or "had", so a possessive before a negative is
+  flagged; and a literal join through a typographic quote or a backtick. To keep text
+  that must stay verbatim, such as a third party's error message, a test that pins one,
+  or a bold UI label that starts with a negative, end the line with a `wording:ignore`
+  comment, or precede it with a `wording:ignore-next-line` comment; in
   reStructuredText, a comment line holding only `.. wording:ignore-next-line`, followed
   by a blank line, covers the whole next paragraph. The check fails on any hit and
   prints each one with its suggestion; `--path <dir>` limits it, or `--coordinated`, to

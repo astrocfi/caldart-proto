@@ -246,7 +246,7 @@ for constantly:
    * - ``superuser``
      - ``is_superuser=True`` as well as the ``system_admin`` role
    * - ``no_role_user``
-     - a signed-up user with **no** roles at all
+     - a signed-up user without any roles at all
    * - ``all_role_users``
      - a ``{slug: user}`` dict, for allow/deny matrix tests
    * - ``account_admin_client``
@@ -1418,51 +1418,78 @@ binaries, it reports a flagged word followed by ``no``, ``nothing``, ``nobody``,
 on any hit.  The word lists live beside the script in
 ``scripts/wording_words.py``.  The flagged words are the verb forms in
 ``FLAGGED_VERBS``, past participles such as *given*, *sent*, and *told*
-included, after a verb or a form of *be* as anywhere else; the forms of *be*
-and the prepositions in
-``FLAGGED_WORDS``, so that *there is* and *with* before a negative count as
-well; and any other word ending in *-ed*, read as a past tense, outside
+included; the forms of *be* and the prepositions in ``FLAGGED_WORDS``, so that
+*there is* and *with* before a negative count as well; the contractions of
+*be* and *have* in ``CONTRACTIONS`` (*there's*, *we're*, *you've*, *they'd*);
+and any other word ending in *-ed*, read as a past tense, outside
 ``ALLOWED_WORDS`` and ``NOT_PAST_TENSE``.  One pronoun from ``PRONOUNS`` or one
 adverb from ``ADVERBS`` may stand between the two, except that a pronoun
 after a preposition is its object ("without it" before a negative subject),
 and a pronoun followed by a negative and a verb starts a clause of its own.
-The words are separated by a single space or tab, so a table's padding
-never joins two cells, or by one line break, which may carry a comment
-leader.  The match ignores case, an underscore joins words into an identifier
-that never matches, and ``None`` spelled that way is Python's value.  An
-apostrophe between letters joins a contraction into one word, but a quote that
-opens or closes a string literal belongs to neither word beside it, so a phrase
-at the start or the end of a test name, a message, or a docstring is checked
-like any other.  It passes over an all-caps negative after a verb in lower
-case, such as a constant; a capitalized negative after a verb in lower case,
-such as a quoted label; a negative that starts a clause of its own, before a
-form of *be*, a modal, *has*, or a present verb ("says" followed by *nothing
-is hidden*), listed in ``SUBJECT_VERBS``; *nobody's* meaning "nobody is" or
-"nobody has"; ``no`` followed by punctuation, which is an answer; a verb form
-after an article or another determiner, which makes it a noun; and ``no
-longer``, ``no matter``, and the other adverbs listed in ``NOT_OBJECTS``.
-``ALLOWED_WORDS`` records the words left alone on purpose, in four groups: the
-modals, which always wait for a verb; the conjunctions, relative words, and
-adverbs (*and*, *or*, *but*, *so*, *when*, *since*, *until*, and the rest),
-after which a negative is a subject; *than*, which compares with zero ("more
-than nothing"); and the pronouns and articles (*it*, *them*, *you*, *the*,
-*not*, *sure*, *true*), which aren't verbs.  To flag one, move it to
-``FLAGGED_WORDS``.  Each hit prints as ``path:line: text``, with a suggested
-rewrite below it when the word is a simple present or past form, a past
-participle after *has*, a form of *be*, or *get* (*isn't sent anything*), a
-form of *be* (*there isn't a payment*), or *with*.  A bound keeps its meaning:
-*no more than 255* becomes *at most 255*, and *no fewer than* or *no less than*
-becomes *at least*.
 
-Three gaps are known, and are reviewed by hand.  A noun between the
-verb and the negative, an indirect object such as "a donor", puts the verb
-out of reach.  A coordinated object after *and*, *or*, or *but* ("gets 400
-and" followed by a negative message, "a JSON body or" followed by a negative)
-breaks the rule, but the check can't tell it from a new negative subject
-("and no email is sent"), so ``--coordinated`` lists every such candidate,
-with the same exemptions and markers, and always exits 0.  And text inside a
-literal or code-block body can't carry a marker without it showing on the
-rendered page.
+The words are separated by a single space or tab, so a table's padding
+never joins two cells; by one line break, which may carry a comment leader;
+or by the join between two string literals, a closing quote, an optional
+``+``, an optional line break, and an opening quote, so a message split
+across literals is read whole.  Bold or italic markup around a word or the
+whole phrase (``**``, ``*``, ``<b>``, ``<strong>``, ``<em>``, ``<i>``) counts
+as part of the space between words; an inline literal (````none````) is a
+value and never matches.  The match ignores case, an underscore joins words
+into an identifier that never matches, and ``None`` spelled that way is
+Python's value.  An apostrophe between letters joins a contraction into one
+word, but a quote that opens or closes a string literal belongs to neither
+word beside it, so a phrase at the start or the end of a test name, a
+message, or a docstring is checked like any other.
+
+It passes over an all-caps negative after a verb in lower case, such as a
+constant; a capitalized negative after a verb in lower case, followed by a
+word in lower case or none, such as a quoted message (a capitalized word after
+it reads as a title, which is flagged); a negative that starts a clause of
+its own: *nothing*, *nobody*, *none*, or *no one* before a form of *be*, a
+modal, *has*, *have*, or *had* (``SUBJECT_AUXILIARIES``), or *nothing* or
+*none* before a present verb (``SUBJECT_VERBS``), such as the clause
+*nothing needs fixing*; *nobody's* meaning "nobody is" or "nobody has", which
+is read from the words after it (a participle spelled unlike its base and its
+past, or an *-ing*, *-ed*, or base-form participle followed by a particle, a
+preposition, a pronoun, an adverb, a determiner, or nothing at all); ``no``
+followed by punctuation, which is an answer; a verb form after an article or
+another determiner, which makes it a noun; and ``no longer``, ``no matter``,
+and the other adverbs listed in ``NOT_OBJECTS``.  ``ALLOWED_WORDS`` records
+the words left alone on purpose, in four groups: the modals, which always wait
+for a verb; the conjunctions, relative words, and adverbs (*and*, *or*,
+*but*, *so*, *when*, *since*, *until*, and the rest), after which a negative
+is a subject; *than*, which compares with zero ("more than nothing"); and the
+pronouns and articles (*it*, *them*, *you*, *the*, *not*, *sure*, *true*),
+which aren't verbs.  To flag one, move it to ``FLAGGED_WORDS``.
+
+Each hit prints as ``path:line: text``, with a suggested rewrite below it
+when the word is a simple present or past form, a past participle after
+*has*, a form of *be*, *get*, or a contraction (*isn't sent anything*), a form
+of *be* (*there isn't a payment*), a contraction (*there's* becomes *there
+isn't*), or *with*.  A bound keeps its meaning: *no more than 255* becomes
+*at most 255*, and *no fewer than* or *no less than* becomes *at least*.
+
+The check doesn't catch everything; these gaps are known, and are reviewed by
+hand:
+
+* A noun between the verb and the negative, an indirect object such as "a
+  donor", puts the verb out of reach.
+* A coordinated object after *and*, *or*, or *but* ("gets 400 and" followed
+  by a negative message) breaks the rule, but the check can't tell it from a
+  new negative subject ("and no email is sent"), so ``--coordinated`` lists
+  every such candidate, with the same exemptions and markers, and always
+  exits 0.
+* Text inside a literal or code-block body can't carry a marker without it
+  showing on the rendered page.
+* *nobody's* before an *-ing* form, an *-ed* word, or a participle spelled
+  like its base or past is read from the next word alone: a plain noun object
+  after the participle (*paying dues*) is flagged as a possessive, and a preposition after a noun use (*nobody's set of
+  roles*) is passed over as a contraction.
+* A contracted *'s* or *'d* is read as *is* or *had*, so a possessive before
+  a negative is flagged as a contraction, and a capitalized possessive before
+  a quoted message is flagged too: rewrite the sentence around the quote.
+* The literal join needs straight quotes on both sides; a JavaScript template
+  literal or a typographic quote between two literals isn't joined.
 
 To keep a line verbatim, such as a third party's error message, end it with a
 ``wording:ignore`` comment, or put a ``wording:ignore-next-line`` comment on
