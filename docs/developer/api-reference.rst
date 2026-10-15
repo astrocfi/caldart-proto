@@ -1951,6 +1951,14 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - the scheduled and finished charges
+   * - ``POST /admin/renewals/attempts/{id}/settle``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ✓
+     - settles a charge held in doubt (:ref:`renewals-in-doubt`)
    * - ``GET /admin/reminders/log``
      - ·
      - ·
@@ -2038,7 +2046,15 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ·
-     - ``system_admin`` only
+     - ``system_admin`` only; a live run starts in its own process and answers 202
+   * - ``GET /system/renewals/runs/{id}``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``system_admin`` only; a live run's progress and result
    * - ``POST /system/reminders/run``
      - ·
      - ·

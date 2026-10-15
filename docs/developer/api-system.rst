@@ -636,6 +636,12 @@ refused.  The body is optional and ``dry_run`` defaults to ``false``; a dry run
 changes no mandate, emails nobody and charges nobody, and is itself recorded in
 the audit log.
 
+A dry run answers 200 with the body below.  A live run is started in its own
+process, so a slow provider cannot cut it off mid-charge, and answers 202 with its
+``RenewalScan`` row, unfinished; ``GET /system/renewals/runs/{id}`` follows it,
+and its ``result``, once it finishes, is this same body.  :doc:`api-renewals`
+describes both.
+
 .. code-block:: json
 
    {
@@ -660,8 +666,21 @@ sends.
 The full description of the request, the counts and what each one means is on
 :doc:`api-renewals`, and :doc:`renewals` is the subsystem chapter behind it.
 
-Statuses: **200**; **400** when ``dry_run`` is not a boolean; **401** when
+Statuses: **200** for a dry run; **202** for a live run; **409** while another live
+run started here is under way; **400** when ``dry_run`` is not a boolean; **401** when
 anonymous; **403** for any other role.
+
+``GET /system/renewals/runs/{id}``
+----------------------------------
+
+How a live renewal scan started with ``POST /system/renewals/run`` is getting on:
+``{id, started_at, finished_at, ok, error, result}``, with ``finished_at`` null
+while it runs and ``result`` null until it has finished.  One unfinished
+``RENEWAL_STALE_MINUTES`` after it started is closed as ``Did not finish.``  The
+full description is on :doc:`api-renewals`.
+
+Statuses: **200**; **401** when anonymous; **403** for any other role; **404**
+for an id no scan has.
 
 ``POST /system/statements/run``
 --------------------------------

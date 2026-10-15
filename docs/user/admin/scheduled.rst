@@ -114,12 +114,23 @@ speak of the donation.
 #. Clear the box and press **Run now** again for a real run. It asks first, because it
    charges everybody who is due: press **Charge what is due**, or **Cancel**, which is
    where the confirmation starts you, so a second Enter charges nobody. Escape cancels
-   too. After a real run the focus moves to the result's heading, as after a practice run.
+   too. The server takes the charges on its own, so the panel reads *Running since* and
+   the time until they are done, then shows what the run did; leaving the page does not
+   stop it. After a real run the focus moves to the result's heading, as after a practice
+   run. A run that the server could not finish reads *The renewal run stopped:* and the
+   reason, such as *Did not finish.* While one real run is still going, **Run now** for
+   another answers *An automatic renewal run is already under way.*, and the 6:30 AM run
+   does nothing if it finds one under way.
 
 The table names each email and each charge: **Who**, **What** (*Notice*, *Card expiring
 warning*, *Charge taken notice*, *Charge failed notice*, or *Charge*), **When**, and
 **Amount**. Every scheduled charge records what has already gone out, so a second run charges
-nobody twice.
+nobody twice. A charge the payment provider has not answered, or is still processing,
+is neither taken nor refused: the next run asks about that same charge rather
+than making another, and counts it as skipped until then. The member hears nothing until
+there is an answer. A charge PayPal may have taken without saying so is not charged again
+at all: it waits, counted as skipped, until the treasurer settles it on the finance
+**Renewals** tab.
 
 A refused charge is tried again the next day, three days later, and a week after that. Each
 refusal emails the member with the subject *CalDART: we could not renew your membership*, or

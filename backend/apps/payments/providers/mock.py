@@ -190,6 +190,15 @@ class MockProvider(Provider):
             provider_ref=payment.provider_ref or f"mock_{payment.pk}",
         )
 
+    def find_mandate_charge(self, mandate: RenewalMandate, payment: Payment) -> bool:
+        """Always ``False``: a mock charge is taken or refused within its one call.
+
+        Nothing is ever left half made, so there is never an earlier charge to find.
+        Raises :class:`MockPaymentsDisabledError` when ``PAYMENTS_MOCK_ENABLED`` is off.
+        """
+        self._check_enabled()
+        return False
+
     def method_from_payment(self, payment: Payment) -> MandateMethod:
         """The same test card :meth:`confirm_mandate` saves, whatever was paid."""
         return mock_method()

@@ -73,6 +73,7 @@ PURPOSE_LABELS: dict[str, str] = {
     "notification_auto_renewal_declined": (
         "Notification: Automatic renewal or recurring donation charge failed"
     ),
+    "notification_renewal_needs_checking": "Notification: Automatic charge needs checking",
     "notification_donation_received": "Notification: Donation received",
     "notification_payment_recorded": "Notification: Payment recorded by hand",
     "notification_payment_refunded": "Notification: Payment refunded",

@@ -307,11 +307,22 @@ scheduled first, then every tried charge by ``attempted_at``, newest first.
      "error": "",
      "noticed_at": "2027-02-28T06:30:11Z",
      "attempted_at": "2027-03-14T06:30:09Z",
+     "in_doubt": false,
+     "flagged_at": null,
+     "payment_amount_cents": 4500,
+     "payment_sent_at": "2027-03-14T06:30:08Z",
      "result_emailed_at": "2027-03-14T06:30:12Z",
      "created_at": "2027-02-28T06:30:11Z"
    }
 
-``outcome`` is ``scheduled``, ``succeeded``, ``failed`` or ``skipped``.
+``outcome`` is ``scheduled``, ``succeeded``, ``failed``, or ``skipped``.  ``in_doubt``
+is true for a ``scheduled`` charge the provider may have taken and cannot say about:
+the scan charges nothing more for it until a treasurer settles it, and ``error``
+says why.  ``flagged_at`` is when the treasurer was last told the charge needs
+checking, and ``null`` until then (:ref:`renewals-in-doubt`).
+``payment_amount_cents`` is what the attempt's payment comes to and
+``payment_sent_at`` when its charge was first sent to the provider; both are ``null``
+before there is a payment.
 ``membership_id`` is ``null`` for a recurring donation's charge, which renews no
 term.  ``payment_id`` is ``null`` until the charge is made.  The three timestamps say
 which emails have gone out; ``error`` carries the provider's message, written for the
@@ -325,6 +336,49 @@ surname or the error text, and ``?ordering=`` takes ``scheduled_on`` or
 
 Statuses: **200**; **400** naming ``outcome`` for an outcome outside the four;
 **403** for any role but finance; **401** when anonymous.
+
+``POST /admin/renewals/attempts/{id}/settle``
+---------------------------------------------
+
+Finance.  Settle a charge held in doubt, from what the provider's own dashboard
+shows.
+
+.. code-block:: json
+
+   {"outcome": "paid", "reference": "8MC585209K746392H"}
+
+``outcome`` is one of three answers, and the attempt is locked while it is applied:
+
+``paid``
+   The charge was taken.  ``reference``, the provider's id for it (a PayPal capture
+   id), is required, and is checked with PayPal -- the capture must be completed and
+   carry this payment's ``custom_id`` or ``invoice_id``, amount, and currency.  The
+   payment succeeds from it, with its order as ``provider_ref``, and the attempt is
+   settled at once as the scan settles one: the term renewed, and the member
+   emailed after the answer has gone.
+``released``
+   The provider took nothing: the hold is released and the next scan charges the
+   same payment again, under the same ``invoice_id``.
+``failed``
+   Neither: the attempt is closed as failed with no charge, the payment is marked
+   failed, and an active mandate is paused.  The member is not emailed.
+
+Each clears ``flagged_at`` and writes a ``renewal.settle`` audit record naming the
+caller, with the attempt, the payment, the outcome, and any reference.  The answer
+is the attempt as it stands afterwards, shaped as in the list above.
+
+The payment is locked with the attempt.  Once it has gone through, ``released`` and
+``failed`` are refused: **400** ``{"outcome": ["This charge's payment has already gone
+through; record it as paid instead."]}``.
+
+Statuses: **200**; **400** keyed by ``outcome`` for any other answer, and for
+``released`` or ``failed`` once the payment has gone through; **400** keyed by
+``reference`` for ``paid`` without one; **400**
+``{"attempt": ["This charge is not waiting to be checked."]}`` for an attempt that is
+not in doubt; **400** keyed by ``reference`` for a reference on a charge that is not
+PayPal's; **400** naming ``detail`` when PayPal will not confirm the reference or
+cannot be reached; **404** for an unknown attempt; **403** for any role but finance;
+**401** when anonymous.
 
 
 Running the scan
@@ -341,8 +395,8 @@ for the daily timer.
    {"dry_run": true}
 
 ``dry_run`` defaults to ``false``.  A dry run changes no mandate, emails nobody
-and charges nobody, and reports the counts the same scan would produce; the
-rehearsal itself is recorded in the audit log.
+and charges nobody, runs inside the request, and answers 200 with the counts the
+same scan would produce; the rehearsal itself is recorded in the audit log.
 
 .. code-block:: json
 
@@ -351,28 +405,67 @@ rehearsal itself is recorded in the audit log.
 ``noticed`` counts the advance warnings, ``warned`` the card-expiry warnings,
 ``charged`` the renewals and donations taken, ``failed`` the charges refused, ``paused`` the
 mandates whose retries ran out on this run, and ``skipped`` the mandates and
-attempts that needed nothing doing.  Every run writes one ``renewals.run`` audit
-record naming the caller.
+attempts that needed nothing doing, or whose charge was put off.  Every run writes
+one ``renewals.run`` audit record naming the caller.
 
-Statuses: **200**; **403** for any role but ``system_admin``; **401** when
-anonymous.
+A live run charges cards, and each charge waits on the provider, so it does not
+run inside the request: the server writes a ``RenewalScan`` row, starts the scan
+in its own process, and answers 202 with the row, unfinished
+(:ref:`renewals-run-now`).
+
+.. code-block:: json
+
+   {"id": 7, "started_at": "2026-10-14T13:31:00Z", "finished_at": null,
+    "ok": false, "error": "", "result": null}
+
+While another live scan started here is unfinished and younger than
+``RENEWAL_STALE_MINUTES`` a live run is refused with **409** ``{"detail": "An
+automatic renewal run is already under way."}`` and a WARNING ``renewals.run`` audit
+record with the reason ``run_in_progress``; an unfinished row older than that is
+closed as ``Did not finish.`` and does not block.
+
+Statuses: **200** for a dry run; **202** for a live run; **409** while a live run is
+under way; **400** when ``dry_run`` is not a boolean; **403** for any role but
+``system_admin``; **401** when anonymous.
+
+``GET /system/renewals/runs/{id}``
+----------------------------------
+
+``system_admin`` only.  How the live scan ``id`` is getting on.  ``finished_at`` is
+``null`` while it runs.  When it ends, ``ok`` says whether it ran to its end and
+``result`` carries its counts and ``actions``, shaped exactly as a dry run's answer;
+``error`` says why one did not, and ``result`` stays ``null``.  A scan still
+unfinished ``RENEWAL_STALE_MINUTES`` after it started has lost its process, and is
+closed by this read with the error ``Did not finish.``
+
+.. code-block:: json
+
+   {"id": 7, "started_at": "2026-10-14T13:31:00Z",
+    "finished_at": "2026-10-14T13:31:40Z", "ok": true, "error": "",
+    "result": {"noticed": 0, "warned": 0, "charged": 2, "failed": 0, "paused": 0,
+               "skipped": 0, "actions": []}}
+
+Statuses: **200**; **404** ``{"detail": "No such renewal run."}`` for an id no
+scan has; **403** for any role but ``system_admin``; **401** when anonymous.
 
 
 Role summary
 ============
 
-======================================  ==========================================
-Endpoint                                Who
-======================================  ==========================================
-``GET | PATCH | DELETE /me/renewal``    the member themselves
-``POST /me/renewal/setup``              the member themselves
-``POST /me/renewal/confirm``            the member themselves
-``GET | PATCH | DELETE /me/donation``   the member or friend themselves
-``POST /me/donation/setup``             the member or friend themselves
-``POST /me/donation/confirm``           the member or friend themselves
-``GET /admin/renewals``                 ``treasurer``, ``account_admin``
-``GET /admin/renewals/{id}``            ``treasurer``, ``account_admin``
-``DELETE /admin/renewals/{id}``         ``treasurer``, ``account_admin``
-``GET /admin/renewals/attempts``        ``treasurer``, ``account_admin``
-``POST /system/renewals/run``           ``system_admin``
-======================================  ==========================================
+=============================================  ================================
+Endpoint                                       Who
+=============================================  ================================
+``GET | PATCH | DELETE /me/renewal``           the member themselves
+``POST /me/renewal/setup``                     the member themselves
+``POST /me/renewal/confirm``                   the member themselves
+``GET | PATCH | DELETE /me/donation``          the member or friend themselves
+``POST /me/donation/setup``                    the member or friend themselves
+``POST /me/donation/confirm``                  the member or friend themselves
+``GET /admin/renewals``                        ``treasurer``, ``account_admin``
+``GET /admin/renewals/{id}``                   ``treasurer``, ``account_admin``
+``DELETE /admin/renewals/{id}``                ``treasurer``, ``account_admin``
+``GET /admin/renewals/attempts``               ``treasurer``, ``account_admin``
+``POST /admin/renewals/attempts/{id}/settle``  ``treasurer``, ``account_admin``
+``POST /system/renewals/run``                  ``system_admin``
+``GET /system/renewals/runs/{id}``             ``system_admin``
+=============================================  ================================

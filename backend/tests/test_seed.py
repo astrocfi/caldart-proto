@@ -51,7 +51,8 @@ from apps.payments.models import (
     RenewalOutcome,
 )
 from apps.payments.providers.mock import fee_cents
-from apps.payments.renewals.scan import _due_attempts, run_auto_renewals
+from apps.payments.renewals.charge import due_attempts
+from apps.payments.renewals.scan import run_auto_renewals
 from apps.payments.renewals.schedule import lapsed_term_to_renew
 from apps.payments.seed import (
     CATCH_UP_MANDATE_DAYS_AGO,
@@ -482,7 +483,7 @@ def test_seed_demo_leaves_two_renewals_due_for_an_ordinary_charge() -> None:
     """Two generated members hold a scheduled attempt against a term ending today."""
     _seed()
     today = timezone.localdate()
-    attempts = _due_attempts(today)
+    attempts = due_attempts(today)
     assert [
         None if attempt.membership is None else attempt.membership.ends_on for attempt in attempts
     ] == [today, today]

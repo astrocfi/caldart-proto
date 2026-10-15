@@ -1390,8 +1390,32 @@ export interface RenewalAttempt {
   error: string;
   noticed_at: IsoDateTime | null;
   attempted_at: IsoDateTime | null;
+  /**
+   * The provider may have taken this charge and cannot say: the scan charges nothing
+   * more for it until a treasurer settles it, and `error` says why.
+   */
+  in_doubt: boolean;
+  /** When the treasurer was told this charge needs checking, or null. */
+  flagged_at: IsoDateTime | null;
+  /** What the attempt's payment comes to, or null before it has one. */
+  payment_amount_cents: number | null;
+  /** When the charge was first sent to the provider, or null. */
+  payment_sent_at: IsoDateTime | null;
   result_emailed_at: IsoDateTime | null;
   created_at: IsoDateTime;
+}
+
+/** A treasurer's answer about a charge held in doubt. */
+export type RenewalSettleOutcome = 'paid' | 'released' | 'failed';
+
+/**
+ * `POST /admin/renewals/attempts/{id}/settle`: whether the provider took a charge held
+ * in doubt (`paid`, with its own id for it, a PayPal capture id), took nothing
+ * (`released`), or neither will do and the charge is closed (`failed`).
+ */
+export interface RenewalSettleRequest {
+  outcome: RenewalSettleOutcome;
+  reference?: string;
 }
 
 /** `POST /me/renewal/setup` and `POST /me/donation/setup`. */
@@ -1457,6 +1481,20 @@ export interface RenewalRunResult {
   paused: number;
   skipped: number;
   actions: RunAction[];
+}
+
+/**
+ * One live renewal scan started from the Scheduled tasks page, which runs in its own
+ * process: `finished_at` is null while it runs, `ok` says whether it ran to its end
+ * and `error` why not, and `result` is what it reported, null until it has finished.
+ */
+export interface RenewalScan {
+  id: number;
+  started_at: IsoDateTime;
+  finished_at: IsoDateTime | null;
+  ok: boolean;
+  error: string;
+  result: RenewalRunResult | null;
 }
 
 /* ------------------------------------------------------------------ finance */

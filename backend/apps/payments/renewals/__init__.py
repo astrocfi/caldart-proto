@@ -20,6 +20,8 @@ from the module that defines it.
   off, and the rule that a contribution lives in one place.
 - ``scan``: ``run_auto_renewals``, the daily scan that sends the notices and takes
   the charges.
+- ``background``: a live scan started from the portal, run in its own process and
+  recorded on a ``RenewalScan`` row.
 
 Each module imports only from the ones listed before it, so the package has no cycle.
 """

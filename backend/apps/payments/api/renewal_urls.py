@@ -39,6 +39,11 @@ urlpatterns = [
         name="renewal-attempts",
     ),
     path(
+        "admin/renewals/attempts/<int:pk>/settle",
+        renewal_views.AdminRenewalAttemptSettleView.as_view(),
+        name="renewal-attempt-settle",
+    ),
+    path(
         "admin/renewals/<int:pk>",
         renewal_views.AdminRenewalDetailView.as_view(),
         name="renewal-detail",

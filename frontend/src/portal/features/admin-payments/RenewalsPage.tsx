@@ -5,7 +5,8 @@
  *
  * Two tables: the mandates, which is where a support call is answered and
  * where one can be turned off on a member's behalf, and the recent attempts,
- * which is where "why was I not charged?" is answered.  The mandates narrow by
+ * which is where "why was I not charged?" is answered, and where a charge the
+ * payment provider may have taken but cannot say about is settled by hand.  The mandates narrow by
  * status, by kind, and by a search, held in the address like every finance tab's
  * filters, and their column chooser drives the table and the renewals report's CSV
  * and PDF together.  Turning a mandate off asks first, because the member is
@@ -41,6 +42,7 @@ import { reportExportUrl } from '@/portal/reports/api';
 import { REPORTS, listFilters } from '@/portal/reports/definitions';
 import type { FilterField } from '@/portal/reports/types';
 import { FinanceTabs } from './FinanceTabs';
+import { SettleChargeButton } from './SettleChargeButton';
 import { MANDATE_KIND_LABELS, MANDATE_STATUS_LABELS, declineReason } from './labels';
 import {
   MANDATE_STATUS_TONES,
@@ -69,6 +71,9 @@ const FALLBACK_COLUMNS: ReportColumn[] = [
 ];
 
 const OUTCOMES: RenewalOutcome[] = ['scheduled', 'succeeded', 'failed', 'skipped'];
+
+/** What a scheduled charge the provider may have taken, and cannot say, reads as. */
+const NEEDS_CHECKING = 'Needs checking';
 
 /**
  * The order the server lists the charges in, as the arrow the table opens on: by when
@@ -310,13 +315,16 @@ export function RenewalsPage(): JSX.Element {
       header: 'Outcome',
       width: '8rem',
       keepInSight: true,
-      render: (row) => (
-        <StatusDot
-          tone={RENEWAL_OUTCOME_TONES[row.outcome]}
-          label={RENEWAL_OUTCOME_LABELS[row.outcome]}
-        />
-      ),
-      sortValue: (row) => row.outcome,
+      render: (row) =>
+        row.in_doubt ? (
+          <StatusDot tone="expiring" label={NEEDS_CHECKING} />
+        ) : (
+          <StatusDot
+            tone={RENEWAL_OUTCOME_TONES[row.outcome]}
+            label={RENEWAL_OUTCOME_LABELS[row.outcome]}
+          />
+        ),
+      sortValue: (row) => (row.in_doubt ? NEEDS_CHECKING : row.outcome),
     },
     {
       key: 'attempted_at',
@@ -333,8 +341,23 @@ export function RenewalsPage(): JSX.Element {
       minWidth: '12rem',
       wrap: true,
       dropOrder: 2,
+      render: (row) => {
+        if (row.error === '') return <span className="muted">&mdash;</span>;
+        // A charge in doubt was refused by nobody: its reason is the provider's silence.
+        return row.in_doubt ? row.error : declineReason(row.error);
+      },
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      isActions: true,
+      width: ACTIONS_MIN_WIDTH,
       render: (row) =>
-        row.error === '' ? <span className="muted">&mdash;</span> : declineReason(row.error),
+        row.in_doubt ? (
+          <SettleChargeButton attempt={row} />
+        ) : (
+          <span className="muted">&mdash;</span>
+        ),
     },
   ];
 

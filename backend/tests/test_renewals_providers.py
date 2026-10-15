@@ -29,11 +29,13 @@ from apps.payments.models import (
     PaymentStatus,
     RenewalMandate,
 )
-from apps.payments.providers import paypal as paypal_provider
+from apps.payments.providers import paypal_api
 from apps.payments.providers import stripe as stripe_provider
 from apps.payments.providers.base import (
     PaymentDeclinedError,
+    PaymentPendingError,
     PaymentVerificationError,
+    ProviderUnavailableError,
     card_label,
     get_provider,
 )
@@ -578,7 +580,7 @@ def paypal_configured(settings: Settings) -> None:
     settings.PAYPAL_CLIENT_ID = "paypal-client"
     settings.PAYPAL_CLIENT_SECRET = "paypal-secret"  # noqa: S105 - test fixture
     settings.PAYPAL_ENV = "sandbox"
-    cache.delete(paypal_provider.TOKEN_CACHE_KEY)
+    cache.delete(paypal_api.TOKEN_CACHE_KEY)
 
 
 def mock_token(router: respx.Router) -> None:
@@ -774,3 +776,128 @@ def test_a_paypal_checkout_without_a_mandate_asks_for_no_vault(
 
     body = json.loads(route.calls.last.request.content)
     assert "attributes" not in body["payment_source"]["paypal"]
+
+
+def test_a_paypal_renewal_names_its_order_before_capturing_it(
+    paypal_configured: None, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A capture that never answers leaves its order on the payment, to settle later."""
+    mandate = RenewalMandateFactory(
+        user=member, plan=annual_plan, provider=MandateProvider.PAYPAL, method_ref="vault_1"
+    )
+    payment = create_checkout(member, "annual", 0, PaymentProvider.PAYPAL)
+    with respx.mock as router:
+        mock_token(router)
+        router.post(f"{SANDBOX}/v2/checkout/orders").mock(
+            return_value=httpx.Response(201, json={"id": "order_renewal_1", "status": "APPROVED"})
+        )
+        router.post(f"{SANDBOX}/v2/checkout/orders/order_renewal_1/capture").mock(
+            side_effect=httpx.ConnectTimeout("timed out")
+        )
+        with pytest.raises(ProviderUnavailableError, match="PayPal didn't answer"):
+            get_provider(MandateProvider.PAYPAL).charge_mandate(mandate, payment)
+
+    payment.refresh_from_db()
+    assert payment.provider_ref == "order_renewal_1"
+
+
+def named_order(payment: Payment, order_id: str = "order_renewal_1") -> Payment:
+    """``payment`` as a charge whose create call answered leaves it: naming its order."""
+    Payment.objects.filter(pk=payment.pk).update(provider_ref=order_id)
+    payment.refresh_from_db()
+    return payment
+
+
+def test_paypal_settles_an_earlier_order_it_completed(
+    paypal_configured: None, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A payment that names a completed order is marked paid from that order."""
+    mandate = RenewalMandateFactory(
+        user=member, plan=annual_plan, provider=MandateProvider.PAYPAL, method_ref="vault_1"
+    )
+    payment = named_order(create_checkout(member, "annual", 0, PaymentProvider.PAYPAL))
+    with respx.mock as router:
+        mock_token(router)
+        router.get(f"{SANDBOX}/v2/checkout/orders/order_renewal_1").mock(
+            return_value=httpx.Response(200, json=captured_order(payment))
+        )
+        get_provider(MandateProvider.PAYPAL).find_mandate_charge(mandate, payment)
+
+    payment.refresh_from_db()
+    assert payment.status == PaymentStatus.SUCCEEDED
+
+
+def test_paypal_creates_no_second_order_for_a_payment_that_names_one(
+    paypal_configured: None, member: User, annual_plan: MembershipPlan
+) -> None:
+    """Settling the earlier order is all the lookup does: nothing new is charged."""
+    mandate = RenewalMandateFactory(
+        user=member, plan=annual_plan, provider=MandateProvider.PAYPAL, method_ref="vault_1"
+    )
+    payment = named_order(create_checkout(member, "annual", 0, PaymentProvider.PAYPAL))
+    with respx.mock(assert_all_called=False) as router:
+        mock_token(router)
+        router.get(f"{SANDBOX}/v2/checkout/orders/order_renewal_1").mock(
+            return_value=httpx.Response(200, json=captured_order(payment))
+        )
+        create = router.post(f"{SANDBOX}/v2/checkout/orders").mock(
+            return_value=httpx.Response(201, json=captured_order(payment))
+        )
+        get_provider(MandateProvider.PAYPAL).find_mandate_charge(mandate, payment)
+
+    assert create.call_count == 0
+
+
+def test_paypal_captures_an_earlier_order_under_its_own_request_id(
+    paypal_configured: None, member: User, annual_plan: MembershipPlan
+) -> None:
+    """An order made but never captured is captured, keyed so a repeat takes nothing."""
+    mandate = RenewalMandateFactory(
+        user=member, plan=annual_plan, provider=MandateProvider.PAYPAL, method_ref="vault_1"
+    )
+    payment = named_order(create_checkout(member, "annual", 0, PaymentProvider.PAYPAL))
+    with respx.mock as router:
+        mock_token(router)
+        router.get(f"{SANDBOX}/v2/checkout/orders/order_renewal_1").mock(
+            return_value=httpx.Response(200, json={"id": "order_renewal_1", "status": "APPROVED"})
+        )
+        capture = router.post(f"{SANDBOX}/v2/checkout/orders/order_renewal_1/capture").mock(
+            return_value=httpx.Response(201, json=captured_order(payment))
+        )
+        get_provider(MandateProvider.PAYPAL).find_mandate_charge(mandate, payment)
+
+    request_id = capture.calls.last.request.headers["PayPal-Request-Id"]
+    assert request_id == f"caldart-renewal-{payment.pk}-capture"
+
+
+def test_paypal_finds_nothing_for_a_payment_that_names_no_order(
+    paypal_configured: None, member: User, annual_plan: MembershipPlan
+) -> None:
+    """With no order to read, PayPal is not asked; charging is left to the request id."""
+    mandate = RenewalMandateFactory(
+        user=member, plan=annual_plan, provider=MandateProvider.PAYPAL, method_ref="vault_1"
+    )
+    payment = create_checkout(member, "annual", 0, PaymentProvider.PAYPAL)
+    with respx.mock:
+        found = get_provider(MandateProvider.PAYPAL).find_mandate_charge(mandate, payment)
+
+    assert found is False
+
+
+def test_a_pending_paypal_capture_is_neither_taken_nor_refused(
+    paypal_configured: None, member: User, annual_plan: MembershipPlan
+) -> None:
+    """PayPal holding the capture as pending is reported as such, not as a decline."""
+    mandate = RenewalMandateFactory(
+        user=member, plan=annual_plan, provider=MandateProvider.PAYPAL, method_ref="vault_1"
+    )
+    payment = create_checkout(member, "annual", 0, PaymentProvider.PAYPAL)
+    order = captured_order(payment)
+    order["purchase_units"][0]["payments"]["captures"][0]["status"] = "PENDING"
+    with respx.mock as router:
+        mock_token(router)
+        router.post(f"{SANDBOX}/v2/checkout/orders").mock(
+            return_value=httpx.Response(201, json=order)
+        )
+        with pytest.raises(PaymentPendingError, match="pending"):
+            get_provider(MandateProvider.PAYPAL).charge_mandate(mandate, payment)

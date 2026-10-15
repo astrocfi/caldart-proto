@@ -30,7 +30,8 @@ House rules that apply throughout:
   The registry's tables carry the dates the import needs instead:
   ``AircraftType.created_at``, ``Registration.imported_at``, and
   ``RegistryImport.started_at`` and ``finished_at``; ``AircraftTypeAlias``
-  carries none.  ``aircraft.AircraftCoveragePolicy`` and
+  carries none.  ``payments.RenewalScan`` carries its own ``started_at`` and
+  ``finished_at`` the same way.  ``aircraft.AircraftCoveragePolicy`` and
   ``reminders.ReminderSchedule`` are single rows and keep ``updated_at`` and
   ``updated_by`` alone.
 - **``DEFAULT_AUTO_FIELD`` is ``BigAutoField``**, so every ``id`` below is a
@@ -240,6 +241,7 @@ Payments and renewals
           Refund [label="payments.Refund"];
           Mandate [label="payments.RenewalMandate"];
           Attempt [label="payments.RenewalAttempt"];
+          Scan [label="payments.RenewalScan"];
           Statement [label="payments.YearStatement"];
           Provider [label="payments.Provider\n(abstract, no table)", style="rounded,dashed"];
           Impl [label="StripeProvider (stripe)\nPayPalProvider (paypal)\nMockProvider (mock)"];
@@ -259,6 +261,7 @@ Payments and renewals
           Attempt -> Membership [label="membership\nCASCADE"];
           Attempt -> Payment [label="payment\nSET_NULL"];
           Attempt -> Attempt [label="retry_of\nSET_NULL"];
+          Scan -> User [label="started_by\nSET_NULL"];
           Statement -> User [label="user\nCASCADE"];
       }
 
@@ -275,6 +278,7 @@ Payments and renewals
       payments.Refund           money given back against one payment
       payments.RenewalMandate   a standing authority to charge a saved method
       payments.RenewalAttempt   one scheduled charge against a mandate
+      payments.RenewalScan      one live renewal scan started from the portal
       payments.YearStatement    one year-end statement sent to one account
 
       Classes with no table
@@ -304,6 +308,7 @@ Payments and renewals
       payments.RenewalAttempt.membership -> members.Membership     FK, CASCADE, nullable
       payments.RenewalAttempt.payment   -> payments.Payment        FK, SET_NULL, nullable
       payments.RenewalAttempt.retry_of  -> payments.RenewalAttempt FK, SET_NULL, nullable
+      payments.RenewalScan.started_by   -> accounts.User           FK, SET_NULL, nullable
       payments.YearStatement.user       -> accounts.User           FK, CASCADE
 
 Mail, reminders, reports, notifications, and the CMS pages
@@ -3558,6 +3563,18 @@ One attempt to pay for a membership term, make a contribution, or both.
      - ``CharField(128)``
      - not null; default ``""``
      - the PaymentIntent id or PayPal order id
+   * - ``charge_customer_ref``
+     - ``CharField(128)``
+     - not null; default ``""``
+     - for an off-session renewal charge, the provider customer it was first sent for
+   * - ``charge_method_ref``
+     - ``CharField(128)``
+     - not null; default ``""``
+     - for an off-session renewal charge, the saved method it was first sent against
+   * - ``charge_sent_at``
+     - ``DateTimeField``
+     - null; default ``NULL``
+     - when an off-session renewal charge was first sent to the provider
    * - ``status``
      - ``CharField(20)``, choices :ref:`PaymentStatus <choices-payment-status>`
      - not null; default ``"pending"``
@@ -3976,7 +3993,16 @@ keyed on.
    * - ``attempted_at``
      - ``DateTimeField``
      - null; default ``NULL``
-     - when the charge was tried
+     - when the charge was tried; the scan's claim on it
+   * - ``in_doubt``
+     - ``BooleanField``
+     - not null; default ``False``
+     - the provider may have taken the charge and cannot say; the scan charges nothing
+       more for it until a treasurer settles it
+   * - ``flagged_at``
+     - ``DateTimeField``
+     - null; default ``NULL``
+     - when the treasurer was told the charge needs checking
    * - ``result_emailed_at``
      - ``DateTimeField``
      - null; default ``NULL``
@@ -4002,7 +4028,64 @@ each write, and then each take, the same charge.  Newest first.
 
 The three timestamps are what make the scanner idempotent: an email goes out
 only when its own stamp is still ``NULL``, so a scan that runs twice in one day
-sends nothing twice.
+sends nothing twice.  ``attempted_at`` is also the scan's claim on the charge:
+one older than ``RENEWAL_STALE_MINUTES`` belongs to a scan that died, and the next
+scan takes it over.  A ``scheduled`` attempt that already names a ``payment`` was
+sent to the provider without its outcome being recorded, and the next scan
+settles it with the provider before charging anything (:ref:`renewals-scanner`).  One
+held ``in_doubt`` waits for a treasurer instead (:ref:`renewals-in-doubt`).
+
+``RenewalScan``
+---------------
+
+One live renewal scan a system administrator started from the Scheduled tasks
+page, which runs in its own process (:ref:`renewals-run-now`).  The timer's
+daily scan writes no row.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 26 18 34
+
+   * - Field
+     - Type
+     - Null, default
+     - Meaning
+   * - ``id``
+     - ``BigAutoField``
+     - not null; assigned by the database
+     - primary key
+   * - ``started_at``
+     - ``DateTimeField``
+     - not null; default now
+     - when the scan was started
+   * - ``finished_at``
+     - ``DateTimeField``
+     - null; default ``NULL``
+     - when the scan ended; ``NULL`` while it runs
+   * - ``started_by``
+     - ``ForeignKey`` to ``accounts.User``, ``SET_NULL``
+     - null; default ``NULL``
+     - the system administrator who pressed **Run now**; related name ``renewal_scans``
+   * - ``ok``
+     - ``BooleanField``
+     - not null; default ``False``
+     - whether the scan ran to its end
+   * - ``error``
+     - ``TextField``
+     - not null; default ``""``
+     - why the scan did not finish
+   * - ``result``
+     - ``JSONField``
+     - null; default ``NULL``
+     - the scan's counts and actions, as a dry run answers them; ``NULL`` until it finishes
+
+**Constraints, indexes, and ordering.**
+
+- Ordering: ``-started_at``, ``-id``.
+
+**Relationships.**
+
+- ``started_by``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; the reverse accessor is ``renewal_scans``.
 
 .. _data-model-year-statement:
 

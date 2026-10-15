@@ -47,6 +47,7 @@ from tests.factories import (
     DartFactory,
     MembershipFactory,
     PaymentFactory,
+    RenewalAttemptFactory,
     RenewalMandateFactory,
     UserFactory,
     expire_membership,
@@ -661,6 +662,7 @@ def every_event_payload() -> dict[str, object]:
     user = UserFactory(first_name="Pat", last_name="Quill")
     actor = UserFactory(first_name="Lee", last_name="Boss")
     payment = PaymentFactory(user=user)
+    mandate = RenewalMandateFactory(user=user)
     return {
         "user": user,
         "actor": actor,
@@ -668,7 +670,8 @@ def every_event_payload() -> dict[str, object]:
         "how": "administrator",
         "payment": payment,
         "term": MembershipFactory(user=user, plan=payment.plan),
-        "mandate": RenewalMandateFactory(user=user),
+        "mandate": mandate,
+        "attempt": RenewalAttemptFactory(mandate=mandate, payment=payment),
         "reason": "Card declined",
         "refund_cents": 4500,
         "added": [],

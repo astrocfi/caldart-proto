@@ -131,6 +131,7 @@ PAYMENT_NOTE = "payment.note"
 RENEWAL_ENABLE = "renewal.enable"
 RENEWAL_CANCEL = "renewal.cancel"
 RENEWAL_CHANGE = "renewal.change"
+RENEWAL_SETTLE = "renewal.settle"
 RENEWALS_RUN = "renewals.run"
 STATEMENTS_RUN = "statements.run"
 BOUNCES_RUN = "bounces.run"
@@ -148,6 +149,7 @@ REASON_NO_SUCH_BACKUP = "no_such_backup"
 REASON_DONOR_KIND = "donor_kind"
 REASON_DONOR_ACCOUNT = "donor_account"
 REASON_IMPORT_RUNNING = "import_running"
+REASON_RUN_IN_PROGRESS = "run_in_progress"
 REASON_REACTIVATION_BLOCKED = "reactivation_blocked"
 REASON_TOMBSTONE = "tombstone"
 REASON_SENDER_DELETED = "sender_deleted"
@@ -251,7 +253,7 @@ def _rendered(name: str, value: object) -> str:
 
     A bool renders as ``true`` or ``false``, any other int as its digits, a slug
     verbatim, and a list or tuple of slugs as the slugs joined with commas. An empty
-    list or tuple renders as ``-``, never as an empty string.
+    string, list or tuple renders as ``-``, never as an empty string.
 
     Raises the error :func:`_field_error` builds when ``value`` is not an id, a count, a
     flag or a slug (or a list/tuple of slugs).
@@ -262,6 +264,8 @@ def _rendered(name: str, value: object) -> str:
         return str(value)
     if _is_slug(value):
         return str(value)
+    if value == "":
+        return EMPTY
     if isinstance(value, list | tuple) and all(_is_slug(item) for item in value):
         return ",".join(value) if len(value) > 0 else EMPTY
     raise _field_error(name, value)

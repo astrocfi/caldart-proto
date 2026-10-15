@@ -23,7 +23,7 @@ import stripe
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
-from apps.payments.providers import paypal as paypal_provider
+from apps.payments.providers import paypal_api
 from apps.payments.providers import stripe as stripe_provider
 from apps.payments.providers.base import PaymentError, get_provider
 from caldart.reports import money_label
@@ -193,8 +193,8 @@ def _check_paypal() -> _ProviderReport:
         )
 
     try:
-        paypal_provider.access_token()
-        response = paypal_provider.call("GET", PAYPAL_WEBHOOKS_PATH)
+        paypal_api.access_token()
+        response = paypal_api.call("GET", PAYPAL_WEBHOOKS_PATH)
     except PaymentError as exc:
         log.warning("payments_sandbox_check: PayPal call failed: %s", type(exc).__name__)
         return _ProviderReport(

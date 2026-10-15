@@ -1527,6 +1527,11 @@ before the reminder scan deliberately: a membership this scan renews is then
 never also sent a reminder about running out on the same morning.  Unlike the
 reminder scan it calls Stripe and PayPal, so the unit needs the same payment
 keys the web service has; they come from the same ``/etc/caldart/caldart.env``.
+**Run now** on the Scheduled tasks page starts the same command as a child of
+``caldart-web``, outside the request, so its output is in that unit's journal.  A
+scan stopped mid-charge, by a timeout, a crash, or a restart, needs nothing from
+the operator: the next scan settles each unfinished charge with the provider
+before charging anything (:ref:`renewals-scanner`).
 See :doc:`renewals` for what it charges, when, and how to change the cadence.
 
 
@@ -2006,6 +2011,10 @@ Action                            Fields beyond actor and target
 ``renewal.change``                ``contribution_cents``, ``removed_cents`` -- the
                                   contribution taken off a renewal to make room
                                   for a recurring donation
+``renewal.settle``                ``attempt``, ``payment``, ``outcome`` (``paid``,
+                                  ``released``, or ``failed``), ``reference`` --
+                                  a treasurer settled a renewal charge held in
+                                  doubt
 ``renewals.run``                  ``dry_run``, ``noticed``, ``charged``,
                                   ``failed``, ``paused``, ``skipped``
 ``reports.run``                   ``dry_run``, ``sent``, ``skipped``, ``failed``
@@ -2096,7 +2105,8 @@ action, with a ``reason`` slug saying which rule refused it: ``self_deactivation
 administrator has blocked), ``tombstone`` (an edit, a delete, a term grant, or an email preference change on
 the **Deleted member** account that keeps a deleted account's payments),
 ``no_such_backup``, ``import_running`` (a **Run now** pressed while an import
-is under way), or, for ``bulk_email.refused``, ``sender_deleted``,
+is under way), ``run_in_progress`` (a live renewal run started while another is
+under way), or, for ``bulk_email.refused``, ``sender_deleted``,
 ``type_not_sendable``, or ``no_type`` (the sender may no longer send the email's
 type), or ``no_dart`` and ``dart_changed`` (the sender is a DART leader whose profile
 names no DART any more, or names another DART than the one the batch was built in).

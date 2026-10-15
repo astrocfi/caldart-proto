@@ -22,6 +22,7 @@ import type {
   RenewalAttempt,
   RenewalMandate,
   RenewalOutcome,
+  RenewalSettleRequest,
 } from '@/portal/api/types';
 import { formatMonth } from '@/portal/components/DateText';
 import type { StatusTone } from '@/portal/components/StatusDot';
@@ -121,6 +122,30 @@ export function useCancelMandate(): UseMutationResult<void, unknown, number> {
     mutationFn: (mandateId: number) => api.delete<void>(`/admin/renewals/${mandateId}`),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['admin', 'renewals'] });
+    },
+  });
+}
+
+/** What settling a charge held in doubt sends: the attempt and the treasurer's answer. */
+export interface SettleAttemptInput {
+  attemptId: number;
+  body: RenewalSettleRequest;
+}
+
+/**
+ * Settle a charge held in doubt, via `POST /admin/renewals/attempts/{id}/settle`:
+ * recorded as paid from the provider's own id for it, or released so the next run
+ * charges it again.  A charge recorded as paid renews a term and takes a payment, so
+ * both the renewals and the payments are read again.
+ */
+export function useSettleAttempt(): UseMutationResult<RenewalAttempt, unknown, SettleAttemptInput> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ attemptId, body }: SettleAttemptInput) =>
+      api.post<RenewalAttempt>(`/admin/renewals/attempts/${attemptId}/settle`, body),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'renewals'] });
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'payments'] });
     },
   });
 }

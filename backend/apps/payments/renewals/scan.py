@@ -12,9 +12,14 @@ in this order, for every mandate that is ``active``:
 2. **Card expiry.**  A card that expires before that charge earns one warning.
 3. **Charge.**  Every attempt due today or earlier is charged off-session.  A
    success activates the next term and emails the member; a decline records the
-   provider's reason, emails it, and schedules the next retry from
-   :data:`RETRY_OFFSETS` -- or, once those are exhausted, pauses the mandate and
-   hands the member back to the ordinary renewal reminders.
+   provider's reason, emails it, and schedules the next retry -- or, once those
+   are exhausted, pauses the mandate and hands the member back to the ordinary
+   renewal reminders.  :mod:`apps.payments.renewals.charge` takes each charge, and
+   never takes one twice.
+
+A live scan holds a database advisory lock while it runs, so the timer and a
+**Run now** never charge at the same time; one that cannot take the lock raises
+:class:`RenewalsBusyError` before it does anything.
 
 Every email is keyed on a timestamp of the attempt it belongs to, so a scan run
 twice in one day sends nothing twice.  A dry run changes no mandate, sends no
@@ -24,11 +29,13 @@ email and charges nobody; the run itself is still recorded in the audit log.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, field
-from datetime import date, timedelta
+from datetime import date
 from typing import Any
 
-from django.db import IntegrityError, transaction
+from django.db import connection
 from django.db.models import Model
 from django.utils import timezone
 
@@ -38,46 +45,27 @@ from apps.members.services import account_kind
 from apps.payments.models import (
     MandateCadence,
     MandateStatus,
-    Payment,
-    PaymentStatus,
     RenewalAttempt,
     RenewalMandate,
     RenewalOutcome,
 )
-from apps.payments.providers.base import (
-    PaymentError,
-    ProviderNotConfiguredError,
-    ProviderUnavailableError,
-    get_provider,
-)
-from apps.payments.providers.mock import MockPaymentsDisabledError
-from apps.payments.receipts import receipt_filename, render_receipt_pdf
+from apps.payments.renewals.charge import RETRY_OFFSETS as RETRY_OFFSETS
+from apps.payments.renewals.charge import charge, due_attempts, schedule_attempt, stale_after
 from apps.payments.renewals.emails import send_mandate_email
-from apps.payments.renewals.mandates import roll_charge_date_past
 from apps.payments.renewals.schedule import (
-    advance_by_cadence,
     card_expires_on,
     charge_date,
     lapsed_term_to_renew,
     lifetime_term,
-    renewal_amount_cents,
     term_to_renew,
 )
-from apps.payments.services import create_checkout, mark_failed
 from caldart import audit, events
-from caldart.exceptions import DomainValidationError
-from caldart.mail import Attachment
-from caldart.reports import PDF_MEDIA_TYPE
-from caldart.runs import CHARGE_KIND, RunAction, action_lines
+from caldart.runs import RunAction, action_lines
 
 log = logging.getLogger(__name__)
 
 #: How many days before the charge the advance warning goes out.
 NOTICE_DAYS = 14
-
-#: Days after a failed charge that each retry is scheduled for, in order.  When
-#: they are exhausted the mandate is paused.
-RETRY_OFFSETS: tuple[int, ...] = (1, 3, 7)
 
 #: How close to a card's expiry the member is warned that it will not last.
 CARD_EXPIRY_WARNING_DAYS = 30
@@ -93,6 +81,13 @@ LAPSED_TOO_LONG_MESSAGE = (
     "your membership had lapsed for more than a month, so we did not take the renewal"
 )
 
+#: Sets the live renewal scan's advisory lock apart from every other one on the
+#: database.
+SCAN_LOCK_KEY = 0x0C4A_26E5
+
+#: What a live scan says when another one already holds the lock.
+ALREADY_RUNNING_MESSAGE = "Another automatic renewal run is already under way."
+
 #: Why a mandate produced no charge on a given scan.
 SKIP_REASONS: tuple[str, ...] = (
     "friend",
@@ -103,6 +98,8 @@ SKIP_REASONS: tuple[str, ...] = (
     "no_plan",
     "in_flight",
     "provider_down",
+    "pending",
+    "in_doubt",
 )
 
 
@@ -136,6 +133,12 @@ class RenewalRun:
     skipped: int = 0
     skipped_by_reason: dict[str, int] = field(default_factory=dict)
     actions: list[RunAction] = field(default_factory=list)
+    #: The providers that answered nothing at all earlier in this run: the charge
+    #: step sends them no more charges until the next run.
+    unanswered: set[str] = field(default_factory=set)
+    #: Where a charged email goes to be sent later, or ``None`` to send it at once.
+    #: A treasurer settling a charge from the portal hands it to the response.
+    defer: Callable[[Callable[[], None]], None] | None = None
 
     def record_skipped(self, reason: str) -> None:
         """Count one more mandate or attempt skipped for ``reason``."""
@@ -230,18 +233,24 @@ def run_auto_renewals(
     scan.  A rehearsal writes no attempt for the charge step to find, so the
     notice step hands it the attempts it would have written and the rehearsal
     reports that charge too.
+
+    A live scan first checks ``RENEWAL_STALE_MINUTES`` (``stale_after``), raising
+    ``ImproperlyConfigured`` when it is too small, then takes the renewal scan's
+    advisory lock for as long as it runs.  When another live scan holds the lock
+    it raises :class:`RenewalsBusyError` having done nothing at all.  A rehearsal
+    changes nothing, so it takes no lock and runs beside a live scan.
     """
     if today is None:
         today = timezone.localdate()
     run = RenewalRun(today=today, dry_run=dry_run)
-
-    rehearsed: list[RenewalAttempt] = []
-    for mandate in active_mandates():
-        rehearsed += _notice(mandate, today, run, dry_run=dry_run)
-        _warn_about_card(mandate, today, run, dry_run=dry_run)
-
-    for attempt in [*_due_attempts(today), *rehearsed]:
-        _charge(attempt, today, run, dry_run=dry_run)
+    if dry_run:
+        _scan(run, today, dry_run=True)
+    else:
+        stale_after()
+        with scan_lock() as is_held:
+            if not is_held:
+                raise RenewalsBusyError(ALREADY_RUNNING_MESSAGE)
+            _scan(run, today, dry_run=False)
 
     audit.record(
         audit.RENEWALS_RUN,
@@ -254,6 +263,40 @@ def run_auto_renewals(
         skipped=run.skipped,
     )
     return run
+
+
+class RenewalsBusyError(RuntimeError):
+    """Another live renewal scan holds the lock, so this one did nothing."""
+
+
+@contextmanager
+def scan_lock() -> Iterator[bool]:
+    """Hold the renewal scan's advisory lock for the block; yield whether it was taken.
+
+    The lock belongs to the database session, so it is released however the block
+    ends, and also if the process dies.
+    """
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT pg_try_advisory_lock(%s)", [SCAN_LOCK_KEY])
+        row = cursor.fetchone()
+    is_held = row is not None and bool(row[0])
+    try:
+        yield is_held
+    finally:
+        if is_held:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT pg_advisory_unlock(%s)", [SCAN_LOCK_KEY])
+
+
+def _scan(run: RenewalRun, today: date, *, dry_run: bool) -> None:
+    """Send the notices and card warnings due, then take the charges due, into ``run``."""
+    rehearsed: list[RenewalAttempt] = []
+    for mandate in active_mandates():
+        rehearsed += _notice(mandate, today, run, dry_run=dry_run)
+        _warn_about_card(mandate, today, run, dry_run=dry_run)
+
+    for attempt in [*due_attempts(today), *rehearsed]:
+        charge(attempt, today, run, dry_run=dry_run)
 
 
 def _rehearsed_attempt(
@@ -324,7 +367,7 @@ def _notice(
 
     attempt = waiting
     if attempt is None and not dry_run:
-        attempt = _schedule(mandate, term, charge_on)
+        attempt = schedule_attempt(mandate, term, charge_on)
         if attempt is None:
             return []
     run.noticed += 1
@@ -368,14 +411,14 @@ def _notice_donation(
             return []
         if dry_run:
             return _rehearsed_attempt(mandate, None, charge_on, today)
-        _schedule(mandate, None, charge_on)
+        schedule_attempt(mandate, None, charge_on)
         return []
     if (charge_on - today).days > NOTICE_DAYS:
         return []
 
     attempt = waiting
     if attempt is None and not dry_run:
-        attempt = _schedule(mandate, None, charge_on)
+        attempt = schedule_attempt(mandate, None, charge_on)
         if attempt is None:
             return []
     run.noticed += 1
@@ -423,7 +466,7 @@ def _catch_up(
 
     attempt = None
     if not dry_run:
-        attempt = _schedule(mandate, term, charge_on)
+        attempt = schedule_attempt(mandate, term, charge_on)
         if attempt is None:
             return []
     run.noticed += 1
@@ -432,36 +475,6 @@ def _catch_up(
         return _rehearsed_attempt(mandate, term, charge_on, today)
     _send_notice(mandate, attempt, charge_on, term.ends_on, today)
     return []
-
-
-def _schedule(
-    mandate: RenewalMandate,
-    term: Membership | None,
-    charge_on: date,
-    *,
-    retry_of: RenewalAttempt | None = None,
-) -> RenewalAttempt | None:
-    """Write the mandate's one scheduled charge, or ``None`` when another scan has.
-
-    ``renewal_attempt_one_scheduled_per_mandate`` allows a mandate one charge
-    waiting at a time.  Two scans running at once -- the timer and a system
-    administrator pressing "Run now" -- can both find none waiting and both try to
-    write one; the second write is refused, and that scan leaves the charge, its
-    notice and its taking to the scan that wrote it.  A retry carries the notice
-    time of the attempt it retries.
-    """
-    try:
-        with transaction.atomic():
-            return RenewalAttempt.objects.create(
-                mandate=mandate,
-                membership=term,
-                scheduled_on=charge_on,
-                retry_of=retry_of,
-                noticed_at=retry_of.noticed_at if retry_of is not None else None,
-            )
-    except IntegrityError:
-        log.info("mandate %s already has a charge scheduled by another scan", mandate.pk)
-        return None
 
 
 def _send_notice(
@@ -530,250 +543,3 @@ def _warn_about_card(
         raw["card_expiry_warned_for"] = stamp
         mandate.raw = raw
         mandate.save(update_fields=["raw", "updated_at"])
-
-
-def _due_attempts(today: date) -> list[RenewalAttempt]:
-    """Every scheduled attempt due on ``today`` or earlier, oldest first."""
-    return list(
-        RenewalAttempt.objects.filter(outcome=RenewalOutcome.SCHEDULED, scheduled_on__lte=today)
-        .select_related("mandate", "mandate__user", "mandate__plan", "membership")
-        .order_by("scheduled_on", "pk")
-    )
-
-
-def _charge(attempt: RenewalAttempt, today: date, run: RenewalRun, *, dry_run: bool) -> None:
-    """Take one scheduled renewal, and record what the provider said."""
-    mandate = attempt.mandate
-    if mandate.status != MandateStatus.ACTIVE:
-        run.record_skipped("not_active")
-        if not dry_run:
-            _finish(attempt, RenewalOutcome.SKIPPED)
-        return
-    skip = _renewal_skip_reason(attempt, today)
-    if skip is not None:
-        run.record_skipped(skip)
-        if not dry_run:
-            _finish(attempt, RenewalOutcome.SKIPPED)
-        if not dry_run and skip == "already_renewed" and attempt.membership is not None:
-            # The coverage this charge was for arrived from somewhere else, so the
-            # stored day follows it rather than waiting a year where it is.
-            roll_charge_date_past(mandate.user, covered_until=attempt.membership.ends_on)
-        return
-
-    amount_cents = renewal_amount_cents(mandate)
-    if dry_run:
-        run.charged += 1
-        run.record_action(CHARGE_KIND, mandate, on=attempt.scheduled_on, amount_cents=amount_cents)
-        # A rehearsal cannot ask the provider whether the charge would be taken,
-        # so it reports the message a charge that succeeds sends.  It carries no
-        # date: the charge that has not happened is what sets the one after it.
-        run.record_action("renewal_charged", mandate)
-        return
-    if not _claim(attempt):
-        run.record_skipped("in_flight")
-        return
-
-    run.record_action(CHARGE_KIND, mandate, on=attempt.scheduled_on, amount_cents=amount_cents)
-    try:
-        payment = create_checkout(
-            mandate.user,
-            mandate.plan.slug if mandate.plan is not None else None,
-            mandate.contribution_cents,
-            mandate.provider,
-        )
-    except DomainValidationError as exc:
-        log.error("renewal for mandate %s could not be priced: %s", mandate.pk, exc)
-        run.record_skipped("no_plan")
-        _finish(attempt, RenewalOutcome.SKIPPED)
-        return
-
-    attempt.payment = payment
-    attempt.save(update_fields=["payment", "updated_at"])
-
-    try:
-        get_provider(mandate.provider).charge_mandate(mandate, payment)
-    except (ProviderUnavailableError, ProviderNotConfiguredError, MockPaymentsDisabledError) as exc:
-        _postpone(attempt, payment, str(exc), run)
-        return
-    except PaymentError as exc:
-        _record_failure(attempt, payment, str(exc), today, run)
-        return
-
-    _record_success(attempt, run)
-
-
-def _renewal_skip_reason(attempt: RenewalAttempt, today: date) -> str | None:
-    """Why a renewal's attempt should not be charged after all, or ``None``.
-
-    ``friend`` when the member has become a friend of CalDART, who pays no dues;
-    ``lifetime`` when they have been granted a lifetime term since the attempt was
-    written; ``already_renewed`` when their coverage has already moved past the
-    term the charge was for.  A recurring donation is never skipped for any of
-    these: it charges whatever the giver's membership.  It is skipped as
-    ``already_charged`` when its next charge, read afresh, already lies beyond the
-    day the attempt was for, which is what a second attempt for a day another scan
-    has already charged looks like.  A retry is dated after that next charge, so it
-    is never skipped this way.
-    """
-    mandate = attempt.mandate
-    if mandate.plan_id is None:
-        next_charge_on = (
-            RenewalMandate.objects.filter(pk=mandate.pk)
-            .values_list("next_charge_on", flat=True)
-            .get()
-        )
-        if next_charge_on > attempt.scheduled_on:
-            return "already_charged"
-        return None
-    if account_kind(mandate.user, today) == AccountKind.FRIEND:
-        return "friend"
-    if lifetime_term(mandate.user) is not None:
-        return "lifetime"
-    if _already_renewed(attempt, today):
-        return "already_renewed"
-    return None
-
-
-def _claim(attempt: RenewalAttempt) -> bool:
-    """Take an attempt for this run, and say whether this run got it.
-
-    The claim is a single conditional update: the attempt is stamped
-    ``attempted_at`` only while it is still ``scheduled`` and unstamped, so of two
-    scans running at once -- the timer and a system administrator pressing "Run
-    now" -- exactly one charges, and the other finds nothing to do.
-    """
-    claimed = RenewalAttempt.objects.filter(
-        pk=attempt.pk,
-        outcome=RenewalOutcome.SCHEDULED,
-        attempted_at__isnull=True,
-    ).update(attempted_at=timezone.now(), updated_at=timezone.now())
-    if claimed == 0:
-        return False
-    attempt.refresh_from_db(fields=["attempted_at", "updated_at"])
-    return True
-
-
-def _postpone(attempt: RenewalAttempt, payment: Payment, reason: str, run: RenewalRun) -> None:
-    """Put a charge back that the provider could not be asked to take.
-
-    A provider that cannot be reached, that is not configured, or that is switched
-    off -- the mock provider with ``PAYMENTS_MOCK_ENABLED`` off -- says nothing
-    about the member's card, so it costs no rung of the retry ladder, sends no
-    decline notice and does not pause the mandate.  The pending payment is thrown
-    away and the attempt is released, still scheduled for the same day, so the
-    next scan tries it again.
-    """
-    log.error(
-        "renewal attempt %s could not charge through %s: %s", attempt.pk, payment.provider, reason
-    )
-    attempt.payment = None
-    attempt.attempted_at = None
-    attempt.save(update_fields=["payment", "attempted_at", "updated_at"])
-    payment.delete()
-    run.record_skipped("provider_down")
-
-
-def _already_renewed(attempt: RenewalAttempt, today: date) -> bool:
-    """Whether the member's coverage already reaches past the term being renewed.
-
-    True when another term has been bought or granted since the attempt was
-    scheduled, which is what a member paying by hand in the meantime looks like.
-    Always false for a recurring donation, which renews no term and so can never be
-    overtaken by one.
-    """
-    if attempt.mandate.plan_id is None or attempt.membership is None:
-        return False
-    term = term_to_renew(attempt.mandate.user, today)
-    if term is None or term.ends_on is None or attempt.membership.ends_on is None:
-        return False
-    return term.ends_on > attempt.membership.ends_on
-
-
-def _finish(attempt: RenewalAttempt, outcome: str) -> None:
-    """Close an attempt with ``outcome`` and no charge."""
-    attempt.outcome = outcome
-    attempt.save(update_fields=["outcome", "updated_at"])
-
-
-def _record_success(attempt: RenewalAttempt, run: RenewalRun) -> None:
-    """Mark the attempt succeeded, roll the charge date forward, and tell the member.
-
-    The mandate's stored charge date moves on: to the ``ends_on`` of the term the
-    charge bought for a renewal, and by the mandate's cadence from the day the
-    charge was scheduled for a recurring donation, which renews no term.
-    """
-    mandate = attempt.mandate
-    now = timezone.now()
-    today = timezone.localdate()
-
-    attempt.outcome = RenewalOutcome.SUCCEEDED
-    attempt.save(update_fields=["outcome", "updated_at"])
-
-    renewed = term_to_renew(mandate.user, today)
-    mandate.failure_count = 0
-    mandate.last_charged_at = now
-    if mandate.plan_id is None:
-        mandate.next_charge_on = advance_by_cadence(attempt.scheduled_on, mandate.cadence)
-    elif renewed is not None and renewed.ends_on is not None:
-        mandate.next_charge_on = renewed.ends_on
-    mandate.save(update_fields=["failure_count", "last_charged_at", "next_charge_on", "updated_at"])
-
-    charge_on = charge_date(mandate, today)
-    payment = attempt.payment
-    attachments: list[Attachment] = []
-    if payment is not None:
-        attachments.append((receipt_filename(payment), render_receipt_pdf(payment), PDF_MEDIA_TYPE))
-    if send_mandate_email(
-        mandate,
-        "renewal_charged",
-        expires_on=renewed.ends_on if renewed is not None and mandate.plan_id else None,
-        next_charge_on=charge_on,
-        receipt_number=payment.receipt_number if payment is not None else "",
-        attachments=attachments,
-    ):
-        attempt.result_emailed_at = now
-        if payment is not None:
-            payment.receipt_sent_at = now
-            payment.save(update_fields=["receipt_sent_at", "updated_at"])
-    attempt.save(update_fields=["result_emailed_at", "updated_at"])
-    run.record_action("renewal_charged", mandate, on=charge_on)
-    run.charged += 1
-
-
-def _record_failure(
-    attempt: RenewalAttempt, payment: Payment, reason: str, today: date, run: RenewalRun
-) -> None:
-    """Record a declined charge, then retry it or pause the mandate.
-
-    The provider's reason is kept on the attempt and quoted to the member.  A
-    mandate with retries left gets the next one from :data:`RETRY_OFFSETS`; one
-    whose retries are exhausted is paused, and the member is told that automatic
-    renewal is off and the ordinary reminders resume.  Every decline raises the
-    ``auto_renewal_declined`` event with the mandate, the ``reason``, and ``next_on``,
-    the day of the retry or ``None`` once the mandate is paused.
-    """
-    mandate = attempt.mandate
-    if payment.status != PaymentStatus.SUCCEEDED:
-        mark_failed(payment, {"error": reason})
-
-    mandate.failure_count += 1
-    retries_left = mandate.failure_count <= len(RETRY_OFFSETS)
-    next_on = (
-        today + timedelta(days=RETRY_OFFSETS[mandate.failure_count - 1]) if retries_left else None
-    )
-    if not retries_left:
-        mandate.status = MandateStatus.PAUSED
-        run.paused += 1
-    mandate.save(update_fields=["failure_count", "status", "updated_at"])
-
-    attempt.outcome = RenewalOutcome.FAILED
-    attempt.error = reason[:255]
-    events.emit("auto_renewal_declined", mandate=mandate, reason=attempt.error, next_on=next_on)
-    run.record_action("renewal_failed", mandate, on=next_on, detail=attempt.error)
-    if send_mandate_email(mandate, "renewal_failed", error=attempt.error, next_on=next_on):
-        attempt.result_emailed_at = timezone.now()
-    attempt.save(update_fields=["outcome", "error", "result_emailed_at", "updated_at"])
-
-    if next_on is not None:
-        _schedule(mandate, attempt.membership, next_on, retry_of=attempt)
-    run.failed += 1

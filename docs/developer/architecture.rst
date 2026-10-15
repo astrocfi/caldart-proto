@@ -329,14 +329,14 @@ report, a domain module, can read it.
     ``/aircraft...`` and the DART leader check under ``/leader/``;
     ``reports.py`` declares the aircraft report.
 ``payments``
-    ``Payment``, ``Refund``, ``RenewalMandate`` and ``RenewalAttempt``; the
-    provider plugins in ``providers/`` (``stripe``, ``paypal``, and
-    ``mock``); checkout, confirmation, webhooks, receipts, refunds, payment
-    reporting, reconciliation, and automatic renewal.  Endpoints
+    ``Payment``, ``Refund``, ``RenewalMandate``, ``RenewalAttempt``, and
+    ``RenewalScan``; the provider plugins in ``providers/`` (``stripe``,
+    ``paypal``, and ``mock``); checkout, confirmation, webhooks, receipts, refunds,
+    payment reporting, reconciliation, and automatic renewal.  Endpoints
     ``/payments/...``, ``/me/payments/...``, ``/me/renewal``, ``/me/donation``, the finance
-    area's ``/admin/payments...`` and ``/admin/renewals...``, and
-    ``/system/renewals/run``; ``views.py`` also serves the Apple Pay
-    domain-verification file.  ``reports.py`` declares the payments and
+    area's ``/admin/payments...`` and ``/admin/renewals...``,
+    ``/system/renewals/run``, and ``/system/renewals/runs/{id}``; ``views.py`` also
+    serves the Apple Pay domain-verification file.  ``reports.py`` declares the payments and
     contributions reports, and ``reconciliation.py`` the reconciliation
     report.
 ``reminders``

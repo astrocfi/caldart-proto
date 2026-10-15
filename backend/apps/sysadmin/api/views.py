@@ -24,8 +24,15 @@ from apps.aircraft.api.serializers import RegistryImportSerializer
 from apps.payments.api.serializers import (
     RenewalRunRequestSerializer,
     RenewalRunResultSerializer,
+    RenewalScanSerializer,
     StatementsRunRequestSerializer,
     StatementsRunResultSerializer,
+)
+from apps.payments.models import RenewalScan
+from apps.payments.renewals.background import (
+    ScanAlreadyRunningError,
+    close_if_stale,
+    start_scan,
 )
 from apps.payments.renewals.scan import run_auto_renewals
 from apps.payments.statements import send_year_statements
@@ -163,22 +170,67 @@ class RenewalRunView(APIView):
 
     permission_classes = [IsSystemAdmin]
 
-    @extend_schema(request=RenewalRunRequestSerializer, responses={200: RenewalRunResultSerializer})
+    @extend_schema(
+        request=RenewalRunRequestSerializer,
+        responses={
+            200: RenewalRunResultSerializer,
+            202: RenewalScanSerializer,
+            409: OpenApiResponse(description="A live run is already under way."),
+        },
+    )
     def post(self, request: Request) -> Response:
-        """Run the scan and return its counts with status 200.
+        """Rehearse the scan and answer its counts, or start a live scan and answer 202.
 
-        The body takes ``dry_run``, defaulting to ``False``; a dry run changes no
-        mandate, emails nobody and charges nobody, and reports the counts the
-        same scan would produce.  The rehearsal is recorded in the audit log like
-        any other run.  The answer is ``{noticed, warned, charged, failed, paused,
-        skipped, actions}``, where ``actions`` names every member the run emailed
-        or charged -- or, in a rehearsal, would have -- and the caller is recorded
-        as the actor on the ``renewals.run`` audit record.
+        The body takes ``dry_run``, defaulting to ``False``.  A dry run changes no
+        mandate, emails nobody and charges nobody, and runs inside the request: the
+        answer is 200 with ``{noticed, warned, charged, failed, paused, skipped,
+        actions}``, where ``actions`` names every member the run would email or
+        charge, and the rehearsal is recorded in the audit log with the caller as
+        its actor.
+
+        A live scan charges cards, and each charge waits on the provider, so it is
+        started in its own process (:func:`~apps.payments.renewals.background.start_scan`)
+        and the answer is 202 with its ``RenewalScan`` row, unfinished: ``{id,
+        started_at, finished_at: null, ok: false, error: "", result: null}``.  The
+        scan fills the row in when it ends, and its ``renewals.run`` audit record
+        names the caller.  ``GET /system/renewals/runs/{id}`` reads it back.  While
+        another live scan started here is unfinished and younger than
+        ``RENEWAL_STALE_MINUTES`` the answer is 409 with ``An automatic renewal run is
+        already under way.``, and a WARNING ``renewals.run`` audit record with the
+        reason ``run_in_progress`` is written instead.
         """
         payload = RenewalRunRequestSerializer(data=request.data)
         payload.is_valid(raise_exception=True)
-        run = run_auto_renewals(dry_run=payload.validated_data["dry_run"], actor=_actor(request))
+        if not payload.validated_data["dry_run"]:
+            actor = _actor(request)
+            try:
+                scan = start_scan(actor)
+            except ScanAlreadyRunningError as exc:
+                audit.refuse(audit.RENEWALS_RUN, actor=actor, reason=audit.REASON_RUN_IN_PROGRESS)
+                return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
+            return Response(RenewalScanSerializer(scan).data, status=status.HTTP_202_ACCEPTED)
+        run = run_auto_renewals(dry_run=True, actor=_actor(request))
         return Response(RenewalRunResultSerializer(run.as_dict()).data)
+
+
+class RenewalScanView(APIView):
+    """``GET /system/renewals/runs/{id}`` -- how a live scan from the portal went."""
+
+    permission_classes = [IsSystemAdmin]
+
+    @extend_schema(responses={200: RenewalScanSerializer})
+    def get(self, request: Request, pk: int) -> Response:
+        """Return the ``RenewalScan`` row ``pk`` with status 200.
+
+        ``finished_at`` stays null while the scan runs.  A scan still unfinished
+        ``RENEWAL_STALE_MINUTES`` after it started has lost its process, and is
+        closed here as failed with the error ``Did not finish.``.  Raises a 404
+        :class:`~rest_framework.exceptions.NotFound` when there is no such row.
+        """
+        scan = RenewalScan.objects.filter(pk=pk).first()
+        if scan is None:
+            raise NotFound("No such renewal run.")
+        return Response(RenewalScanSerializer(close_if_stale(scan)).data)
 
 
 class StatementsRunView(APIView):

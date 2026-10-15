@@ -212,6 +212,9 @@ def begin_mandate(
     cadence and the provider now asked for, and no saved method.  It becomes
     ``active`` only when the method is confirmed, through :func:`save_method`.
     ``plan`` of ``None`` asks for the recurring donation; any plan, for the renewal.
+    A scheduled charge the old authority already sent to its provider stays on the
+    row untouched: its payment names the provider, the customer, and the method it
+    was sent for, so the renewal scan settles it whatever this reset changes.
 
     ``next_charge_on`` is the day of the first charge.  Left out, a renewal takes
     :func:`default_charge_date` and a donation takes today.  A mandate begun at a
@@ -347,10 +350,13 @@ def cancel_mandate(
     and is recorded as ``canceled_by`` and in the audit record's
     ``self_service`` flag; it is ``None`` for a cancellation nobody signed for.
     Every scheduled attempt still waiting is marked ``skipped``, so the next scan
-    charges nothing.  Writes one ``renewal.cancel`` audit record, ending in
-    ``reason=<reason>`` when ``reason`` is given (``member.delete`` when the member's
-    account is being deleted), and emails the member after the transaction commits.
-    Calling it on a mandate that is already canceled changes nothing and sends nothing.
+    charges nothing.  An attempt whose charge was already sent to the provider, and
+    whose outcome was never learned, is left for the scan to settle: it records a
+    charge the provider took and charges nothing new.  Writes one ``renewal.cancel``
+    audit record, ending in ``reason=<reason>`` when ``reason`` is given
+    (``member.delete`` when the member's account is being deleted), and emails the
+    member after the transaction commits.  Calling it on a mandate that is already
+    canceled changes nothing and sends nothing.
 
     Canceling a mandate that was active raises the ``auto_renewal_off`` event with
     the mandate and ``how``: the caller's word when given (``deactivated`` when the
@@ -366,7 +372,12 @@ def cancel_mandate(
     mandate.canceled_at = timezone.now()
     mandate.canceled_by = actor
     mandate.save(update_fields=["status", "canceled_at", "canceled_by", "updated_at"])
-    mandate.attempts.filter(outcome=RenewalOutcome.SCHEDULED).update(outcome=RenewalOutcome.SKIPPED)
+    # An attempt that already carries a payment was sent to the provider without its
+    # outcome being recorded; the scan settles it with the provider rather than
+    # dropping money that may already have been taken.
+    mandate.attempts.filter(outcome=RenewalOutcome.SCHEDULED, payment__isnull=True).update(
+        outcome=RenewalOutcome.SKIPPED
+    )
     extra: _CancelReason = {} if reason is None else {"reason": reason}
     audit.record(
         audit.RENEWAL_CANCEL,
@@ -423,11 +434,32 @@ def discard_pending_mandate(user: User) -> None:
     first (:meth:`~apps.payments.providers.base.Provider.abandon_setup`), so a Stripe
     SetupIntent nobody will confirm takes no card.  A mandate in any other state is
     left alone.
+
+    A pending mandate that was an active one until a new setup reset it may still
+    hold a scheduled charge already sent to the provider, whose outcome the renewal
+    scan has yet to settle.  Deleting it would delete that attempt with it, so such a
+    mandate is kept and quietly marked ``canceled`` instead -- no email, no event --
+    and the scan settles the charge; its open setup is closed all the same.
     """
     pending = list(RenewalMandate.objects.filter(user=user, status=MandateStatus.PENDING))
     for mandate in pending:
         get_provider(mandate.provider).abandon_setup(mandate)
-    RenewalMandate.objects.filter(pk__in=[mandate.pk for mandate in pending]).delete()
+    unsettled = list(
+        RenewalMandate.objects.filter(
+            pk__in=[mandate.pk for mandate in pending],
+            attempts__outcome=RenewalOutcome.SCHEDULED,
+            attempts__payment__isnull=False,
+        )
+        .values_list("pk", flat=True)
+        .distinct()
+    )
+    if unsettled:
+        RenewalMandate.objects.filter(pk__in=unsettled).update(
+            status=MandateStatus.CANCELED, canceled_at=timezone.now()
+        )
+    RenewalMandate.objects.filter(pk__in=[mandate.pk for mandate in pending]).exclude(
+        pk__in=unsettled
+    ).delete()
 
 
 def cancel_all_mandates(user: User, *, actor: User | None = None) -> None:

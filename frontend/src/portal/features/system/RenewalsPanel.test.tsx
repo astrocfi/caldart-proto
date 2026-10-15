@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
+import type { RenewalScan } from '@/portal/api/types';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
@@ -34,6 +35,52 @@ const RESULT = {
     },
   ],
 };
+
+const STARTED: RenewalScan = {
+  id: 7,
+  started_at: '2026-06-19T13:31:00Z',
+  finished_at: null,
+  ok: false,
+  error: '',
+  result: null,
+};
+
+const FINISHED: RenewalScan = {
+  ...STARTED,
+  finished_at: '2026-06-19T13:32:00Z',
+  ok: true,
+  result: RESULT,
+};
+
+/**
+ * A live run as the server takes it: the press answers 202 with the unfinished scan, and
+ * each read of the scan answers the next of `reads`, the last one again once they run out.
+ */
+function liveRun(reads: RenewalScan[], bodies: unknown[] = []): void {
+  let read = 0;
+  server.use(
+    http.post(`${API}/system/renewals/run`, async ({ request }) => {
+      bodies.push(await request.json());
+      return HttpResponse.json(STARTED, { status: 202 });
+    }),
+    http.get(`${API}/system/renewals/runs/7`, () => {
+      const answer = reads[Math.min(read, reads.length - 1)];
+      read += 1;
+      return HttpResponse.json(answer);
+    }),
+  );
+}
+
+/** Clear the practice-run box, press Run now, and confirm the real charge. */
+async function chargeForReal(): Promise<void> {
+  await userEvent.click(
+    screen.getByLabelText(
+      'Practice run: show what would happen, charge nothing (automatic renewal charges)',
+    ),
+  );
+  await userEvent.click(screen.getByRole('button', { name: 'Run now: automatic renewal charges' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Charge what is due' }));
+}
 
 describe('renewalRunSummary', () => {
   it('says what a rehearsal would have done', () => {
@@ -108,12 +155,7 @@ describe('RenewalsPanel', () => {
 
   it('charges for real once the practice-run box is cleared', async () => {
     const bodies: unknown[] = [];
-    server.use(
-      http.post(`${API}/system/renewals/run`, async ({ request }) => {
-        bodies.push(await request.json());
-        return HttpResponse.json(RESULT);
-      }),
-    );
+    liveRun([FINISHED], bodies);
     renderWithProviders(<RenewalsPanel />);
 
     await userEvent.click(
@@ -135,19 +177,49 @@ describe('RenewalsPanel', () => {
     expect(screen.getByRole('heading', { name: 'What this run did' })).toBeInTheDocument();
   });
 
-  it('moves the focus to the result after a real charge, not back to Run now', async () => {
-    server.use(http.post(`${API}/system/renewals/run`, () => HttpResponse.json(RESULT)));
+  it('reads as running while the server takes the charges', async () => {
+    liveRun([STARTED, FINISHED]);
     renderWithProviders(<RenewalsPanel />);
 
-    await userEvent.click(
-      screen.getByLabelText(
-        'Practice run: show what would happen, charge nothing (automatic renewal charges)',
-      ),
-    );
-    await userEvent.click(
+    await chargeForReal();
+
+    expect(await screen.findByText(/^Running since/)).toBeInTheDocument();
+    expect(
       screen.getByRole('button', { name: 'Run now: automatic renewal charges' }),
+    ).toBeDisabled();
+  });
+
+  it('follows a running charge until it ends', async () => {
+    liveRun([STARTED, FINISHED]);
+    renderWithProviders(<RenewalsPanel />);
+
+    await chargeForReal();
+
+    expect(
+      await screen.findByText(
+        'Noticed 2, warned 0, charged 1, failed 0, paused 0, and skipped 3.',
+        {},
+        { timeout: 5_000 },
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('reports a charge run that stopped before it finished', async () => {
+    liveRun([{ ...STARTED, finished_at: '2026-06-19T14:31:00Z', error: 'Did not finish.' }]);
+    renderWithProviders(<RenewalsPanel />);
+
+    await chargeForReal();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The renewal run stopped: Did not finish.',
     );
-    await userEvent.click(screen.getByRole('button', { name: 'Charge what is due' }));
+  });
+
+  it('moves the focus to the result after a real charge, not back to Run now', async () => {
+    liveRun([FINISHED]);
+    renderWithProviders(<RenewalsPanel />);
+
+    await chargeForReal();
 
     const heading = await screen.findByRole('heading', { name: 'What this run did' });
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull());

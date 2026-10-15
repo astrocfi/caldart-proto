@@ -59,10 +59,17 @@ Recent charges
 
 The second table, **Recent charges**, has one row per scheduled charge, fifty to a page:
 the day it was **Scheduled**, the **Member**, whose name opens their money history, the
-**Outcome** (**Scheduled**, **Charged**, **Failed**, or **Skipped**), when it was
-**Tried**, and the **Reason** a charge failed, written as under a paused renewal's
-status. The charges still to come are listed first, then the rest by when they
+**Outcome** (**Scheduled**, **Charged**, **Failed**, **Skipped**, or **Needs checking**),
+when it was **Tried**, and the **Reason** a charge failed, written as under a paused
+renewal's status. The charges still to come are listed first, then the rest by when they
 were tried, newest first.
+
+**Needs checking** marks a charge PayPal may have taken without saying so: it never
+answered, or it says the charge's invoice was already paid. The site charges nothing more
+for it until you settle it, and its **Reason** says why. If you subscribe to *Automatic
+charge needs checking* on the **Notifications** screen you are emailed when a charge is
+held this way, again if the member's membership runs out while it waits, and about a
+charge the payment provider has held as pending for more than three days.
 
 What you can do
 ===============
@@ -90,6 +97,30 @@ list (see :doc:`payment-list`). **Export CSV** and **Export PDF** download the s
 authorities the filters describe, with the columns you chose, newest first. The
 **Emailed reports** screen can also send this list on a schedule.
 
+Settle a charge that needs checking
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Press **Settle** on the charge's row in **Recent charges**. The panel names what to
+search PayPal's own dashboard for: the charge's invoice id, such as
+``caldart-renewal-901``, its amount, and when it was sent. Then choose one:
+
+* If PayPal took the money, enter the **Capture ID** PayPal shows for it and press
+  **Record as paid**. The site checks the capture with PayPal, records the charge, renews
+  the membership, and emails the member the usual *your membership has been renewed*
+  message. A capture for another payment, another amount, or another currency is refused
+  and the charge stays as it was.
+* If PayPal took nothing, check *I searched the dashboard and it holds no charge for this
+  invoice* and press **It took nothing**. The next morning's run charges it again. If
+  PayPal did take it after all, and PayPal's *Block accidental payments* setting is on,
+  PayPal refuses the second charge and the row returns to **Needs checking**, and you are
+  told again. PayPal's *Block accidental payments* must be on for that to happen.
+* If neither fits, check the same box and press **Close as failed**. Nothing more is
+  charged, the member's automatic renewal is paused, and the ordinary renewal reminders
+  take over. The member is not emailed, so get in touch with them yourself.
+
+Once a charge's payment has gone through, **It took nothing** and **Close as failed** are
+refused: record it as paid instead.
+
 Turn a standing charge off
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -102,7 +133,9 @@ alone. A message then confirms what was turned off and for whom, such as
 
 What happens next:
 
-* Every charge still scheduled against it is dropped.
+* Every charge still scheduled against it is dropped, except one already sent to the
+  payment provider whose answer is not in: the site still records that one if the money
+  was taken, and charges nothing new.
 * The membership itself runs to the end of its term.
 * The row stays in the table, marked **Turned off**.
 * The person is emailed. The subject is *CalDART: automatic renewal is off* for a

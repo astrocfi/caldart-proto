@@ -28,7 +28,7 @@ from rest_framework.test import APIClient
 from apps.accounts.models import User
 from apps.members.models import Membership, MembershipPlan
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus
-from apps.payments.providers import paypal
+from apps.payments.providers import paypal, paypal_api
 from apps.payments.providers import stripe as stripe_provider
 from apps.payments.providers.base import ProviderUnavailableError
 from apps.payments.services import create_checkout
@@ -294,7 +294,7 @@ def test_a_paypal_token_timeout_at_checkout_is_a_400(
     )
 
     assert response.status_code == 400
-    assert response.json()["detail"] == paypal.UNAVAILABLE_MESSAGE
+    assert response.json()["detail"] == paypal_api.UNAVAILABLE_MESSAGE
 
 
 @respx.mock
@@ -325,7 +325,7 @@ def test_a_token_response_that_is_not_json_is_a_400(
     )
 
     assert response.status_code == 400
-    assert response.json()["detail"] == paypal.UNAVAILABLE_MESSAGE
+    assert response.json()["detail"] == paypal_api.UNAVAILABLE_MESSAGE
 
 
 @respx.mock
@@ -342,7 +342,7 @@ def test_an_order_connection_error_at_checkout_is_a_400(
     )
 
     assert response.status_code == 400
-    assert response.json()["detail"] == paypal.UNAVAILABLE_MESSAGE
+    assert response.json()["detail"] == paypal_api.UNAVAILABLE_MESSAGE
 
 
 @respx.mock
@@ -375,7 +375,7 @@ def test_a_capture_timeout_is_a_400(
     response = api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER1"})
 
     assert response.status_code == 400
-    assert response.json()["detail"] == paypal.UNAVAILABLE_MESSAGE
+    assert response.json()["detail"] == paypal_api.UNAVAILABLE_MESSAGE
 
 
 @respx.mock
@@ -569,4 +569,4 @@ def test_the_token_call_raises_provider_unavailable() -> None:
     """A timeout fetching a PayPal token raises ProviderUnavailableError directly."""
     respx.post(TOKEN_URL).mock(side_effect=httpx.ConnectTimeout("timed out"))
     with pytest.raises(ProviderUnavailableError, match="PayPal didn't answer"):
-        paypal.access_token()
+        paypal_api.access_token()

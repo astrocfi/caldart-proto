@@ -86,8 +86,25 @@ const REFUSED: RenewalAttempt = {
   error: 'Your card was declined',
   noticed_at: '2026-02-28T06:30:11Z',
   attempted_at: '2026-03-14T06:30:09Z',
+  in_doubt: false,
+  flagged_at: null,
+  payment_amount_cents: null,
+  payment_sent_at: null,
   result_emailed_at: '2026-03-14T06:30:12Z',
   created_at: '2026-02-28T06:30:11Z',
+};
+
+const IN_DOUBT: RenewalAttempt = {
+  ...REFUSED,
+  id: 88,
+  scheduled_on: '2026-03-15',
+  outcome: 'scheduled',
+  payment_id: 901,
+  error: 'PayPal never answered the renewal order, so it may hold a charge.',
+  attempted_at: null,
+  in_doubt: true,
+  flagged_at: '2026-03-15T06:34:00Z',
+  result_emailed_at: null,
 };
 
 /** The renewals report's registry, as `GET /reports/renewals/columns` answers it. */
@@ -295,6 +312,25 @@ describe('RenewalsPage', () => {
     const row = within(await screen.findByRole('row', { name: /03\/14\/2026/ }));
     expect(row.getByText('Failed')).toBeInTheDocument();
     expect(row.getByText('Card declined')).toBeInTheDocument();
+  });
+
+  it('marks a charge held in doubt as needing checking, with why', async () => {
+    server.use(...renewalHandlers([], [IN_DOUBT], record()));
+    renderWithProviders(<RenewalsPage />);
+
+    const row = within(await screen.findByRole('row', { name: /03\/15\/2026/ }));
+    expect(row.getByText('Needs checking')).toBeInTheDocument();
+    expect(
+      row.getByText('PayPal never answered the renewal order, so it may hold a charge.'),
+    ).toBeInTheDocument();
+  });
+
+  it('offers Settle on a charge held in doubt alone', async () => {
+    server.use(...renewalHandlers([], [IN_DOUBT, REFUSED], record()));
+    renderWithProviders(<RenewalsPage />);
+
+    await screen.findByRole('row', { name: /03\/15\/2026/ });
+    expect(screen.getAllByRole('button', { name: /^Settle the charge for/ })).toHaveLength(1);
   });
 
   it('tells the administrator when a mandate refuses to be turned off', async () => {

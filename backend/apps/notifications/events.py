@@ -114,6 +114,14 @@ _EVENTS: tuple[Event, ...] = (
         _MONEY_ROLES,
     ),
     Event(
+        "renewal_needs_checking",
+        "Automatic charge needs checking",
+        "Money",
+        "An automatic charge may have been taken and the payment provider cannot say, "
+        "or has been pending for days: the treasurer settles it.",
+        _MONEY_ROLES,
+    ),
+    Event(
         "donation_received",
         "Donation received",
         "Money",

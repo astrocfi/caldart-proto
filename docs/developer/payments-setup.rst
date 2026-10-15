@@ -551,6 +551,11 @@ reads the three deployment files and fails if the budget stops fitting under
 them, so raise the budget and the proxy timeouts together or not at all.
 
 PayPal is called over ``httpx`` with the same 20-second timeout and no retries.
+An answer that says nothing about the request -- a 5xx, a 429 or a 408 -- counts as
+PayPal not answering, exactly like a timeout: the person is told to try again and a
+renewal charge is put off, never failed, because PayPal may already have acted.  The
+renewal scan alone asks again for an unanswered order create, three times within
+about four minutes (:ref:`renewals-providers`).
 
 Creating a PaymentIntent sends the idempotency key
 ``caldart-payment-<payment id>-start``, so starting the same payment row twice
@@ -805,6 +810,13 @@ Payments** toggle. It takes effect immediately, with no separate approval.
 ``payments_sandbox_check`` cannot see whether it is on — there is no read
 endpoint for a REST app's own feature flags — so check it in the dashboard
 before relying on it.
+
+Each renewal order carries ``invoice_id: caldart-renewal-<payment id>``.  Keep the
+business account's **Block accidental payments** setting on (**Account Settings →
+Payments → Block accidental payments**: *Yes, block multiple payments per invoice
+ID*), so PayPal refuses a second charge for one renewal payment.  CalDART reads that
+refusal (``DUPLICATE_INVOICE_ID``) as a charge to check, not a decline
+(:ref:`renewals-in-doubt`).
 
 To refund from the dashboard rather than the portal: **Activity** in the
 sandbox business account, find the captured payment, and **Issue a refund**.

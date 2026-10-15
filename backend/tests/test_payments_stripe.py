@@ -39,7 +39,8 @@ from apps.payments.models import (
 )
 from apps.payments.providers import stripe as stripe_provider
 from apps.payments.providers.base import ProviderUnavailableError
-from apps.payments.providers.stripe import SETUP_INTENT_KEY, wallet_from_intent
+from apps.payments.providers.stripe import SETUP_INTENT_KEY
+from apps.payments.providers.stripe_intents import fees_from_intent, wallet_from_intent
 from apps.payments.refunds import issue_refund
 from apps.payments.services import create_checkout, fees_are_known
 from tests.factories import RenewalMandateFactory, UserFactory
@@ -1146,7 +1147,7 @@ def test_an_unexpanded_balance_transaction_reads_as_no_fee_yet(
     """An id where the transaction should be is not a figure we can record."""
     intent = {"latest_charge": {"balance_transaction": "txn_test_1"}}
 
-    assert stripe_provider.fees_from_intent(intent) is None
+    assert fees_from_intent(intent) is None
 
 
 def charge_event(payment: Payment, intent_id: str, **charge: Any) -> dict[str, Any]:

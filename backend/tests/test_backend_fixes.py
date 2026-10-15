@@ -26,7 +26,7 @@ from apps.accounts.api.views import DEACTIVATED_MESSAGE, WRONG_CREDENTIALS_MESSA
 from apps.accounts.models import User
 from apps.members.models import MembershipPlan
 from apps.payments.models import MAX_CONTRIBUTION_CENTS
-from apps.payments.providers import paypal
+from apps.payments.providers import paypal_api
 from apps.sysadmin import services
 from caldart import reports
 from tests.conftest import LOGIN_URL
@@ -267,7 +267,7 @@ def test_a_container_command_forwards_the_password_by_name(
 # --------------------------------------------------------------------------
 # The PayPal token lives in Django's cache
 # --------------------------------------------------------------------------
-TOKEN_URL = f"{paypal.SANDBOX_BASE}/v1/oauth2/token"
+TOKEN_URL = f"{paypal_api.SANDBOX_BASE}/v1/oauth2/token"
 
 
 @pytest.fixture
@@ -295,10 +295,10 @@ def test_the_paypal_token_is_cached_under_its_documented_key(
     """A fetched token is stored in Django's cache as ``paypal:access_token``."""
     token_route(respx.mock)
 
-    paypal.access_token()
+    paypal_api.access_token()
 
-    assert cache.get(paypal.TOKEN_CACHE_KEY) == {
-        "key": [paypal.SANDBOX_BASE, "client-id"],
+    assert cache.get(paypal_api.TOKEN_CACHE_KEY) == {
+        "key": [paypal_api.SANDBOX_BASE, "client-id"],
         "token": "A21AA-token",
     }
 
@@ -308,8 +308,8 @@ def test_a_cached_paypal_token_is_reused(paypal_configured: None) -> None:
     """A second call inside the token's lifetime does not call PayPal again."""
     route = token_route(respx.mock)
 
-    paypal.access_token()
-    paypal.access_token()
+    paypal_api.access_token()
+    paypal_api.access_token()
 
     assert route.call_count == 1
 
@@ -318,10 +318,10 @@ def test_a_cached_paypal_token_is_reused(paypal_configured: None) -> None:
 def test_clearing_the_cache_fetches_a_fresh_paypal_token(paypal_configured: None) -> None:
     """Emptying Django's cache is all it takes to force a new token."""
     route = token_route(respx.mock)
-    paypal.access_token()
+    paypal_api.access_token()
 
     cache.clear()
-    paypal.access_token()
+    paypal_api.access_token()
 
     assert route.call_count == 2
 
@@ -332,9 +332,9 @@ def test_a_token_fetched_for_other_credentials_is_not_reused(
 ) -> None:
     """Changing the client id fetches a token rather than reusing the cached one."""
     route = token_route(respx.mock)
-    paypal.access_token()
+    paypal_api.access_token()
 
     settings.PAYPAL_CLIENT_ID = "another-client-id"
-    paypal.access_token()
+    paypal_api.access_token()
 
     assert route.call_count == 2

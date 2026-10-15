@@ -585,6 +585,11 @@ PAYPAL_ENV = env("PAYPAL_ENV", default="sandbox")
 # Optional: set it to have the PayPal webhook verify its signature.
 PAYPAL_WEBHOOK_ID = env("PAYPAL_WEBHOOK_ID", default="")
 PAYMENTS_MOCK_ENABLED = env.bool("PAYMENTS_MOCK_ENABLED", default=True)
+# How many minutes a renewal charge the scan claimed, or a scan started from the
+# Scheduled tasks page, may stay unfinished before it is taken to have died: a later
+# scan then settles the charge with the provider, and the page reports the run as
+# not finished.
+RENEWAL_STALE_MINUTES = env.int("RENEWAL_STALE_MINUTES", default=60)
 
 # --------------------------------------------------------------------------
 # Content-Security-Policy

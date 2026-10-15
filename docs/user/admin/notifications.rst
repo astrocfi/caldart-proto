@@ -141,6 +141,13 @@ Money
    the account was deleted, the email has no link, because the record is gone.
 *Notification: Automatic renewal or recurring donation charge failed*
    An automatic charge is declined. It gives the reason and when it is tried again.
+*Notification: Automatic charge needs checking*
+   An automatic charge may have been taken and PayPal cannot say, or a charge has been
+   waiting at the payment provider for more than three days. It gives the amount and why,
+   and the treasurer or an account administrator settles it on
+   :doc:`../finance/renewals`. It comes again if the membership runs out while the charge
+   waits. The treasurer, account administrators, and the system administrator can
+   subscribe.
 *Notification: Donation received*
    A gift arrives: a public donation, a contribution on its own, or a recurring donation.
    A contribution paid with a membership is part of *Notification: Membership paid*.

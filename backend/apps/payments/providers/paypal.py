@@ -3,9 +3,9 @@
 No SDK -- the three calls we need (OAuth token, create order, capture order) are
 plain JSON over HTTPS, and the SDK would add a dependency for nothing.
 
-The client-credentials token is held in Django's default cache until shortly
-before it expires; the entry records the environment and client id, so changing
-either (in tests, or by editing ``.env``) fetches a fresh one.
+Every call goes through :func:`~apps.payments.providers.paypal_api.call`, which
+holds the client-credentials token and tells a call PayPal never answered from one
+it refused.
 
 Capture is authoritative: ``confirm`` only activates a membership when PayPal
 answers ``COMPLETED`` *and* the capture matches our own row.  The webhook reads
@@ -16,26 +16,50 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, TypedDict
-from urllib.parse import quote
+import time
+from datetime import timedelta
+from typing import Any
 
-import httpx
 from django.conf import settings
-from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse, HttpResponseNotAllowed, JsonResponse
+from django.utils import timezone
 
 from apps.payments.models import Payment, PaymentProvider, PaymentWallet, Refund, RenewalMandate
 from apps.payments.providers.base import (
     MandateMethod,
     PaymentDeclinedError,
     PaymentError,
+    PaymentInDoubtError,
+    PaymentPendingError,
+    PaymentUnansweredError,
     PaymentVerificationError,
     Provider,
     ProviderFees,
-    ProviderNotConfiguredError,
     ProviderRefund,
     ProviderUnavailableError,
+    RequestNotSentError,
     register,
+)
+from apps.payments.providers.paypal_api import (
+    UNAVAILABLE_MESSAGE,
+    PayPalRequestError,
+    call,
+    cents,
+    dollars,
+    segment,
+)
+from apps.payments.providers.paypal_orders import (
+    WEBHOOK_CAPTURE_KEY,
+    belongs_to_payment_order,
+    capture_id,
+    captured_cents,
+    captures_with_status,
+    completed_captures,
+    fees_from_capture,
+    fees_from_order,
+    related_order_id,
+    same_currency,
+    verify_capture,
 )
 from apps.payments.receipts import SETTLED_STATUSES
 from apps.payments.refunds import record_dashboard_refund
@@ -43,44 +67,9 @@ from apps.payments.services import mark_failed, mark_succeeded, record_provider_
 
 log = logging.getLogger(__name__)
 
-LIVE_BASE = "https://api-m.paypal.com"
-SANDBOX_BASE = "https://api-m.sandbox.paypal.com"
-
-#: What a member is told when PayPal times out or answers with something we
-#: cannot read.  It says nothing about the money: a capture can fail in transit
-#: after PayPal has already taken it.
-UNAVAILABLE_MESSAGE = "PayPal didn't answer. Try again in a moment."
-
-#: Seconds shaved off the advertised token lifetime, so we never present one
-#: that expires mid-flight.
-TOKEN_SKEW_SECONDS = 60
-
-#: How long a token is kept when PayPal advertises a lifetime shorter than the
-#: skew above.  Caching for a moment is still better than a fetch per call.
-MINIMUM_TOKEN_SECONDS = 30
-
 #: The issue PayPal names when it refuses a capture because the buyer's card or
 #: account was declined.
 DECLINED_ISSUE = "INSTRUMENT_DECLINED"
-
-
-class PayPalRejectedError(PaymentVerificationError):
-    """PayPal answered a call with an error status.
-
-    ``issues`` are the ``details[].issue`` codes the answer carried, such as
-    ``INSTRUMENT_DECLINED``, in the order PayPal listed them; empty when it named none.
-    """
-
-    def __init__(self, message: str, issues: tuple[str, ...]) -> None:
-        """Carry ``message`` for the member and PayPal's ``issues`` for the caller."""
-        super().__init__(message)
-        self.issues = issues
-
-
-#: Where the client-credentials token sits in Django's default cache.
-TOKEN_CACHE_KEY = "paypal:access_token"  # noqa: S105 - a cache key, not a secret
-
-TIMEOUT_SECONDS = 20.0
 
 #: Webhook events worth acting on when the signature has been verified.
 CAPTURE_COMPLETED = "PAYMENT.CAPTURE.COMPLETED"
@@ -89,6 +78,34 @@ CAPTURE_REFUNDED = "PAYMENT.CAPTURE.REFUNDED"
 
 #: What the member is told when PayPal will not take a vaulted payment.
 DECLINED_MESSAGE = "PayPal refused the saved payment method."
+
+
+#: The pauses, in seconds, before each in-process retry of a renewal order create
+#: that never answered: three retries over three and a half minutes, all well
+#: inside the hours PayPal keeps a ``PayPal-Request-Id``.
+CREATE_RETRY_SECONDS: tuple[float, ...] = (30.0, 60.0, 120.0)
+
+#: How long a renewal order's ``PayPal-Request-Id`` is trusted to bring back the
+#: order a create already made.  PayPal keeps one for six hours; an hour is left
+#: spare.
+REQUEST_ID_RETENTION = timedelta(hours=5)
+
+#: The longest the in-process retries of one renewal order create may take, in
+#: seconds: well inside the 15 minutes a claim is held before another scan may take
+#: it over, so no retry is still running when the charge is taken up again.
+CREATE_DEADLINE_SECONDS = 300.0
+
+#: PayPal's issue code for an order whose ``invoice_id`` was already paid.
+DUPLICATE_INVOICE = "DUPLICATE_INVOICE_ID"
+
+#: Why a renewal charge is in doubt when its create never answered.
+UNANSWERED_MESSAGE = "PayPal never answered the renewal order, so it may hold a charge."
+
+#: Why a renewal charge is in doubt when PayPal calls its invoice a duplicate.
+DUPLICATE_INVOICE_MESSAGE = "PayPal says this renewal's invoice was already paid."
+
+#: What the member is told when the renewal has no vaulted account to charge.
+NO_METHOD_MESSAGE = "There is no saved PayPal account to charge."
 
 #: The largest webhook body read, in bytes.  PayPal's notifications are a few
 #: kilobytes; anything near this size is not one of theirs.
@@ -111,314 +128,66 @@ TRANSMISSION_HEADERS = (
     "Paypal-Transmission-Time",
 )
 
-#: Where a payment settled by a ``PAYMENT.CAPTURE.COMPLETED`` notification keeps
-#: the capture it names, beside the order :meth:`PayPalProvider.start` stored, so a
-#: later refund knows which capture to give the money back from.
-WEBHOOK_CAPTURE_KEY = "capture"
+
+#: What the renewal scan logs about a capture PayPal is holding as ``PENDING``.
+PENDING_MESSAGE = "PayPal is holding the capture as pending."
 
 #: The vault instruction attached to a checkout order that is to save the payer's
 #: account for automatic renewal.
 VAULT_ATTRIBUTES = {"store_in_vault": "ON_SUCCESS", "usage_type": "MERCHANT"}
 
 
-def api_base() -> str:
-    """The PayPal API host: the live one when ``PAYPAL_ENV`` is ``live``, else sandbox."""
-    return LIVE_BASE if settings.PAYPAL_ENV == "live" else SANDBOX_BASE
+def clock() -> float:
+    """Seconds on a clock that only moves forward, for the retry deadline."""
+    return time.monotonic()
 
 
-def unavailable(call_name: str, exc: Exception) -> ProviderUnavailableError:
-    """Log a PayPal call that never completed, and build the error to raise.
+def renewal_refusal(
+    exc: PaymentVerificationError, *, unanswered: bool, creating: bool
+) -> PaymentError:
+    """What a renewal charge makes of PayPal refusing a request about it.
 
-    ``call_name`` is the method and path attempted.  Only the exception's class
-    is recorded, because its message can quote request data.
+    After an earlier try went unanswered PayPal may hold the order whatever it says
+    now, so the charge is in doubt.  Otherwise a refusal of CalDART's own
+    credentials -- a 401 or a 403, or a token PayPal would not give -- says nothing
+    about the payer and is an outage: for a create, one that sent nothing
+    (:class:`RequestNotSentError`).  PayPal calling the order a duplicate of an
+    invoice it was already paid for is a charge in doubt too.  Anything else is
+    the payer's method refused, a decline.
     """
-    log.warning("PayPal %s failed: %s", call_name, type(exc).__name__)
-    return ProviderUnavailableError(UNAVAILABLE_MESSAGE)
+    if unanswered:
+        return PaymentInDoubtError(UNANSWERED_MESSAGE)
+    if not isinstance(exc, PayPalRequestError) or exc.is_authorization:
+        if creating:
+            return RequestNotSentError(UNAVAILABLE_MESSAGE)
+        return ProviderUnavailableError(UNAVAILABLE_MESSAGE)
+    if DUPLICATE_INVOICE in exc.issues:
+        return PaymentInDoubtError(DUPLICATE_INVOICE_MESSAGE)
+    return PaymentDeclinedError(str(exc) or DECLINED_MESSAGE)
 
 
-def segment(value: str) -> str:
-    """``value`` escaped as one URL path segment, for an id spliced into a PayPal path.
+def pause(seconds: float) -> None:
+    """Wait ``seconds`` before asking PayPal again; tests replace it so none waits."""
+    time.sleep(seconds)
 
-    Every character outside the unreserved set is percent-encoded, ``/`` included, so
-    the id can never name another resource: ``"A/../B"`` becomes ``"A%2F..%2FB"``,
-    and a ``?`` or a ``#`` cannot start a query or a fragment.
+
+def renewal_request_id(payment: Payment) -> str:
+    """The ``PayPal-Request-Id`` that ties one off-session order to one renewal payment.
+
+    The renewal scan keeps a payment whose charge it could not finish and charges
+    the same row again, so PayPal answers the repeat with the order it already made.
     """
-    return quote(value, safe="")
-
-
-def credentials() -> tuple[str, str]:
-    """The configured client id and secret.
-
-    Raises :class:`ProviderNotConfiguredError` when either is empty, so an
-    unconfigured PayPal answers 400 rather than 500.
-    """
-    client_id = settings.PAYPAL_CLIENT_ID
-    client_secret = settings.PAYPAL_CLIENT_SECRET
-    if not client_id or not client_secret:
-        raise ProviderNotConfiguredError(
-            "PayPal is not configured (PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET are empty)."
-        )
-    return client_id, client_secret
-
-
-def dollars(cents: int) -> str:
-    """PayPal wants a decimal string, always with two places: 4500 -> ``"45.00"``."""
-    return f"{cents / 100:.2f}"
-
-
-def cents(value: str | float | int) -> int:
-    """Inverse of :func:`dollars`, rounded to the nearest cent.
-
-    Takes the decimal string PayPal sends, or a number.  Raises ``ValueError``
-    for a string that is not a number.
-    """
-    return round(float(value) * 100)
+    return f"caldart-renewal-{payment.pk}"
 
 
 # --------------------------------------------------------------------------
 # OAuth token cache
 # --------------------------------------------------------------------------
-class CachedToken(TypedDict):
-    """The cached OAuth token and the API base and client id it was fetched for."""
-
-    key: list[str]
-    token: str
-
-
-def access_token() -> str:
-    """A valid client-credentials token, fetched at most once per lifetime.
-
-    The token is held in Django's default cache under
-    :data:`TOKEN_CACHE_KEY` for its remaining lifetime less
-    ``TOKEN_SKEW_SECONDS``, so it is never presented after PayPal has dropped it.
-    Whether that cache is shared between worker processes is the cache backend's
-    business: a per-process backend simply costs one token fetch per process.
-    The entry records the API base and client id it was fetched for, so changing
-    either fetches a fresh token rather than presenting one PayPal will refuse.
-    Emptying the cache forces the next call to fetch.
-
-    Raises :class:`ProviderNotConfiguredError` without credentials,
-    :class:`ProviderUnavailableError` when the token call does not complete, and
-    :class:`PaymentVerificationError` when PayPal refuses the credentials or
-    returns no token.
-    """
-    client_id, client_secret = credentials()
-    key = [api_base(), client_id]
-    cached: CachedToken | None = cache.get(TOKEN_CACHE_KEY)
-    if cached is not None and cached["key"] == key:
-        return cached["token"]
-
-    try:
-        response = httpx.post(
-            f"{api_base()}/v1/oauth2/token",
-            auth=(client_id, client_secret),
-            data={"grant_type": "client_credentials"},
-            headers={"Accept": "application/json"},
-            timeout=TIMEOUT_SECONDS,
-        )
-    except httpx.HTTPError as exc:
-        raise unavailable("POST /v1/oauth2/token", exc) from exc
-    if response.status_code != 200:
-        raise PaymentVerificationError(
-            f"PayPal refused our credentials (HTTP {response.status_code})."
-        )
-    try:
-        body = response.json()
-    except ValueError as exc:
-        raise unavailable("POST /v1/oauth2/token", exc) from exc
-    token: str = body.get("access_token") or ""
-    if not token:
-        raise PaymentVerificationError("PayPal returned no access token.")
-
-    lifetime = max(int(body.get("expires_in", 0)) - TOKEN_SKEW_SECONDS, MINIMUM_TOKEN_SECONDS)
-    cache.set(TOKEN_CACHE_KEY, CachedToken(key=key, token=token), timeout=lifetime)
-    return token
-
-
-def call(
-    method: str, path: str, *, json_body: dict[str, Any] | None = None, request_id: str = ""
-) -> dict[str, Any]:
-    """One authenticated Orders v2 call, returning the decoded body.
-
-    ``request_id`` is sent as ``PayPal-Request-Id``, which makes the call
-    idempotent at PayPal: a create repeated under the same id answers with the
-    resource the first call made rather than making a second one.
-
-    Raises :class:`~apps.payments.providers.base.ProviderUnavailableError` when the
-    call never completes, and :class:`PayPalRejectedError`, a
-    :class:`~apps.payments.providers.base.PaymentVerificationError`, when PayPal
-    answers with an error status.  A body that is not JSON is read as an empty
-    dict, so a successful call with an unreadable body returns ``{}``.
-    """
-    headers = {
-        "Authorization": f"Bearer {access_token()}",
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-    }
-    if request_id:
-        headers["PayPal-Request-Id"] = request_id
-    try:
-        response = httpx.request(
-            method,
-            f"{api_base()}{path}",
-            headers=headers,
-            json=json_body,
-            timeout=TIMEOUT_SECONDS,
-        )
-    except httpx.HTTPError as exc:
-        raise unavailable(f"{method} {path}", exc) from exc
-    try:
-        body: dict[str, Any] = response.json()
-    except ValueError:
-        body = {}
-    if response.status_code >= 400:
-        detail = body.get("message") or body.get("name") or f"HTTP {response.status_code}"
-        issues = tuple(
-            str(entry.get("issue") or "")
-            for entry in body.get("details") or []
-            if isinstance(entry, dict)
-        )
-        raise PayPalRejectedError(f"PayPal rejected the request: {detail}", issues)
-    return body
 
 
 # --------------------------------------------------------------------------
 # Capture helpers
 # --------------------------------------------------------------------------
-def completed_captures(order: dict[str, Any]) -> list[dict[str, Any]]:
-    """Every ``COMPLETED`` capture in a capture response.
-
-    Reads ``purchase_units[].payments.captures[]`` and skips a capture in any other
-    state.  An order with no purchase units gives an empty list.
-    """
-    captures: list[dict[str, Any]] = []
-    for unit in order.get("purchase_units") or []:
-        captures.extend(
-            capture
-            for capture in (unit.get("payments") or {}).get("captures") or []
-            if capture.get("status") == "COMPLETED"
-        )
-    return captures
-
-
-def captured_cents(order: dict[str, Any]) -> int:
-    """The total of every ``COMPLETED`` capture in ``order``, in cents.
-
-    An order with no completed capture totals zero.
-    """
-    return sum(cents((c.get("amount") or {}).get("value", 0)) for c in completed_captures(order))
-
-
-def fees_from_capture(capture: dict[str, Any]) -> ProviderFees | None:
-    """What PayPal kept and paid across, from one capture's seller breakdown.
-
-    Reads ``seller_receivable_breakdown.paypal_fee.value`` and
-    ``.net_amount.value``, the decimal strings PayPal reports, and converts both
-    to cents.  Answers ``None`` when the capture carries no breakdown, which is
-    what an order that has not settled looks like, and when either figure cannot
-    be read as a number.
-    """
-    breakdown = capture.get("seller_receivable_breakdown")
-    if not isinstance(breakdown, dict):
-        return None
-    fee = (breakdown.get("paypal_fee") or {}).get("value")
-    net = (breakdown.get("net_amount") or {}).get("value")
-    if fee is None or net is None:
-        return None
-    try:
-        return ProviderFees(fee_cents=cents(fee), net_cents=cents(net))
-    except ValueError:
-        log.warning("PayPal reported a fee that is not a number: %r", fee)
-        return None
-
-
-def fees_from_order(order: dict[str, Any]) -> ProviderFees | None:
-    """The same, from a whole order: the breakdown of its first completed capture.
-
-    Answers ``None`` for an order with no completed capture, and for one whose
-    capture carries no breakdown yet.
-    """
-    captures = completed_captures(order)
-    if not captures:
-        return None
-    return fees_from_capture(captures[0])
-
-
-def capture_id(payment: Payment) -> str:
-    """The id of the capture that took ``payment``'s money, read from its stored order.
-
-    A refund is issued against the capture rather than the order, so this is what
-    the refund call needs.  The first completed capture of the stored order is
-    used, and failing that the completed capture a ``PAYMENT.CAPTURE.COMPLETED``
-    notification filed under :data:`WEBHOOK_CAPTURE_KEY` when it settled the
-    payment.  Raises :class:`PaymentVerificationError` when neither holds one,
-    which is what a payment that was never captured looks like.
-    """
-    raw = payment.raw or {}
-    captures = completed_captures(raw)
-    filed = raw.get(WEBHOOK_CAPTURE_KEY) or {}
-    if not captures and filed.get("status") == "COMPLETED":
-        captures = [filed]
-    found = captures[0].get("id") if captures else None
-    if not found:
-        raise PaymentVerificationError(
-            "That payment has no completed PayPal capture to refund against."
-        )
-    return str(found)
-
-
-def log_capture_mismatch(payment: Payment, captured: int, reason: str) -> None:
-    """Record at ERROR a capture that took money we cannot match to our row.
-
-    PayPal has the money by this point, so the refusal needs a human to
-    reconcile it.  ``captured`` is what PayPal took, in cents, and ``reason`` names
-    the field that disagreed.  The record carries the payment id and both amounts,
-    and no personal data.
-    """
-    log.error(
-        "PayPal capture mismatch (%s) for payment %s: captured %s cents, expected %s cents",
-        reason,
-        payment.pk,
-        captured,
-        payment.amount_cents,
-    )
-
-
-def verify_capture(
-    payment: Payment, capture: dict[str, Any], *, captured: int, order_id: str
-) -> None:
-    """Everything about a completed capture that must match our own row.
-
-    ``capture`` is one completed capture, ``captured`` the total PayPal took for the
-    order in cents, and ``order_id`` the id of the order the capture belongs to.  The
-    capture call and the ``PAYMENT.CAPTURE.COMPLETED`` notification both check here.
-
-    Returns ``None`` when ``captured`` equals the payment's ``amount_cents``, the
-    capture's ``amount.currency_code`` is the payment's currency in any case, the
-    capture's ``custom_id``, when it carries one, is the payment's id, and
-    ``order_id`` is the payment's own ``provider_ref``.  Otherwise records the
-    mismatch through :func:`log_capture_mismatch`, since PayPal holds the money, and
-    raises :class:`PaymentVerificationError` naming the first check that failed.
-    """
-    if captured != payment.amount_cents:
-        log_capture_mismatch(payment, captured, "amount")
-        raise PaymentVerificationError(
-            f"PayPal captured ${captured / 100:,.2f}, not ${payment.amount_cents / 100:,.2f}."
-        )
-
-    currency = str((capture.get("amount") or {}).get("currency_code") or "")
-    if currency.lower() != payment.currency.lower():
-        log_capture_mismatch(payment, captured, "currency")
-        raise PaymentVerificationError("PayPal captured a different currency.")
-
-    custom_id = capture.get("custom_id")
-    if custom_id and str(custom_id) != str(payment.pk):
-        log_capture_mismatch(payment, captured, "custom_id")
-        raise PaymentVerificationError("The PayPal capture belongs to another payment.")
-
-    if not order_id or order_id != payment.provider_ref:
-        log_capture_mismatch(payment, captured, "order")
-        raise PaymentVerificationError("The PayPal capture belongs to another order.")
 
 
 def is_signed_delivery(request: HttpRequest, payload: dict[str, Any]) -> bool:
@@ -431,31 +200,6 @@ def is_signed_delivery(request: HttpRequest, payload: dict[str, Any]) -> bool:
     if not all(request.headers.get(name) for name in TRANSMISSION_HEADERS):
         return False
     return bool(payload.get("id")) and bool(payload.get("event_type"))
-
-
-def belongs_to_payment_order(payment: Payment, capture: dict[str, Any]) -> bool:
-    """Whether a capture notification's resource is a capture of ``payment``'s order.
-
-    True only when the payment holds an order and the resource's related order id
-    is that order, so a ``custom_id`` naming the payment is never enough on its own.
-    """
-    return bool(payment.provider_ref) and related_order_id(capture) == payment.provider_ref
-
-
-def same_currency(payment: Payment, resource: dict[str, Any]) -> bool:
-    """Whether the resource's ``amount.currency_code`` is the payment's currency."""
-    currency = str((resource.get("amount") or {}).get("currency_code") or "")
-    return currency.lower() == payment.currency.lower()
-
-
-def related_order_id(capture: dict[str, Any]) -> str:
-    """The id of the order a capture notification's resource belongs to.
-
-    Read from ``supplementary_data.related_ids.order_id``, where PayPal puts it on a
-    capture; an empty string when the resource carries none.
-    """
-    related = (capture.get("supplementary_data") or {}).get("related_ids") or {}
-    return str(related.get("order_id") or "")
 
 
 @register
@@ -530,7 +274,7 @@ class PayPalProvider(Provider):
         anything but ``COMPLETED``, when it completes the order without a capture,
         and when :func:`verify_capture` finds the captured total, the currency, the
         capture's ``custom_id``, or the order id disagreeing with the payment, and
-        :class:`PayPalRejectedError` when PayPal refuses the capture.  Of those, a
+        :class:`PayPalRequestError` when PayPal refuses the capture.  Of those, a
         status other than ``COMPLETED``, a completed order without a capture, and a
         refusal naming :data:`DECLINED_ISSUE` also mark the payment failed, so the
         order is never captured again; the rest leave it as it was.  A capture that
@@ -551,7 +295,7 @@ class PayPalProvider(Provider):
 
         try:
             order = call("POST", f"/v2/checkout/orders/{segment(order_id)}/capture")
-        except PayPalRejectedError as exc:
+        except PayPalRequestError as exc:
             if DECLINED_ISSUE in exc.issues:
                 # The order body stored at start stays; the refusal is added to it.
                 refusal = {"capture_refused": list(exc.issues)}
@@ -600,7 +344,9 @@ class PayPalProvider(Provider):
     def refund(self, payment: Payment, refund: Refund) -> ProviderRefund:
         """Refund ``refund.amount_cents`` against the capture that took the money.
 
-        Returns PayPal's refund id and the body it answered with.  Raises
+        The call carries ``PayPal-Request-Id: caldart-refund-<refund id>``, so a
+        repeat for the same refund row gives the money back once.  Returns PayPal's
+        refund id and the body it answered with.  Raises
         :class:`PaymentVerificationError` when the payment holds no completed
         capture, when PayPal rejects the refund, and when it answers without a
         refund id, and :class:`ProviderUnavailableError` when PayPal cannot be
@@ -616,6 +362,7 @@ class PayPalProvider(Provider):
                 },
                 "custom_id": str(payment.pk),
             },
+            request_id=f"caldart-refund-{refund.pk}",
         )
         refund_id = answer.get("id")
         if not refund_id:
@@ -832,58 +579,203 @@ class PayPalProvider(Provider):
     def charge_mandate(self, mandate: RenewalMandate, payment: Payment) -> None:
         """Create an order against the vaulted account and capture it at once.
 
-        Marks the payment succeeded when PayPal completes a capture for the right
-        amount.  The order is created under ``PayPal-Request-Id:
-        caldart-renewal-<payment id>``, matching Stripe's idempotency key, so a
-        scan interrupted between the order and its capture takes no second
-        payment when it runs again.  Raises :class:`PaymentDeclinedError` when
-        PayPal will not take the vaulted method, and
-        :class:`ProviderUnavailableError` when PayPal cannot be reached.
+        The vaulted account charged is the one stamped on the payment when it was
+        first sent (``charge_method_ref``), falling back to the mandate's own.  The
+        order is created by :meth:`create_renewal_order` under ``PayPal-Request-Id:
+        caldart-renewal-<payment id>``, with that same string as the purchase
+        unit's ``invoice_id``, and settled by :meth:`settle_renewal_order`, which
+        stores the order's id as ``provider_ref`` before any separate capture.
+        Raises :class:`PaymentDeclinedError` when PayPal will not take the vaulted
+        method or there is none, :class:`PaymentPendingError` when PayPal holds the
+        capture as ``PENDING``, :class:`PaymentInDoubtError` when the create never
+        answered or PayPal refuses the invoice as a duplicate, and
+        :class:`ProviderUnavailableError` when the capture cannot be asked for.
         """
-        try:
-            order = call(
-                "POST",
-                "/v2/checkout/orders",
-                json_body={
-                    "intent": "CAPTURE",
-                    "purchase_units": [
-                        {
-                            "reference_id": f"payment-{payment.pk}",
-                            "custom_id": str(payment.pk),
-                            "description": f"CalDART \u00b7 {payment.description}"[:127],
-                            "amount": {
-                                "currency_code": payment.currency.upper(),
-                                "value": dollars(payment.amount_cents),
-                            },
-                        }
-                    ],
-                    "payment_source": {"paypal": {"vault_id": mandate.method_ref}},
-                },
-                request_id=f"caldart-renewal-{payment.pk}",
-            )
-        except PaymentVerificationError as exc:
-            raise PaymentDeclinedError(str(exc) or DECLINED_MESSAGE) from exc
+        method_ref = payment.charge_method_ref or mandate.method_ref
+        if not method_ref:
+            raise PaymentDeclinedError(NO_METHOD_MESSAGE)
+        order = self.create_renewal_order(
+            payment,
+            {
+                "intent": "CAPTURE",
+                "purchase_units": [
+                    {
+                        "reference_id": f"payment-{payment.pk}",
+                        "custom_id": str(payment.pk),
+                        "invoice_id": renewal_request_id(payment),
+                        "description": f"CalDART \u00b7 {payment.description}"[:127],
+                        "amount": {
+                            "currency_code": payment.currency.upper(),
+                            "value": dollars(payment.amount_cents),
+                        },
+                    }
+                ],
+                "payment_source": {"paypal": {"vault_id": method_ref}},
+            },
+        )
+        self.settle_renewal_order(payment, order)
 
+    def create_renewal_order(self, payment: Payment, body: dict[str, Any]) -> dict[str, Any]:
+        """Create the renewal order, retrying a create that never answered.
+
+        PayPal keeps a ``PayPal-Request-Id`` for a few hours and offers no search of
+        orders by our reference, so a create that never answers is tried again at
+        once, under the same id, after each of :data:`CREATE_RETRY_SECONDS`, for no
+        longer than :data:`CREATE_DEADLINE_SECONDS` in all: a repeat answers with
+        the order the first call made, if it made one.
+
+        Once any try has gone unanswered PayPal may hold an order, so every answer
+        but the order itself raises :class:`PaymentInDoubtError` --
+        :class:`PaymentUnansweredError` when PayPal answers nothing at all.  Before
+        that, a request that never left (:class:`RequestNotSentError`) and PayPal
+        refusing CalDART's credentials (a 401 or a 403, or a token it would not
+        give) raise :class:`RequestNotSentError`, since PayPal took nothing; PayPal
+        refusing the order as a duplicate of an invoice it was already paid for
+        (``DUPLICATE_INVOICE_ID``) raises :class:`PaymentInDoubtError`; and any other
+        refusal raises :class:`PaymentDeclinedError`.
+        """
+        started = clock()
+        unanswered = False
+        for delay in (*CREATE_RETRY_SECONDS, None):
+            try:
+                return call(
+                    "POST",
+                    "/v2/checkout/orders",
+                    json_body=body,
+                    request_id=renewal_request_id(payment),
+                )
+            except RequestNotSentError as exc:
+                if not unanswered:
+                    raise
+                log.warning("PayPal could not be asked again about payment %s", payment.pk)
+                if delay is None or clock() - started + delay > CREATE_DEADLINE_SECONDS:
+                    raise PaymentUnansweredError(UNANSWERED_MESSAGE) from exc
+            except ProviderUnavailableError as exc:
+                unanswered = True
+                if delay is None or clock() - started + delay > CREATE_DEADLINE_SECONDS:
+                    raise PaymentUnansweredError(UNANSWERED_MESSAGE) from exc
+                log.warning(
+                    "PayPal did not answer the renewal order for payment %s; "
+                    "asking again in %s seconds",
+                    payment.pk,
+                    delay,
+                )
+            except PaymentVerificationError as exc:
+                raise renewal_refusal(exc, unanswered=unanswered, creating=True) from exc
+            if delay is not None:
+                pause(delay)
+        raise PaymentUnansweredError(UNANSWERED_MESSAGE)
+
+    def find_mandate_charge(self, mandate: RenewalMandate, payment: Payment) -> bool:
+        """Settle ``payment`` from the order an earlier charge made, or say there is none.
+
+        A payment that names its order has it read again and settled by
+        :meth:`settle_renewal_order`, captured first when it never was, and the
+        answer is ``True``.  One that names no order and was never sent, or was sent
+        less than :data:`REQUEST_ID_RETENTION` ago, answers ``False``: charging again
+        repeats the create under the same ``PayPal-Request-Id``, which PayPal answers
+        with the order it already made.  One sent longer ago than that names an
+        order PayPal may hold and no longer recognize the id of, and raises
+        :class:`PaymentInDoubtError` rather than risk a second charge.  Raises
+        :class:`PaymentDeclinedError` when PayPal refuses to show the order, and
+        :class:`ProviderUnavailableError` when it cannot be reached or refuses
+        CalDART's credentials.
+        """
+        if not payment.provider_ref:
+            sent_at = payment.charge_sent_at
+            if sent_at is None or timezone.now() - sent_at < REQUEST_ID_RETENTION:
+                return False
+            raise PaymentInDoubtError(UNANSWERED_MESSAGE)
+        try:
+            order = call("GET", f"/v2/checkout/orders/{segment(payment.provider_ref)}")
+        except PaymentVerificationError as exc:
+            raise renewal_refusal(exc, unanswered=False, creating=False) from exc
+        self.settle_renewal_order(payment, order)
+        return True
+
+    def settle_renewal_order(self, payment: Payment, order: dict[str, Any]) -> None:
+        """Capture a vault-sourced renewal order if it needs it, and record the result.
+
+        Stores the order's id as ``provider_ref``, captures an order that is not yet
+        ``COMPLETED`` under ``PayPal-Request-Id: caldart-renewal-<payment id>-capture``,
+        and marks the payment succeeded once :func:`verify_capture` agrees with the
+        completed capture: its total, its currency, and its order.  Raises
+        :class:`PaymentDeclinedError` when the capture is refused or the order does
+        not complete, :class:`PaymentPendingError` when its only capture is
+        ``PENDING``, :class:`PaymentInDoubtError` when PayPal captured money the
+        checks do not match, which a person has to reconcile, and
+        :class:`ProviderUnavailableError` when the capture cannot be asked for.
+        """
         order_id = str(order.get("id") or "")
+        if order_id and order_id != payment.provider_ref:
+            payment.provider_ref = order_id
+            payment.save(update_fields=["provider_ref", "updated_at"])
         if order.get("status") != "COMPLETED":
             try:
-                order = call("POST", f"/v2/checkout/orders/{segment(order_id)}/capture")
+                order = call(
+                    "POST",
+                    f"/v2/checkout/orders/{segment(order_id)}/capture",
+                    request_id=f"{renewal_request_id(payment)}-capture",
+                )
             except PaymentVerificationError as exc:
-                raise PaymentDeclinedError(str(exc) or DECLINED_MESSAGE) from exc
+                raise renewal_refusal(exc, unanswered=False, creating=False) from exc
 
         if order.get("status") != "COMPLETED":
             raise PaymentDeclinedError(DECLINED_MESSAGE)
-        total = captured_cents(order)
-        if total != payment.amount_cents:
-            log_capture_mismatch(payment, total, "amount")
-            raise PaymentVerificationError(
-                f"PayPal captured ${total / 100:,.2f}, not ${payment.amount_cents / 100:,.2f}."
-            )
+        captures = completed_captures(order)
+        if not captures:
+            if captures_with_status(order, "PENDING"):
+                raise PaymentPendingError(PENDING_MESSAGE)
+            raise PaymentDeclinedError(DECLINED_MESSAGE)
+        try:
+            verify_capture(payment, captures[0], captured=captured_cents(order), order_id=order_id)
+        except PaymentVerificationError as exc:
+            raise PaymentInDoubtError(str(exc)) from exc
         mark_succeeded(
             payment,
             wallet=PaymentWallet.PAYPAL,
             raw=order,
             provider_ref=order_id or payment.provider_ref,
+        )
+
+    def record_charge_reference(self, payment: Payment, reference: str) -> None:
+        """Mark ``payment`` paid from the PayPal capture ``reference``, once checked.
+
+        ``reference`` is the capture id a treasurer copied from PayPal's dashboard.
+        The capture is read from PayPal -- one call -- and must be ``COMPLETED``,
+        carry this payment's ``custom_id`` or ``invoice_id``, and be for the
+        payment's amount and currency.  The payment then succeeds with its capture's
+        order as ``provider_ref`` and the capture filed under
+        :data:`WEBHOOK_CAPTURE_KEY`, exactly as the capture notification files it, so
+        a later refund finds it.  Raises :class:`PaymentVerificationError` naming the
+        first check that fails, a capture PayPal has no record of included, and
+        :class:`ProviderUnavailableError` when PayPal cannot be reached or refuses
+        CalDART's credentials.
+        """
+        try:
+            capture = call("GET", f"/v2/payments/captures/{segment(reference)}")
+        except PayPalRequestError as exc:
+            if exc.is_authorization:
+                raise ProviderUnavailableError(UNAVAILABLE_MESSAGE) from exc
+            raise PaymentVerificationError(f"PayPal has no capture {reference}.") from exc
+        if capture.get("status") != "COMPLETED":
+            raise PaymentVerificationError("That PayPal capture has not completed.")
+        ours = {str(payment.pk), renewal_request_id(payment)}
+        if not {str(capture.get("custom_id") or ""), str(capture.get("invoice_id") or "")} & ours:
+            raise PaymentVerificationError("That PayPal capture belongs to another payment.")
+        amount = capture.get("amount") or {}
+        if cents(amount.get("value", 0)) != payment.amount_cents:
+            raise PaymentVerificationError("That PayPal capture is for another amount.")
+        if str(amount.get("currency_code") or "").lower() != payment.currency.lower():
+            raise PaymentVerificationError("That PayPal capture is in another currency.")
+        order_id = related_order_id(capture)
+        if not order_id:
+            raise PaymentVerificationError("PayPal names no order for that capture.")
+        mark_succeeded(
+            payment,
+            wallet=PaymentWallet.PAYPAL,
+            raw={**(payment.raw or {}), WEBHOOK_CAPTURE_KEY: capture},
+            provider_ref=order_id,
         )
 
     def method_from_payment(self, payment: Payment) -> MandateMethod | None:
