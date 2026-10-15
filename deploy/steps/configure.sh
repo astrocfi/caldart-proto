@@ -21,7 +21,11 @@
 # default is left alone: that site owns HSTS for the host.
 # Everything else, comments included, stays as the template has it.  With
 # --email local, a note (not an error) says so when nothing listens on port 25:
-# mail fails until postfix is installed and listening on localhost.
+# mail fails until postfix is installed and listening on localhost.  With
+# --bounce-address, another note says so when this machine's postfix delivers that
+# address's domain without plus addresses (recipient_delimiter has no +): every
+# message goes out from the bounce address with a signed +tag, so the bounce
+# mailbox must accept bounces+tag@.
 #
 # When the file exists this step leaves it alone but for one line: it sets
 # CALDART_GUNICORN_PORT to the recorded port, replacing the line or adding it,
@@ -47,8 +51,8 @@
 #   --bounce-imap-url URL  BOUNCE_IMAP_URL, the mailbox the bounce check reads
 #                          (imaps://user:password@host[:port]/MAILBOX); default: off
 #   --bounce-address ADDRESS
-#                          BOUNCE_ADDRESS, the envelope sender bounces return to
-#                          (default: DEFAULT_FROM_EMAIL)
+#                          BOUNCE_ADDRESS, the address bounces return to, signed
+#                          per message with a plus tag (default: DEFAULT_FROM_EMAIL)
 #   --dry-run              print every state-changing command instead of running it
 #   --help                 show this help
 #
@@ -136,6 +140,24 @@ note_local_mail() {
         "installed and listening on localhost."
 }
 
+# Say so when this machine's postfix delivers the domain of --bounce-address but
+# without plus addresses.  Every message goes out from the bounce address with a
+# signed +tag, so a mailbox that refuses bounces+tag@ never sees a report.  The
+# installer leaves postfix's configuration to its operator, as above.
+note_plus_addresses() {
+    [[ -n "$BOUNCE_ADDRESS" ]] || return 0
+    command -v postconf >/dev/null 2>&1 || return 0
+    local domain="${BOUNCE_ADDRESS##*@}" delimiter local_domains
+    delimiter="$(postconf -h recipient_delimiter 2>/dev/null)" || return 0
+    [[ "$delimiter" != *+* ]] || return 0
+    local_domains="$(postconf -xh mydestination virtual_mailbox_domains virtual_alias_domains \
+        2>/dev/null)" || return 0
+    local_domains=" $(printf '%s' "${local_domains,,}" | tr ',\n' '  ') "
+    [[ "$local_domains" == *" ${domain,,} "* ]] || return 0
+    note "This machine's postfix delivers mail for $domain without plus addresses: set" \
+        "recipient_delimiter = + in main.cf, so bounce reports reach $BOUNCE_ADDRESS."
+}
+
 # The owner and group the environment file is written with: root and the
 # service's group in /etc/caldart, and whoever runs the step anywhere else.
 env_file_owner() {
@@ -197,6 +219,7 @@ configure_step() {
     log "Writing $ENV_FILE"
     printf '    with CALDART_GUNICORN_PORT=%s\n' "$CALDART_GUNICORN_PORT"
     note_local_mail
+    note_plus_addresses
     local names=() origins=() name
     mapfile -t names < <(site_names)
     for name in "${names[@]}"; do

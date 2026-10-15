@@ -292,9 +292,11 @@ DJANGO_VITE = {
 MAILERS = {"default": default_mailer(env.email_url("EMAIL_URL", default="smtp://localhost:1025"))}
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="CalDART <noreply@caldart.example.org>")
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
-# The envelope sender (the Return-Path) of every message ``caldart.mail`` sends, where a
-# receiving server returns a message it cannot deliver; the ``From`` header stays
-# ``DEFAULT_FROM_EMAIL``.  Blank sends the envelope from ``DEFAULT_FROM_EMAIL`` too.
+# The address the envelope sender (the Return-Path) of every message ``caldart.mail``
+# sends is made from, signed per message with a plus tag naming its email log row, where
+# a receiving server returns a message it cannot deliver; the ``From`` header stays
+# ``DEFAULT_FROM_EMAIL``.  Blank sends the envelope from ``DEFAULT_FROM_EMAIL`` too and
+# turns bounce checking off.
 BOUNCE_ADDRESS = env("BOUNCE_ADDRESS", default="")
 # The mailbox ``manage.py check_bounces`` reads the returned reports from, as
 # ``imaps://user:password@host[:port]/MAILBOX``.  Blank turns bounce checking off.

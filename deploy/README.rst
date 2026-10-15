@@ -252,9 +252,13 @@ These are every option ``install.sh`` accepts (``sudo deploy/install.sh
    credentials URL-encoded.  Quote it: it holds a password.  Without it bounce
    checking stays off (``docs/developer/email.rst``, *Bounces*).
 ``--bounce-address ADDRESS``
-   ``BOUNCE_ADDRESS``, the envelope sender a refused message is returned to:
-   the bounce mailbox's own address.  Default empty, which returns bounces to
-   ``DEFAULT_FROM_EMAIL``.
+   ``BOUNCE_ADDRESS``, the address a refused message is returned to: the
+   bounce mailbox's own address.  Each message goes out from it with a signed
+   plus tag (``bounces+<id>.<signature>@``), so the mailbox must accept plus
+   addresses; when this machine's postfix delivers the address's domain without
+   ``recipient_delimiter = +`` the install says so in a note.  Default empty,
+   which returns bounces to ``DEFAULT_FROM_EMAIL`` and leaves bounce checking
+   off.
 ``--admin-email ADDRESS``
    Create the first administrator with this address (or give an existing
    account with that address the administrator's roles).
@@ -572,7 +576,7 @@ sandbox (``ProtectSystem=strict``, no capabilities).
      - yearly, January 15 at 06:45
    * - ``caldart-bounces.timer``
      - ``manage.py check_bounces``; says bounce checking is off while
-       ``BOUNCE_IMAP_URL`` is empty
+       ``BOUNCE_IMAP_URL`` or ``BOUNCE_ADDRESS`` is empty
      - hourly, at twenty past
    * - ``caldart-bulk-email.timer``
      - ``manage.py send_bulk_emails``; sends each bulk email whose start time
@@ -701,6 +705,17 @@ Send a test message through the configured path::
 
 and read ``journalctl -u postfix`` (or the relay's logs) for its delivery.
 ``docs/developer/email.rst`` covers the DNS records and the email log.
+
+A postfix that also delivers the bounce mailbox (its domain is one this
+postfix receives for) must accept plus addresses, since every message goes out
+from ``bounces+<id>.<signature>@`` the bounce domain::
+
+  sudo postconf -e 'recipient_delimiter = +'
+  sudo postfix reload
+
+A hosted bounce mailbox needs the provider's plus addressing (or subaddressing)
+turned on; ``docs/developer/email.rst``, *Setting up the mailbox*, says how to
+check it.
 
 Check the site
 --------------

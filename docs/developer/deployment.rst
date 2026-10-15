@@ -144,8 +144,10 @@ The flags:
        ``imaps://user:password@host[:port]/MAILBOX`` (:ref:`email-bounces`)
      - empty: bounce checking off
    * - ``--bounce-address ADDRESS``
-     - ``BOUNCE_ADDRESS``: the envelope sender a refused message is returned to
-     - empty: ``DEFAULT_FROM_EMAIL``
+     - ``BOUNCE_ADDRESS``: the address a refused message is returned to, signed
+       per message with a plus tag, so its mailbox must accept plus addresses
+       (:ref:`email-bounces`)
+     - empty: ``DEFAULT_FROM_EMAIL``, and bounce checking off
    * - ``--admin-email ADDRESS``
      - create the first administrator
      - none
@@ -772,7 +774,13 @@ With ``--email local`` the step checks with ``ss -ltnH "sport = :25"`` that
 something listens on port 25, and, when nothing does, prints a note on standard
 error (not an error: the install carries on) that mail fails until postfix is
 installed and listening on localhost.  The installer installs no mail server;
-:ref:`email-local-postfix` describes what the machine's postfix needs.  Everything else,
+:ref:`email-local-postfix` describes what the machine's postfix needs.  With
+``--bounce-address``, when ``postconf`` is on the machine and its postfix delivers
+the address's domain (it is in ``mydestination``, ``virtual_mailbox_domains``, or
+``virtual_alias_domains``) while ``recipient_delimiter`` holds no ``+``, the step
+prints another note: the bounce mailbox must accept plus addresses, so set
+``recipient_delimiter = +`` in ``main.cf`` (:ref:`email-bounces`).  The step changes
+nothing in postfix itself.  Everything else,
 comments included, stays as the template has it, so the file still explains
 itself: the throttle rates, ``GEOAPIFY_API_KEY`` (the key behind the profile
 form's address suggestions, which stay off while it is blank), and the Stripe
@@ -1613,9 +1621,9 @@ and nothing twice.  It reads the bounce mailbox ``BOUNCE_IMAP_URL`` names over
 IMAPS, marks every email a permanent-failure report matches as bounced, and
 flags the address on its account; it needs the database and an outbound
 connection to the mailbox's IMAP server, from the same
-``/etc/caldart/caldart.env``.  With ``BOUNCE_IMAP_URL`` empty, as the installer
-leaves it without ``--bounce-imap-url``, each run says bounce checking is off and
-exits cleanly; a mailbox it cannot reach or sign in to fails the unit.  Rehearse
+``/etc/caldart/caldart.env``.  With ``BOUNCE_IMAP_URL`` or ``BOUNCE_ADDRESS``
+empty, as the installer leaves them without ``--bounce-imap-url`` and
+``--bounce-address``, each run says bounce checking is off and exits cleanly; a mailbox it cannot reach or sign in to fails the unit.  Rehearse
 it any time with ``sudo deploy/manage.sh check_bounces --dry-run``.  See
 :ref:`email-bounces` for setting up the mailbox and what a run marks.
 

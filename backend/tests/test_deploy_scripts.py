@@ -1064,6 +1064,81 @@ def test_configure_reports_ignored_bounce_flags(
     assert f"{flag} is ignored" in result.stdout
 
 
+#: The note ``configure.sh`` prints when this machine's postfix delivers the bounce
+#: address's domain without plus addresses.
+PLUS_ADDRESS_NOTE: Final = (
+    "This machine's postfix delivers mail for caldart.test without plus addresses: set "
+    "recipient_delimiter = + in main.cf, so bounce reports reach bounces@caldart.test."
+)
+
+
+def _postfix_path(tmp_path: Path, *, delimiter: str, local_domains: str) -> str:
+    """A ``PATH`` whose ``postconf`` answers ``delimiter`` and ``local_domains``.
+
+    ``postconf -h recipient_delimiter`` prints ``delimiter``, and ``postconf -xh
+    mydestination virtual_mailbox_domains virtual_alias_domains`` prints
+    ``local_domains`` and two empty lines, as a postfix delivering those domains does.
+    """
+    shims = tmp_path / "postfix"
+    shims.mkdir()
+    (shims / "postconf").write_text(
+        "#!/bin/sh\n"
+        'case "$*" in\n'
+        f"    '-h recipient_delimiter') echo '{delimiter}' ;;\n"
+        f"    '-xh mydestination virtual_mailbox_domains virtual_alias_domains')"
+        f" printf '%s\\n\\n\\n' '{local_domains}' ;;\n"
+        "    *) exit 1 ;;\n"
+        "esac\n"
+    )
+    (shims / "postconf").chmod(0o755)
+    return f"{shims}:{os.environ['PATH']}"
+
+
+@pytest.mark.parametrize(
+    ("delimiter", "local_domains", "noted"),
+    [
+        ("", "caldart.test, localhost", True),
+        ("", "mail.caldart.test, localhost", False),
+        ("+", "caldart.test, localhost", False),
+        ("-+", "Caldart.Test", False),
+        ("-", "localhost CalDART.test", True),
+    ],
+    ids=["no-delimiter", "other-domain", "plus", "plus-among-others", "dash-only"],
+)
+def test_configure_notes_a_local_bounce_mailbox_without_plus_addresses(
+    delimiter: str, local_domains: str, noted: bool, root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """The note appears when this postfix delivers the bounce domain without a ``+``."""
+    result = _configure(
+        root,
+        etc,
+        "--hostname",
+        "caldart.test",
+        "--email-url",
+        "smtp://x:25",
+        "--bounce-address",
+        "bounces@caldart.test",
+        PATH=_postfix_path(tmp_path, delimiter=delimiter, local_domains=local_domains),
+    )
+    assert (PLUS_ADDRESS_NOTE in result.stderr.splitlines()) is noted
+
+
+def test_configure_without_a_bounce_address_says_nothing_of_plus_addresses(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """With no ``--bounce-address`` there is no bounce mailbox to note."""
+    result = _configure(
+        root,
+        etc,
+        "--hostname",
+        "caldart.test",
+        "--email-url",
+        "smtp://x:25",
+        PATH=_postfix_path(tmp_path, delimiter="", local_domains="caldart.test"),
+    )
+    assert "recipient_delimiter" not in result.stderr
+
+
 def test_configure_without_www_names_one_host(root: Path, etc: Path) -> None:
     """``--no-www`` leaves the ``www.`` form out of ``ALLOWED_HOSTS``."""
     _configure(root, etc, "--hostname", "caldart.test", "--no-www", "--email-url", "smtp://x:25")
