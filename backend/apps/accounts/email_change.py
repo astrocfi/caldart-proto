@@ -6,7 +6,7 @@ address as the account's ``pending_email`` and mails it a link; the account keep
 signing in with the address it has until somebody follows that link
 (:func:`complete_email_change`), which proves the new mailbox and makes the change.  A
 later request replaces the pending address, and a new password drops it, so an older
-link no longer matches and does nothing: the link is signed over the password the
+link no longer matches and doesn't do anything: the link is signed over the password the
 account had when it was made, as a password reset link is.
 
 The address the account had is told twice, when the change is asked for and when it
@@ -24,7 +24,7 @@ can never mint an undo link of their own that outranks its owner's.  An undo lin
 works once: following one spends every undo link made before it.
 
 A donor cannot sign in, so a donor's address is only where receipts go: it changes at
-once, with nothing mailed.
+once, without mailing anything.
 """
 
 from __future__ import annotations
@@ -96,7 +96,7 @@ def recent_change_refused(until: datetime) -> str:
 
 
 class EmailChangeUndoError(DomainValidationError):
-    """An undo link that proves nothing or cannot apply, reported against ``token``."""
+    """An undo link that doesn't prove anything or cannot apply, reported on ``token``."""
 
     def __init__(self, message: str = UNDO_INVALID) -> None:
         """Store ``message`` as the complaint about the ``token`` field."""
@@ -130,7 +130,7 @@ class UndoneChange(TypedDict):
 # The recovery address
 # --------------------------------------------------------------------------
 def recovery_address(user: User) -> str:
-    """The recovery address ``user`` keeps now, or ``""`` when it keeps none."""
+    """The recovery address ``user`` keeps now, or ``""`` when it doesn't keep one."""
     if user.recovery_email == "" or user.recovery_until is None:
         return ""
     return user.recovery_email if user.recovery_until > timezone.now() else ""
@@ -178,7 +178,7 @@ def request_email_change(
     """Ask for ``target``'s sign-in address to become ``email`` on ``actor``'s behalf.
 
     ``email`` is stripped.  An address equal to the one the account holds, compared
-    case-insensitively, is no change: nothing is written, nothing is mailed, and the
+    case-insensitively, isn't a change: nothing is written, nothing is mailed, and the
     account is returned as it was.  Otherwise, in this order:
 
     #. the account-edit guard (:func:`apps.accounts.services.check_account_edit`): an
@@ -192,13 +192,13 @@ def request_email_change(
        on exactly as for a free address, so that nothing the caller can see afterwards
        says whether the address was taken.
 
-    A refusal changes nothing.  A donor's address is then written at once, audited as
-    ``account.update`` of ``email``, and nothing is mailed.  For anybody else the
-    address is stored as ``pending_email``, replacing any earlier one, and the request
-    is audited as ``account.email_change_request``.  Two messages follow: the link that
-    completes the change, to the new address (:func:`send_email_change_link`, which
-    sends nothing when another account holds the address, and whose link could never
-    complete the change then), and a notice with a link that undoes it, to the
+    A refusal doesn't change anything.  A donor's address is then written at once,
+    audited as ``account.update`` of ``email``, and nothing is mailed.  For anybody else
+    the address is stored as ``pending_email``, replacing any earlier one, and the
+    request is audited as ``account.email_change_request``.  Two messages follow: the
+    link that completes the change, to the new address (:func:`send_email_change_link`,
+    which doesn't send anything when another account holds the address, and whose link
+    could never complete the change then), and a notice with a link that undoes it, to the
     recovery address while one is kept, or else to the account's address when its owner
     verified it (:func:`send_email_change_notice`).  They are sent once the transaction
     commits, or, given ``mailings``, appended to it for the caller to send, as
@@ -282,9 +282,9 @@ def send_email_change_link(user: User, *, requested_by: int | None = None) -> No
     ``new_email``, ``confirm_url`` (``/portal/verify-email?token=...``),
     ``expiry_days`` (``EMAIL_VERIFICATION_TIMEOUT`` in whole days, at least one),
     ``site_url``, ``org_name`` and ``contact_email``; the address the account signs in
-    with now is not shown to the new address's holder.  An account with no pending
-    address is sent nothing, and neither is a pending address another account holds or
-    keeps for recovery: its holder did not ask for anything, and the link could never
+    with now is not shown to the new address's holder.  Nothing is sent to an
+    account without a pending address, or to a pending address another account holds
+    or keeps for recovery: its holder did not ask for anything, and the link could never
     complete the change.
     """
     if user.pending_email == "" or address_taken(user.pending_email, by_other_than=user):
@@ -313,7 +313,8 @@ def follow_verification_link(token: str, *, password: str = "") -> FollowedLink:
 
     A link that completes a change of address goes to :func:`complete_email_change`;
     any other goes to :func:`apps.accounts.services.verify_email` with ``password``.
-    Raises what those raise: ``EmailVerificationError`` for a link that proves nothing.
+    Raises what those raise: ``EmailVerificationError`` for a link that doesn't prove
+    anything.
     """
     try:
         payload = signing.loads(
@@ -334,8 +335,8 @@ def complete_email_change(payload: object) -> FollowedLink:
     all spend it.  Every other way a link is unusable raises ``EmailVerificationError``
     with the message every unusable verification link gets.  A link followed again
     once the account already holds its address answers as the first visit did and
-    changes nothing.  When another account holds the address meanwhile, or keeps it as
-    its recovery address, or takes it while this one is completing,
+    doesn't change anything.  When another account holds the address meanwhile, or
+    keeps it as its recovery address, or takes it while this one is completing,
     ``EmailVerificationError`` says :data:`ADDRESS_TAKEN` and nothing changes.
 
     Completing the change writes the pending address as the account's ``email``, as it was
@@ -519,12 +520,12 @@ def undo_email_change(token: str) -> UndoneChange:
 
     Raises :class:`EmailChangeUndoError` with :data:`UNDO_INVALID` when the token's
     signature does not match, when it is older than :data:`EMAIL_CHANGE_UNDO_TIMEOUT`
-    seconds, when it names no account or a donor's, when an undo link has already been
-    followed for the account since this one was made (each undo spends every link
-    issued before it, this one included), and when the account keeps a recovery
-    address other than the one the link was mailed to: only the recovery address's
-    links count while it is kept.  The account's row is locked while it is read, so two
-    clicks at once take turns and the second is refused.
+    seconds, when it doesn't name an account, or names a donor's, when an undo link has
+    already been followed for the account since this one was made (each undo spends
+    every link issued before it, this one included), and when the account keeps a
+    recovery address other than the one the link was mailed to: only the recovery
+    address's links count while it is kept.  The account's row is locked while it is
+    read, so two clicks at once take turns and the second is refused.
 
     When the account no longer holds the address the link was mailed to, that address
     is put back, as signed, and stamped verified, since the link could only have
@@ -611,7 +612,7 @@ def _close(user: User) -> None:
     The caller cancels its standing payment authorities and suspends its membership
     terms, as for any deactivation.  The deactivation and the block are audited as
     ``account.deactivate`` and ``account.block`` with the account as actor, recorded in
-    its history, and the ``account_deactivated`` event is raised with no actor, which
+    its history, and the ``account_deactivated`` event is raised without an actor, which
     is how the people subscribed to it, the user administrators among them, hear of it.
     """
     was_active = user.is_active

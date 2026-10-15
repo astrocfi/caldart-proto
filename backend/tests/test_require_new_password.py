@@ -39,7 +39,7 @@ pytestmark = pytest.mark.django_db
 
 REACTIVATE_URL = "/api/v1/auth/reactivate"
 
-DONOR_REFUSED = {"detail": "A donor cannot sign in, so there is no password to replace."}
+DONOR_REFUSED = {"detail": "A donor cannot sign in, so there isn't a password to replace."}
 SELF_REFUSED = {
     "detail": "You cannot require a new password for your own account. Use Change password instead."
 }

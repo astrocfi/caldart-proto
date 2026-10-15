@@ -189,7 +189,9 @@ def test_a_donor_session_cannot_reach_deactivate(
 
 def test_deactivating_a_donor_is_refused_with_a_sentence(donor: User) -> None:
     """The service refuses a donor too, naming why."""
-    with pytest.raises(DomainError, match=r"^A donor has no portal account to deactivate\.$"):
+    with pytest.raises(
+        DomainError, match=r"^A donor doesn't have a portal account to deactivate\.$"
+    ):
         deactivate_own_account(donor)
 
 

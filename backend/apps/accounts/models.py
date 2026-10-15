@@ -24,8 +24,8 @@ class AccountKind(models.TextChoices):
     """What kind of person an account belongs to.
 
     A ``MEMBER`` pays dues and is expected to keep paying; a ``FRIEND`` has a portal
-    account and no dues, so is never current and never expired; a ``DONOR`` gave
-    through the public site, holds no password and no role, and cannot sign in.
+    account but doesn't pay dues, so is never current and never expired; a ``DONOR``
+    gave through the public site, doesn't hold a password or a role, and cannot sign in.
     """
 
     MEMBER = "member", "Member"
@@ -98,13 +98,13 @@ class UserManager(DjangoUserManager["User"]):
 
         Authentication and ``manage.py`` both reach this.  Raises ``User.DoesNotExist``
         when no account matches, including when ``username`` is ``None``: the column is
-        never null, so a null lookup matches nothing.
+        never null, so a null lookup doesn't match anything.
         """
         return self.get(email__iexact=username)
 
 
 class User(AbstractUser):
-    """Site user.  ``email`` is the login; there is no ``username``."""
+    """Site user.  ``email`` is the login; there isn't a ``username``."""
 
     username = None  # type: ignore[assignment]
     email = models.EmailField("email address", unique=True)
@@ -121,7 +121,7 @@ class User(AbstractUser):
     #: ``email_bounce_detail``, when the address changes, when it is verified, and by a
     #: user administrator's **Clear bounce**.
     email_bounced_at = models.DateTimeField(null=True, blank=True)
-    #: That report's status code and diagnostic text, or ``""`` with no bounce known.
+    #: That report's status code and diagnostic text, or ``""`` until a bounce is known.
     email_bounce_detail = models.CharField(max_length=255, blank=True)
     #: The address a requested change of sign-in address moves the account to, or
     #: ``""`` when no change is waiting.  The account keeps signing in with ``email``
@@ -133,9 +133,9 @@ class User(AbstractUser):
     #: The verified address a completed change of address moved the account away from,
     #: kept until ``recovery_until`` so that its owner can undo the change: while it is
     #: kept the address is reserved for this account, the account's own address cannot
-    #: change again, and only an undo link mailed to it counts.  ``""`` with none kept.
+    #: change again, and only an undo link mailed to it counts.  ``""`` when none is kept.
     recovery_email = models.EmailField("recovery email address", blank=True)
-    #: When ``recovery_email`` stops being kept; ``None`` with none kept.
+    #: When ``recovery_email`` stops being kept; ``None`` when none is kept.
     recovery_until = models.DateTimeField(null=True, blank=True)
     #: The kind of person the account belongs to, as stored: what they asked for.  A
     #: member with a ``friend_on`` date that has arrived, or who has not yet paid,
@@ -201,7 +201,7 @@ class User(AbstractUser):
         return f"{self.first_name} {self.last_name}".strip()
 
     def get_short_name(self) -> str:
-        """The first name, or the email address when there is no first name."""
+        """The first name, or the email address when the first name is blank."""
         return self.first_name or self.email
 
     @property
@@ -229,8 +229,8 @@ class User(AbstractUser):
     def has_any_role(self, *slugs: str) -> bool:
         """True when the user holds at least one of ``slugs``.
 
-        A ``system_admin`` passes whatever ``slugs`` names.  Passing no slug at all is
-        False for everyone but a system administrator.
+        A ``system_admin`` passes whatever ``slugs`` names.  Passing an empty
+        ``slugs`` is False for everyone but a system administrator.
         """
         held = set(self.roles)
         if SYSTEM_ADMIN in held:
@@ -240,8 +240,8 @@ class User(AbstractUser):
     def add_role(self, slug: str) -> None:
         """Give the user the role ``slug``, creating its group if it is missing.
 
-        Adding a role the user already holds changes nothing.  The Django staff and
-        superuser flags are left alone.
+        Adding a role the user already holds doesn't change anything.  The Django staff
+        and superuser flags are left alone.
         """
         group, _ = Group.objects.get_or_create(name=slug)
         self.groups.add(group)
@@ -249,8 +249,8 @@ class User(AbstractUser):
     def remove_role(self, slug: str) -> None:
         """Take the role ``slug`` away from the user.
 
-        Removing a role the user does not hold, or one no group exists for, changes
-        nothing.  The Django staff and superuser flags are left alone.
+        Removing a role the user does not hold, or one no group exists for, doesn't
+        change anything.  The Django staff and superuser flags are left alone.
         """
         group = Group.objects.filter(name=slug).first()
         if group is not None:
@@ -286,7 +286,7 @@ class User(AbstractUser):
         """
         # Inline: members sits above accounts in the app order, so this module may
         # not depend on it at the top level even though apps.members.models itself
-        # imports nothing from accounts.
+        # doesn't import anything from accounts.
         from apps.members.models import MembershipState
 
         if self.is_superuser:

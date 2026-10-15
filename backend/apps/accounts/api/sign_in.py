@@ -25,10 +25,10 @@ def start_session(request: Request, user: User, *, reactivate: bool = False) -> 
 
     An account that needs a second factor (``apps.accounts.mfa.needs_second_factor``) is
     not signed in: a pending sign-in bound to it and its password is stored in the
-    session, and the answer is ``{"mfa": "verify"}`` -- or ``{"mfa": "enroll"}`` when
-    it has no device yet -- with nothing about the account.  ``reactivate`` marks a
-    pending sign-in for a deactivated account, which the code step reactivates once
-    the second factor is passed.  Any other account is signed in, its failed attempts
+    session, and the answer is only ``{"mfa": "verify"}`` -- or ``{"mfa": "enroll"}``
+    when it doesn't have a device yet -- which leaves the account out.  ``reactivate``
+    marks a pending sign-in for a deactivated account, which the code step reactivates
+    once the second factor is passed.  Any other account is signed in, its failed attempts
     are forgotten, and the answer is the ``user`` payload.
     """
     if mfa.needs_second_factor(user):

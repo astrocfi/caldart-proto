@@ -66,7 +66,7 @@ DEMO_ACCOUNTS: tuple[tuple[str, str, str, str, tuple[str, ...], bool], ...] = (
 
 #: The demo accounts that are not members, keyed as in ``DEMO_ACCOUNTS``: every
 #: other one is a member.  The treasurer, the verifier, and the management account
-#: hold no term, so are stored as friends: a member who has never paid is held at the
+#: don't hold a term, so are stored as friends: a member who has never paid is held at the
 #: join wizard's pay step.
 DEMO_KINDS: dict[str, AccountKind] = {
     "friend": AccountKind.FRIEND,
@@ -113,7 +113,7 @@ def upsert_user(
 
     The names, the password, the kind, the demo mark (``User.is_demo``, from
     ``is_demo``) and the role list are written every time, the account is left active
-    with no pending change of kind, and the Django staff and superuser flags both
+    without a pending change of kind, and the Django staff and superuser flags both
     follow ``is_superuser``.  ``created`` is True only on the
     call that first inserted the row.
     """

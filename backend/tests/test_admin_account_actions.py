@@ -47,8 +47,8 @@ ROLES_REFUSED = {
         "administrative roles you do not hold."
     )
 }
-DONOR_DEACTIVATE_REFUSED = {"detail": "A donor has no portal account to deactivate."}
-DONOR_REACTIVATE_REFUSED = {"detail": "A donor has no portal account to reactivate."}
+DONOR_DEACTIVATE_REFUSED = {"detail": "A donor doesn't have a portal account to deactivate."}
+DONOR_REACTIVATE_REFUSED = {"detail": "A donor doesn't have a portal account to reactivate."}
 ALREADY_DEACTIVATED = {"detail": "That account is already deactivated."}
 ALREADY_ACTIVE = {"detail": "That account is already active."}
 KEEP_REQUIRED = {"keep_contribution": ["This field is required."]}

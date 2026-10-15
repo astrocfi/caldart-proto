@@ -100,7 +100,7 @@ type AccountFieldValue = str
 
 
 class EmailVerificationError(DomainValidationError):
-    """A verification token that proves nothing, reported against the ``token`` field."""
+    """A verification token that doesn't prove anything, reported on ``token``."""
 
     def __init__(self, message: str) -> None:
         """Store ``message`` as the complaint about the ``token`` field."""
@@ -163,7 +163,7 @@ def create_account(
     """Create an account of ``kind``, and return it.
 
     A member or a friend holds the ``member`` role, which is what lets them into the
-    portal; a donor holds no role at all.  Without a password the account holds an
+    portal; a donor doesn't hold any role at all.  Without a password the account holds an
     unusable one and can only be opened by following an invitation or reset link --
     which a donor is never sent.  The names are stored stripped.
     """
@@ -189,8 +189,8 @@ def set_kind(user: User, kind: AccountKind, *, actor: User | str = audit.COMMAND
 
     Saves the two columns and records ``account.kind`` with ``to=<kind>`` in the audit
     log under ``actor`` (``command`` by default).  Returns True when the stored kind
-    really changed; a user already of that kind with nothing pending is left alone,
-    records nothing, and returns False.
+    really changed; a user already of that kind, without a pending ``friend_on``, is
+    left alone, isn't recorded, and returns False.
     """
     if user.kind == kind and user.friend_on is None:
         return False
@@ -249,8 +249,8 @@ def update_account(actor: User | str, target: User, changes: AccountChanges) -> 
     signed-in account making the edit; a management command passes
     ``audit.COMMAND_ACTOR`` instead, which counts as holding every role (see
     :func:`effective_roles`) and so may grant or revoke any role: the own-account rule
-    never applies to the command actor, which names no account.  The rules run in this
-    order, and the first refusal raises, leaving the account untouched:
+    never applies to the command actor, which doesn't name an account.  The rules run
+    in this order, and the first refusal raises, leaving the account untouched:
 
     #. nobody changes their own roles, a system administrator included
        (``DomainPermissionError``);
@@ -277,7 +277,8 @@ def update_account(actor: User | str, target: User, changes: AccountChanges) -> 
     stored in privilege order however they arrive.
 
     Everything the save really writes is recorded in the audit log, by field name
-    and role slug: an edit that alters nothing records nothing.  The save writes only
+    and role slug: an edit that doesn't alter anything isn't recorded.  The save writes
+    only
     the columns the edit carries (plus the verification and bounce columns a new
     address clears, the Django flags a role write rebuilds, and ``updated_at``), so an
     edit made from a copy of the account read before another change committed -- a
@@ -286,14 +287,14 @@ def update_account(actor: User | str, target: User, changes: AccountChanges) -> 
     A ``kind`` other than the stored one goes through :func:`set_kind`: the account
     becomes that kind at once, any pending ``friend_on`` date is cleared, and the
     change is recorded as ``account.kind`` under the actor.  A ``kind`` equal to the
-    stored one is no change: a pending ``friend_on`` stays as it is.
+    stored one isn't a change: a pending ``friend_on`` stays as it is.
 
     Each change the save really makes raises its notification event through
     :func:`caldart.events.emit`, after the save and inside the transaction:
     ``became_friend`` or ``became_member`` with ``how="administrator"`` for a new
     kind, and ``roles_changed`` with the slugs ``added`` and ``removed`` (in
     privilege order) and ``actor``, the command actor's string included.  An edit that
-    alters nothing raises nothing.
+    doesn't alter anything doesn't raise an event.
     """
     fields = _account_fields(changes)
     roles = changes.get("roles")
@@ -342,7 +343,8 @@ def set_verifier(actor: User, target: User, *, wanted: bool) -> User:
     them with ``verifier`` added or removed and written
     through :func:`update_account` under ``actor``, so the change is audited as
     ``account.roles`` and raised as ``roles_changed``, and every other role the target
-    holds is kept.  A list that changes nothing writes, records and raises nothing.
+    holds is kept.  A list that doesn't change anything doesn't write,
+    record, or raise anything.
     :func:`update_account`'s rules apply, so a change to the actor's own roles is
     refused with ``DomainPermissionError`` (:data:`OWN_ROLES_REFUSED`).  Who may call
     this is the endpoint's rule, not this function's.
@@ -371,8 +373,8 @@ def _raise_edit_event(action: str, logged: AuditFields, *, actor: User | str, ta
     """Raise the notification event behind one audit record :func:`update_account` wrote.
 
     ``account.roles`` raises ``roles_changed`` with the slugs ``added`` and ``removed``
-    and ``actor``.  ``account.update`` raises nothing here: the address has its own
-    event and a name belongs to the profile.
+    and ``actor``.  ``account.update`` doesn't raise an event here: the address has its
+    own event and a name belongs to the profile.
     """
     if action == audit.ACCOUNT_ROLES:
         events.emit(
@@ -442,8 +444,8 @@ def assignable_roles(actor: User | str, target: User) -> list[str]:
 def _checked_roles(actor: User | str, target: User, wanted: list[str]) -> list[str]:
     """``wanted`` in privilege order, refused when ``actor`` may not make the change.
 
-    A list matching the groups the account already holds writes nothing and is never
-    refused.  Any other list is refused, and the refusal audited under
+    A list matching the groups the account already holds doesn't write anything and is
+    never refused.  Any other list is refused, and the refusal audited under
     ``account.roles``, in this order:
 
     #. on the actor's own account, whoever the actor is: ``DomainPermissionError``
@@ -533,8 +535,8 @@ def check_account_edit(
     holds (:func:`may_edit_protected_fields`); a system administrator, including a
     Django superuser without the role, holds them all.  Raises ``DomainValidationError``
     against ``email``, and returns ``None`` when the edit is allowed.  Every refusal is
-    recorded in the audit log at WARNING with the two account ids, the field names and
-    a reason, and no personal data.
+    recorded in the audit log at WARNING with the two account ids, the field names, and
+    a reason, without any personal data.
     """
     changed = _protected_changes(target, changes)
     if len(changed) == 0 or may_edit_protected_fields(actor, target):
@@ -733,7 +735,7 @@ def _send_password_link_email(
     """Mail ``user`` both bodies of ``emails/<template>.{txt,html}``, at ``to`` if given.
 
     The text body is the message proper and the HTML one an alternative, so a
-    client that renders no markup still reads the whole thing.  The send goes
+    client that doesn't render markup still reads the whole thing.  The send goes
     through the shared mail funnel, so it is recorded in the email log under the
     template's name.  ``to`` defaults to the account's own address.
     """
@@ -753,7 +755,7 @@ def send_password_reset_email(
     required: bool = False,
     to: str | None = None,
 ) -> bool:
-    """Mail ``user`` a reset link.  Returns False when there is nobody to mail.
+    """Mail ``user`` a reset link.  Returns False when there isn't anybody to mail.
 
     The link goes to ``to`` when given, and to the account's own address otherwise:
     an undone change of address whose old address could not be put back mails the
@@ -766,7 +768,7 @@ def send_password_reset_email(
     an administrator has required a new password, that the old one no longer works
     and every session was ended, and that the link is the way to sign in again.
 
-    Donors -- who cannot sign in, so have no password to reset -- accounts without
+    Donors -- who cannot sign in, so don't have a password to reset -- accounts without
     an address, and accounts a user administrator has blocked from reactivating are
     skipped silently: the caller answers 204 either way so the endpoint cannot be
     used to discover which addresses are registered.  A deactivated account that is
@@ -801,7 +803,7 @@ def send_password_invitation(
     ``"<organization name>: set your password"`` and the two bodies are
     ``emails/member_invitation.{txt,html}``.  The link is the ordinary reset
     link, so ``/auth/password/reset/confirm`` accepts it unchanged.  A donor, who
-    cannot sign in, is sent nothing.
+    cannot sign in, isn't sent anything.
 
     With ``taken_back`` the bodies say instead that an administrator account was set
     up on the existing account at this address, that any earlier password was cleared
@@ -869,13 +871,14 @@ def send_email_verification(user: User, *, upgrade: DonorUpgrade | None = None) 
     The subject is ``"<organization name>: verify your email address"`` and the two
     bodies are ``emails/email_verification.{txt,html}``; the email log records the
     send under the purpose ``email_verification``.  The context carries ``user``,
-    ``first_name`` (the display name when there is no first name), ``email``,
+    ``first_name`` (the display name when the first name is blank), ``email``,
     ``verify_url``, ``expiry_days`` (``EMAIL_VERIFICATION_TIMEOUT`` in whole days,
     never less than one), ``site_url``, ``org_name``, ``contact_email`` and ``upgrade``
-    (true when the link opens a donor's account).  A donor, who cannot sign in, is sent
-    nothing -- unless ``upgrade`` is given, when the link carries the registration that
-    asked for it (:func:`verify_email` applies it) and the message says that following it
-    opens a portal account for the address, choosing its password on the way.
+    (true when the link opens a donor's account).  A donor, who cannot sign in, isn't
+    sent anything -- unless ``upgrade`` is given, when the link carries the registration
+    that asked for it (:func:`verify_email` applies it) and the message says that
+    following it opens a portal account for the address, choosing its password on the
+    way.
     """
     if is_donor(user) and upgrade is None:
         return
@@ -915,14 +918,15 @@ def verify_email(token: str, *, password: str = "") -> User:
     finish and then sees what it left, rather than upgrading a donor twice.
 
     A token for a donor completes the registration that mailed it, and the person
-    following it chooses the password: with no ``password`` it raises
-    :class:`DonorPasswordRequiredError` and changes nothing, and a ``password`` Django's
-    validators reject raises ``django.core.exceptions.ValidationError`` and changes
-    nothing.  An accepted ``password`` becomes the account's, the account takes the names
-    and the kind the form gave and the ``member`` role (see :func:`upgrade_donor`), and it
-    is verified, so it can sign in with that password.  The password typed when
-    registering is never used, so the account opens only for whoever holds the mailbox.
-    A donor's token that carries no upgrade is refused as invalid.  ``password`` is
+    following it chooses the password: without a ``password`` it raises
+    :class:`DonorPasswordRequiredError` and doesn't change anything, and a ``password``
+    Django's validators reject raises ``django.core.exceptions.ValidationError`` and
+    doesn't change anything.  An accepted ``password`` becomes the account's, the
+    account takes the names and the kind the form gave and the ``member`` role (see
+    :func:`upgrade_donor`), and it is verified, so it can sign in with that password.
+    The password typed when registering is never used, so the account opens only for
+    whoever holds the mailbox.  A donor's token that doesn't carry an upgrade is refused
+    as invalid.  ``password`` is
     ignored for every other account.
     """
     try:
@@ -974,7 +978,7 @@ def upgrade_donor(donor: User, upgrade: DonorUpgrade) -> None:
 def _donor_upgrade(payload: dict[str, object]) -> DonorUpgrade | None:
     """The ``upgrade`` a verified token's ``payload`` carries, or ``None``.
 
-    ``None`` when there is none, or when it is not the shape
+    ``None`` when it doesn't carry one, or when it is not the shape
     :func:`make_email_verification_token` signs: two string names and a kind a
     person may choose.
     """
@@ -1052,7 +1056,7 @@ def clear_email_bounce(actor: User, target: User) -> User:
 
     For a user administrator who has checked the address is good: ``email_bounced_at``
     and ``email_bounce_detail`` are emptied and the change is recorded as
-    ``account.bounce_cleared`` under ``actor``.  An account with no bounce recorded is
+    ``account.bounce_cleared`` under ``actor``.  An account without a bounce recorded is
     left alone and nothing is recorded.  Who may call this is the endpoint's rule, not
     this function's.  Returns the account.
     """

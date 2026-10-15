@@ -32,8 +32,9 @@ from caldart.mail import send_logging_refusal
 #: two roles a fresh installation needs to finish setting itself up.
 ADMIN_ROLES: tuple[str, ...] = (MEMBER, SYSTEM_ADMIN, WEBSITE_ADMIN)
 
-#: Raised when ``--email`` already names a donor, who holds no role and cannot sign in.
-DONOR_ADMIN_REFUSED = "'{email}' is a donor account, which holds no role and cannot sign in."
+#: Raised when ``--email`` already names a donor, who doesn't hold a role and cannot sign
+#: in.
+DONOR_ADMIN_REFUSED = "'{email}' is a donor account, which doesn't hold a role and cannot sign in."
 
 #: Raised when ``--email`` is an address another account keeps for recovery.
 RESERVED_ADDRESS_REFUSED = (
@@ -85,8 +86,8 @@ class Command(BaseCommand):
     says so, or :data:`PROMOTED_UNMAILED_NOTICE` when the mail server refused the
     email, which is logged and does not fail the command.  This happens on every run
     for an existing address, an administrator's own included.  An existing account
-    that is a donor is refused with ``CommandError`` and left untouched: a donor holds
-    no role and cannot sign in, so it cannot be made an administrator.
+    that is a donor is refused with ``CommandError`` and left untouched: a donor doesn't
+    hold a role and cannot sign in, so it cannot be made an administrator.
 
     Either way the address is marked verified, recorded as ``account.email_verified``
     under the command actor when it was not already.
@@ -97,8 +98,8 @@ class Command(BaseCommand):
     (:data:`caldart.audit.COMMAND_ACTOR`), so the audit log records ``account.roles``
     with ``actor=command`` and raises ``roles_changed`` naming the command actor, so
     every address subscribed to role changes hears of it.  Running the
-    command again for an address that already holds all three roles grants nothing
-    further and records no ``account.roles`` line.
+    command again for an address that already holds all three roles doesn't grant
+    anything further or record an ``account.roles`` line.
 
     The only line this command writes to standard output is the password-reset link
     from :func:`apps.accounts.services.build_reset_url`: open it, signed out, to set

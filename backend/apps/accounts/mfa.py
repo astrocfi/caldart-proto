@@ -93,7 +93,7 @@ REQUIRED_REFUSED = (
 )
 SELF_RESET_REFUSED = "You cannot reset your own two-factor sign-in. Turn it off or on yourself."
 RESET_REFUSED = "Only a system administrator can reset a system administrator's two-factor sign-in."
-DONOR_RESET_REFUSED = "A donor has no portal account to reset."
+DONOR_RESET_REFUSED = "A donor doesn't have a portal account to reset."
 
 
 class SignInStep(StrEnum):
@@ -241,10 +241,10 @@ def confirm_enrollment(session: SessionBase, user: User, code: str) -> list[str]
     locked for the confirmation, so two browsers confirming at once take turns and the
     second finds two-factor sign-in on.
 
-    Raises ``DomainError`` with :data:`NOT_STARTED` when the session holds no fresh
-    secret for ``user``, :data:`ALREADY_ON` when a device is confirmed already, and
-    ``DomainValidationError`` on ``otp`` with :data:`CODE_REFUSED` for any other code;
-    nothing changes then.
+    Raises ``DomainError`` with :data:`NOT_STARTED` when the session doesn't hold a
+    fresh secret for ``user``, :data:`ALREADY_ON` when a device is confirmed already,
+    and ``DomainValidationError`` on ``otp`` with :data:`CODE_REFUSED` for any other
+    code; nothing changes then.
     """
     secret = _enrolling_secret(session, user)
     if secret is None:
@@ -345,8 +345,8 @@ def check_code(user: User, code: str) -> CodeKind | None:
     A six-digit code is checked against the confirmed device and, once accepted,
     records its step so it is never accepted again.  Anything else is tried as a backup
     code, which is spent: the account is then mailed that a backup code was used and
-    how many remain.  An account with no confirmed device accepts nothing.  The device
-    row is locked for the check, so two requests with one code take turns.
+    how many remain.  An account without a confirmed device doesn't accept any code.
+    The device row is locked for the check, so two requests with one code take turns.
     """
     device = (
         TotpDevice.objects.select_for_update().filter(user=user, confirmed_at__isnull=False).first()
@@ -475,7 +475,7 @@ def reset_two_factor(actor: User | str, target: User) -> None:
     ``actor`` is the administrator's account, or the audit log's command actor for
     ``manage.py reset_two_factor``, which counts as a system administrator.  Who may
     call it at all is the endpoint's rule.  Refused with ``DomainError``, in this order
-    and changing nothing: a donor (:data:`DONOR_RESET_REFUSED`), the actor's own
+    and without changing anything: a donor (:data:`DONOR_RESET_REFUSED`), the actor's own
     account (:data:`SELF_RESET_REFUSED`), and a system administrator's account -- the
     role, or a Django superuser -- when the actor is not one
     (:data:`RESET_REFUSED`); each is recorded at WARNING as ``account.mfa_reset``.
@@ -483,8 +483,8 @@ def reset_two_factor(actor: User | str, target: User) -> None:
     the account is ended, the reset is recorded as ``account.mfa_reset`` and in the
     account's history, and the account is mailed a notice once the transaction
     commits.  The person sets two-factor sign-in up again at their next sign-in, which
-    insists on it when a role requires it.  Resetting an account with nothing set up
-    still ends its sessions and records the reset.  The caller holds the transaction.
+    insists on it when a role requires it.  Resetting an account that hasn't set anything
+    up still ends its sessions and records the reset.  The caller holds the transaction.
     """
     refusal = reset_refusal(actor, target)
     if refusal is not None:
@@ -583,7 +583,7 @@ def begin_pending(session: SessionBase, user: User, *, reactivate: bool = False)
     session auth hash, so a password change voids it), when it started, a count of
     wrong codes, whether its owner has been warned of one, and ``reactivate`` for a
     deactivated account that is to come back once the second factor is passed.  It
-    needs ``enroll`` when the account has no confirmed device, and ``verify``
+    needs ``enroll`` when the account doesn't have a confirmed device, and ``verify``
     otherwise.  Any earlier pending sign-in in the session is replaced.
 
     The session's key is changed first, so a key somebody planted in the browser before
@@ -608,7 +608,7 @@ def clear_pending(session: SessionBase) -> None:
 
 
 def pending_sign_in(session: SessionBase) -> PendingSignIn | None:
-    """The pending sign-in ``session`` holds, or ``None`` when there is none to finish.
+    """The pending sign-in ``session`` holds, or ``None`` when there isn't one to finish.
 
     ``None`` -- and the pending sign-in is cleared -- once it is older than
     :data:`PENDING_SECONDS`, when the account is gone, can no longer sign in (a donor,
