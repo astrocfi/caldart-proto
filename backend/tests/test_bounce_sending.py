@@ -1,18 +1,22 @@
 """What every message carries so a bounce can be traced back to it.
 
 ``caldart.mail.send_templated`` gives each message a ``Message-ID`` stored on its email
-log row, and sends it from ``BOUNCE_ADDRESS`` on the envelope when that is set, while
-the ``From`` header stays ``DEFAULT_FROM_EMAIL``.  See ``docs/developer/email.rst``.
+log row, and, when ``BOUNCE_ADDRESS`` is set, sends it on the envelope from that address
+signed with the row's id, while the ``From`` header stays ``DEFAULT_FROM_EMAIL``.  See
+``docs/developer/email.rst``.
 """
 
 from __future__ import annotations
 
+import smtplib
+
 import pytest
 from django.core.mail import EmailMessage
+from django.core.mail.backends.locmem import EmailBackend
 from pytest_django import Settings
 
-from apps.mail.models import EmailLog
-from caldart.mail import MailRefusedError, send_templated
+from apps.mail.models import EmailLog, EmailStatus
+from caldart.mail import MailRefusedError, send_templated, signed_bounce_address, signed_log_id
 
 pytestmark = pytest.mark.django_db
 
@@ -77,13 +81,46 @@ def test_without_a_bounce_address_the_envelope_is_the_from_address(
     assert message.from_email == FROM
 
 
-def test_a_bounce_address_is_the_envelope_sender(sender: Settings, email_template: str) -> None:
-    """With ``BOUNCE_ADDRESS`` set, the SMTP envelope is sent from it."""
+def test_a_bounce_address_is_the_envelope_sender_signed_with_the_log_row(
+    sender: Settings, email_template: str
+) -> None:
+    """With ``BOUNCE_ADDRESS`` set, the envelope is it, signed with the row's id."""
     sender.BOUNCE_ADDRESS = BOUNCES
 
     message = _send(email_template)
 
-    assert message.from_email == BOUNCES
+    assert message.from_email == signed_bounce_address(EmailLog.objects.get().pk)
+
+
+def test_two_messages_go_from_different_signed_addresses(
+    sender: Settings, email_template: str
+) -> None:
+    """Each send's envelope names its own row, so a report names one message."""
+    sender.BOUNCE_ADDRESS = BOUNCES
+
+    first = _send(email_template)
+    second = _send(email_template)
+
+    assert signed_log_id(first.from_email) != signed_log_id(second.from_email)
+
+
+def test_a_refused_message_went_from_its_failed_rows_address(
+    sender: Settings, email_template: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The envelope a refused message was handed over with names the failed row."""
+    sender.BOUNCE_ADDRESS = BOUNCES
+    envelopes: list[str] = []
+
+    def refuse(self: EmailBackend, email_messages: list[EmailMessage]) -> int:
+        envelopes.extend(message.from_email for message in email_messages)
+        raise smtplib.SMTPException("Mailbox unavailable")
+
+    monkeypatch.setattr(EmailBackend, "send_messages", refuse)
+    with pytest.raises(MailRefusedError, match=r"^SMTPException$"):
+        _send(email_template)
+
+    failed = EmailLog.objects.get(status=EmailStatus.FAILED)
+    assert envelopes == [signed_bounce_address(failed.pk)]
 
 
 def test_a_bounce_address_leaves_the_from_header_alone(
