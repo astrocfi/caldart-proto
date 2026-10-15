@@ -665,11 +665,11 @@ lint-spelling: ## codespell over docs, prose and code
 	$(UV) run codespell --check-hidden README.rst CLAUDE.md docs backend frontend/src \
 	  frontend/e2e frontend/scripts scripts .github deploy .claude
 
-# The prose rule that puts a negation on the verb, never on its object, over the
-# tree lint-spelling scans.  scripts/wording-baseline.txt holds the hits each file
+# The prose rule that puts a negation on the verb, never on its object or complement,
+# over the tree lint-spelling scans.  scripts/wording-baseline.txt holds the hits each file
 # had when the check arrived: a file may not exceed its count, and a rewrite that
 # lowers one lowers the baseline in the same change (--update-baseline).
-lint-wording: ## a verb with a negative object (scripts/check_wording.py), against its baseline
+lint-wording: ## a negative object or complement (scripts/check_wording.py), against its baseline
 	$(UV) run python $(WORDING_CHECK)
 
 lint-frontend: ## tsc --noEmit + eslint + prettier --check

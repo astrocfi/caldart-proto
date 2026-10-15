@@ -80,6 +80,32 @@ FLAGGED = {
     "upper-case": "A Member HAS NO term.",  # wording:ignore
     "participle-after-has": "The renewal has sent nothing.",  # wording:ignore
     "after-a-hyphen": "The scan re-sends nothing.",  # wording:ignore
+    "pronoun-between": "Renewing now costs you nothing.",  # wording:ignore
+    "it-between": "The scan sends it no more charges.",  # wording:ignore
+    "adverb-between": "The page has almost no room.",  # wording:ignore
+    "notifies-nobody": "The change notifies nobody.",  # wording:ignore
+    "rejects-none": "The import rejects none.",  # wording:ignore
+    "tested-nothing": "The run tested nothing.",  # wording:ignore
+    "unlisted-past-tense": "The job frobnicated nothing.",  # wording:ignore
+    "no-more": "It sends no more charges.",  # wording:ignore
+    "there-is-no": "There is no payment.",  # wording:ignore
+    "there-are-no": "There are no releases.",  # wording:ignore
+    "there-was-none": "A result appears where there was none.",  # wording:ignore
+    "is-no": "A tombstone is no account.",  # wording:ignore
+    "are-no": "The reminders are no help.",  # wording:ignore
+    "was-no": "It was no surprise.",  # wording:ignore
+    "be-no": "It will be no trouble.",  # wording:ignore
+    "is-deliberately-no": "There is deliberately no restore endpoint.",  # wording:ignore
+    "with-no": "A member with no term is a friend.",  # wording:ignore
+    "for-no-one": "It is for no one in particular.",  # wording:ignore
+    "for-no-reason": "It failed for no reason.",  # wording:ignore
+    "of-no": "A gift of no value.",  # wording:ignore
+    "at-no-cost": "It is checked at no cost.",  # wording:ignore
+    "in-no-case": "In no case is the card charged twice.",  # wording:ignore
+    "in-no-list": "A donor appears in no member list.",  # wording:ignore
+    "as-no": "It is stored as no account.",  # wording:ignore
+    "to-nothing": "A name that normalizes to nothing is refused.",  # wording:ignore
+    "remains-nothing": "Once settled, there remains nothing to charge.",  # wording:ignore
 }
 
 
@@ -90,17 +116,13 @@ def test_a_verb_with_a_negative_object_is_flagged(text: str) -> None:
 
 
 ALLOWED = {
-    "there-is-no": "There is no payment.",
     "no-payment-found": "No payment found.",
     "nobody-as-subject": "Nobody changes their own roles.",
     "nothing-as-subject": "Nothing is due.",
-    "are-no": "The reminders are no help.",
-    "was-no": "It was no surprise.",
-    "be-no": "It will be no trouble.",
-    "with-no": "A member with no term is a friend.",
-    "for-no-one": "It is for no one in particular.",
-    "of-no": "A gift of no value.",
+    "subject-after-so": "A donor cannot sign in, so no reset email was sent.",
+    "subject-after-when": "It answers 204 when nobody was signed in.",
     "no-longer": "The link may no longer work.",
+    "is-no-longer": "The link is no longer valid.",
     "no-matter": "It runs no matter what.",
     "noun-before-nobody": "A field nobody has filled in is blank.",
     "noun-before-no": "An address no account holds is counted.",
@@ -109,12 +131,23 @@ ALLOWED = {
     "python-none": "It returns None when the row is missing.",
     "than-nothing": "More than nothing but less than the minimum.",
     "or-no": "A yes or no answer.",
+    "no-deeper": "Tags must nest no deeper than three.",
+    "said-no-full-stop": "The member said no.",
+    "says-no-comma": "If the member says no, nothing is sent.",
+    "all-caps-constant": "It returns NONE when the key is unset.",
+    "table-padding": "| has       | no         |",
+    "indeed-no": "Indeed no payment was found.",
+    "noun-object-known-gap": "It sends a donor nothing.",
 }
 
 
 @pytest.mark.parametrize("text", list(ALLOWED.values()), ids=list(ALLOWED))
 def test_wording_the_rule_allows_is_not_flagged(text: str) -> None:
-    """A negative subject, a linking verb, a preposition, or a noun isn't a hit."""
+    """A negative subject, an idiom after ``no``, an answer, a value, or a noun is passed.
+
+    ``noun-object-known-gap`` is a gap the check documents: a noun between the verb and
+    the negative puts the verb out of reach.
+    """
     assert _hit_count(text) == 0
 
 
@@ -169,6 +202,12 @@ def test_no_allowed_word_is_listed_twice() -> None:
     assert len(words) == len(set(words))
 
 
+def test_no_flagged_word_is_listed_twice() -> None:
+    """Each word in ``FLAGGED_WORDS`` is written down once."""
+    words = [word for group in checker.FLAGGED_WORDS for word in group.split()]
+    assert len(words) == len(set(words))
+
+
 def test_every_verb_family_has_five_forms() -> None:
     """Base, third person, past, past participle, and present participle, in order."""
     assert {len(family.split()) for family in checker.FLAGGED_VERBS} == {5}
@@ -199,6 +238,20 @@ def test_the_next_line_marker_silences_the_following_line() -> None:
     assert _hit_count(text) == 0
 
 
+def test_an_rst_marker_comment_covers_the_whole_next_paragraph() -> None:
+    """A ``..`` comment holding only the next-line marker covers the next paragraph.
+
+    It skips the blank line after the comment and covers every line through the next
+    blank one; the paragraph after that is checked.
+    """
+    text = (
+        f".. {MARKER}-next-line\n\n"
+        "It has no token and\nit took nothing.\n\n"  # wording:ignore
+        "It sends nothing.\n"  # wording:ignore
+    )
+    assert [hit.line for hit in checker.find_hits(text, "page.rst")] == [6]
+
+
 def test_the_next_line_marker_leaves_its_own_line_flagged() -> None:
     """The next-line marker doesn't silence its own line."""
     text = f"It has no token. <!-- {MARKER}-next-line -->\n\n"  # wording:ignore
@@ -219,6 +272,12 @@ SUGGESTIONS = {
     "do": ("It does nothing.", "does nothing -> doesn't do anything"),  # wording:ignore
     "after-has": ("It has sent none.", "has sent none -> hasn't sent any"),  # wording:ignore
     "capital": ("Has no fee.", "Has no fee -> Doesn't have a fee"),  # wording:ignore
+    "pronoun": ("It costs you none.", "costs you none -> doesn't cost you any"),  # wording:ignore
+    "is": ("There is no payment.", "is no payment -> isn't a payment"),  # wording:ignore
+    "are": ("There are no rows.", "are no rows -> aren't any rows"),  # wording:ignore
+    "was": ("There was none.", "was none -> wasn't any"),  # wording:ignore
+    "with": ("A member with no term.", "with no term -> without a term"),  # wording:ignore
+    "with-nobody": ("Run with nobody.", "with nobody -> without anybody"),  # wording:ignore
 }
 
 
@@ -226,6 +285,18 @@ SUGGESTIONS = {
 def test_a_simple_verb_carries_a_suggested_rewrite(text: str, suggestion: str) -> None:
     """A present or simple-past verb gets the rewrite with the negation on the verb."""
     assert checker.find_hits(text, "page.rst")[0].suggestion == suggestion
+
+
+def test_a_phrase_with_a_degree_adverb_has_a_suggestion_of_none() -> None:
+    """An adverb before the negative leaves the rewrite open, so it offers ``None``."""
+    hit = checker.find_hits("It has almost no room.", "page.rst")[0]  # wording:ignore
+    assert hit.suggestion is None
+
+
+def test_a_preposition_other_than_with_has_a_suggestion_of_none() -> None:
+    """A preposition other than ``with`` moves the negation to the verb: ``None``."""
+    hit = checker.find_hits("It failed for no reason.", "page.rst")[0]  # wording:ignore
+    assert hit.suggestion is None
 
 
 def test_a_base_form_has_a_suggestion_of_none() -> None:
@@ -259,7 +330,16 @@ def tree(tmp_path: Path) -> Path:
     )
     _write(tmp_path / "docs" / "page.rst", PAGE)
     _write(tmp_path / BASELINE, "docs/page.rst 2\n")
+    _track(tmp_path)
     return tmp_path
+
+
+def _track(root: Path) -> None:
+    """Stage every file under ``root``, so git tracks it."""
+    assert GIT is not None
+    subprocess.run(  # noqa: S603 - fixed argv, GIT is a resolved path
+        [GIT, "add", "-A"], cwd=root, check=True
+    )
 
 
 def test_a_tree_within_its_baseline_passes(tree: Path) -> None:
@@ -341,8 +421,38 @@ def test_a_refused_update_leaves_the_baseline_as_it_was(tree: Path) -> None:
 def test_update_baseline_with_accept_new_records_every_hit(tree: Path) -> None:
     """``--accept-new`` records the counts as they stand, new files included, sorted."""
     _write(tree / "backend" / "a.py", '"""It took none."""\n')  # wording:ignore
+    _track(tree)
     checker.main(["--update-baseline", "--accept-new"], root=tree)
     assert _baseline(tree) == ["backend/a.py 1", "docs/page.rst 2"]
+
+
+def test_update_baseline_leaves_an_untracked_file_out(tree: Path) -> None:
+    """A file git doesn't track yet stays out of the baseline, even with accept-new."""
+    _write(tree / "backend" / "a.py", '"""It took none."""\n')  # wording:ignore
+    checker.main(["--update-baseline", "--accept-new"], root=tree)
+    assert _baseline(tree) == ["docs/page.rst 2"]
+
+
+def test_update_baseline_names_the_untracked_file_it_leaves_out(
+    tree: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The update warns about each untracked file with hits."""
+    _write(tree / "backend" / "a.py", '"""It took none."""\n')  # wording:ignore
+    checker.main(["--update-baseline", "--accept-new"], root=tree)
+    assert "doesn't track it yet: backend/a.py (1 hit)" in capsys.readouterr().out
+
+
+def test_a_deleted_file_in_the_baseline_fails(tree: Path) -> None:
+    """A baselined file that is gone counts as under its baseline."""
+    _write(tree / BASELINE, "docs/gone.rst 1\ndocs/page.rst 2\n")
+    assert checker.main([], root=tree) == 1
+
+
+def test_update_baseline_drops_a_deleted_file(tree: Path) -> None:
+    """The update writes the deleted file out of the baseline."""
+    _write(tree / BASELINE, "docs/gone.rst 1\ndocs/page.rst 2\n")
+    checker.main(["--update-baseline"], root=tree)
+    assert _baseline(tree) == ["docs/page.rst 2"]
 
 
 def test_all_lists_every_hit_ignoring_the_baseline(
@@ -366,7 +476,9 @@ def test_all_with_path_limits_the_listing_to_a_subtree(
     """``--path`` narrows ``--all`` to the files under it."""
     _write(tree / "backend" / "a.py", '"""It took none."""\n')  # wording:ignore
     checker.main(["--all", "--path", "backend"], root=tree)
-    assert "docs/page.rst" not in capsys.readouterr().out
+    out = capsys.readouterr().out
+    listed = [line.split(":")[0] for line in out.splitlines() if not line.startswith(" ")]
+    assert listed == ["backend/a.py", "1 hit in 1 file"]
 
 
 def test_all_with_path_passes_for_a_clean_subtree(tree: Path) -> None:
@@ -381,6 +493,13 @@ SKIPPED = {
     "generated-schema": "frontend/src/portal/api/schema.d.ts",
     "openapi-snapshot": "backend/tests/snapshots/openapi-components.json",
     "lock-file": "frontend/package-lock.json",
+    "golden": "backend/tests/golden/report.txt",
+    "worktrees": ".claude/worktrees/agent-x/README.rst",
+    "docs-build": "docs/_build/html/index.txt",
+    "dist": "frontend/dist/assets/app.js",
+    "htmlcov": "backend/htmlcov/index.html",
+    "staticfiles": "backend/staticfiles/site.css",
+    "e2e-mail": "frontend/e2e/.mail/1.eml",
 }
 
 
@@ -395,6 +514,12 @@ def test_a_binary_file_is_never_counted(tree: Path) -> None:
     """A file holding a NUL byte is skipped, whatever text it also holds."""
     (tree / "docs" / "image.dat").write_bytes(b"\x00It took nothing.\n")  # wording:ignore
     assert checker.main([], root=tree) == 0
+
+
+def test_accept_new_without_update_baseline_is_refused(tree: Path) -> None:
+    """``--accept-new`` only means something with ``--update-baseline``."""
+    with pytest.raises(SystemExit, match="2"):
+        checker.main(["--accept-new"], root=tree)
 
 
 def test_update_baseline_refuses_path(tree: Path) -> None:
