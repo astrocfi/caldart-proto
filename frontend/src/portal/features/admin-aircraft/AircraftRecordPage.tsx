@@ -175,7 +175,7 @@ export function AircraftRecordPage(): JSX.Element {
       />
 
       <Card title="Details">
-        {/* The line would contradict a history that records no change, so it waits for one. */}
+        {/* The line would contradict an empty history, so it waits for a change. */}
         {(changes.data?.length ?? 0) > 0 ? (
           <p className="muted">
             {lastUpdatedLine(aircraft.updated_at, aircraft.updated_by ?? null)}

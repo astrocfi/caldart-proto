@@ -60,7 +60,7 @@ export function contributionCents(typed: string): number {
 
 /**
  * What the form will record, as the treasurer checks it against the check in their
- * hand: `Dues $45.00 + contribution $0.00 = $45.00`.  No plan is dues of nothing.
+ * hand: `Dues $45.00 + contribution $0.00 = $45.00`.  Without a plan, the dues are $0.00.
  */
 export function recordedSum(plan: Plan | undefined, contribution: number): string {
   const dues = plan?.price_cents ?? 0;
@@ -200,7 +200,7 @@ export function RecordPaymentPage(): JSX.Element {
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    // Enter in the member search picks a match or does nothing; it never sends the form.
+    // Enter in the member search picks a match or doesn't do anything; it never sends the form.
     if (member === null && pickerRef.current?.contains(document.activeElement) === true) return;
     const nextMemberError = member === null ? 'Choose the member this payment is for.' : null;
     const nextContributionError = isContributionValid(contribution) ? null : CONTRIBUTION_MESSAGE;
@@ -248,7 +248,7 @@ export function RecordPaymentPage(): JSX.Element {
 
           <Field
             label="Plan"
-            hint="Choose No membership to record a contribution on its own."
+            hint="Choose the No membership option to record a contribution on its own."
             error={errors.plan}
           >
             {(props) => (

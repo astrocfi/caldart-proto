@@ -139,9 +139,10 @@ export function MandateCard({ mandate }: { mandate: RenewalMandate | null }): JS
 }
 
 /**
- * The ledger's cards, for the finance screen and the member record alike.  Somebody with
- * no membership to renew (a friend, or a member who has not paid yet) and no standing
- * authority gets no renewal card, and their statements card says nothing of dues.
+ * The ledger's cards, for the finance screen and the member record alike.  Somebody
+ * without a membership to renew (a friend, or a member who has not paid yet) or a
+ * standing authority doesn't get a renewal card, and their statements card doesn't
+ * mention dues.
  */
 export function LedgerBody({ ledger }: { ledger: MemberLedger }): JSX.Element {
   const hasNoMembership = isWithoutTerm(ledger.user.membership.status);
@@ -185,7 +186,7 @@ export function LedgerBody({ ledger }: { ledger: MemberLedger }): JSX.Element {
           rows={ledger.payments}
           rowKey={(row) => row.id}
           emptyTitle="No payments recorded"
-          emptyDescription="Terms granted by an administrator have no payment attached."
+          emptyDescription="Terms granted by an administrator don't have a payment attached."
         />
       </Card>
 

@@ -84,7 +84,7 @@ describe('DartForm', () => {
     expect(handleSubmit).toHaveBeenCalledTimes(1);
   });
 
-  it('holds a line for the airports error while there is none, so nothing below moves', () => {
+  it("holds a line for the airports error while there isn't one, so nothing below moves", () => {
     renderForm();
     const airports = screen.getByRole('textbox', { name: /Airports/ });
     expect(airports.closest('.field')?.querySelector('.field__status')).not.toBeNull();

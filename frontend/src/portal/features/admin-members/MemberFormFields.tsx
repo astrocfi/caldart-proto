@@ -9,7 +9,7 @@
  * fields only they can read, and those are the components here.
  *
  * Administrator screens render the profile fieldsets without required markers
- * and do no client-side insistence that a half-known record be completed.  The
+ * and don't insist, on the client, that a half-known record be completed.  The
  * account is the exception: its email address and both names are required, here and
  * on the server, so no record is saved under a surname alone.  The server's rules
  * still apply to both.
@@ -40,8 +40,8 @@ export interface AccountDraft {
 const PERSON_KINDS: PersonKind[] = ['member', 'friend'];
 
 /**
- * The `kind` a member write should carry for `draft`: the chosen kind, or nothing
- * for a donor, whose kind an administrator never changes.
+ * The `kind` a member write should carry for `draft`: the chosen kind.  A donor's write
+ * leaves `kind` out, since an administrator never changes a donor's kind.
  */
 export function kindPayload(draft: AccountDraft): { kind?: PersonKind } {
   return draft.kind === 'donor' ? {} : { kind: draft.kind };
@@ -65,7 +65,7 @@ export function emptyAccountDraft(): AccountDraft {
   };
 }
 
-/** The admin-only draft for a member's profile, or a blank one when there is none yet. */
+/** The admin-only draft for a member's profile, or a blank one when there isn't one yet. */
 export function adminOnlyDraft(profile: AdminProfile | null): AdminOnlyDraft {
   if (!profile) return { ...EMPTY_ADMIN_ONLY };
   return { notes: profile.notes, how_heard: profile.how_heard };
@@ -152,7 +152,7 @@ export function AccountFields({
     <fieldset>
       <legend>Account</legend>
       <div className="form-grid">
-        {/* The address takes a row of its own, so the names share one with no hint above
+        {/* The address takes a row of its own, so the names share one without a hint above
             either box, and the kind, which carries a hint, takes the next. */}
         <div className="account-fields__email">
           <Field label="Email address" required error={errors.email} status={emailStatus}>
@@ -192,7 +192,7 @@ export function AccountFields({
           <Field
             label="Kind of account"
             error={errors.kind}
-            hint="A friend pays no dues and is never current or expired."
+            hint="A friend doesn't pay dues and is never current or expired."
           >
             {(props) => (
               <select
@@ -225,7 +225,7 @@ export interface AdminOnlyFieldsProps {
  * notes only account administrators can read.  Members never see either, on
  * any screen.
  *
- * @param value - the draft being edited; the component holds no state of its own.
+ * @param value - the draft being edited; the component doesn't hold any state of its own.
  * @param onChange - called with the whole next draft on every edit.
  */
 export function AdminOnlyFields({

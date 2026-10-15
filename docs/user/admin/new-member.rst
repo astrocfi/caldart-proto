@@ -21,8 +21,8 @@ name.* or *Enter a last name.* when you press **Add member**.
 
 **Account**
    **Email address**, **First name**, **Last name**, and **Kind of account**. **Kind of
-   account** is **Member**, the first choice, or **Friend**; its hint reads *A friend pays
-   no dues and is never current or expired.* There isn't a password box: the person chooses
+   account** is **Member**, the first choice, or **Friend**; its hint reads *A friend doesn't
+   pay dues and is never current or expired.* There isn't a password box: the person chooses
    their own password from the email the site sends them, and nobody else ever knows it.
 
 **Contact**, **Amateur radio**, **Aviation**, and **Volunteer interests**

@@ -110,8 +110,8 @@ in the history. The plan and the start date cannot be changed: cancel a wrong te
 grant the right one, with a note saying why.
 
 A donor's record doesn't offer **Grant a term**: a donor doesn't hold a membership, and the
-history reads *A donor holds no membership, and becomes a member only by registering.* A
-donor becomes a member by registering on the site with the same address.
+history reads *A donor doesn't hold a membership, and becomes a member only by registering.*
+A donor becomes a member by registering on the site with the same address.
 
 **Grant a term** gives somebody a membership by hand, for a check or cash, or as a gift.
 Choose the **Plan**, and optionally a **Start date** and a **Note** (*Why this term was

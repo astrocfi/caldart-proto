@@ -87,7 +87,7 @@ describe('DartsPage', () => {
     expect(screen.getByRole('columnheader', { name: /Members/ })).toHaveClass('numeric');
   });
 
-  it('has no town column', async () => {
+  it("doesn't have a town column", async () => {
     stubList();
     renderPage();
 
@@ -177,7 +177,7 @@ describe('DartsPage', () => {
     );
   });
 
-  it('sends no town with a new DART', async () => {
+  it("doesn't send a town with a new DART", async () => {
     const user = userEvent.setup();
     let posted: Record<string, unknown> | null = null;
     stubList();
@@ -198,7 +198,7 @@ describe('DartsPage', () => {
     expect(posted).not.toHaveProperty('city');
   });
 
-  it('asks for no town', async () => {
+  it("doesn't ask for a town", async () => {
     const user = userEvent.setup();
     stubList();
     renderPage();
@@ -227,7 +227,7 @@ describe('DartsPage', () => {
     expect(screen.getByRole('group', { name: /DART management/ })).toBeInTheDocument();
   });
 
-  it('refuses to send a DART with no airport', async () => {
+  it('refuses to send a DART without an airport', async () => {
     const user = userEvent.setup();
     let asked = false;
     stubList();
@@ -300,7 +300,7 @@ describe('DartsPage', () => {
     await waitFor(() => expect(posted?.contacts).toEqual([]));
   });
 
-  it('refuses to send a DART with no name', async () => {
+  it('refuses to send a DART without a name', async () => {
     const user = userEvent.setup();
     let asked = false;
     stubList();
@@ -358,7 +358,7 @@ describe('DartsPage', () => {
     await waitFor(() => expect(patched).toMatchObject({ name: 'Mountain View' }));
   });
 
-  it('offers no delete from the list', async () => {
+  it("doesn't offer a delete from the list", async () => {
     stubList([makeDart()]);
     renderPage();
 
@@ -420,7 +420,7 @@ describe('DartsPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('warns about nothing for a DART nothing points at', async () => {
+  it("doesn't warn about a DART nothing points at", async () => {
     const user = userEvent.setup();
     stubList([makeDart()]);
     renderPage();
@@ -600,7 +600,7 @@ describe('DartsPage', () => {
     expect(screen.getByRole('button', { name: 'Move Helen down' })).toHaveClass('icon-button');
   });
 
-  it('does nothing to a person on the first press of their trashcan', async () => {
+  it("doesn't do anything to a person on the first press of their trashcan", async () => {
     const user = userEvent.setup();
     stubList([
       makeDart({
@@ -679,7 +679,7 @@ describe('DartsPage', () => {
     expect(screen.getByRole('button', { name: 'Add a person' })).toBeInTheDocument();
   });
 
-  it('says the people show in the order they are put in, with no cap', async () => {
+  it('says the people show in the order they are put in, without a cap', async () => {
     const user = userEvent.setup();
     stubList();
     renderPage();
@@ -765,7 +765,7 @@ describe('DartsPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('grays out Add a person while the last person has no name', async () => {
+  it("grays out Add a person while the last person doesn't have a name", async () => {
     const user = userEvent.setup();
     stubList();
     renderPage();
@@ -811,7 +811,7 @@ describe('DartsPage', () => {
     expect(screen.getByRole('button', { name: 'Add a person' })).toBeDisabled();
   });
 
-  it('offers Add a person on a DART with nobody listed', async () => {
+  it('offers Add a person on a DART without anyone listed', async () => {
     const user = userEvent.setup();
     stubList([makeDart({ contacts: [] })]);
     renderPage();
@@ -822,7 +822,7 @@ describe('DartsPage', () => {
   });
 
   it.each([['Move person 2 up'], ['Move person 2 down']])(
-    'cannot reorder a person with no name (%s)',
+    'cannot reorder a person without a name (%s)',
     async (control) => {
       const user = userEvent.setup();
       stubList([makeDart({ contacts: makePeople(3) })]);

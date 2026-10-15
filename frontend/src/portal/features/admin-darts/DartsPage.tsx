@@ -25,7 +25,7 @@ import { usePanelFocus } from '@/portal/components/focus';
 import { DartForm, dartToValues, emptyDartValues } from './DartForm';
 import { useAdminDarts, useCreateDart, useDeleteDart, useUpdateDart } from './api';
 
-/** The first message of a DRF error value, or null when it holds none. */
+/** The first message of a DRF error value, or null when it doesn't hold one. */
 function firstMessage(value: unknown): string | null {
   if (typeof value === 'string') return value;
   if (Array.isArray(value) && typeof value[0] === 'string') return value[0];
@@ -71,7 +71,7 @@ function memberCount(dart: AdminDart): string {
  *
  * Both relations are `SET_NULL`: the members on the DART become unaffiliated
  * and a linked website page keeps its own content and loses its DART.  A DART
- * nothing points at needs no warning, so the sentence is only built when a
+ * nothing points at doesn't need a warning, so the sentence is only built when a
  * count is above zero, and it names only the counts that are.
  */
 export function deleteWarning(dart: AdminDart): string | null {
@@ -136,7 +136,7 @@ export function DartsPage(): JSX.Element {
   // The form waits on this promise to leave its confirmation, so a failure is
   // reported here rather than thrown on: the administrator stays in the
   // confirmation and reads what the server said, or the fallback wording when it
-  // said nothing usable.
+  // didn't say anything usable.
   const handleDelete = async (dart: AdminDart): Promise<void> => {
     try {
       await remove.mutateAsync(dart.id);

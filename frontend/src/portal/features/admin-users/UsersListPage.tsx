@@ -12,14 +12,13 @@
  * member and lists active accounts only: the links carry the screen's search, role,
  * kind, and Email (bounced or not) filter, never its account status.  On screen a row
  * is an account, headed by its name: the Role column shows the widest role it holds and
- * how many more, naming them all on hover.  The report cannot
- * follow two of the screen's choices, Donor under Kind (a donor holds no
- * role) and the Member role (the report has no section for it), so while either is
- * chosen the exports and the column chooser are disabled, and a line beside them says
- * why.  With a role chosen, a line under the filters says what that role lets its
- * holders do.  A donor's row shows **No membership**, since a donor holds none.  An empty list
- * names the filters in force.  Name and Email
- * sort on the server; the other headings do not sort.
+ * how many more, naming them all on hover.  The report cannot follow two of the screen's
+ * choices, Donor under Kind (a donor doesn't hold a role) and the Member role (the report
+ * doesn't have a section for it), so while either is chosen the exports and the column
+ * chooser are disabled, and a line beside them says why.  With a role chosen, a line
+ * under the filters says what that role lets its holders do.  A donor's row shows **No
+ * membership**, since a donor doesn't hold one.  An empty list names the filters in
+ * force.  Name and Email sort on the server; the other headings do not sort.
  */
 import { useMemo } from 'react';
 import type { JSX } from 'react';
@@ -95,9 +94,9 @@ const FILTER_FIELDS: FilterField[] = [
 const FILTER_KEYS = FILTER_FIELDS.map((field) => field.key);
 
 const DONOR_EXPORT_REASON =
-  'Columns and the downloads are off for donors: a donor holds no role, so the roles report lists nobody.';
+  "Columns and the downloads are off for donors: a donor doesn't hold a role, so the roles report doesn't list anyone.";
 const MEMBER_EXPORT_REASON =
-  'Columns and the downloads are off for the Member role: the roles report has no section for it.';
+  "Columns and the downloads are off for the Member role: the roles report doesn't have a section for it.";
 
 /**
  * Why the roles report cannot follow the screen's filters, or `undefined` when it can.
@@ -201,7 +200,7 @@ const CELLS: Record<string, ReportCell<AdminUser>> = {
   membership: {
     width: '8.5rem',
     keepInSight: true,
-    // A donor holds no membership at all, so the cell says so rather than drawing a dot.
+    // A donor doesn't hold a membership, so the cell says so rather than drawing a dot.
     render: (user) =>
       user.kind === 'donor' ? (
         <span className="muted">No membership</span>

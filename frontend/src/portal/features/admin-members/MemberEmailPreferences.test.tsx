@@ -80,7 +80,7 @@ describe('MemberEmailPreferences', () => {
     expect(showsEmailPreferences(makeDetail({ kind: 'friend' }))).toBe(true);
   });
 
-  it('is not shown for a donor, who receives no bulk email', () => {
+  it("is not shown for a donor, who doesn't receive bulk email", () => {
     expect(showsEmailPreferences(makeDetail({ kind: 'donor', roles: [] }))).toBe(false);
   });
 

@@ -8,7 +8,7 @@
  * take away (`assignable_roles`): only a system administrator moves System administrator,
  * and only a holder of a two-factor role or a system administrator moves that role, so any
  * other box is grayed out with the reason under it.  On your own record the roles are
- * listed with no boxes, since nobody changes their own.  The **Two-factor sign-in** card
+ * listed without boxes, since nobody changes their own.  The **Two-factor sign-in** card
  * says whether the person has an authenticator app set up and offers **Reset two-factor**
  * for a lost phone.  The
  * **Password** card sends a reset link or requires a new password.  The **History**
@@ -63,7 +63,7 @@ const SYSTEM_ADMIN_ONLY = 'Only a system administrator can give or take away thi
 const HOLDER_ONLY =
   'Only somebody who holds this role, or a system administrator, can give or take it away.';
 
-/** Why your own record lists your roles with no boxes. */
+/** Why your own record lists your roles without boxes. */
 const OWN_ROLES = 'You cannot change your own roles. Ask another administrator.';
 
 /** Why `slug`'s box is grayed out, for a role the record says you may not change. */

@@ -31,7 +31,7 @@ const SELF_NOTE = 'To change your own password, use Change password.';
 
 /**
  * Where the link goes, in the confirmation, by where the account stands: a blocked
- * account is sent nothing, and a deactivated one stays so until the link is followed.
+ * account isn't sent anything, and a deactivated one stays so until the link is followed.
  */
 function linkNote(user: AdminUser): string {
   if (user.reactivation_blocked) {

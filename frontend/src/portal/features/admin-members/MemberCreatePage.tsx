@@ -1,7 +1,7 @@
 /**
  * `/admin/members/new` — create an account and its profile in one request.
  *
- * The form has no password box: the server stores an unusable password and emails the
+ * The form doesn't have a password box: the server stores an unusable password and emails the
  * new member a link to choose their own.
  */
 import { useRef, useState } from 'react';

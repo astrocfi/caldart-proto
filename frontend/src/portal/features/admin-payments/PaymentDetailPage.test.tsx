@@ -67,7 +67,7 @@ describe('PaymentDetailPage', () => {
     );
   });
 
-  it("offers a treasurer no link to the payer's member record", async () => {
+  it("doesn't offer a treasurer a link to the payer's member record", async () => {
     servePayment();
     renderDetail(signedInClient('treasurer'));
 
@@ -76,7 +76,7 @@ describe('PaymentDetailPage', () => {
     expect(screen.queryByRole('link', { name: 'Member record' })).not.toBeInTheDocument();
   });
 
-  it('offers no member record for a payment a deleted member left behind', async () => {
+  it("doesn't offer a member record for a payment a deleted member left behind", async () => {
     servePayment(makeDetail({ user_name: 'Deleted member 9', user_is_tombstone: true }));
     renderDetail(signedInClient('account_admin'));
 
@@ -224,7 +224,7 @@ describe('PaymentDetailPage', () => {
     expect(screen.getByRole('checkbox', { name: /Also end Marta Reyes/ })).toBeChecked();
   });
 
-  it('offers no box to end a membership that has already ended', async () => {
+  it("doesn't offer a box to end a membership that has already ended", async () => {
     const user = userEvent.setup();
     servePayment(
       makeDetail({
@@ -380,7 +380,7 @@ describe('PaymentDetailPage', () => {
     expect(await screen.findByText(/· Active/)).toBeInTheDocument();
   });
 
-  it('shows a dash for a payment that bought no term', async () => {
+  it("shows a dash for a payment that didn't buy a term", async () => {
     servePayment(makeDetail({ membership: null }));
     renderDetail();
 

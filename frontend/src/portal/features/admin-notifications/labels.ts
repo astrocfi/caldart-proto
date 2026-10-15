@@ -31,7 +31,7 @@ export function recipientLabel(subscription: NotificationSubscription): string {
  *
  * @param slugs the events a subscription lists.
  * @param events the catalog that names them; a slug it does not list reads as itself.
- * @returns `Sign-up, Donation received`, or `''` for no events.
+ * @returns `Sign-up, Donation received`, or `''` for an empty list.
  */
 export function eventLabels(
   slugs: readonly string[],
@@ -42,7 +42,7 @@ export function eventLabels(
 
 /**
  * The catalog grouped under its categories, in `CATEGORIES` order, each keeping
- * the catalog's order and a category with no events left out.
+ * the catalog's order and a category without any events left out.
  */
 export function groupEvents(events: readonly NotificationEvent[]): EventGroup[] {
   return CATEGORIES.map((category) => ({

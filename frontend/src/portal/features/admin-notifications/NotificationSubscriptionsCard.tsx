@@ -32,7 +32,7 @@ import { NotificationSubscriptionForm } from './NotificationSubscriptionForm';
 /** Which form is open: a new subscription, or the edit of one. */
 type OpenForm = { mode: 'new' } | { mode: 'edit'; id: number } | null;
 
-/** An error's message for the status line, or `fallback` when it carries none. */
+/** An error's message for the status line, or `fallback` when it doesn't carry one. */
 function errorText(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
 }

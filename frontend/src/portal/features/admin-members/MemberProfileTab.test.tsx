@@ -139,24 +139,24 @@ describe('MemberProfileTab', () => {
     expect(sent.profile).not.toHaveProperty('first_name');
   });
 
-  it('offers no Account is active box: the Delete or deactivate tab deactivates', () => {
+  it("doesn't offer an Account is active box: the Delete or deactivate tab deactivates", () => {
     renderWithProviders(<MemberProfileTab member={makeDetail()} />);
     expect(screen.queryByRole('checkbox', { name: /account is active/i })).not.toBeInTheDocument();
   });
 
-  it('shows no Verification card for a member with no profile yet', () => {
+  it("doesn't show a Verification card for a member without a profile yet", () => {
     renderWithProviders(<MemberProfileTab member={makeDetail({ profile: null })} />);
     expect(screen.queryByRole('heading', { name: 'Verification' })).not.toBeInTheDocument();
   });
 
-  it('offers no Verify for a deactivated member, whom the endpoint would refuse', () => {
+  it("doesn't offer Verify for a deactivated member, whom the endpoint would refuse", () => {
     renderWithProviders(<MemberProfileTab member={makeDetail({ is_active: false })} />);
     expect(
       within(verificationCard()).queryByRole('button', { name: 'Verify' }),
     ).not.toBeInTheDocument();
   });
 
-  it('offers no Verify for a donor, whom the endpoint would refuse', () => {
+  it("doesn't offer Verify for a donor, whom the endpoint would refuse", () => {
     renderWithProviders(<MemberProfileTab member={makeDetail({ kind: 'donor' })} />);
     expect(
       within(verificationCard()).queryByRole('button', { name: 'Verify' }),

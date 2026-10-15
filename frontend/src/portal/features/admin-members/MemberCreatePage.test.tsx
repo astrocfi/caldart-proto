@@ -119,14 +119,14 @@ describe('MemberCreatePage', () => {
     await waitFor(() => expect(posted?.kind).toBe('friend'));
   });
 
-  it('offers no password box, since the person chooses their own', () => {
+  it("doesn't offer a password box, since the person chooses their own", () => {
     server.use(...createHandlers());
     renderCreate();
 
     expect(screen.queryByLabelText(/password/i)).not.toBeInTheDocument();
   });
 
-  it('posts no password', async () => {
+  it("doesn't post a password", async () => {
     const user = userEvent.setup();
     server.use(...createHandlers());
     renderCreate();
@@ -302,7 +302,7 @@ describe('MemberCreatePage', () => {
     expect(starred).toEqual(['Email address*', 'First name*', 'Last name*']);
   });
 
-  it('refuses a member with no first name before anything is sent', async () => {
+  it('refuses a member without a first name before anything is sent', async () => {
     const user = userEvent.setup();
     server.use(...createHandlers());
     renderCreate();
@@ -316,7 +316,7 @@ describe('MemberCreatePage', () => {
     expect(posted).toBeNull();
   });
 
-  it('adds a member with no phone number, which is optional', async () => {
+  it('adds a member without a phone number, which is optional', async () => {
     const user = userEvent.setup();
     server.use(...createHandlers());
     renderCreate();

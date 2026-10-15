@@ -349,7 +349,7 @@ export function RenewalsPage(): JSX.Element {
       dropOrder: 2,
       render: (row) => {
         if (row.error === '') return <span className="muted">&mdash;</span>;
-        // A charge in doubt was refused by nobody: its reason is the provider's silence.
+        // Nobody refused a charge in doubt: its reason is the provider's silence.
         return row.in_doubt ? row.error : declineReason(row.error);
       },
     },

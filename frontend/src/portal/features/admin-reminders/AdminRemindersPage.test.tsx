@@ -70,7 +70,7 @@ describe('AdminRemindersPage', () => {
     expect(screen.queryByText('Marta Reyes')).not.toBeInTheDocument();
   });
 
-  it('offers no way to run the scan', async () => {
+  it("doesn't offer a way to run the scan", async () => {
     server.use(logHandler(ENTRIES));
     renderWithProviders(<AdminRemindersPage />);
     await screen.findByText('Marta Reyes');

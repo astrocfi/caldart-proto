@@ -49,8 +49,8 @@ function useInvalidateSubscriptions(): () => void {
  * Subscribes an address via `POST /notifications/subscriptions`.
  *
  * A refusal is an `ApiError` whose body is keyed by field: `recipient_email`
- * for an invalid or already subscribed address, `events` for none chosen or one
- * the account may not receive, and `confirmed` for an address no account holds.
+ * for an invalid or already subscribed address, `events` when no event is chosen or one
+ * is chosen that the account may not receive, and `confirmed` for an address no account holds.
  */
 export function useCreateNotificationSubscription(): UseMutationResult<
   NotificationSubscription,

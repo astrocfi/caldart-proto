@@ -29,7 +29,7 @@ export const CERTIFICATE_FILTER_CHOICES: Choice<string>[] = [
 
 /**
  * The kind selector's choices.  Its blank first option, **All**, lists members
- * and friends together; a donor is in no member list, so is never offered.
+ * and friends together; a donor isn't in any member list, so is never offered.
  */
 export const KIND_FILTER_CHOICES: Choice<'member' | 'friend'>[] = [
   { value: 'member', label: 'Members only' },

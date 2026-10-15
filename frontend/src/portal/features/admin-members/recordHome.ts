@@ -15,7 +15,7 @@ const DONORS_REPORT: RecordHome = { to: '/admin/payments/donors', label: 'Back t
  * The screen the record of `member` leads back to, and where a delete lands, for a
  * reader holding `roles`.
  *
- * A donor is on no member list: the donors report is where a reader found one, and
+ * A donor isn't on any member list: the donors report is where a reader found one, and
  * where a deleted donor's gifts show under the tombstone's name, so a donor's record
  * leads there for a reader who opens that report. Every other record, and a donor's
  * for a reader without the report, leads to the member list.

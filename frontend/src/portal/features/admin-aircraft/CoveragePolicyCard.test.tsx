@@ -78,7 +78,7 @@ describe('<CoveragePolicyCard/>', () => {
     server.use(
       http.put(`${API}/aircraft/coverage-policy`, () =>
         HttpResponse.json(
-          { note: ['Ensure this field has no more than 1000 characters.'] },
+          { note: ['Ensure this field has no more than 1000 characters.'] }, // wording:ignore
           { status: 400 },
         ),
       ),
@@ -90,7 +90,7 @@ describe('<CoveragePolicyCard/>', () => {
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     expect(
-      await screen.findByText('Ensure this field has no more than 1000 characters.'),
+      await screen.findByText('Ensure this field has no more than 1000 characters.'), // wording:ignore
     ).toBeInTheDocument();
   });
 

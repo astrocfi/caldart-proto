@@ -5,7 +5,7 @@
  * for somebody who lost their phone and their backup codes, asks first, then takes the
  * app and the codes away, signs the person out everywhere, and mails them; they set it up
  * again at their next sign-in.  The reset is offered only while two-factor sign-in is on.
- * Your own record offers no reset: you change your own on your profile.  A system
+ * Your own record doesn't offer a reset: you change your own on your profile.  A system
  * administrator's record offers it grayed out to anybody who is not one, with the reason.
  */
 import type { JSX } from 'react';
@@ -29,7 +29,7 @@ const RESET_HINT =
 
 export interface TwoFactorCardProps {
   user: AdminUser;
-  /** True on your own record, which offers no reset. */
+  /** True on your own record, which doesn't offer a reset. */
   isSelf: boolean;
 }
 

@@ -69,7 +69,7 @@ describe('dashboardTotals', () => {
     expect(dashboardTotals(ROWS, TODAY).yearToDate.netCents).toBe(8_910);
   });
 
-  it('is all zeroes with no data', () => {
+  it('is all zeroes for an empty list', () => {
     expect(dashboardTotals([], TODAY)).toEqual({
       thisMonth: NO_TOTAL,
       yearToDate: NO_TOTAL,

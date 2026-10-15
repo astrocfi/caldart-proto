@@ -78,7 +78,7 @@ function isCadence(value: string): value is ReportCadence {
  *
  * @param error what the save failed with.
  * @param fields the report's filter fields, which name each key.
- * @returns one line per refused filter, or none.
+ * @returns one line per refused filter, empty when no filter was refused.
  */
 export function filterErrors(error: unknown, fields: readonly FilterField[]): string[] {
   if (!(error instanceof ApiError)) return [];
@@ -123,7 +123,7 @@ interface SubscriptionFormProps {
  * Editing starts from the subscription's filters, columns, formats, schedule
  * and day; a stored column list that is empty (the report's defaults) fills the
  * chooser with the defaults and is sent back empty unless the chooser changes.
- * A report the portal has no definition for draws no filters or chooser, and
+ * A report without a definition in the portal draws neither filters nor a chooser, and
  * Save sends its stored filters and columns back with the schedule and formats.
  */
 export function SubscriptionForm({

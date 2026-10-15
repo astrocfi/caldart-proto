@@ -29,7 +29,7 @@ describe('eventLabels', () => {
     expect(eventLabels(['signed_up', 'mystery'], NOTIFICATION_EVENTS)).toBe('Sign-up, mystery');
   });
 
-  it('is empty for no events', () => {
+  it('is empty for an empty list of events', () => {
     expect(eventLabels([], NOTIFICATION_EVENTS)).toBe('');
   });
 });
@@ -56,7 +56,7 @@ describe('groupEvents', () => {
     ]);
   });
 
-  it('leaves out a category with no events', () => {
+  it('leaves out a category without any events', () => {
     const money = NOTIFICATION_EVENTS.filter((event) => event.category === 'Money');
     expect(groupEvents(money).map((group) => group.category)).toEqual(['Money']);
   });

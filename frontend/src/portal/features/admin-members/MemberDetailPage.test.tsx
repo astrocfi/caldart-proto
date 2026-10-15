@@ -121,7 +121,7 @@ describe('MemberDetailPage', () => {
     expect(header).toHaveTextContent('Profile never edited');
   });
 
-  it('points a member with no term at Memberships rather than calling them a friend', async () => {
+  it('points a member without a term at Memberships rather than calling them a friend', async () => {
     const noTerm = makeDetail({
       membership: { status: 'none', expires_on: null, plan: null, is_lifetime: false },
       memberships: [],
@@ -135,7 +135,7 @@ describe('MemberDetailPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('leaves out the expiry and joining dates a member with no term does not have', async () => {
+  it('leaves out the expiry and joining dates a member without a term does not have', async () => {
     const noTerm = makeDetail({
       membership: { status: 'none', expires_on: null, plan: null, is_lifetime: false },
       memberships: [],
@@ -176,7 +176,7 @@ describe('MemberDetailPage', () => {
     expect(address.closest('p')).toHaveTextContent('Bounced 10/01/2026 5.1.1 550 User unknown');
   });
 
-  it('shows no bounce for an address that has not bounced', async () => {
+  it("doesn't show a bounce for an address that has not bounced", async () => {
     server.use(...detailHandlers());
     renderDetail();
 
@@ -214,7 +214,7 @@ describe('MemberDetailPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows an unverified email address with no resend button', async () => {
+  it('shows an unverified email address without a resend button', async () => {
     server.use(...detailHandlers(makeDetail({ email_verified_at: null })));
     renderDetail();
 
@@ -337,7 +337,7 @@ describe('MemberDetailPage', () => {
     expect(captured.grantedTerm?.starts_on).toBe('2026-01-01');
   });
 
-  it('offers no start date later than today', async () => {
+  it("doesn't offer a start date later than today", async () => {
     server.use(...detailHandlers());
     renderDetail('/admin/members/1?tab=memberships');
 
@@ -601,7 +601,7 @@ describe('MemberDetailPage', () => {
     await waitFor(() => expect(captured.patchedMember?.kind).toBe('member'));
   });
 
-  it('sends no kind when a save leaves the kind as it was', async () => {
+  it("doesn't send a kind when a save leaves the kind as it was", async () => {
     const user = userEvent.setup();
     server.use(...detailHandlers(makeDetail({ kind: 'member' })));
     renderDetail();
@@ -613,7 +613,7 @@ describe('MemberDetailPage', () => {
     expect(captured.patchedMember).not.toHaveProperty('kind');
   });
 
-  it('marks a donor as a donor and offers no change of kind', async () => {
+  it("marks a donor as a donor and doesn't offer a change of kind", async () => {
     server.use(...detailHandlers(makeDetail({ kind: 'donor', roles: [] })));
     renderDetail();
 
@@ -734,7 +734,7 @@ describe('MemberDetailPage', () => {
       expect(await screen.findByRole('link', { name: 'Back to members' })).toBeInTheDocument();
     });
 
-    it('offers no term to grant', async () => {
+    it("doesn't offer a term to grant", async () => {
       server.use(...detailHandlers(DONOR));
       renderDetail('/admin/members/1?tab=memberships');
 
@@ -743,13 +743,13 @@ describe('MemberDetailPage', () => {
       expect(screen.queryByRole('button', { name: 'Grant term' })).not.toBeInTheDocument();
     });
 
-    it('says why a donor holds no term', async () => {
+    it("says why a donor doesn't hold a term", async () => {
       server.use(...detailHandlers(DONOR));
       renderDetail('/admin/members/1?tab=memberships');
 
       expect(
         await screen.findByText(
-          'A donor holds no membership, and becomes a member only by registering.',
+          "A donor doesn't hold a membership, and becomes a member only by registering.",
         ),
       ).toBeInTheDocument();
     });
@@ -771,7 +771,7 @@ describe('MemberDetailPage', () => {
     const NOTE =
       "This record keeps a deleted member's payments in the books and cannot be changed.";
 
-    it('offers no profile form to save', async () => {
+    it("doesn't offer a profile form to save", async () => {
       server.use(...detailHandlers(TOMBSTONE));
       renderDetail();
 
@@ -780,7 +780,7 @@ describe('MemberDetailPage', () => {
       expect(screen.queryByRole('button', { name: 'Save changes' })).not.toBeInTheDocument();
     });
 
-    it('offers no term to grant', async () => {
+    it("doesn't offer a term to grant", async () => {
       server.use(...detailHandlers(TOMBSTONE));
       renderDetail('/admin/members/1?tab=memberships');
 
@@ -789,7 +789,7 @@ describe('MemberDetailPage', () => {
       expect(screen.queryByRole('button', { name: 'Grant term' })).not.toBeInTheDocument();
     });
 
-    it('offers no delete', async () => {
+    it("doesn't offer a delete", async () => {
       server.use(...detailHandlers(TOMBSTONE));
       renderDetail('/admin/members/1?tab=danger');
 

@@ -45,7 +45,7 @@ export function fieldLabel(field: string): string {
   return FIELD_LABELS[field] ?? field.replace(/_/g, ' ');
 }
 
-/** The name of the account behind a write, or `the seed` when there is none. */
+/** The name of the account behind a write, or `the seed` when there isn't one. */
 export function actorName(actor: AircraftActor | null): string {
   return actor === null ? 'the seed' : actor.name;
 }
@@ -55,7 +55,7 @@ export function actorName(actor: AircraftActor | null): string {
  *
  * Reads `09/01/2026 at 12:34 PM · Dana Fiske · created` for a creation, where the
  * whole record is the change, and `… · updated carrier, insurance expiry` for a
- * write, naming every column that moved.  A write that names no column at all
+ * write, naming every column that moved.  A write that doesn't name a column
  * reads `updated` on its own.
  */
 export function changeLine(change: AircraftChange): string {

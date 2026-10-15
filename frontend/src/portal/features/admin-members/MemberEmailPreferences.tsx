@@ -5,7 +5,7 @@
  * A change made here is saved at once and recorded as the administrator's. Each type
  * turned off says who turned it off and when: the member, on their Email preferences
  * or from an unsubscribe link, or an account administrator. A donor
- * receives no bulk email and a deleted member's record cannot change, so neither
+ * doesn't receive bulk email and a deleted member's record cannot change, so neither
  * shows the card.
  */
 import type { JSX } from 'react';

@@ -178,7 +178,7 @@ describe('RenewalsPage', () => {
     expect(row.getByText('03/14/2027')).toBeInTheDocument();
   });
 
-  it('names a mandate with no plan a recurring donation, with its cadence', async () => {
+  it('names a mandate without a plan a recurring donation, with its cadence', async () => {
     server.use(...renewalHandlers([CONTRIBUTION_ONLY], [], record()));
     renderWithProviders(<RenewalsPage />);
 
@@ -283,7 +283,7 @@ describe('RenewalsPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('offers no way to turn off a mandate that is already off', async () => {
+  it("doesn't offer a way to turn off a mandate that is already off", async () => {
     server.use(...renewalHandlers([CANCELED], [], record()));
     renderWithProviders(<RenewalsPage />);
 
@@ -409,7 +409,7 @@ describe('RenewalsPage', () => {
     await expect.poll(() => seen.mandateQueries.at(-1)?.get('page')).toBe('2');
   });
 
-  it('offers no pager when one page holds every mandate', async () => {
+  it("doesn't offer a pager when one page holds every mandate", async () => {
     server.use(...renewalHandlers([ACTIVE], [], record()));
     renderWithProviders(<RenewalsPage />);
     await screen.findByRole('row', { name: /Maria Alvarez/ });

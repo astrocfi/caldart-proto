@@ -191,7 +191,7 @@ describe('ReconciliationPage', () => {
     );
   });
 
-  it('says so when the range holds no money at all', async () => {
+  it("says so when the range doesn't hold any money", async () => {
     server.use(reconciliationHandler([], []));
     renderWithProviders(<ReconciliationPage />);
 

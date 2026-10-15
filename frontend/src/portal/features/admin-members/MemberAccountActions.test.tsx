@@ -62,7 +62,7 @@ describe('MemberAccountActions', () => {
     expect(screen.getByRole('button', { name: 'Deactivate account' })).toBeInTheDocument();
   });
 
-  it('mentions no automatic renewal for a member who has none', async () => {
+  it("doesn't mention an automatic renewal for a member who doesn't have one", async () => {
     const user = userEvent.setup();
     stub();
     renderActions();
@@ -89,11 +89,11 @@ describe('MemberAccountActions', () => {
   it('says what each action does before it is pressed', async () => {
     stub();
     renderActions();
-    await screen.findByText('A friend pays no dues and gets no renewal reminders.');
+    await screen.findByText("A friend doesn't pay dues or get renewal reminders.");
     expect(screen.getByText(/Nothing is deleted, and it can be undone\./)).toBeInTheDocument();
   });
 
-  it('offers a friend no switch to friend', () => {
+  it("doesn't offer a friend a switch to friend", () => {
     stub();
     renderActions(makeDetail({ kind: 'friend', membership: FRIEND }));
 
@@ -121,7 +121,7 @@ describe('MemberAccountActions', () => {
     expect(screen.getByText('Ana Bracco becomes a friend of CalDART on 07/01/2027.')).toBeVisible();
   });
 
-  it('shows a donor no account actions', () => {
+  it("doesn't show a donor any account actions", () => {
     stub();
     renderActions(makeDetail({ kind: 'donor' }));
 
