@@ -68,9 +68,9 @@ class AdminProfileSerializer(ProfileSerializer):
     """The profile as an administrator sees it.
 
     Everything ``/me/profile`` offers -- the same fields, the same validation --
-    plus the admin-only ``notes`` and ``how_heard``, and nothing mandatory: an
+    plus the admin-only ``notes`` and ``how_heard``, and none of it is mandatory: an
     administrator records what they have been told, which on the day somebody
-    joins at an airshow may be no more than a name.
+    joins at an airshow may be only a name.
     """
 
     phone = serializers.CharField(max_length=24, required=False, allow_blank=True)
@@ -217,10 +217,10 @@ class MemberListSerializer(serializers.Serializer["MemberRow"]):
     Beside the fields the list always draws, the row carries every profile value the
     members report can add as a column, so the table can show whatever the column
     chooser picks: ``certificate_number``, ``instrument`` (true or false for a pilot by
-    whether the ratings hold one, null for somebody who holds no certificate),
+    whether the ratings hold one, null for somebody who doesn't hold a certificate),
     ``home_airport``, ``secondary_airport``, ``city``, ``state``, ``county``,
-    ``ham_callsign`` and ``member_since``.  An account with no profile reads blank text,
-    and null for ``instrument`` and ``member_since``.
+    ``ham_callsign``, and ``member_since``.  An account without a profile reads blank
+    text, and null for ``instrument`` and ``member_since``.
     """
 
     user_id = serializers.IntegerField(source="pk", read_only=True)
@@ -250,12 +250,12 @@ class MemberListSerializer(serializers.Serializer["MemberRow"]):
 
     @staticmethod
     def _profile(obj: MemberRow) -> MemberProfile | None:
-        """The member's profile row, or ``None`` when the account has none."""
+        """The member's profile row, or ``None`` when the account doesn't have one."""
         profile: MemberProfile | None = getattr(obj, "profile", None)
         return profile
 
     def get_phone(self, obj: MemberRow) -> str:
-        """The member's phone number, blank when there is no profile."""
+        """The member's phone number, blank when there isn't a profile."""
         profile = self._profile(obj)
         return profile.phone if profile else ""
 
@@ -281,26 +281,26 @@ class MemberListSerializer(serializers.Serializer["MemberRow"]):
 
     @extend_schema_field(serializers.ChoiceField(choices=PilotCertificateType.choices))
     def get_pilot_certificate_type(self, obj: MemberRow) -> str:
-        """The certificate the member holds, ``none`` when there is no profile."""
+        """The certificate the member holds, ``none`` when there isn't a profile."""
         profile = self._profile(obj)
         return profile.pilot_certificate_type if profile else "none"
 
     @extend_schema_field(serializers.ChoiceField(choices=MedicalType.choices))
     def get_medical_type(self, obj: MemberRow) -> str:
-        """The medical the member holds, ``none`` when there is no profile."""
+        """The medical the member holds, ``none`` when there isn't a profile."""
         profile = self._profile(obj)
         return profile.medical_type if profile else "none"
 
     def get_medical_expiration(self, obj: MemberRow) -> date | None:
-        """The medical expiration date, or ``None`` when there is none on file."""
+        """The medical expiration date, or ``None`` when it isn't on file."""
         profile = self._profile(obj)
         return profile.medical_expiration if profile else None
 
     def get_medical_is_current(self, obj: MemberRow) -> bool:
         """True when the member holds a medical that has not expired.
 
-        False when the account has no profile, and false when the profile records
-        no medical.
+        False when the account doesn't have a profile, and false when the profile
+        doesn't record a medical.
         """
         profile = self._profile(obj)
         return bool(profile and profile.medical_is_current)
@@ -308,8 +308,8 @@ class MemberListSerializer(serializers.Serializer["MemberRow"]):
     def get_aircraft(self, obj: MemberRow) -> list[str]:
         """The N-numbers of the aircraft on the member's profile.
 
-        Empty when the account has no profile, and empty when the profile has no
-        aircraft attached.
+        Empty when the account doesn't have a profile, and empty when the profile
+        doesn't have an aircraft attached.
         """
         profile = self._profile(obj)
         if profile is None:
@@ -317,12 +317,12 @@ class MemberListSerializer(serializers.Serializer["MemberRow"]):
         return [aircraft.n_number for aircraft in profile.aircraft.all()]
 
     def get_profile_updated_at(self, obj: MemberRow) -> datetime | None:
-        """When the profile was last written, or ``None`` with no profile or no edit."""
+        """When the profile was last written, or ``None`` without a profile or an edit."""
         profile = self._profile(obj)
         return profile.profile_updated_at if profile else None
 
     def _text(self, obj: MemberRow, field: str) -> str:
-        """The profile's ``field``, or a blank string when the account has no profile."""
+        """The profile's ``field``, or a blank string when the account lacks a profile."""
         profile = self._profile(obj)
         text: str = getattr(profile, field) if profile is not None else ""
         return text
@@ -334,8 +334,8 @@ class MemberListSerializer(serializers.Serializer["MemberRow"]):
     def get_instrument(self, obj: MemberRow) -> bool | None:
         """Whether a pilot holds an instrument rating.
 
-        ``None`` for somebody who holds no certificate, and for an account without a
-        profile.
+        ``None`` for somebody who doesn't hold a certificate, and for an account without
+        a profile.
         """
         profile = self._profile(obj)
         if profile is None or profile.pilot_certificate_type == PilotCertificateType.NONE:
@@ -355,7 +355,7 @@ class MemberListSerializer(serializers.Serializer["MemberRow"]):
         return self._text(obj, "city")
 
     def get_state(self, obj: MemberRow) -> str:
-        """The member's two-letter state, blank when there is no profile."""
+        """The member's two-letter state, blank when there isn't a profile."""
         return self._text(obj, "state")
 
     def get_county(self, obj: MemberRow) -> str:
@@ -376,7 +376,7 @@ class MemberDetailSerializer(serializers.Serializer[User]):
     """``GET /admin/members/{id}`` -- user, profile, memberships, and payments.
 
     ``email_bounced_at`` and ``email_bounce_detail`` say when and why the bounce check
-    last found the member's address bouncing; null and blank with no bounce known.
+    last found the member's address bouncing; null and blank until a bounce is known.
     ``pending_email`` is the address a requested change waits to move the account to,
     or ``""``: ``email`` changes only once the link mailed there is followed.
     ``is_tombstone`` is true for the **Deleted member <id>** account that keeps a
@@ -416,7 +416,7 @@ class MemberDetailSerializer(serializers.Serializer[User]):
         return is_tombstone(obj)
 
     def get_joined_on(self, obj: User) -> date | None:
-        """The start of the member's earliest term, or ``None`` if they have none.
+        """The start of the member's earliest term, or ``None`` if they don't have one.
 
         An annotated row answers from its annotation; any other row spends a
         query on it.
@@ -428,7 +428,7 @@ class MemberDetailSerializer(serializers.Serializer[User]):
         return first.starts_on if first else None
 
     def get_profile_updated_at(self, obj: User) -> datetime | None:
-        """When the profile was last written, or ``None`` with no profile or no edit."""
+        """When the profile was last written, or ``None`` without a profile or an edit."""
         profile: MemberProfile | None = getattr(obj, "profile", None)
         return profile.profile_updated_at if profile else None
 
@@ -439,7 +439,7 @@ class MemberDetailSerializer(serializers.Serializer[User]):
 
     @extend_schema_field(AdminProfileSerializer(allow_null=True))
     def get_profile(self, obj: User) -> dict[str, Any] | None:
-        """The profile including the admin-only fields, or ``None`` if there is none."""
+        """The profile including the admin-only fields, or ``None`` if there isn't one."""
         profile: MemberProfile | None = getattr(obj, "profile", None)
         return dict(AdminProfileSerializer(profile).data) if profile else None
 
@@ -465,7 +465,7 @@ class MemberCreateSerializer(serializers.Serializer[User]):
     ``email``, ``first_name``, and ``last_name`` are required; a missing or blank name
     is refused with "Enter a first name." or "Enter a last name."  Every phone number in
     the profile is optional.  ``kind`` is ``member`` (the default) or ``friend``: an
-    administrator never makes a donor by hand.  There is no password field, and a
+    administrator never makes a donor by hand.  There isn't a password field, and a
     ``password`` in the body is ignored like any other unknown key: the account is
     mailed an invitation to choose its own (:func:`apps.members.services.create_member`).
     """

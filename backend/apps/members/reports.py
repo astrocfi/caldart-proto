@@ -49,14 +49,14 @@ class RowContext(TypedDict):
 #: Every column the membership report can carry, in export order.  ``key`` is
 #: what ``?columns=`` names and what ``GET /reports/members/columns`` answers
 #: with, ``label`` is the header both exports print, ``default`` says whether
-#: the column appears when the caller chooses none, and ``width`` is the share
+#: the column appears when the caller doesn't choose any, and ``width`` is the share
 #: of the page the PDF gives it.  The ones that are off by default -- the plan,
 #: the certificate number, the instrument rating, the two airports, the town, the
 #: state, the county, the two joining dates and the profile's last update -- are
 #: there for a roster or an audit rather than for the everyday report, which is
 #: sized so no default cell has to wrap.
 #:
-#: A lifetime membership has no expiry date, so ``expires_on`` is blank for one;
+#: A lifetime membership doesn't have an expiry date, so ``expires_on`` is blank for one;
 #: the ``plan`` column ("Life") and ``status`` ("Current") say what it is.  The
 #: ``status`` cell is the :class:`~apps.members.models.MembershipState` label,
 #: never the slug, and the ``certificate`` cell abbreviates the airline
@@ -170,18 +170,18 @@ REPORT_TITLE = "CalDART membership report"
 
 
 def _iso(value: date | None) -> str:
-    """The date as ``YYYY-MM-DD``, or a blank cell when there is none."""
+    """The date as ``YYYY-MM-DD``, or a blank cell when there isn't one."""
     return value.isoformat() if value else ""
 
 
 def _value(profile: MemberProfile | None, field: str) -> str:
-    """The text in ``field``, or a blank cell when the member has no profile."""
+    """The text in ``field``, or a blank cell when the member doesn't have a profile."""
     text: str = getattr(profile, field, "") if profile is not None else ""
     return text
 
 
 def _date(profile: MemberProfile | None, field: str) -> date | None:
-    """The date in ``field``, or ``None`` when it is unset or there is no profile."""
+    """The date in ``field``, or ``None`` when it is unset or there isn't a profile."""
     value: date | None = getattr(profile, field, None) if profile is not None else None
     return value
 
@@ -199,7 +199,7 @@ def _instrument(profile: MemberProfile | None) -> str:
 def _profile_updated(profile: MemberProfile | None) -> str:
     """``profile.profile_updated_at`` as a local calendar date, or a blank cell.
 
-    Blank when the member has no profile, or the profile has never been edited.
+    Blank when the member doesn't have a profile, or the profile has never been edited.
     """
     if profile is None or profile.profile_updated_at is None:
         return ""
@@ -235,7 +235,7 @@ REPORT_CERTIFICATE_LABELS: dict[str, str] = {
 def _certificate_display(profile: MemberProfile | None) -> str:
     """The certificate column's cell: the report's abbreviation, or the choice's label.
 
-    A member without a profile, and one who holds no certificate, both read as
+    A member without a profile, and one who doesn't hold a certificate, both read as
     a blank cell, exactly as :func:`_display` would show them.
     """
     if profile is None or profile.pilot_certificate_type in _EMPTY_CHOICES:
@@ -248,7 +248,7 @@ def _certificate_display(profile: MemberProfile | None) -> str:
 def _row_context(user: MemberRow) -> RowContext:
     """Everything the columns read for one member, fetched once.
 
-    An account with no profile row still yields a context: the profile is
+    An account without a profile row still yields a context: the profile is
     ``None``, and every column that reads it is blank.
     """
     profile: MemberProfile | None = getattr(user, "profile", None)

@@ -84,7 +84,7 @@ def derived_annotations() -> dict[str, Concat | Case]:
         # The date the list sorts on: the end of current coverage, else the
         # date the last term ran out.  NULL for a friend, lifetime, and
         # never-a-member, which ``MemberOrderingFilter`` keeps at the end of the
-        # page: a friend's row shows no date, whatever terms it holds.
+        # page: a friend's row doesn't show a date, whatever terms it holds.
         "effective_expiry": Case(
             When(effective_kind=AccountKind.FRIEND, then=None),
             When(covers_today=True, then=F("coverage_end")),
@@ -111,7 +111,7 @@ def member_admin_queryset(
     """Every member and friend, annotated with its membership status.
 
     A donor is left out: a donor gives through the public site, cannot sign in, and
-    appears in no member list.  Only the single member record passes
+    never appears in a member list.  Only the single member record passes
     ``include_donors=True``, so that an administrator's edit to a donor is answered
     with the reason it is refused.  Deactivated accounts are here, so a member
     record can still be opened to reactivate one; :class:`MemberAdminFilterSet`
@@ -130,7 +130,7 @@ class CountyInFilter(django_filters.BaseInFilter, django_filters.ChoiceFilter):
     """One or more California counties, separated by commas, each matched exactly."""
 
 
-#: The choices ``?kind=`` accepts: a donor is in no member list, so it is not one.
+#: The choices ``?kind=`` accepts: a donor is never in a member list, so it is not one.
 LISTED_KINDS: list[tuple[str, str]] = [
     (AccountKind.MEMBER.value, AccountKind.MEMBER.label),
     (AccountKind.FRIEND.value, AccountKind.FRIEND.label),
@@ -205,7 +205,7 @@ class MemberAdminFilterSet(django_filters.FilterSet):
         effective kind worked out for today, so a member whose ``friend_on`` has arrived
         is a friend here and one whose change is still to come is a member, except that
         an account that chose to be a member and awaits its first term is a member.  A
-        blank value narrows nothing.
+        blank value leaves the queryset alone.
         """
         if not value:
             return queryset
@@ -257,7 +257,7 @@ class MemberAdminFilterSet(django_filters.FilterSet):
     ) -> QuerySet[MemberRow]:
         """Rows holding that medical, or any medical at all for ``any``.
 
-        An account with no profile row at all has no medical either, so it is
+        An account without a profile row doesn't have a medical either, so it is
         excluded along with the profiles that answer ``none``.
         """
         if not value:
@@ -321,7 +321,7 @@ class MemberAdminFilterSet(django_filters.FilterSet):
     def filter_role(
         self, queryset: QuerySet[MemberRow], name: str, value: str | None
     ) -> QuerySet[MemberRow]:
-        """Rows holding that role group, by slug; a blank value narrows nothing.
+        """Rows holding that role group, by slug; a blank value keeps every row.
 
         The test is the role group the account is actually in, so a superuser
         who was never added to one is not listed by ``?role=system_admin``.
@@ -355,9 +355,9 @@ class MemberOrderingFilter(drf_filters.OrderingFilter):
     Each alias expands to real columns, so ``name`` sorts by surname then
     forename, every alias falls back to the name to settle a tie, and the
     computed and stored dates and the DART name keep empty values at the end
-    whichever direction is asked for (a lifetime member has no expiry to
-    compare, an unaffiliated member has no team, and a profile nobody has
-    edited has no update date).
+    whichever direction is asked for (a lifetime member doesn't have an expiry to
+    compare, an unaffiliated member doesn't have a team, and a profile nobody has
+    edited doesn't have an update date).
     """
 
     ordering_description = (
@@ -401,8 +401,8 @@ class MemberOrderingFilter(drf_filters.OrderingFilter):
     def order_queryset[M: Model, R](cls, queryset: QuerySet[M, R], ordering: str) -> QuerySet[M, R]:
         """``queryset`` ordered by a comma-separated ``ordering``, defaulting to ``name``.
 
-        Each term is an alias, with a leading ``-`` to reverse it; a term naming no
-        alias is dropped, and when none is left the order is ``name``.  Each alias
+        Each term is an alias, with a leading ``-`` to reverse it; a term that doesn't
+        name an alias is dropped, and when none is left the order is ``name``.  Each alias
         expands to its real columns, and empty values sort last whichever direction
         is asked for.  The member list and the members report both order through
         this, so the two can never disagree.

@@ -40,16 +40,16 @@ def profile_field_label(name: str) -> str:
     """The words a notification uses for the profile or name field ``name``.
 
     ``dart`` reads DART, ``phone_alt`` Alternate phone, ``first_name`` First name, and
-    so on; a field with no label of its own reads as its model field's verbose name with
+    so on; a field without a label of its own reads as its model field's verbose name with
     a capital letter, e.g. ``city`` -> City, ``county`` -> California county.  A name
-    that is no profile field raises ``FieldDoesNotExist``.
+    that isn't a profile field raises ``FieldDoesNotExist``.
     """
     if name in _FIELD_LABELS:
         return _FIELD_LABELS[name]
     field = MemberProfile._meta.get_field(name)
-    # ``get_field`` also answers reverse relations, which carry no verbose name; a
-    # profile has none, so one here means the caller named something that is not a
-    # profile field at all.
+    # ``get_field`` also answers reverse relations, which don't carry a verbose name;
+    # a profile doesn't have any, so one here means the caller named something that is
+    # not a profile field at all.
     if not isinstance(field, Field):
         raise TypeError(f"MemberProfile.{name} is not a field with a label.")
     return capfirst(str(field.verbose_name))

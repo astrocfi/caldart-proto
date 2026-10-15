@@ -93,8 +93,8 @@ class MemberAdminListCreateView(MemberAdminBaseView, generics.ListCreateAPIView[
     def create(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """201 with the created member, in the same shape ``GET`` of one returns.
 
-        A body the create serializer refuses is a field-keyed 400 and writes
-        nothing.
+        A body the create serializer refuses is a field-keyed 400 and doesn't write
+        anything.
         """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -181,8 +181,8 @@ class MemberMembershipGrantView(APIView):
         ``note`` are optional, and a missing start date lets the service place
         the term after any coverage the member already has.  An unknown member
         is a 404 and a body the serializer refuses a field-keyed 400.  A donor is a
-        400 ``{"detail": "A donor holds no membership, and becomes a member only by
-        registering."}`` and a tombstone a 400 with the sentence a tombstone's record
+        400 ``{"detail": "A donor doesn't hold a membership, and becomes a member only
+        by registering."}`` and a tombstone a 400 with the sentence a tombstone's record
         refuses every change with; neither writes a term or raises an event.
         """
         member = get_object_or_404(User, pk=pk)

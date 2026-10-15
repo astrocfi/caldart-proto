@@ -36,7 +36,7 @@ YEAR_RANGE = {"from": f"{YEAR}-01-01", "to": f"{YEAR}-12-31"}
 TOTAL_KEYS = ("gifts", "given_cents", "refunded_cents", "net_cents")
 
 #: What a grant to a donor answers with.
-DONOR_GRANT_REFUSED = "A donor holds no membership, and becomes a member only by registering."
+DONOR_GRANT_REFUSED = "A donor doesn't hold a membership, and becomes a member only by registering."
 
 
 def _record_url(user: User) -> str:

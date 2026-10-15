@@ -490,8 +490,8 @@ renewal the change canceled stays canceled.  Recorded as ``account.kind`` with
 Statuses:
 
 * **200** — the ``user`` payload, ``friend_on`` null.
-* **400** — ``{"detail": "You have no pending change."}`` when ``friend_on`` is
-  null, when its day has come, or when the caller is a friend.
+* **400** — ``{"detail": "You don't have a pending change."}`` when ``friend_on``
+  is null, when its day has come, or when the caller is a friend.
 
 Becoming a member doesn't have an endpoint of its own: a friend pays for a plan at
 ``/portal/membership/join``, and ``activate_term`` makes them a member when the

@@ -114,7 +114,7 @@ if TYPE_CHECKING:
 
     # Inline: payments sits above members and apps.payments.services imports this
     # module, so a top-level import here would close the cycle.  This one is read
-    # by the type checker alone and costs nothing at run time.
+    # by the type checker alone and doesn't cost anything at run time.
     from apps.payments.models import Payment
 
 
@@ -160,7 +160,7 @@ TOMBSTONE_CHANGE_REFUSED = (
     "This record keeps a deleted member's payments in the books and cannot be changed."
 )
 #: Why a donor is refused a membership term granted by hand.
-DONOR_GRANT_REFUSED = "A donor holds no membership, and becomes a member only by registering."
+DONOR_GRANT_REFUSED = "A donor doesn't hold a membership, and becomes a member only by registering."
 
 #: Account columns whose edit counts as a profile write: a name or an email
 #: is what a member record shows alongside the rest of the profile.
@@ -219,14 +219,15 @@ def register_member(
 
     * **Nobody.**  A member's or a friend's account of ``kind`` is created with
       ``password``, the names stripped, and an empty profile, written together so a
-      failure leaves no half-made member; the profile's ``profile_updated_at`` is stamped
-      as the moment it was written.  The account starts unverified, and the message is
-      the verification link (:func:`apps.accounts.services.send_email_verification`).
+      failure never leaves a half-made member; the profile's ``profile_updated_at`` is
+      stamped as the moment it was written.  The account starts unverified, and the
+      message is the verification link
+      (:func:`apps.accounts.services.send_email_verification`).
       Nothing is raised yet: the join wizard asks for the DART at the profile step, and
       the save that completes the profile raises ``signed_up``
       (:meth:`apps.members.api.profile_serializers.ProfileSerializer.update`).
     * **A donor.**  No account is made and the donor is unchanged but for an empty
-      profile, made if it has none; ``password`` is not written, since the person
+      profile, made if it doesn't have one; ``password`` is not written, since the person
       registering has not shown the address is theirs.  The message is a verification
       link carrying the names and the kind, and following it asks for a password and
       upgrades the donor in place (:func:`apps.accounts.services.verify_email`), so the
@@ -264,8 +265,8 @@ def register_member(
                 email=address, first_name=first_name, last_name=last_name, kind=kind
             )
     except IntegrityError:
-        # Taken between the lookup and the write by a path that took no address lock:
-        # answer as for any account that holds the address.
+        # Taken between the lookup and the write by a path that didn't take an address
+        # lock: answer as for any account that holds the address.
         holder = address_holder(address)
         if holder is None:
             raise
@@ -292,10 +293,10 @@ def create_member(
 
     ``kind`` is the kind of person, a member unless it says friend.  ``profile`` is
     the profile fields to record, which on the day somebody joins
-    at an airshow may be none of them.  The account holds an unusable password and is
+    at an airshow may be empty.  The account holds an unusable password and is
     mailed an invitation to choose its own, whose link also proves the address: the
     administrator never picks a password for anybody.  The invitation is queued past
-    the commit, so a create that rolls back mails nobody, and a mail server that
+    the commit, so a create that rolls back never mails anybody, and a mail server that
     refuses it is logged (``caldart.mail.send_on_commit``) rather than failing the
     committed create.
     ``request`` only tells the invitation which site's name and contact address to
@@ -339,7 +340,7 @@ def update_member(
     here, where no password is asked for: :data:`OWN_ADDRESS_ON_RECORD_REFUSED` against
     ``email`` sends them to Change email.
     ``profile`` is written over the member's profile row, creating it if the account
-    somehow has none.  Both halves are written together, so a refused account edit
+    somehow doesn't have one.  Both halves are written together, so a refused account edit
     leaves the profile alone.  A profile write that moves a field a verified item covers
     clears that item (:func:`apps.members.verification.clear_stale`) in the same save.
 
@@ -347,7 +348,7 @@ def update_member(
     ``profile``, or an account ``email``, ``first_name`` or ``last_name`` --
     the fields a member record shows alongside the rest of the profile.  A
     request that only changes the kind or the roles leaves the stamp alone, and so
-    does one for a target with no profile row to stamp.
+    does one for a target without a profile row to stamp.
 
     When a name or a profile field really changes value, the ``profile_changed``
     event is raised with the account, the labels of those fields
@@ -399,9 +400,9 @@ TOMBSTONE_TOKEN_BYTES = 4
 def tombstone_for(target: User) -> User:
     """Create the account that keeps ``target``'s payments, ``Deleted member <id>``.
 
-    A deactivated donor: no password, no role, no sign-in, and off every list of active
-    accounts.  Its address is ``deleted-<id>@deleted.invalid`` and its profile blank;
-    when another account already holds that address, it is
+    A deactivated donor, without a password, a role, or a sign-in, and off every list of
+    active accounts.  Its address is ``deleted-<id>@deleted.invalid`` and its profile
+    blank; when another account already holds that address, it is
     ``deleted-<id>-<8 hex digits>@deleted.invalid`` instead, so nobody can make a
     delete fail by taking the address first.
     """
@@ -445,8 +446,8 @@ def is_tombstone(user: User) -> bool:
     A tombstone is a deactivated donor whose first name is
     :data:`TOMBSTONE_FIRST_NAME` and whose address is on :data:`TOMBSTONE_DOMAIN`; an
     account that merely holds such an address is not one.  A payment a tombstone holds
-    is kept in the books and nothing more: when one that was pending settles, it buys
-    no term and sends no mail.
+    is only kept in the books: when one that was pending settles, it doesn't buy a term
+    or send any mail.
     """
     return (
         user.kind == AccountKind.DONOR
@@ -478,13 +479,13 @@ def hand_over_payments(actor: User, target: User) -> dict[str, int]:
     Each active or paused automatic payment is canceled by ``actor`` through
     ``cancel_mandate`` with the audit reason ``member.delete``, which tells the member
     and raises ``auto_renewal_off`` with ``how="deleted"`` for an active one;
-    a pending one, which has saved nothing and told nobody, is thrown away.
+    a pending one, which hasn't saved anything or told anybody, is thrown away.
     Every payment, whatever its status, then moves to a new :func:`tombstone_for`
     account, refunds and all, with any public gift's stored giver details wiped, so a
     payment still pending cannot write the person back when it settles (see
     :func:`is_tombstone`).  Returns the ``member.delete`` audit fields: ``payments``,
-    how many moved, and ``owner``, the tombstone's id; or none, and makes no tombstone,
-    when ``target`` never paid.
+    how many moved, and ``owner``, the tombstone's id; or an empty dictionary, without
+    making a tombstone, when ``target`` never paid.
     """
     # Inline: payments sits above members and apps.payments.services imports this module.
     from apps.payments.models import MandateStatus, Payment
@@ -517,12 +518,12 @@ def delete_member(actor: User, target: User) -> None:
     themselves (reason ``self_delete``); only a system administrator may delete one
     (``system_admin_target``); and nobody may delete an account holding a two-factor
     role they do not hold (``roles_not_held``, :data:`ROLES_NOT_HELD_DELETE_REFUSED`); a
-    DART leader or a verifier is no obstacle.  That is the guard
+    DART leader or a verifier doesn't block it.  That is the guard
     deactivating and blocking follow
     (:func:`apps.accounts.services.may_edit_protected_fields`).  Roles are judged on
     effective roles, so a Django superuser counts as a system administrator and holds
-    every role.  Each of those three raises ``DomainPermissionError``.  A refusal writes
-    nothing and is audited at WARNING with its reason.
+    every role.  Each of those three raises ``DomainPermissionError``.  A refusal doesn't
+    write anything and is audited at WARNING with its reason.
 
     Payments outlive the account: :func:`hand_over_payments` moves them to a tombstone
     first.  The profile, terms, automatic payments and statements go with the account.
@@ -554,7 +555,7 @@ def _refuse_delete(actor: User, target: User, reason: str, message: str) -> NoRe
 # --------------------------------------------------------------------------
 #: The term states that make somebody a member once the term has started: a paid or
 #: granted term, current or run out, and one a self-deactivation set aside.  A
-#: canceled term, or one still to start, makes nobody a member.
+#: canceled term, or one still to start, never makes anybody a member.
 MEMBER_MAKING_STATUSES = (
     MembershipStatusChoices.ACTIVE,
     MembershipStatusChoices.EXPIRED,
@@ -568,13 +569,13 @@ def account_kind(user: User, today: date | None = None) -> AccountKind:
     The stored kind is what the person asked for; this is what they are.  ``friend``
     for an account stored as a friend; for a member whose ``friend_on`` date is on or
     before ``today`` (the conversion has come, whether or not
-    :func:`convert_due_friends` has written it down yet); and for a member who holds
-    no term that started on or before ``today`` with the status ``active``,
+    :func:`convert_due_friends` has written it down yet); and for a member who doesn't
+    hold a term that started on or before ``today`` with the status ``active``,
     ``expired``, or ``suspended``, which is somebody who chose to be a member and has
     not yet paid, or whose only terms were canceled or are still to start.  A donor
     is ``donor``, and anybody else a ``member``.  :func:`kind_annotation` states the
     same rule in SQL.  The terms are read through ``user.memberships.all()``, so a
-    prefetched set costs no query.
+    prefetched set doesn't cost a query.
     """
     today = today or timezone.localdate()
     if user.kind != AccountKind.MEMBER:
@@ -591,7 +592,7 @@ def account_kind(user: User, today: date | None = None) -> AccountKind:
 def awaits_first_term(user: User, today: date | None = None) -> bool:
     """True when ``user`` chose to be a member and no term of theirs has started.
 
-    That is a stored member whose ``friend_on`` has not come and who holds no term
+    That is a stored member whose ``friend_on`` has not come and who doesn't hold a term
     that started on or before ``today`` (default: the local date) with the status
     ``active``, ``expired``, or ``suspended``: an account an administrator created that
     has not paid, or a joiner still at the pay step.  :func:`account_kind` counts such
@@ -670,8 +671,8 @@ def kind_annotation(today: date | None = None) -> Case:
     )
 
 
-#: The term states that never make anybody expired: a canceled term counts for
-#: nothing, and a suspended one belongs to an account its holder deactivated.
+#: The term states that never make anybody expired: a canceled term doesn't
+#: count, and a suspended one belongs to an account its holder deactivated.
 NOT_PAST_STATUSES = (
     MembershipStatusChoices.CANCELED,
     MembershipStatusChoices.SUSPENDED,
@@ -679,7 +680,7 @@ NOT_PAST_STATUSES = (
 
 
 def _friend_membership() -> MembershipStatusDict:
-    """The status of a friend: ``friend``, with no expiry, no plan, and never lifetime.
+    """The status of a friend: ``friend``, without an expiry or a plan, never lifetime.
 
     A fresh dictionary each call, so a caller that adds its own keys -- the
     ``/me/membership`` payload hangs the term history off it -- cannot reach
@@ -694,7 +695,7 @@ def _friend_membership() -> MembershipStatusDict:
 
 
 def _not_yet_paid() -> MembershipStatusDict:
-    """The status of a member awaiting a first term: ``none``, with nothing else set."""
+    """The status of a member awaiting a first term: ``none``, the rest unset."""
     return {
         "status": MembershipState.NONE,
         "expires_on": None,
@@ -704,7 +705,7 @@ def _not_yet_paid() -> MembershipStatusDict:
 
 
 def donor_membership() -> MembershipStatusDict:
-    """The status of a donor: ``donor``, with no expiry, no plan, and never lifetime."""
+    """The status of a donor: ``donor``, without an expiry or a plan, never lifetime."""
     return {
         "status": MembershipState.DONOR,
         "expires_on": None,
@@ -804,7 +805,7 @@ def membership_status(
     bought today shows next year's date immediately, and is ``None`` for a
     lifetime term.  ``plan`` is the name of the plan behind the term reported.
 
-    A canceled or a suspended term counts for nothing: it never covers a day and
+    A canceled or a suspended term doesn't count: it never covers a day and
     never makes anybody expired, so an account whose only terms are suspended reads
     as ``friend`` while it is deactivated.
     """
@@ -918,7 +919,7 @@ def membership_payload(user: MemberRow) -> MembershipStatusDict:
     """Read the annotated status back in ``membership_status`` shape.
 
     Answers exactly what :func:`membership_status` would for the same row, out
-    of the annotations alone and with no further query.  ``user`` must have come
+    of the annotations alone and without a further query.  ``user`` must have come
     from :func:`with_membership`, otherwise the annotations are missing and the
     read raises ``AttributeError``; reach for :func:`membership_of` when that is
     not guaranteed.
@@ -949,7 +950,7 @@ def membership_of(user: User) -> MembershipStatusDict:
     """The membership summary for ``user``, however the row was fetched.
 
     A user that came through :func:`with_membership` is answered from its
-    annotations, at no extra cost; any other user falls back to
+    annotations, without a further query; any other user falls back to
     :func:`membership_status`, which spends a query or two working it out in
     Python.  Both answers are identical.
     """
@@ -1068,8 +1069,8 @@ def grant_term(
     ``membership_granted`` event with the account, the term and ``actor``.  A friend
     granted a term also becomes a member, as :func:`activate_term` describes.
 
-    Two accounts are refused with ``DomainError``, writing nothing, emitting nothing,
-    and auditing ``membership.grant`` at WARNING: a tombstone, with
+    Two accounts are refused with ``DomainError``, without writing or emitting anything,
+    and with ``membership.grant`` audited at WARNING: a tombstone, with
     :func:`refuse_tombstone_change`'s sentence and the reason ``tombstone``; and any
     other donor, with :data:`DONOR_GRANT_REFUSED` and the reason ``donor_account``.
     """
@@ -1102,7 +1103,7 @@ def _joined_note(existing: str, addition: str) -> str:
     The two are separated by a period and a space, and a period the old text
     already ended in is dropped rather than doubled.  ``addition`` is kept whole
     wherever it fits: the old text loses its front to make room, and disappears
-    when there is no room for any of it.
+    when there isn't room for any of it.
     """
     addition = addition.strip()
     prefix = existing.rstrip(". ")
@@ -1119,8 +1120,8 @@ def _joined_note(existing: str, addition: str) -> str:
 def cancel_term(term: Membership, *, actor: User | None = None, note: str = "") -> Membership:
     """Cancel ``term`` so it stops covering the member, and return the row as saved.
 
-    A canceled term counts for nothing: ``membership_status`` skips it, so a
-    member with no other active term reads as expired, or as never covered.
+    A canceled term doesn't count: ``membership_status`` skips it, so a
+    member without another active term reads as expired, or as never covered.
 
     ``note`` is why it was canceled -- a refund, an administrator's correction.
     It is appended to whatever the term already said, separated by a period and
@@ -1133,7 +1134,7 @@ def cancel_term(term: Membership, *, actor: User | None = None, note: str = "") 
     initiated, such as one a provider's webhook caused, is recorded under
     ``command``.
 
-    Canceling a term that is already canceled changes nothing but the note.
+    Canceling a term that is already canceled changes only the note.
     """
     term.status = MembershipStatusChoices.CANCELED
     if note:
@@ -1210,9 +1211,9 @@ def _set_term_status(term: Membership, status: MembershipStatusChoices, *, actor
 def stamp_member_since(user: User, joined_on: date) -> None:
     """Record ``joined_on`` as the day ``user`` joined, if nothing has yet.
 
-    Does nothing when the profile already carries a date, so the earliest one
-    wins however the member's terms are created, and nothing at all when the
-    account has no profile row.
+    Doesn't do anything when the profile already carries a date, so the earliest one
+    wins however the member's terms are created, or when the account doesn't have a
+    profile row.
     """
     profile = MemberProfile.objects.filter(user=user, member_since__isnull=True).first()
     if profile is None:

@@ -12,7 +12,7 @@ class Command(BaseCommand):
 
     Writes the plans in ``apps.members.plans.PLANS`` (annual and life), keyed on their
     slugs, so a site that never loads the demo data still has plans to sell, and a
-    second run changes nothing but a price or description edited by hand.  Prints one
+    second run changes only a price or description edited by hand.  Prints one
     line per plan and a closing count.
     """
 

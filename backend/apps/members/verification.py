@@ -8,13 +8,13 @@ hours are not verified.
 Each item is recorded on ``MemberProfile`` as ``<item>_verified_at`` and
 ``<item>_verified_by``, and read through ``<item>_is_verified``, which is true when
 ``<item>_verified_at`` is set.  A write that changes the stored value of any field an
-item covers clears that item's verification, whoever writes it; a write that changes
-nothing clears nothing.  A verified medical whose expiration passes stays verified:
-currency and verification are two separate facts.
+item covers clears that item's verification, whoever writes it; a write that doesn't
+change a value doesn't clear anything.  A verified medical whose expiration passes stays
+verified: currency and verification are two separate facts.
 
 An item the person does not hold -- a pilot certificate of ``none``, a medical of
-``none``, or a photo ID of ``not_provided`` -- has nothing to verify: it is never
-stamped, and a person is fully verified only when every item is held and verified.
+``none``, or a photo ID of ``not_provided`` -- doesn't have anything to verify: it is
+never stamped, and a person is fully verified only when every item is held and verified.
 
 A holder of any role in ``apps.accounts.roles.VERIFY_ROLES`` may verify an item, a
 system administrator and a superuser included.  An aircraft's insurance is the fourth
@@ -126,10 +126,10 @@ def is_held(profile: MemberProfile, slug: str) -> bool:
 def is_fully_verified(profile: MemberProfile | None) -> bool:
     """True when ``profile`` exists and every one of its items is held and verified.
 
-    A stamp on an item the person does not hold counts for nothing, so a non-pilot is
-    never fully verified.  Reads only columns of the profile row, so a row the caller
-    already fetched answers without another query.  An account with no profile has
-    nothing verified.
+    A stamp on an item the person does not hold doesn't count, so a non-pilot is never
+    fully verified.  Reads only columns of the profile row, so a row the caller already
+    fetched answers without another query.  An account without a profile doesn't have
+    an item verified.
     """
     if profile is None:
         return False
@@ -144,10 +144,10 @@ def clear_stale(profile: MemberProfile, changes: Mapping[str, object]) -> list[s
     before they are assigned, while ``profile`` still holds the stored values.  An item
     is cleared -- both ``<slug>_verified_at`` and ``<slug>_verified_by`` set to
     ``None`` on ``profile``, not yet saved -- when any field it covers carries a value
-    different from the stored one.  A field resent at its stored value, or one no item
-    covers, clears nothing.  Returns the slugs of the items that were verified and are
-    cleared, in the order of :data:`ITEMS`; an item that was not verified is not
-    reported.
+    different from the stored one.  A field resent at its stored value, or one that no
+    item covers, doesn't clear anything.  Returns the slugs of the items that were
+    verified and are cleared, in the order of :data:`ITEMS`; an item that was not
+    verified is not reported.
     """
     cleared: list[str] = []
     for item in ITEMS:
@@ -176,8 +176,9 @@ def verify_member(
     ``changes`` maps some of the fields the items cover to the values to write; when it
     is not empty it goes through :func:`apps.members.services.update_member` under
     ``actor``, which clears the items whose fields moved and raises
-    ``profile_changed``.  An empty ``changes`` writes no field and leaves
-    ``profile_updated_at`` alone.  The profile is created if the account has none.
+    ``profile_changed``.  An empty ``changes`` doesn't write a field and leaves
+    ``profile_updated_at`` alone.  The profile is created if the account doesn't have
+    one.
 
     Then each slug in ``verified`` names an item that ends verified: one not yet
     verified is stamped with ``timezone.now()`` and ``actor``, and one already verified
@@ -188,8 +189,8 @@ def verify_member(
     The audit log records ``member.verify`` with ``verified`` (the items stamped by
     this save) and ``cleared`` (the items verified before the save and not after), by
     slug.  When either list is not empty, ``verification_changed`` is raised once with
-    ``user``, ``verified`` and ``cleared`` as item labels, and ``actor``; a save that
-    changes no item's state raises nothing.  Returns the saved profile.
+    ``user``, ``verified``, and ``cleared`` as item labels, and ``actor``; a save that
+    doesn't change an item's state doesn't raise it.  Returns the saved profile.
 
     Locks the profile row with ``select_for_update`` before reading it, so a save
     racing this one -- the member's own edit, or another verifier's -- waits for this

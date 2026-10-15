@@ -36,7 +36,7 @@ pytestmark = pytest.mark.django_db
 FRIEND_URL = "/api/v1/me/kind/friend"
 
 LIFETIME_REFUSED = {"detail": "A lifetime member stays a member."}
-NO_PENDING_CHANGE = {"detail": "You have no pending change."}
+NO_PENDING_CHANGE = {"detail": "You don't have a pending change."}
 ALREADY_FRIEND = {"detail": "You are already a friend of CalDART."}
 KEEP_REQUIRED = {"keep_contribution": ["This field is required."]}
 DONATION_HELD = {

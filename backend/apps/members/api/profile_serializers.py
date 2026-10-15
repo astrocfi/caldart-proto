@@ -105,7 +105,7 @@ class PaymentTermSerializer(serializers.ModelSerializer[Membership]):
 class PaymentSummarySerializer(serializers.ModelSerializer[Payment]):
     """The payment row a member sees for themselves on ``GET /me/payments``.
 
-    It carries everything the payments screen draws, so the screen needs no
+    It carries everything the payments screen draws, so the screen doesn't need a
     second call per row: what the payment bought and what it cost, how much of
     it has come back, when CalDART's receipt was emailed, and the term it
     activated.
@@ -283,7 +283,7 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
 
     @extend_schema_field(AircraftSummarySerializer(many=True))
     def get_aircraft(self, obj: MemberProfile) -> list[dict[str, Any]]:
-        """The aircraft on ``obj``, or none while its owner may not use aircraft."""
+        """The aircraft on ``obj``, empty while its owner may not use aircraft."""
         if not may_use_aircraft(obj.user):
             return []
         return cast(
@@ -365,7 +365,7 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
         return self._extension(value)
 
     def _extension(self, value: str) -> str:
-        """``value`` as up to six digits, and nothing else.
+        """``value`` as up to six digits, and only digits.
 
         A blank value passes: every extension is optional.  Anything else is
         refused with "An extension is digits only, for example 4021."  The
@@ -424,18 +424,17 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
         The write that turns an incomplete profile complete
         (``MemberProfile.is_complete``) is the join wizard's profile step finishing,
         so it raises the ``signed_up`` event with the account and the profile's
-        ``dart`` (``None`` when none was chosen), and no ``profile_changed``.  Any
+        ``dart`` (``None`` when none was chosen), but not ``profile_changed``.  Any
         other write that changes a field's value raises ``profile_changed`` with the
         account, the labels of those fields
-        (:func:`apps.members.labels.changed_field_labels`: names first) and
-        ``actor=None``, the
-        member having edited their own profile.  A write that moves nothing raises
-        nothing, and neither does one to an incomplete profile that leaves it
-        incomplete: the join is under way.
+        (:func:`apps.members.labels.changed_field_labels`: names first), and
+        ``actor=None``, the member having edited their own profile.  A write that
+        doesn't move a value doesn't raise an event, and neither does one to an
+        incomplete profile that leaves it incomplete: the join is under way.
 
         A write that changes a field a verified item covers clears that item in the
         same save (:func:`apps.members.verification.clear_stale`); the member's own
-        edit raises no ``verification_changed``, only the ``profile_changed`` above.
+        edit doesn't raise ``verification_changed``, only the ``profile_changed`` above.
 
         Locks the profile row with ``select_for_update`` before reading its stored
         values, so a save racing this one -- a verifier stamping an item on the same
@@ -452,14 +451,14 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
                 if source in validated_data:
                     continue
                 # ``get_field`` also answers reverse relations and generic foreign
-                # keys, which carry no default. None of the writable fields above
+                # keys, which don't carry a default. None of the writable fields above
                 # is one, so such an answer means the field list and the model have
                 # drifted apart, and the reset would silently skip a field.
                 model_field = MemberProfile._meta.get_field(source)
                 if not isinstance(model_field, models.Field):
                     raise TypeError(
-                        f"MemberProfile.{source} is not a concrete field and has no "
-                        f"default to reset {name!r} to."
+                        f"MemberProfile.{source} is not a concrete field and doesn't have "
+                        f"a default to reset {name!r} to."
                     )
                 validated_data[source] = model_field.get_default()
         was_complete = instance.is_complete

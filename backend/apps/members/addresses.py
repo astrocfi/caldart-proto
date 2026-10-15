@@ -9,8 +9,8 @@ biased toward California so in-state matches sort first.
 Each Geoapify result that names a street becomes one :class:`AddressSuggestion`: the
 street line, city, two-letter state, five-digit ZIP code, and the California county
 when the result lies in one of the fifty-eight the profile stores.  Suggestions are a
-convenience, so every failure -- no key, a short query, a slow or refusing provider, an
-unreadable answer -- yields an empty list rather than an error.
+convenience, so every failure -- a missing key, a short query, a slow or refusing
+provider, an unreadable answer -- yields an empty list rather than an error.
 """
 
 from __future__ import annotations
@@ -26,7 +26,8 @@ from apps.members.models import CALIFORNIA_COUNTIES, US_STATE_CHOICES
 
 log = logging.getLogger(__name__)
 
-#: The shortest query worth sending: fewer characters narrow nothing and spend quota.
+#: The shortest query worth sending: fewer characters don't narrow anything and still
+#: spend quota.
 MIN_QUERY_LENGTH = 3
 
 #: How long to wait on Geoapify, in seconds, before giving up on this keystroke.
@@ -45,7 +46,7 @@ ZIP_CODE = re.compile(r"^(\d{5})(?:-\d{4})?$")
 COUNTRY_SUFFIXES = (", United States of America", ", United States")
 
 #: Geoapify's names for the place a street lies in, most specific first.  A small
-#: place has no ``city`` but a ``town`` or ``village``.
+#: place has a ``town`` or ``village`` in place of a ``city``.
 LOCALITY_KEYS = ("city", "town", "village", "hamlet")
 
 _STATE_CODES = {code for code, _ in US_STATE_CHOICES}
@@ -155,7 +156,7 @@ def _fetch_results(text: str, api_key: str) -> list[dict[str, Any]]:
 
 
 def _suggestion(result: dict[str, Any]) -> AddressSuggestion | None:
-    """``result`` in the profile's terms, or ``None`` when it names no street."""
+    """``result`` in the profile's terms, or ``None`` when it doesn't name a street."""
     street = _text(result, "street")
     if len(street) == 0:
         return None
@@ -188,7 +189,7 @@ def _state_code(result: dict[str, Any]) -> str:
 
 
 def _zip_code(postcode: str) -> str:
-    """The five-digit ZIP code in ``postcode``, or ``""`` when it holds none."""
+    """The five-digit ZIP code in ``postcode``, or ``""`` when it doesn't hold one."""
     match = ZIP_CODE.match(postcode)
     return match.group(1) if match is not None else ""
 
@@ -198,7 +199,7 @@ def _label(
 ) -> str:
     """The one-line address for the list: Geoapify's own, without the country.
 
-    A result with no ``formatted`` address is labeled from its parts instead.
+    A result without a ``formatted`` address is labeled from its parts instead.
     """
     formatted = _text(result, "formatted")
     for suffix in COUNTRY_SUFFIXES:
