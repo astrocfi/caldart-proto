@@ -476,8 +476,8 @@ it and which columns they touched.
 
 ``kind`` is ``created`` or ``updated``.  ``fields`` names the columns the write
 moved and is empty on a ``created`` entry, where the whole record is the change,
-and on a save that didn't alter anything.  ``changed_by`` is ``null`` for a change no
-signed-in account made.  The list is unpaginated: an aircraft has few changes.
+and on a save that didn't alter anything.  ``changed_by`` is ``null`` when no
+signed-in account made the change.  The list is unpaginated: an aircraft has few changes.
 Every write through ``POST /aircraft``, ``PUT``, and ``PATCH`` adds one entry
 and stamps ``updated_at`` and ``updated_by`` on the record, and deleting the
 record deletes its history with it.
@@ -488,7 +488,7 @@ not the same right as seeing who else has edited it.
 
 Statuses:
 
-* **200** — the array above, empty for a record nobody has written.
+* **200** — the array above, empty for an unchanged record.
 * **403** — the caller does not hold ``account_admin``.
 * **404** — no aircraft has that id.
 

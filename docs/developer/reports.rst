@@ -194,7 +194,7 @@ Columns and cells
    The columns to export.  A ``requested`` list that is ``None`` or empty means
    the caller didn't choose anything, and the answer is every column whose ``default``
    is true, in registry order; otherwise it is one column per requested key, in
-   the order requested.  A key no column carries raises ``ValueError`` naming
+   the order requested.  An unknown key raises ``ValueError`` naming
    that key, and so does a key asked for twice.
 ``chosen_columns(columns, requested)``
    The same for the raw ``?columns=`` parameter — a comma-separated list of
@@ -305,8 +305,8 @@ hands them over.
 
 The letterhead itself comes from ``org_details()`` in ``backend/caldart/org.py``,
 which reads the organization's name, contact address, mailing address, EIN and
-site URL from the Wagtail site settings a website administrator edits.  A field
-nobody has filled in doesn't draw a line at all.
+site URL from the Wagtail site settings a website administrator edits.  A blank
+field doesn't draw a line at all.
 
 
 .. _reports-untrusted-values:
@@ -714,8 +714,8 @@ pilots                   Pilots                  no      Display names of the me
 
 ``GET /api/v1/reports/aircraft/columns`` answers the registry as JSON, for the
 chooser on the register screen.  The pilot list is off by default because it is
-as long as the number of members who fly the plane, which is the one cell no
-width can promise to hold.
+as long as the number of members who fly the plane, which is the one cell
+that can outgrow any width.
 
 Each row is a ``RegisterRow``: the aircraft and whether the coverage policy
 covers it, judged by one ``CoverageRule`` read before the first row, so the

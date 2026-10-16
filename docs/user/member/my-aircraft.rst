@@ -164,7 +164,7 @@ the form opens with every detail, as it was added: **N-number**, **Year**, **Air
 **Category**, and **Airworthiness**; **Owner type** (Individual, FBO, or Flying club), **Owner name**, and
 **Owner contact**; and **Carrier**, **Policy number**, **Liability per occurrence**,
 **Liability per person**, **Hull**, and **Insurance expires**. Amounts are in US
-dollars, and the commas fill in as you type; a limit nobody recorded shows as an
+dollars, and the commas fill in as you type; an unrecorded limit shows as an
 empty box. To change the type, type in **Aircraft
 type** and pick the new one from the list. Picking a type with **Seats** empty fills
 in its seats. Typing in **N-number** lists the registry's airplanes again, and

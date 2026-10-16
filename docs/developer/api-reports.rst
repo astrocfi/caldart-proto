@@ -322,7 +322,7 @@ Refusals:
 * **400** ``{"recipient_email": ["<name> does not hold a role that may read
   this report."]}`` for an account that may not read it, confirmed or not;
 * **400** ``{"confirmed": ["Check the box to confirm this address may receive
-  this report."]}`` for an address no account holds, until it is confirmed;
+  this report."]}`` for an address without an account, until it is confirmed;
 * **400** ``{"report": ["\"<slug>\" is not a valid choice."]}`` for an unknown
   report, and likewise for ``formats`` and ``cadence``; ``weekday`` outside 0
   to 6 is refused under ``weekday``;

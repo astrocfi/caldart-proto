@@ -95,7 +95,7 @@ broken pipe its early exit leaves behind is swallowed so that the message the
 tool printed is what reaches the operator.  If the copy itself fails instead --
 a dump that cannot be read, a disk that fills -- the tool is killed and waited
 for before the error propagates, so no ``pg_dump`` or ``psql`` is left blocked
-on a pipe nobody is moving.
+on a stalled pipe.
 
 A restore reads the dump through once, a block at a time, before it drops
 anything.  A corrupt, truncated, or non-gzip file therefore fails with
@@ -316,7 +316,7 @@ the database is not a thing to do from a browser tab.
 Rehearsing a restore
 ====================
 
-A backup nobody has restored is a hope.  Restore one into a scratch database
+An untested backup is a hope.  Restore one into a scratch database
 now and then, check that it holds what the live database holds, and throw the
 scratch copy away.  None of it touches the live database.
 

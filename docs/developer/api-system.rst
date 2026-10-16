@@ -368,7 +368,7 @@ email would hold a working link: what was said is the template's, named by
 shows it, such as a bulk email's on **Sent**.  ``system_admin`` only, as the log is.
 
 Statuses: **200**; **401** when anonymous; **403** for every other role; **404** for an
-id no row has.
+unknown id.
 
 ``GET /system/emails/purposes``
 -------------------------------
@@ -441,7 +441,7 @@ a sent email by the signed address they were returned to, each an action of kind
 ``bounced`` naming the recipient as the row recorded them, ``on`` the day the email
 was sent.  ``unmatched`` counts the permanent failures in reports not returned to a
 valid signed address of an email sent in the last 30 days (the bare bounce address,
-a wrong signature, an id no row has or one the database has since given another
+a wrong signature, an unknown id or one the database has since given another
 email, an older send, or a row the relay refused), each an action of kind
 ``unmatched`` naming the report's ``Final-Recipient``, with an empty ``member``
 and a null ``on``; none of them changes anything.  ``ignored`` counts the messages
@@ -694,7 +694,7 @@ while it runs and ``result`` null until it has finished.  One unfinished
 full description is on :doc:`api-renewals`.
 
 Statuses: **200**; **401** when anonymous; **403** for any other role; **404**
-for an id no scan has.
+for an unknown id.
 
 ``POST /system/statements/run``
 --------------------------------

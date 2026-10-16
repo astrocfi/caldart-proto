@@ -280,7 +280,7 @@ and ``--color-muted`` over all three grounds, ``--color-primary`` as link text,
 button's fill at rest and under the pointer, ``--color-accent`` on the ground,
 and each status color both on the ground and on its own translucent fill --
 composited over the ground first, because an ``#rrggbbaa`` value read raw
-reports a contrast no reader ever sees.  It also measures the bulk email
+reports a contrast that never appears on the screen.  It also measures the bulk email
 editor's field chips: ``--color-fg`` and ``--color-muted`` on their fill, the
 primary mixed 10% into ``--color-bg-raised`` (``CHIP_TINT``, which must match the
 ``color-mix`` in ``base.css``), and their ``--color-muted`` edge against both of

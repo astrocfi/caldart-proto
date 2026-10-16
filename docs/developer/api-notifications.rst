@@ -109,7 +109,7 @@ Refusals, each **400**:
   for an account that may not receive one of the events, naming the account
   and the first such event in catalog order;
 * ``{"confirmed": ["Check the box to confirm this address may receive these
-  notifications."]}`` for an address no account holds, until it is confirmed.
+  notifications."]}`` for an address without an account, until it is confirmed.
 
 ``GET``, ``PATCH`` and ``DELETE /notifications/subscriptions/{id}``
 -------------------------------------------------------------------
@@ -127,4 +127,4 @@ under ``events`` and the message above.  Removing events is always allowed.
 
 ``DELETE /notifications/subscriptions/{id}`` answers **204**.
 
-An id no subscription carries answers **404**, and ``PUT`` answers **405**.
+An unknown id answers **404**, and ``PUT`` answers **405**.

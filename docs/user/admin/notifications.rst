@@ -61,8 +61,8 @@ Press **Add address**, or **Cancel** or Escape. *Address added.* confirms a save
 that already has a subscription is refused with *This address already has a subscription.*
 Edit that one instead. An address that belongs to a CalDART account is refused when the
 account doesn't hold a role that may receive a checked event, with a line under the events
-naming the first such event. An address no account
-holds is refused until you check **This address is outside CalDART and may receive these
+naming the first such event. An address without an
+account is refused until you check **This address is outside CalDART and may receive these
 notifications**, which appears once CalDART asks for it.
 
 
@@ -93,7 +93,7 @@ every one:
 
 CalDART checks each time it sends. When an account has lost the role, or has been
 deactivated, it is skipped for that event and doesn't hear anything; its subscription
-stays as it is and doesn't need your attention. An address no account holds receives every
+stays as it is and doesn't need your attention. An address without an account receives every
 event it is subscribed to. When somebody later makes an account with that address, the
 account's roles decide from then on.
 

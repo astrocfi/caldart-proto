@@ -141,8 +141,8 @@ yet paid*): nobody is a member until a paid or granted term has started, and
 such a row's ``kind`` is ``member``, the kind it chose.  A member whose only started
 terms are suspended reads ``friend`` with ``kind`` ``member``.  ``joined_on`` is the start of the earliest membership term, or ``null`` for
 somebody who has never had one.  ``profile_updated_at`` is when profile
-information was last written -- see :doc:`data-model` -- and ``null`` for a
-profile nobody has edited, or for an account without one.  An account without a
+information was last written -- see :doc:`data-model` -- and ``null`` for an
+unedited profile, or for an account without one.  An account without a
 ``MemberProfile`` row still appears: ``phone`` is blank, ``dart``, and
 ``medical_expiration`` are ``null``, ``pilot_certificate_type``, and
 ``medical_type`` read ``none``, ``medical_is_current`` is false and
@@ -251,7 +251,7 @@ updated      ``profile_updated_at``, surname, forename
 non-pilot, which is the order the list's Pilot column reads in.  The two date
 sorts, ``updated``, and ``dart``, keep rows without a value at the end in both
 directions, so lifetime members do not crowd out the answer to "who expires
-next", and a profile nobody has ever edited does not crowd out "who was
+next", and a never-edited profile does not crowd out "who was
 touched most recently" — that question is ``-updated``, since ``updated``
 follows the same positive-column, ``-`` reverses convention as every other
 alias here and so sorts oldest edit first.

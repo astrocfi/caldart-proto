@@ -16,7 +16,7 @@ What you see
 
 The N-number heads the page, with the make and model under it and the insurance status
 (**Insured**, **Expiring soon**, **Insurance expired**, or **No insurance on file**, and
-**Not verified**, amber, for a current policy nobody has checked yet, as the
+**Not verified**, amber, for an unverified current policy, as the
 :doc:`aircraft-check` reads it) and **Out of service** (when the airplane is out of
 service) at the right.
 

@@ -97,7 +97,7 @@ Compare against project rules (`.claude/rules/python.md`). Check:
 
 - Declared deps: single source of truth (`pyproject.toml` with `uv.lock`; `frontend/package.json` with its lock file); dev tooling in the `dev` dependency group (see `dependency_management`).
 - Version policy: minimum versions in `pyproject.toml`, exact pins only in lock files.
-- Tooling: consistent formatter and linter; CI (`.github/workflows/ci.yml`) calls the same make targets the Makefile defines (see `environment`). Note any CI step that runs a command no target defines, or a target CI skips.
+- Tooling: consistent formatter and linter; CI (`.github/workflows/ci.yml`) calls the same make targets the Makefile defines (see `environment`). Note any CI step that runs a command outside the make targets, or a target CI skips.
 - Configuration consistency: tool configs in `pyproject.toml` (ruff, pytest) are consistent with each other and with project rules. No stale config sections for tools no longer used (e.g. `[tool.black]` or `[tool.isort]` when ruff handles both). Ruff's `line-length` and `target-version` agree with `requires-python`, `.python-version`, the Prettier `printWidth`, and the rules.
 
 **Evidence**: `pyproject.toml`, `Makefile`, `.github/workflows/ci.yml`. Grep for stale `[tool.*]` sections.

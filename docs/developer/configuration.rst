@@ -238,7 +238,7 @@ rate is a **429**.
 
 ``AUTH_THROTTLE_DONATE``
    ``POST /donations/checkout``, which starts a gift on the public donation page
-   and may make a donor account for a caller nobody has signed in.  Reading the
+   and may make a donor account for a signed-out caller.  Reading the
    form's config and finishing a payment are not counted.
 
    :Development: ``10/hour``

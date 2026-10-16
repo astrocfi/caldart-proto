@@ -838,7 +838,7 @@ name (``Contra Costa``), so the column holds the name as a person reads it.
 
 ``Aircraft.category`` and ``AircraftType.category``: what kind of aircraft an
 airframe is, as the FAA registry classes it (:doc:`aircraft-registry`).  Both
-columns may be blank, for a category nobody has recorded.
+columns may be blank when the category isn't recorded.
 
 .. list-table::
    :header-rows: 1
@@ -2493,7 +2493,7 @@ on ``GET /admin/members/{id}``.
 ``profile_updated_at`` is when profile information was last written: a member's
 own edit, an administrator's edit to the profile or to the account's name or
 email, an aircraft attached or detached, or the profile's creation.  It stays
-``NULL`` until one of those happens, so a seeded profile nobody has touched
+``NULL`` until one of those happens, so an untouched seeded profile
 answers ``NULL``, and it never moves for a payment, a membership grant or
 renewal, a reminder, or a role change.  ``apps.members.services.touch_profile``
 is its only writer.
@@ -3126,7 +3126,7 @@ row is ever updated.
    * - ``changed_by``
      - ``ForeignKey`` to ``accounts.User``, ``SET_NULL``
      - null; default ``NULL``
-     - who wrote it; null for a change no signed-in account made; related name ``aircraft_changes``
+     - who wrote it; null when no signed-in account made the change; related name ``aircraft_changes``
    * - ``changed_at``
      - ``DateTimeField``
      - not null; set on insert
@@ -4354,7 +4354,7 @@ system said to whom, which is what ``GET /system/emails`` reads
    * - ``to_name``
      - ``CharField(200)``
      - not null; default ``""``
-     - the recipient's name as it was at send time; blank for a bare address nobody named
+     - the recipient's name as it was at send time; blank for an unnamed bare address
    * - ``user``
      - ``ForeignKey`` to ``accounts.User``, ``SET_NULL``
      - null; default ``NULL``
