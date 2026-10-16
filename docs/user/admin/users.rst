@@ -93,8 +93,8 @@ Exporting the roles report
 
 **Export CSV** and **Export PDF** download the CalDART roles report: the people who hold
 each role other than member, with a section per role from Verifier to System administrator.
-A vacant role's section still appears, and the PDF says *Nobody holds this role.* under it. A
-person holding two such roles is listed in both sections.
+The section for a role not held by anybody still appears, and the PDF says *Nobody holds
+this role.* under it. A person holding two such roles is listed in both sections.
 
 The report lists active accounts only, whatever **Account status** shows, and follows
 the **Email** filter. It follows the screen's **Search**, the role chosen under **Role**,

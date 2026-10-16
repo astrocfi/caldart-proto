@@ -388,7 +388,7 @@ describe('PaymentDetailPage', () => {
     expect(term.nextElementSibling).toHaveTextContent(/^—$/);
   });
 
-  it('says a non-automatic payment was paid by the member', async () => {
+  it('reads No, paid by the member for a payment that was not automatic', async () => {
     servePayment();
     renderDetail();
 

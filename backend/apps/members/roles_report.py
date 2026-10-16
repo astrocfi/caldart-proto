@@ -44,7 +44,7 @@ if TYPE_CHECKING:
 #: The filters the PDF subtitle and the email name, in order, when given a value.
 EXPORT_FILTER_PARAMS: tuple[str, ...] = ("search", "role", "kind", "email_bounced")
 
-#: The line the PDF draws under a vacant role.
+#: The line the PDF draws under a role not held by anybody.
 EMPTY_SECTION = "Nobody holds this role."
 
 #: The kinds ``?kind=`` accepts: a donor never holds a role, so it is not one.
