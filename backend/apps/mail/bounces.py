@@ -379,8 +379,8 @@ def check_bounces(*, dry_run: bool = False, actor: Model | str = audit.COMMAND_A
     was sent within :data:`REPORT_MAX_AGE`, and carries the ``Message-ID`` the signature
     was made over (``caldart.mail.bounce_tag_matches``).  It counts as one bounce of that
     row's recipient whatever its failures name.  A report without such an address, whether
-    it was sent to the bare ``BOUNCE_ADDRESS``, carries a wrong signature, names an id no
-    row has or one a restored database gave another message, or is about an older send,
+    it was sent to the bare ``BOUNCE_ADDRESS``, carries a wrong signature, names an
+    unknown id or one a restored database gave another message, or is about an older send,
     doesn't match anything: each of its failures is counted as unmatched and doesn't
     change anything.
     Neither the original's ``Message-ID`` nor the failure's recipient alone ever matches

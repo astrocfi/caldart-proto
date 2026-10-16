@@ -277,7 +277,7 @@ describe('ComposePage', () => {
     );
   });
 
-  it("doesn't mention saving on a draft nobody has touched", async () => {
+  it("doesn't mention saving on an untouched draft", async () => {
     answerBulkEmail(draftState());
     renderCompose(draftState());
     await screen.findByRole('heading', { name: '2. What it says' });

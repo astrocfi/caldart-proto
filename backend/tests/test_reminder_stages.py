@@ -134,7 +134,7 @@ def test_the_scan_sends_the_stage_the_span_names(
 def test_the_scan_does_not_send_anything_between_the_stages(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage], days_from_today: int
 ) -> None:
-    """A term ending on a day no stage covers is left alone."""
+    """A term ending on a day outside every stage is left alone."""
     term_ending(annual_plan, days_from_today)
 
     run = send_renewal_reminders(today=TODAY)

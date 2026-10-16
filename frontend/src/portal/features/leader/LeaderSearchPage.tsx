@@ -71,8 +71,8 @@ function dartLabel(result: LeaderSearchResult): string {
 const REPORT_CAPTION = 'Everything requiring validation:';
 
 /**
- * The verification report, downloaded with its default filter: every person with an item
- * nobody has verified yet, and every aircraft whose insurance nobody has.
+ * The verification report, downloaded with its default filter: every person with an
+ * unverified item, and every aircraft with unverified insurance.
  */
 function VerificationReportLinks(): JSX.Element {
   return (

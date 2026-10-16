@@ -1933,7 +1933,7 @@ export interface JobStatus {
   state: JobState;
   /** The job's latest run, whoever started it. */
   last_run: JobRun | null;
-  /** The trigger no run followed, for `overdue` and `never_run`. */
+  /** The trigger the job missed, for `overdue` and `never_run`. */
   missed_at: IsoDateTime | null;
 }
 

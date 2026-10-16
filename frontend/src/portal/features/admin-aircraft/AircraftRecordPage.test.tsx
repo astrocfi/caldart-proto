@@ -284,7 +284,7 @@ describe('AircraftRecordPage', () => {
     expect(within(row).getByText('GO')).toBeInTheDocument();
   });
 
-  it('heads the record Not verified, not Insured, for a policy nobody has checked', async () => {
+  it('heads the record Not verified, not Insured, for an unchecked policy', async () => {
     server.use(
       http.get(`${API}/aircraft/1`, () =>
         HttpResponse.json(makeDetail({ insurance_verification: NOT_VERIFIED })),

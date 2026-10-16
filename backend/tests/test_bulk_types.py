@@ -67,7 +67,7 @@ def mission() -> EmailType:
 
 @pytest.fixture
 def notices() -> EmailType:
-    """An email type nobody may turn off."""
+    """An email type members can't turn off."""
     return EmailTypeFactory(name="Notices", allow_opt_out=False, sender_roles=[MANAGEMENT])
 
 
@@ -307,7 +307,7 @@ def test_send_is_refused_for_a_type_the_actor_may_no_longer_send(
 
 
 def test_a_system_administrator_sends_any_type(system_admin: User) -> None:
-    """A type nobody is named for is still the system administrator's to send."""
+    """A type without sender roles is still the system administrator's to send."""
     board = EmailTypeFactory(name="Board", sender_roles=[])
     bulk = BulkEmailFactory(sender=system_admin, email_type=board)
     add_to_batch(bulk, make_person("ann@example.test"))

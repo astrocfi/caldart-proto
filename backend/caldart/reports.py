@@ -193,7 +193,7 @@ def select_columns[RowT](
     Otherwise the answer is one column per requested key, in the order
     requested, so a caller decides both which columns appear and where.
 
-    A key no column carries raises ``ValueError`` reading ``Unknown column:
+    An unknown key raises ``ValueError`` reading ``Unknown column:
     <key>``, naming the first unknown key only, and a key asked for twice raises
     ``Repeated column: <key>``: a report has one cell per column, so a repeat is
     a mistake in the request rather than a wider table.  An endpoint turns
@@ -234,7 +234,7 @@ def chosen_columns[RowT](
 
     ``requested`` is the raw parameter: a comma-separated list of keys, or an
     empty string when the caller didn't choose any, which means the default columns.
-    A key no column carries, or one asked for twice, raises DRF's
+    An unknown key, or one asked for twice, raises DRF's
     ``ValidationError`` keyed by ``columns`` and carrying the message
     :func:`select_columns` raises, so every export refuses a bad column list the
     same way and with a 400.
@@ -670,7 +670,7 @@ def given_params(params: Params, keys: Sequence[str] | None = None) -> dict[str,
     """The params that carry a value, in the order of ``keys`` (or of ``params``).
 
     A blank value means "not given": a filter bar sends every parameter it has, and a
-    stored subscription may carry a filter nobody set.  With ``keys``, only those
+    stored subscription may carry an unset filter.  With ``keys``, only those
     names are looked at, which is how a report picks the filters its subtitle names.
     """
     names = params.keys() if keys is None else keys

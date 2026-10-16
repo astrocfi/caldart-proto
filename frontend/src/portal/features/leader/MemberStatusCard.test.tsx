@@ -77,7 +77,7 @@ describe('isGo / noGoReasons', () => {
     expect(noGoReasons(status)).toEqual(['No medical on file']);
   });
 
-  it('names each item nobody has verified, after the other reasons', () => {
+  it('names each unverified item, after the other reasons', () => {
     const current = makeStatus();
     const status = makeStatus({
       membership: { status: 'expired', expires_on: null, plan: 'Annual' },
@@ -112,7 +112,7 @@ describe('isGo / noGoReasons', () => {
     expect(noGoReasons(status)).toEqual(['No medical on file']);
   });
 
-  it('gives a lapsed medical nobody verified one reason', () => {
+  it('gives an unverified lapsed medical one reason', () => {
     const status = makeStatus({
       medical: {
         type: 'third',
@@ -337,7 +337,7 @@ describe('MemberStatusCard', () => {
     expect(screen.getByText(/^No DART/)).toBeInTheDocument();
   });
 
-  it('reads a current policy nobody verified as Not verified in amber, as the aircraft check does', () => {
+  it('reads an unverified current policy as Not verified in amber, as the aircraft check does', () => {
     renderWithProviders(
       <MemberStatusCard
         userId={7}

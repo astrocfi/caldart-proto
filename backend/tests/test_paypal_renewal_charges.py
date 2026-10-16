@@ -56,7 +56,7 @@ pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("paypal_sandbox")]
 
 ORDERS = f"{PAYPAL_SANDBOX}/v2/checkout/orders"
 
-#: Minutes after which a claim nobody finished is taken to have died, in these tests.
+#: Minutes after which an unfinished claim is taken to have died, in these tests.
 STALE_MINUTES = 60
 
 #: PayPal's id for the capture a treasurer copies from its dashboard.
@@ -333,7 +333,7 @@ def test_a_charge_in_doubt_does_not_cost_the_member_anything(
     today: date,
     mailoutbox: list[EmailMessage],
 ) -> None:
-    """No decline is counted and no email goes out about a charge nobody refused."""
+    """No decline is counted and no email goes out about a charge in doubt."""
     renewal_due(member, annual_plan, today)
     mailoutbox.clear()
     ledger.create_faults = [503, 503, 503, 503]

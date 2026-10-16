@@ -39,7 +39,7 @@
   background: var(--color-bad);
 }
 
-/* A current policy nobody has checked yet: amber, as its Not verified mark is. */
+/* An unchecked current policy: amber, as its Not verified mark is. */
 .leader-verdict--wait {
   background: var(--color-warn);
 }

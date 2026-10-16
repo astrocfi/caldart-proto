@@ -183,7 +183,7 @@ def test_an_account_admin_reads_who_last_wrote_a_record(
     }
 
 
-def test_updated_by_is_null_on_a_record_nobody_has_written(
+def test_updated_by_is_null_on_an_unedited_record(
     api_client: APIClient, account_admin: User, aircraft: Aircraft
 ) -> None:
     """A seeded record doesn't carry a last writer until somebody edits it."""

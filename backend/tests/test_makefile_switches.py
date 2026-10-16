@@ -104,7 +104,7 @@ def test_switch_omits_the_option_when_off(
 def test_switch_omits_the_option_when_unset(
     target: str, arguments: list[str], variable: str, command: str, option: str
 ) -> None:
-    """A switch nobody sets leaves the option off."""
+    """An unset switch leaves the option off."""
     result = run_make(target, *arguments)
 
     assert option not in command_line(result.stdout, command)

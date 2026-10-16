@@ -277,7 +277,7 @@ REPEATED_CASES = [
 def test_an_unknown_column_is_a_400_keyed_columns(
     account_admin_client: APIClient, url: str, columns: str
 ) -> None:
-    """A column no export carries is refused with a 400 rather than exported."""
+    """An unknown column is refused with a 400 rather than exported."""
     assert account_admin_client.get(url, {"columns": columns}).status_code == 400
 
 
@@ -339,7 +339,7 @@ def test_the_member_csv_reports_the_profile_updated_date(account_admin_client: A
 
 
 def test_the_member_csv_blanks_a_never_edited_profile(account_admin_client: APIClient) -> None:
-    """A profile nobody has edited exports a blank ``profile_updated`` cell."""
+    """An unedited profile exports a blank ``profile_updated`` cell."""
     never_edited = UserFactory(email="untouched@example.test", roles=["member"])
     MemberProfileFactory(user=never_edited)
 

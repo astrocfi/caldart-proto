@@ -203,7 +203,7 @@ def test_an_actor_that_is_neither_a_user_nor_a_command_is_refused() -> None:
 
 
 def test_an_anonymous_actor_renders_as_anonymous(audit_log: pytest.LogCaptureFixture) -> None:
-    """A request nobody is signed in to is recorded under ``actor=anonymous``."""
+    """A signed-out request is recorded under ``actor=anonymous``."""
     audit.record("thing.done", actor=audit.ANONYMOUS_ACTOR)
     assert one_message(audit_log) == "action=thing.done actor=anonymous target=-"
 

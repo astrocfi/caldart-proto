@@ -726,7 +726,7 @@ describe('Checkout · PayPal', () => {
 
 /**
  * A client that keeps a cached query alive without an observer, so the state of
- * a query nothing is watching can still be read after the payment.
+ * an inactive query can still be read after the payment.
  */
 function makeRetainingQueryClient(): QueryClient {
   return new QueryClient({

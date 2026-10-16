@@ -2,8 +2,8 @@
  * `/admin/aircraft/:id` — one record: edit it, verify its insurance, read its
  * history, see who flies it, delete it.
  *
- * The marks follow the aircraft check: the header's insurance reads *Not verified* for a
- * current policy nobody has checked, and each pilot carries the member check's GO or
+ * The marks follow the aircraft check: the header's insurance reads *Not verified* for an
+ * unchecked current policy, and each pilot carries the member check's GO or
  * NO-GO, so the record never clears what a check would not.
  */
 import { useState } from 'react';

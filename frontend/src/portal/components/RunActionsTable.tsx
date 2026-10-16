@@ -81,7 +81,7 @@ export function runActionColumns({
   detailHeader,
   hasWhenAndAmount = true,
 }: RunActionColumnsOptions): Column<RunAction>[] {
-  // A column no row fills is left out; an empty table doesn't draw any headings.
+  // An empty column is left out; an empty table doesn't draw any headings.
   const hasDetail = actions.some((row) => row.detail !== '');
   const hasWhen = actions.some((row) => row.on !== null);
   const hasAmount = actions.some((row) => row.amount_cents !== null);
@@ -139,7 +139,7 @@ export function runActionColumns({
       header: 'Who',
       minWidth: '12rem',
       isIdentity: true,
-      // An action about an address nobody is named for, such as a bounce that
+      // An action about an unnamed address, such as a bounce that
       // didn't match a sent email, shows the address alone.
       render: (row) =>
         row.member === '' ? (

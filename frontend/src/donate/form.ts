@@ -47,7 +47,7 @@ const OPTIONAL_TEXT = [
   'air_care_alliance_number',
 ] as const;
 
-/** A form nobody has typed in yet. */
+/** An untouched form. */
 export const EMPTY_DONATION_FORM: DonationFormValues = {
   first_name: '',
   last_name: '',

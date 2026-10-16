@@ -29,7 +29,7 @@ Every panel but the bulk email sender's works the same way:
    **What this run would do**, or **What this run did** after a real run, above a line of
    counts and a table naming each email or charge, and the focus moves to that heading.
    A run that didn't find anything at all to do says only *Nothing is due.* (*Nothing was
-   due.* after a real run). A column no row fills, such as **Amount** for emails that don't
+   due.* after a real run). An empty column, such as **Amount** for emails that don't
    charge anything, is left out. **Who** comes first. On a narrow screen the table leaves out
    **When**, then **Amount**, and keeps **Who**, **What**, and any **Report or DART** column
    in sight, so a phone still shows which email goes to whom; if that is still too wide it

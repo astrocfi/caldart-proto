@@ -192,7 +192,7 @@ Whether a person receives a copy is never stored while the email is a draft.
 ``batch.batch_rows`` works it out whenever the batch is read, from each account as
 it is then, walking the batch in surname order: ``skip_reason(account, seen,
 opt_outs=...)`` asks, in order, whether the account is deleted, deactivated,
-without an address, with an address no mail server would take, or with an address
+without an address, with an invalid address, or with an address
 that bounced, whether the person has turned the email's type off (*Opted out of
 <type>*), and then whether ``seen`` already holds the address, trimmed and
 case-folded.  ``batch.type_opt_outs`` reads the type's opt-outs once for the whole
@@ -454,7 +454,7 @@ this email as a member or a friend of <organization>.*
 Where replies go
 ----------------
 
-Every copy comes ``From`` ``DEFAULT_FROM_EMAIL``, an address nobody reads, so that
+Every copy comes ``From`` ``DEFAULT_FROM_EMAIL``, an unmonitored address, so that
 SPF, DKIM, and DMARC align; a reply reaches a person only through the ``Reply-To``
 header, which ``send_templated``'s ``reply_to`` argument sets.  ``BulkEmail.reply_to``
 is the address the sender chose, and blank means the default,

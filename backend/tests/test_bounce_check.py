@@ -205,7 +205,7 @@ def _with_signature_changed(address: str) -> str:
 
 #: The forged reports about ``sent``: one to the bare bounce address naming its
 #: recipient, one to the bare address carrying its Message-ID, one to its id under a
-#: made-up signature, and one genuinely signed for an id no row has.
+#: made-up signature, and one genuinely signed for an unknown id.
 FORGERIES = ["bare-address", "message-id-alone", "bad-signature", "unknown-id"]
 
 

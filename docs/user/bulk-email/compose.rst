@@ -134,7 +134,7 @@ address. Under the message it carries a short footer
 with your organization's name and the contact address when one is set. For a type people may
 turn off, the footer says *You receive Mission email from CalDART because you have not turned
 it off. To stop it, unsubscribe here:* with a link for that person, and their mail program
-can offer its own **Unsubscribe** button. For a type nobody may turn off, it says why they
+can offer its own **Unsubscribe** button. For a type people can't turn off, it says why they
 receive it instead.
 
 **Send me a test**, at the bottom of the card, sends the email to you alone, so you can see it

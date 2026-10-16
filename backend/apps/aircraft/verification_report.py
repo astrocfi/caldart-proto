@@ -2,10 +2,11 @@
 
 Two sections, in this order: *People*, one row per checkable person with a profile who
 holds at least one of a photo ID, a pilot certificate, and a medical, and *Aircraft
-insurance*, one row per aircraft in service with a policy on file.  An item nobody holds
-(a non-pilot's certificate, a medical of *None*, a photo ID of *Not provided*, insurance
-without an expiration) doesn't leave anything to verify, and a person who doesn't hold any
-of the three, like an aircraft without a policy, is never listed.  A person's row has a
+insurance*, one row per aircraft in service with a policy on file.  An item a person
+doesn't hold (a non-pilot's certificate, a medical of *None*, a photo ID of *Not
+provided*, insurance without an expiration) doesn't leave anything to verify, and a
+person who doesn't hold any of the three, like an aircraft without a policy, is never
+listed.  A person's row has a
 check column for each item, Photo ID, Certificate, and Medical in that order, each
 reading *Verified*, *Not verified*, or *Not provided* for an item the person does not
 hold.  Then what is on file, the medical's expiry (the policy's for an aircraft) in a
@@ -325,7 +326,7 @@ def insured_aircraft(dart: str) -> QuerySet[Aircraft]:
 def _profile_changed_at(profile: MemberProfile) -> datetime:
     """When ``profile``'s items were last changed: its last edit, else its creation.
 
-    A profile nobody has edited since it was made doesn't carry a ``profile_updated_at``,
+    An unedited profile doesn't carry a ``profile_updated_at``,
     and what is on file has been there since the profile was created.
     """
     return profile.profile_updated_at or profile.created_at
@@ -396,7 +397,7 @@ def _wanted(row: VerificationRow, status: str) -> bool:
 def _dart_words(value: str) -> str:
     """How the PDF subtitle names the ``dart`` filter: a DART's name for its id.
 
-    A fragment of a name, or an id no DART has, is printed as it was given.
+    A fragment of a name, or an unknown id, is printed as it was given.
     """
     if value.isdigit():
         found = Dart.objects.filter(pk=int(value)).values_list("name", flat=True).first()

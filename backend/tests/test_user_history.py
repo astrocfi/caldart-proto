@@ -182,13 +182,13 @@ def test_a_command_entry_does_not_have_an_actor(
 def test_an_account_without_changes_has_an_empty_history(
     api_client: APIClient, user_admin: User, member: User
 ) -> None:
-    """An account nothing has changed answers an empty list."""
+    """An unchanged account answers an empty list."""
     api_client.force_login(user_admin)
     assert api_client.get(history_url(member)).json() == []
 
 
 def test_history_of_an_unknown_account_is_404(api_client: APIClient, user_admin: User) -> None:
-    """An id no account has answers 404 rather than an empty history."""
+    """An unknown account id answers 404 rather than an empty history."""
     api_client.force_login(user_admin)
     assert api_client.get(history_url(999_999)).status_code == 404
 

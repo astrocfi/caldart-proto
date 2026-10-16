@@ -44,7 +44,7 @@ def test_a_chosen_dart_leads_to_its_own_page(
 def test_a_dart_without_a_page_falls_back_to_the_directory(
     client: Client, dart_index_url: str, dart: Dart
 ) -> None:
-    """A team nobody has written a page for sends the reader to the directory."""
+    """A team without a page sends the reader to the directory."""
     response = client.get(URL, {"dart": str(dart.pk)})
 
     assert response.status_code == 302

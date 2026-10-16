@@ -152,7 +152,7 @@ def test_a_repeated_column_is_refused(report_client: APIClient, url: str) -> Non
     }
 
 
-def test_a_plan_slug_nobody_holds_narrows_to_an_empty_list(
+def test_an_unknown_plan_slug_narrows_to_an_empty_list(
     report_client: APIClient, member: User, payment_factory: type[PaymentFactory]
 ) -> None:
     """An unknown plan slug is a filter that doesn't match anything, not a 400."""

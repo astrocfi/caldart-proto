@@ -149,7 +149,7 @@ Provider      ``client``
 ``mock``      ``{}``
 ============  ===============================================
 
-Statuses: **200**; **400** naming ``plan`` for a slug no active plan carries,
+Statuses: **200**; **400** naming ``plan`` for the slug of an unknown or inactive plan,
 naming ``next_charge_on`` for a day that has already gone by, naming ``cadence``
 for a renewal on any cadence but ``yearly``, naming ``contribution_cents`` for a
 renewal that takes a contribution while the caller holds a recurring donation and
@@ -228,7 +228,7 @@ what a checkout would accept, for a donation under the minimum, and for a
 contribution on a renewal while the
 caller holds a recurring donation (``You already have a recurring donation.
 Change it on the Donate screen.``), naming ``next_charge_on`` for a day that has
-already gone by, naming ``plan`` for a slug no active plan carries, naming
+already gone by, naming ``plan`` for the slug of an unknown or inactive plan, naming
 ``cadence`` for a renewal on any cadence but ``yearly``, and naming
 ``auto_renew`` when a life member names a plan, when a donation doesn't give
 anything, and when the plan named never expires; **404** when the caller doesn't
@@ -474,8 +474,8 @@ closed by this read with the error ``Did not finish.``
     "result": {"noticed": 0, "warned": 0, "charged": 2, "failed": 0, "paused": 0,
                "skipped": 0, "actions": []}}
 
-Statuses: **200**; **404** ``{"detail": "No such renewal run."}`` for an id no
-scan has; **403** for any role but ``system_admin``; **401** when anonymous.
+Statuses: **200**; **404** ``{"detail": "No such renewal run."}`` for an unknown
+id; **403** for any role but ``system_admin``; **401** when anonymous.
 
 
 Role summary

@@ -5,7 +5,7 @@
  * Editing changes the events alone; the server keeps the recipient fixed, so
  * the form draws it as plain text and sends the events as a `PATCH`.  The
  * server decides whether the recipient may hear about each event: an account
- * that may not is refused under the events, and an address no account holds
+ * that may not is refused under the events, and an address without an account
  * must be confirmed with a checkbox that appears once the server has asked for
  * it.
  */

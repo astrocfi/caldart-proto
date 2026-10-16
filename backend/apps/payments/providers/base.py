@@ -61,8 +61,8 @@ class PaymentInDoubtError(PaymentError):
 
     PayPal keeps a ``PayPal-Request-Id`` for a few hours and doesn't offer a search
     of orders by our reference, so a create call that never answered, and was not
-    answered on any retry while PayPal still held the id, leaves a charge nobody can
-    look up; so does PayPal refusing the order as a duplicate of an invoice it has
+    answered on any retry while PayPal still held the id, leaves a charge that can't be
+    looked up; so does PayPal refusing the order as a duplicate of an invoice it has
     already been paid for.  Charging again could take the money twice, so the
     renewal scan doesn't charge anything more for it and asks a treasurer to settle
     it.
@@ -239,8 +239,8 @@ class Provider:
     def abandon_setup(self, mandate: RenewalMandate) -> None:
         """Close whatever :meth:`start_mandate` left open for ``mandate`` at the provider.
 
-        Called before a pending mandate's setup is replaced or thrown away, so a setup
-        nobody will confirm cannot be used again.  By default it doesn't do anything; a
+        Called before a pending mandate's setup is replaced or thrown away, so an
+        abandoned setup cannot be used again.  By default it doesn't do anything; a
         provider whose setup stays usable on its own, as a Stripe SetupIntent does,
         closes it.
         Never raises: a provider that cannot be reached is logged and left alone.

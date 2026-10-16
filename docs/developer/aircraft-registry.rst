@@ -323,8 +323,8 @@ It reads a handful of index entries whatever the size of the registry.
 Hand-added types
 ================
 
-A type the FAA has never registered — a homebuilt, or a foreign design no US
-owner has registered yet — cannot be picked from the registry's vocabulary.  An
+A type the FAA has never registered — a homebuilt, or a foreign design not yet
+registered in the US — cannot be picked from the registry's vocabulary.  An
 account administrator adds one from the type picker's **New aircraft type**, which
 calls ``POST /aircraft/types`` (:doc:`api-aircraft`): the names are normalized
 as the registry's are, the type is marked ``is_custom``, and its code is

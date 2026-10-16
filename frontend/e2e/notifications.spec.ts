@@ -94,7 +94,7 @@ test('an outside address hears of a sign-up, and stops once sign-ups are dropped
   const first = `Nora${Date.now().toString(36)}`;
   const joiner = uniqueEmail('joiner');
 
-  // The account administrator subscribes an address no account holds.
+  // The account administrator subscribes an address without an account.
   await signIn(page, DEMO.accountadmin);
   const dart = await rosterDart(page);
   await page

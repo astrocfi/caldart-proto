@@ -86,7 +86,7 @@ describe('EmailTypesPage', () => {
     expect(within(row).getByRole('cell', { name: 'No' })).toBeInTheDocument();
   });
 
-  it('names a type nobody is named for as the system administrators’ alone', () => {
+  it('names a type without sender roles as the system administrators’ alone', () => {
     expect(sendersText(makeType({ sender_roles: [] }))).toBe('System administrators only');
   });
 

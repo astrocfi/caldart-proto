@@ -156,7 +156,7 @@ def test_the_pilot_list_carries_the_member_checks_verdict(
     stamper: User,
     flown: Aircraft,
 ) -> None:
-    """A current pilot whose items nobody has verified is cleared on neither check.
+    """A current pilot with unverified items is cleared on neither check.
 
     The pilot's ``go_no_go`` on the aircraft card equals the member check's search row
     for the same person, ``verified`` false among it.

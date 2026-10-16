@@ -756,7 +756,7 @@ export const VERIFIED: Verification = {
   verified_at: '2026-05-01T16:30:00Z',
 };
 
-/** An item nobody has checked, or one a change cleared. */
+/** An unchecked item, or one a change cleared. */
 export const NOT_VERIFIED: Verification = { verified: false, verified_by: null, verified_at: null };
 
 /** All three of a person's items verified. */

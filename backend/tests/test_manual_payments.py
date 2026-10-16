@@ -162,7 +162,7 @@ def test_a_pure_contribution_can_be_recorded(member: User, treasurer: User) -> N
     assert payment.kind == "contribution"
 
 
-def test_a_method_no_hand_could_present_is_refused(
+def test_an_online_only_method_is_refused(
     member: User, treasurer: User, annual_plan: MembershipPlan
 ) -> None:
     """Only a check, cash, a transfer or "other" can be recorded by hand."""
@@ -296,7 +296,7 @@ def test_two_recorded_payments_may_both_leave_the_reference_blank(
 def test_a_plan_that_is_not_on_sale_is_refused(
     member: User, treasurer: User, annual_plan: MembershipPlan
 ) -> None:
-    """A slug no active plan carries is refused, keyed by the plan."""
+    """An unknown plan slug is refused, keyed by the plan."""
     with pytest.raises(DomainValidationError, match=r"Unknown membership plan 'gold-wings'\."):
         record_manual_payment(
             user=member,
@@ -325,7 +325,7 @@ def test_the_endpoint_answers_201_with_the_payment(
 def test_the_endpoint_keeps_the_check_number_on_the_payment(
     treasurer_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """The reference is the provider reference of a payment nobody's provider took."""
+    """The check number becomes the provider reference of a payment recorded by hand."""
     body = treasurer_client.post(RECORD, check_body(member), format="json").json()
     assert body["provider_ref"] == "1041"
 
@@ -384,7 +384,7 @@ def test_the_endpoint_refuses_a_body_that_does_not_buy_anything(
 def test_the_endpoint_answers_404_for_an_unknown_member(
     treasurer_client: APIClient, annual_plan: MembershipPlan
 ) -> None:
-    """A member id nobody holds is a 404, not a 400."""
+    """An unknown member id is a 404, not a 400."""
     response = treasurer_client.post(RECORD, check_body(member=None, user_id=9_999), format="json")
     assert response.status_code == 404
 

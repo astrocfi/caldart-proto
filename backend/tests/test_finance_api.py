@@ -145,7 +145,7 @@ def test_the_detail_never_carries_the_provider_payload(
 
 
 def test_an_unknown_payment_is_a_404(treasurer_client: APIClient) -> None:
-    """An id nobody holds is a 404."""
+    """An unknown payment id is a 404."""
     assert treasurer_client.get("/api/v1/admin/payments/9999").status_code == 404
 
 
@@ -341,7 +341,7 @@ def test_the_ledger_does_not_carry_a_mandate_for_a_member_without_one(
 
 
 def test_an_unknown_member_does_not_have_a_ledger(treasurer_client: APIClient) -> None:
-    """A member id nobody holds is a 404."""
+    """An unknown member id is a 404."""
     assert treasurer_client.get("/api/v1/admin/payments/ledger/9999").status_code == 404
 
 
@@ -443,7 +443,7 @@ def test_a_refund_comes_off_the_net_contribution(
     assert row["net_contribution_cents"] == 7_500
 
 
-def test_a_year_nobody_gave_in_is_an_empty_list(treasurer_client: APIClient, giving: User) -> None:
+def test_a_year_without_gifts_is_an_empty_list(treasurer_client: APIClient, giving: User) -> None:
     """Nothing to acknowledge reads as an empty list, not as an error."""
     assert treasurer_client.get(CONTRIBUTIONS, {"year": 2024}).json() == []
 

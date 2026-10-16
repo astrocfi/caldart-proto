@@ -145,7 +145,7 @@ describe('ContributionsPage', () => {
     expect(await screen.findByText('No contributions that year')).toBeInTheDocument();
   });
 
-  it('shows a failed call as a failure, not as a year nobody gave in', async () => {
+  it('shows a failed call as a failure, not as an empty year', async () => {
     server.use(
       http.get(
         `${API}/admin/payments/contributions`,

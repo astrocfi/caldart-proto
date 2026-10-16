@@ -99,10 +99,10 @@ def test_a_missing_query_answers_an_empty_list(member_client: APIClient) -> None
     assert (response.status_code, response.json()) == (200, [])
 
 
-def test_a_prefix_nothing_starts_with_answers_an_empty_list(
+def test_an_unmatched_prefix_answers_an_empty_list(
     registry: RegistryImport, member_client: APIClient
 ) -> None:
-    """A prefix no registration starts with answers ``[]``."""
+    """An unmatched prefix answers ``[]``."""
     assert _found(member_client, "N99999ZZ") == []
 
 

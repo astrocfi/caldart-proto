@@ -7,7 +7,7 @@ real: each link has :data:`LINK_BUDGET_SECONDS` in all, its name lookups, redire
 and second try included, however slowly a server answers, and the whole run
 :data:`RUN_BUDGET_SECONDS`, after which a link not yet answered is
 :attr:`Problem.NOT_IN_TIME`.  A request that runs out of time is canceled, never left
-running in a thread nobody waits for; a name lookup, which cannot be canceled, runs in
+running in an abandoned thread; a name lookup, which cannot be canceled, runs in
 a pool the run abandons rather than waits for.
 
 The check must never become a way into the server's own network.  It resolves each

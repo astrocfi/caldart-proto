@@ -98,7 +98,7 @@ class EmailLogListView(ListAPIView[EmailLog]):
 class EmailLogDetailView(RetrieveAPIView[EmailLog]):
     """``GET /system/emails/{id}`` -- one email of the log, as its list row reads.
 
-    Answers 404 for an id no row has.  The log doesn't keep a copy of a message's body; a
+    Answers 404 for an unknown id.  The log doesn't keep a copy of a message's body; a
     message that belongs to a record, such as a copy of a bulk email, carries ``link``
     to the page that shows it.
     """

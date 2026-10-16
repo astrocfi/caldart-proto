@@ -46,8 +46,8 @@ class EmailLog(TimestampedModel):
     concerned, and is null for a message sent to an address without an account and
     for one whose account has since been deleted.  ``to_name`` is the
     recipient's name as it was at send time -- a DART contact's name, or an
-    account holder's display name -- and is blank for a message sent to a bare
-    address nobody named.  ``error`` carries the exception class of a refusal
+    account holder's display name -- and is blank for a message sent to an
+    unnamed bare address.  ``error`` carries the exception class of a refusal
     and is blank on a successful send; ``attachments`` lists the filenames
     that rode along, comma-separated, and is blank when none did.
 

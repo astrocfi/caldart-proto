@@ -234,7 +234,7 @@ def test_a_group_cannot_be_added_to_an_email_that_has_started(
 
 
 def test_adding_an_unknown_group_is_refused(management_client: APIClient, bulk: BulkEmail) -> None:
-    """A group id nobody has is a 400 keyed ``group``."""
+    """An unknown group id is a 400 keyed ``group``."""
     response = management_client.post(
         f"/api/v1/bulk-email/{bulk.pk}/batch/add-group", {"group": 9999}, format="json"
     )

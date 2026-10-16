@@ -59,9 +59,12 @@ Wagtail web application, not a published library. **Minimum Python version: 3.12
 
 - `mypy` runs over the whole backend, tests included, plus `frontend/e2e/prefix_proxy.py`
   (Python kept beside the end-to-end specs it serves), `scripts/check_wording.py` (the
-  wording check `make lint-wording` runs), and `scripts/wording_words.py` (its word
-  lists): `make lint-backend` ends with `uv run mypy backend frontend/e2e/prefix_proxy.py
-  scripts/check_wording.py scripts/wording_words.py`, and CI calls that target.
+  wording check `make lint-wording` runs), and the modules it imports from beside it,
+  `scripts/wording_words.py` (its word lists), `scripts/wording_text.py` (how it reads
+  text), and `scripts/wording_relative.py` (its relative-clause check): `make
+  lint-backend` ends with `uv run mypy backend frontend/e2e/prefix_proxy.py
+  scripts/check_wording.py scripts/wording_words.py scripts/wording_text.py
+  scripts/wording_relative.py`, and CI calls that target.
 - It is configured under `[tool.mypy]` in `pyproject.toml` with `strict = true` and the
   django-stubs and djangorestframework-stubs plugins. Only `disallow_subclassing_any` is
   relaxed, because Wagtail's base classes don't carry types.

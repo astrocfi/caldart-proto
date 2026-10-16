@@ -476,7 +476,7 @@ def test_a_row_carries_its_purpose_label(api_client: APIClient, system_admin: Us
 
 
 def test_an_unlabeled_purpose_reads_as_its_slug(api_client: APIClient, system_admin: User) -> None:
-    """A template no label names is shown by its own name rather than hidden."""
+    """An unlabeled template is shown by its own name rather than hidden."""
     EmailLogFactory(purpose="board_minutes")
     api_client.force_login(system_admin)
 

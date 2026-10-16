@@ -95,7 +95,7 @@ def test_a_new_subscription_is_active() -> None:
 
 # -- who may receive an event ---------------------------------------------------
 def test_a_bare_address_may_receive_every_event() -> None:
-    """An address no account holds was confirmed when it was set up and always may."""
+    """An address without an account was confirmed when it was set up and always may."""
     subscription = subscribe("outside@example.test", ["aircraft_added"])
 
     assert recipient_may_receive(subscription, "aircraft_added") is True

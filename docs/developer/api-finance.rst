@@ -439,7 +439,7 @@ ignoring case, so a check made out to "Marta Reyes" can be searched for as it
 is written.
 Rows read by surname then first name, and at most ten come back, so a one-letter
 term answers a page rather than the register.  A blank or absent ``search``
-answers an empty list: a form nobody has typed in doesn't ask for anyone.  A deactivated
+answers an empty list: an untouched form doesn't ask for anyone.  A deactivated
 account, a deleted member's tombstone included, never comes back.
 
 Statuses: **200**; **401** when anonymous; **403** without a finance role.

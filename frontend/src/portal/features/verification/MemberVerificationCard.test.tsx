@@ -33,7 +33,7 @@ describe('MemberVerificationCard', () => {
     ]);
   });
 
-  it('reads Not verified for an item nobody has checked', () => {
+  it('reads Not verified for an unchecked item', () => {
     renderWithProviders(
       <MemberVerificationCard
         userId={7}

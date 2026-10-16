@@ -57,7 +57,7 @@ export function RenewalChangeForm({
   const [contributionCents, setContributionCents] = useState(mandate.contribution_cents);
   const [cadence, setCadence] = useState<MandateCadence>(mandate.cadence);
   // Null until the member picks: the amount they already hold decides which
-  // control shows it, so an amount no tier matches opens its own box.
+  // control shows it, so an amount outside the tiers opens its own box.
   const [isOther, setIsOther] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
   const update = useUpdateRenewal(scope);

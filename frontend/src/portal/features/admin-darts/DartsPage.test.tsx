@@ -280,7 +280,7 @@ describe('DartsPage', () => {
     );
   });
 
-  it('leaves a contact row nobody filled in out of the body', async () => {
+  it('leaves a blank contact row out of the body', async () => {
     const user = userEvent.setup();
     let posted: { contacts?: unknown } | null = null;
     stubList();
@@ -420,7 +420,7 @@ describe('DartsPage', () => {
     ).toBeInTheDocument();
   });
 
-  it("doesn't warn about a DART nothing points at", async () => {
+  it("doesn't warn about an unused DART", async () => {
     const user = userEvent.setup();
     stubList([makeDart()]);
     renderPage();
@@ -431,7 +431,7 @@ describe('DartsPage', () => {
     expect(screen.queryByText(/This cannot be undone/)).not.toBeInTheDocument();
   });
 
-  it('asks before deleting a DART nobody is on', async () => {
+  it('asks before deleting an empty DART', async () => {
     const user = userEvent.setup();
     let deleted = false;
     stubList([makeDart()]);

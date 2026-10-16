@@ -68,7 +68,7 @@ the airplane out of service, and the make, model, year, and seats. Then come fiv
 **Insurance**
    Where the insurance stands, the carrier, the expiry date, and, once somebody has
    checked the policy, **Verified** with who verified it and on which day. The insurance
-   reads **Not verified** in amber for a current policy nobody has checked, as the
+   reads **Not verified** in amber for an unverified current policy, as the
    :doc:`member-check` reads it, and otherwise **Insured**, **Expiring soon**, **Insurance
    expired**, or **No insurance on file**. When no insurance is on file, there isn't
    anything to verify, so it doesn't show a mark.
@@ -84,7 +84,7 @@ the airplane out of service, and the make, model, year, and seats. Then come fiv
 
 **Last updated**
    The date of the last change to the record and who made it, such as *09/01/2026 by Dana
-   Fiske*. A record nobody has changed since it was loaded shows the date alone. It tells
+   Fiske*. A record unchanged since it was loaded shows the date alone. It tells
    you how old the insurance details are: a policy that runs out next month on a record
    last changed two years ago is worth a phone call.
 

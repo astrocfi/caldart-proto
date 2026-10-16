@@ -76,7 +76,7 @@ describe('PaymentsPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('offers a life member no automatic renewal, since nothing of theirs renews', async () => {
+  it("doesn't offer a life member automatic renewal, since nothing of theirs renews", async () => {
     mount({ membership: LIFETIME_MEMBERSHIP });
 
     expect(await screen.findByText(NO_RENEWAL_LEDE)).toBeInTheDocument();

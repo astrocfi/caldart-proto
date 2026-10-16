@@ -114,7 +114,7 @@ list of issues already reported, so they confirm or extend rather than repeat.
 Compare the reviewers' file lists with the ledger. Every `code` and `test` file must be
 read in full by some reviewer, every `prose` file read or scanned, and every `lock`,
 `vendored`, and `binary` file covered by the platform reviewer. Send any gap to a new slice
-reviewer. A count that differs from the slice size, or a file no reviewer names, is a gap
+reviewer. A count that differs from the slice size, or a file missing from every reviewer's list, is a gap
 too: send those files to a gap reviewer. A file that still could not be read goes into the
 report's Coverage section with the reason.
 

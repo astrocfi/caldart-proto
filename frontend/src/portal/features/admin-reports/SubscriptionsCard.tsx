@@ -37,7 +37,7 @@ import './admin-reports.css';
  *
  * @param result the one-send run the server answered with.
  * @param recipient the recipient's name, or their address outside CalDART.
- * @returns `Sent to <recipient>.`, or the reason nothing went.
+ * @returns `Sent to <recipient>.`, or why it wasn't sent.
  */
 export function sendNotice(result: ReportRunResult, recipient: string): string {
   if (result.sent > 0) return `Sent to ${recipient}.`;
