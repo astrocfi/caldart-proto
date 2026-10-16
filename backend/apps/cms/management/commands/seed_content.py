@@ -386,7 +386,7 @@ def seed_settings(site: Site) -> None:
     The duty officer number, mailing address, EIN, donate URL and the two social
     links are written where the field is empty, and where it still holds one of
     the placeholder values an earlier version of the seed wrote, so anything an
-    administrator chose survives but a placeholder nobody chose does not.  The
+    administrator chose survives but a leftover placeholder does not.  The
     settings row is created if it is missing.
     """
     from apps.cms.models import SiteSettings

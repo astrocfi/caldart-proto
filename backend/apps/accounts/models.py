@@ -409,7 +409,7 @@ class SignInFailureCount(models.Model):
 
     ``key`` is a SHA-256 digest naming what is counted -- the fifteen-minute count of
     failed attempts, the day's count of wrong codes, or the day's lockout notice -- and
-    whose: an account, or an address no account holds.  ``count`` runs until ``until``,
+    whose: an account, or an address without one.  ``count`` runs until ``until``,
     after which the row reads as empty and the next failure starts it again.  The rows
     live in the database, so no cache eviction can forget them, and each is updated
     under a row lock.

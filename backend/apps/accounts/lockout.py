@@ -11,7 +11,7 @@ somebody who already holds the password reaches them.
 
 An address is counted under the account it resolves to, found as sign-in finds it
 (``email__iexact``), so every spelling the database matches to the account shares one
-count.  An address no account holds is counted under the database's own ``UPPER()`` of
+count.  An address without an account is counted under the database's own ``UPPER()`` of
 it, the comparison ``email__iexact`` makes, so a spelling cannot be counted apart from
 the account it would sign in to; the answers never tell a caller which addresses are
 registered.

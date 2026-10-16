@@ -174,7 +174,7 @@ def test_a_type_that_cannot_be_turned_off_is_refused(
 
 
 def test_an_unknown_type_is_refused(member_client: APIClient) -> None:
-    """An id no type carries is a 400 on ``email_type``."""
+    """An unknown type id is a 400 on ``email_type``."""
     response = member_client.put(
         ME_URL, [{"email_type": 999_999, "opted_out": True}], format="json"
     )
@@ -309,7 +309,7 @@ def test_a_refusal_on_a_deleted_member_is_audited_as_each_change(
 
 
 def test_an_unknown_member_is_a_404(account_admin_client: APIClient) -> None:
-    """An id no account carries is not found."""
+    """An unknown account id is not found."""
     assert account_admin_client.get(member_url(999_999)).status_code == 404
 
 

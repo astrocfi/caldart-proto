@@ -356,8 +356,8 @@ class MemberOrderingFilter(drf_filters.OrderingFilter):
     forename, every alias falls back to the name to settle a tie, and the
     computed and stored dates and the DART name keep empty values at the end
     whichever direction is asked for (a lifetime member doesn't have an expiry to
-    compare, an unaffiliated member doesn't have a team, and a profile nobody has
-    edited doesn't have an update date).
+    compare, an unaffiliated member doesn't have a team, and an unedited profile
+    doesn't have an update date).
     """
 
     ordering_description = (

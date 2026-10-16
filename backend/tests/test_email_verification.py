@@ -599,7 +599,7 @@ def test_admin_resend_refuses_a_deactivated_account(
 def test_admin_resend_answers_404_for_an_unknown_account(
     user_admin: User, signed_in: Callable[[User], APIClient]
 ) -> None:
-    """An id no account has is a 404."""
+    """An unknown account id is a 404."""
     response = signed_in(user_admin).post(f"{USERS_URL}/99999/send-email-verification")
 
     assert response.status_code == 404

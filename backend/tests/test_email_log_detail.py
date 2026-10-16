@@ -45,7 +45,7 @@ def test_a_signed_out_visitor_cannot_open_an_email(api_client: APIClient) -> Non
 
 
 def test_an_unknown_email_is_a_404(system_admin_client: APIClient) -> None:
-    """An id no row has answers 404."""
+    """An unknown id answers 404."""
     assert system_admin_client.get("/api/v1/system/emails/999999").status_code == 404
 
 

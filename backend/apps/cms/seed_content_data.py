@@ -998,7 +998,7 @@ DOCS_AND_LINKS = PageSpec(
 #: still empty so an administrator's own value survives a re-seed.
 #: Values earlier versions of this file seeded, which a site may still carry
 #: because ``seed_settings`` only fills a field that is empty.  A row holding
-#: one of these is holding a placeholder nobody chose, so it is replaced.
+#: one of these is holding a leftover placeholder, so it is replaced.
 SUPERSEDED_SETTINGS: dict[str, tuple[str, ...]] = {
     "mailing_address": ("CalDART\nPO Box 1180\nSan Carlos, CA 94070",),
     "ein": ("47-0000000",),

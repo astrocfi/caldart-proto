@@ -188,7 +188,7 @@ def recipient_may_read(subscription: ReportSubscription, spec: Report) -> bool:
     """Whether ``subscription`` may still go where it goes.
 
     A subscription bound to an account needs that account to be active and to hold a
-    role that may read ``spec``; one sent to a bare address no account holds was
+    role that may read ``spec``; one sent to a bare address without an account was
     confirmed when it was set up and always may.
     """
     user = subscription.recipient_user

@@ -58,7 +58,7 @@ def build_histories(annual: MembershipPlan, life: MembershipPlan, today: date) -
     term(expired, annual, today - 500 * day, today - 100 * day, MembershipStatusChoices.EXPIRED)
     histories["expired"] = expired
 
-    # An active row nobody has flipped to "expired" yet still reads as expired.
+    # An active row not yet flipped to "expired" still reads as expired.
     stale = user("stale")
     term(stale, annual, today - 500 * day, today - day)
     histories["stale-active"] = stale

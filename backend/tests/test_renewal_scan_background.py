@@ -194,7 +194,7 @@ def test_a_finished_scan_reads_back_its_counts(
 
 
 def test_an_unknown_scan_is_a_404(system_admin_client: APIClient, launched: list[int]) -> None:
-    """A scan id nobody wrote is not found, and says so."""
+    """An unknown scan id is not found, and says so."""
     response = system_admin_client.get(scan_url(999_999))
     assert response.status_code == 404
     assert response.json() == {"detail": "No such renewal run."}
@@ -252,7 +252,7 @@ def test_the_command_names_whoever_started_the_scan_in_the_audit_log(
     assert f"actor={system_admin.pk} " in line
 
 
-def test_the_command_refuses_a_scan_nobody_wrote() -> None:
+def test_the_command_refuses_an_unknown_scan() -> None:
     """A ``--scan-id`` that doesn't name a row stops before scanning anything."""
     with pytest.raises(CommandError, match="No renewal scan 999999"):
         call_command("run_auto_renewals", scan_id=999_999, stdout=StringIO())

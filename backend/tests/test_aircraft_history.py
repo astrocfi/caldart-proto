@@ -275,12 +275,12 @@ def test_history_role_matrix(
 def test_the_history_404s_for_an_unknown_aircraft(
     api_client: APIClient, account_admin: User
 ) -> None:
-    """An id no aircraft carries is a 404."""
+    """An unknown aircraft id is a 404."""
     api_client.force_login(account_admin)
     assert api_client.get(f"{LIST_URL}/999999/changes").status_code == 404
 
 
-def test_the_history_is_empty_for_a_record_nobody_has_touched(
+def test_the_history_is_empty_for_an_untouched_record(
     api_client: APIClient, account_admin: User
 ) -> None:
     """A seeded record without any writes since reads as an empty list."""

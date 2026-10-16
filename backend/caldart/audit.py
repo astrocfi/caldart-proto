@@ -18,8 +18,8 @@ Every line has the same shape, which is what makes the journal greppable::
     action=account.roles actor=12 target=34 added=dart_leader removed=-
 
 ``actor`` is the id of the account that acted, ``command`` for a management
-command and the reminder timer, or ``anonymous`` for a request nobody is signed in
-to; ``target`` is the id of the account or record
+command and the reminder timer, or ``anonymous`` for a signed-out request;
+``target`` is the id of the account or record
 acted on, or ``-`` when the action doesn't have one.
 """
 
@@ -37,7 +37,7 @@ LOGGER_NAME = "caldart.audit"
 #: The actor a management command and the reminder timer log under.
 COMMAND_ACTOR = "command"
 
-#: The actor a request nobody is signed in to logs under, such as a run of failed
+#: The actor a signed-out request logs under, such as a run of failed
 #: sign-in attempts that locks an address out.
 ANONYMOUS_ACTOR = "anonymous"
 

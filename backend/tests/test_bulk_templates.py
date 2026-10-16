@@ -400,7 +400,7 @@ def test_editing_the_draft_leaves_the_template_unchanged(
 
 
 def test_an_unknown_template_is_refused(management_client: APIClient, draft: BulkEmail) -> None:
-    """A template id nobody has is a 400 keyed ``template``."""
+    """An unknown template id is a 400 keyed ``template``."""
     response = management_client.post(apply_url(draft), {"template": 9999}, format="json")
     assert response.status_code == 400
     assert list(response.json()) == ["template"]

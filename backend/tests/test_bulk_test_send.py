@@ -274,7 +274,7 @@ def test_an_email_with_errors_is_not_tested(management_client: APIClient, manage
 
 
 def test_an_unknown_email_is_a_404(management_client: APIClient) -> None:
-    """An id no email carries is a 404."""
+    """An unknown email id is a 404."""
     assert management_client.post("/api/v1/bulk-email/999999/test").status_code == 404
 
 

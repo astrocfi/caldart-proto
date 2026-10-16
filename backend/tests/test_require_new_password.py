@@ -136,7 +136,7 @@ def test_an_anonymous_caller_is_401(api_client: APIClient, target: User) -> None
 
 
 def test_an_unknown_account_is_404(user_admin_client: APIClient) -> None:
-    """An id no account has is a 404."""
+    """An unknown account id is a 404."""
     assert (
         user_admin_client.post("/api/v1/admin/users/999999/require-new-password").status_code == 404
     )

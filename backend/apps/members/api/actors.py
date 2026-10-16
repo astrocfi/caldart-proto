@@ -19,7 +19,7 @@ def acting_user(request: Request) -> User:
     """The signed-in account that made ``request``.
 
     Raises ``NotAuthenticated``, which the API renders as 401, if it is ever
-    called on a request no permission class refused first.  A handler therefore
+    called on a request every permission class let through.  A handler therefore
     never sees an anonymous visitor as a half-usable member record.
     """
     user = request.user

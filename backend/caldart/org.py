@@ -59,7 +59,7 @@ def org_details() -> OrgDetails:
 
     Reads the default site's row once.  A missing row, or a blank field in it,
     gives the fallbacks described on :class:`OrgDetails`; nothing raises, so a
-    receipt still renders on a site nobody has configured yet.
+    receipt still renders on an unconfigured site.
     """
     row = site_settings()
     return OrgDetails(

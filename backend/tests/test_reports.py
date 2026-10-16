@@ -230,7 +230,7 @@ def test_chosen_columns_answers_the_defaults_for_an_absent_parameter() -> None:
 
 
 def test_chosen_columns_refuses_an_unknown_key_keyed_by_columns() -> None:
-    """A key no column carries is a 400 keyed ``columns`` naming that key."""
+    """An unknown key is a 400 keyed ``columns`` naming that key."""
     with pytest.raises(ValidationError) as caught:
         chosen_columns(COLUMNS, "name,shoe_size")
     detail = cast("dict[str, list[str]]", caught.value.detail)

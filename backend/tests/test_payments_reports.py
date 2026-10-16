@@ -450,7 +450,7 @@ def test_export_carries_the_chosen_columns_in_the_order_asked_for(
     assert rows[0] == ["Total", "Email"]
 
 
-def test_export_refuses_a_column_no_report_carries(
+def test_export_refuses_an_unknown_column(
     treasurer_client: APIClient, history: list[Payment]
 ) -> None:
     """An unknown column key is a 400 keyed by ``columns``."""

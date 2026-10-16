@@ -511,7 +511,7 @@ def test_a_person_s_updated_cell_is_when_the_profile_was_last_written() -> None:
     assert cells("People", "Pat Doe")[6] == "09/20/2026"
 
 
-def test_a_person_nobody_has_edited_is_updated_when_the_profile_was_made() -> None:
+def test_an_unedited_person_is_updated_when_the_profile_was_made() -> None:
     """A profile without a ``profile_updated_at`` dates its items from its creation."""
     profile = person(profile_updated_at=None)
     MemberProfile.objects.filter(pk=profile.pk).update(created_at=STAMP)

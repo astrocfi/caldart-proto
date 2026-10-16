@@ -178,7 +178,7 @@ def test_clearing_an_unflagged_account_does_not_record_anything(
 
 
 def test_clearing_an_unknown_account_is_a_404(user_admin_client: APIClient) -> None:
-    """An id no account has is not found."""
+    """An unknown account id is not found."""
     response = user_admin_client.post(f"{USERS_URL}/999999/clear-bounce")
 
     assert response.status_code == 404

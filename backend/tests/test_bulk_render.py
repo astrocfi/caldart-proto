@@ -446,7 +446,7 @@ def test_the_preview_refuses_a_row_of_another_email(
 def test_the_preview_refuses_a_row_that_does_not_exist(
     management_client: APIClient, greeting: BulkEmail
 ) -> None:
-    """An id no row has is a 400 under ``recipient_id``."""
+    """An unknown id is a 400 under ``recipient_id``."""
     response = management_client.post(
         detail_url(greeting, "preview"), {"recipient_id": 999_999}, format="json"
     )

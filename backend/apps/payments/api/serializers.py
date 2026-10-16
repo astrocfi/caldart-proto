@@ -105,7 +105,7 @@ def refuse_charge_below_minimum(plan_slug: str, contribution_cents: int) -> None
     DRF's ``ValidationError`` keyed by ``contribution_cents`` with
     :data:`CHARGE_MINIMUM_MESSAGE`.  A plan priced at the minimum or more takes any
     contribution, a charge of zero passes (``create_checkout`` refuses it), and so
-    does a slug no active plan carries, which ``create_checkout`` refuses too.
+    does the slug of an unknown or inactive plan, which ``create_checkout`` refuses too.
     """
     price = (
         MembershipPlan.objects.filter(slug=plan_slug, is_active=True)
@@ -1066,7 +1066,7 @@ class PaymentPatchSerializer(serializers.Serializer[dict[str, Any]]):
     note = serializers.CharField(required=False, allow_blank=True, max_length=255)
 
     def validate_reconciled_on(self, value: dt.date | None) -> dt.date | None:
-        """Return ``value``, or refuse a day no statement can have carried yet."""
+        """Return ``value``, or refuse a future date."""
         if value is not None and is_in_the_future(value):
             raise serializers.ValidationError(
                 "A payment cannot have been reconciled in the future."

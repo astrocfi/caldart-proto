@@ -84,7 +84,7 @@ def record_change(
 
     Writes ``updated_by`` (and the automatic ``updated_at``) on the record, then
     returns the stored ``AircraftChange``.  ``actor`` is the signed-in account, or
-    ``None`` for a change nobody is signed in for; ``kind`` is ``created`` or
+    ``None`` when no account is signed in; ``kind`` is ``created`` or
     ``updated``, and ``fields`` names the columns that moved -- empty for a
     creation, where the whole record is the change.
     """

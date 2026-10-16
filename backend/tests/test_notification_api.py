@@ -175,7 +175,7 @@ def test_a_bare_address_reads_without_a_name(account_admin_client: APIClient) ->
 
 # -- setting one up ----------------------------------------------------------------------
 def test_an_outside_address_needs_confirming(account_admin_client: APIClient) -> None:
-    """An address no account holds is refused under ``confirmed`` until checked."""
+    """An address without an account is refused under ``confirmed`` until checked."""
     response = account_admin_client.post(
         SUBSCRIPTIONS_URL,
         {"recipient_email": "outside@example.test", "events": ["signed_up"]},
@@ -518,5 +518,5 @@ def test_a_delete_removes_the_subscription(account_admin_client: APIClient) -> N
 
 
 def test_a_missing_subscription_is_404(account_admin_client: APIClient) -> None:
-    """An id no subscription carries answers 404."""
+    """An unknown subscription id answers 404."""
     assert account_admin_client.get(f"{SUBSCRIPTIONS_URL}/999999").status_code == 404

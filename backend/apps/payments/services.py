@@ -30,7 +30,8 @@ from caldart.exceptions import DomainValidationError
 
 #: The fee a provider that has not settled yet reports: none, because it does
 #: not know.  A payment whose ``net_cents`` is still this while its amount is
-#: not has a fee nobody has been told; :func:`backfill_fees` is what asks again.
+#: not has a fee the provider hasn't reported yet; :func:`backfill_fees` is what asks
+#: again.
 UNKNOWN_NET_CENTS = 0
 
 #: What a life member is told when a checkout is asked to sell them a term.
@@ -128,7 +129,7 @@ def fees_are_known(payment: Payment) -> bool:
     """Whether the provider has told us what ``payment`` cost.
 
     A settled payment always nets something, so a zero net against a non-zero
-    amount is the mark of a fee nobody has reported yet.  A payment of zero
+    amount is the mark of a fee the provider hasn't reported yet.  A payment of zero
     -- which checkout will not create -- reads as known.
     """
     return payment.amount_cents == 0 or payment.net_cents != UNKNOWN_NET_CENTS

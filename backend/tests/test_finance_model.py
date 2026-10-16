@@ -93,7 +93,7 @@ def test_paid_on_is_the_day_a_manual_payment_was_received() -> None:
 
 
 def test_paid_on_is_none_while_a_payment_is_still_pending() -> None:
-    """A payment nobody has completed doesn't have a ledger date at all."""
+    """A pending payment doesn't have a ledger date at all."""
     assert PaymentFactory(status=PaymentStatus.PENDING, completed_at=None).paid_on is None
 
 

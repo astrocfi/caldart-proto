@@ -2,7 +2,7 @@
 
 A subscription bound to an account is sent an event only while that account is active
 and holds a role the event allows; a system administrator and a Django superuser may
-hear about every event.  A subscription to an address no account holds was confirmed
+hear about every event.  A subscription to an address without an account was confirmed
 by the account administrator who set it up, and always may.  A bare address is bound
 to whichever account later takes it, the next time it is sent something.
 """

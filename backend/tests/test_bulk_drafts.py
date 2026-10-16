@@ -318,7 +318,7 @@ def test_send_refuses_an_email_without_a_subject_or_message(
     assert response.json() == {field: [message]}
 
 
-def test_send_refuses_a_batch_nobody_in_which_can_receive_it(
+def test_send_refuses_a_batch_of_skips_alone(
     management_client: APIClient, management: User
 ) -> None:
     """A batch of skips alone is refused under ``batch``."""

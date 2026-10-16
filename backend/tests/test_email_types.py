@@ -315,7 +315,7 @@ def test_changing_a_type_is_audited(
 
 
 def test_changing_an_unknown_type_is_a_404(system_admin_client: APIClient) -> None:
-    """An id no type carries is not found."""
+    """An unknown type id is not found."""
     assert system_admin_client.put(detail_url(999_999), payload(), format="json").status_code == (
         404
     )
@@ -386,7 +386,7 @@ def test_a_position_beyond_the_column_is_refused(system_admin_client: APIClient)
 
 
 def test_deleting_an_unknown_type_is_a_404(system_admin_client: APIClient) -> None:
-    """An id no type carries is not found."""
+    """An unknown type id is not found."""
     assert system_admin_client.delete(detail_url(999_999)).status_code == 404
 
 
@@ -414,7 +414,7 @@ def test_a_sender_is_offered_the_types_their_roles_send(
     assert [row["name"] for row in response.json()] == expected
 
 
-def test_a_type_nobody_is_named_for_is_the_system_administrators_alone(
+def test_a_type_without_sender_roles_is_the_system_administrators_alone(
     api_client: APIClient, management: User, system_admin: User
 ) -> None:
     """A type without sender roles is offered to a system administrator only."""

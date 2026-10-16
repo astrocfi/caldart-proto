@@ -405,7 +405,7 @@ env_file_db_port() {
 # Stop with a usage error when the environment file's DATABASE_URL connects to
 # another port than CALDART_DB_PORT.  The install leaves an existing file alone,
 # so moving the container without the file would leave the site connecting to a
-# port nothing serves.
+# closed port.
 validate_db_port_matches_env_file() {
     local current
     current="$(env_file_db_port)"

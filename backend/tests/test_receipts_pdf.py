@@ -257,10 +257,8 @@ def test_the_statement_prints_the_letterhead(pdf_text: PdfText) -> None:
     ],
     ids=["no-address", "no-ein", "no-contact"],
 )
-def test_the_letterhead_leaves_out_what_nobody_has_filled_in(
-    blank: str, gone: str, pdf_text: PdfText
-) -> None:
-    """A letterhead field nobody has entered doesn't draw a line at all."""
+def test_the_letterhead_leaves_out_blank_fields(blank: str, gone: str, pdf_text: PdfText) -> None:
+    """A blank letterhead field doesn't draw a line at all."""
     data = replace(receipt(DUES), org=replace(ORG, **{blank: ""}))
 
     page = pdf_text(render_receipt(data))[0]

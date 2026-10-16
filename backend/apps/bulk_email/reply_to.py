@@ -1,6 +1,6 @@
 """Where a recipient's reply to a bulk email goes: the ``Reply-To`` every copy carries.
 
-Every bulk email goes out ``From`` ``DEFAULT_FROM_EMAIL``, an address nobody reads, so
+Every bulk email goes out ``From`` ``DEFAULT_FROM_EMAIL``, an unmonitored address, so
 that SPF, DKIM, and DMARC align; a reply reaches a person only through ``Reply-To``.
 ``BulkEmail.reply_to`` is the address the sender chose, and blank means the default:
 ``BULK_EMAIL_REPLY_TO``, or the sender's own address when that setting is blank.

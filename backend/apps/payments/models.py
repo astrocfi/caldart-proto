@@ -27,7 +27,7 @@ class MandateProvider(models.TextChoices):
     These are the members of ``PaymentProvider`` that can charge again off-session.
     ``manual`` is absent deliberately: a check or a cash payment cannot be taken a
     second time without the member, so a mandate naming it would be an authority
-    nobody could ever act on.
+    that could never be used.
     """
 
     STRIPE = "stripe", "Stripe"

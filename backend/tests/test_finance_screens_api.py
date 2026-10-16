@@ -37,7 +37,7 @@ def fees_url(payment: Payment) -> str:
 
 @pytest.fixture
 def settled_payment(member: User) -> Payment:
-    """A succeeded mock payment whose fee nobody has recorded yet."""
+    """A succeeded mock payment whose fee isn't recorded yet."""
     return PaymentFactory(
         user=member,
         amount_cents=10_000,
@@ -132,7 +132,7 @@ def test_a_provider_that_cannot_be_asked_says_so(
 
 
 def test_an_unknown_payment_does_not_have_a_fee_to_fetch(treasurer_client: APIClient) -> None:
-    """A payment id nobody recognizes is a 404, not an empty 200."""
+    """An unknown payment id is a 404, not an empty 200."""
     response = treasurer_client.post("/api/v1/admin/payments/99999/fees")
 
     assert response.status_code == 404
@@ -235,7 +235,7 @@ def test_a_row_says_where_the_member_s_membership_stands(
 def test_an_empty_search_does_not_ask_for_anybody(
     treasurer_client: APIClient, searchable_members: list[User]
 ) -> None:
-    """A search box nobody has typed in doesn't list any members."""
+    """An empty search box doesn't list any members."""
     response = treasurer_client.get(MEMBER_SEARCH)
 
     assert response.json() == []
