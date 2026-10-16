@@ -18,7 +18,7 @@ export interface VerifiedMarkProps {
 
 /**
  * Whether an authority has checked an item: *Verified by <name> on <date>*, or *Not
- * verified*, as a dot with its word, amber because a check nobody has made yet is a normal waiting
+ * verified*, as a dot with its word, amber because a pending check is a normal waiting
  * state, not an alarm.  An item whose date has passed reads *Expired* first, in the
  * expired tone, so a lapsed medical never reads as cleared beside a green *Verified*.
  *

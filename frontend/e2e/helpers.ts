@@ -303,7 +303,7 @@ export function displayDate(iso: string): string {
   return `${month}/${day}/${year}`;
 }
 
-/** An address nobody else in this run will use. */
+/** An address unique to this run. */
 export function uniqueEmail(prefix: string): string {
   const stamp = `${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)}`;
   return `${prefix}-${stamp}@example.test`;

@@ -11,8 +11,8 @@
  * covers) included and those only a list page offers left out, so a subscription
  * filters as the report's list page does.  The reports are named as the finance tabs
  * name them, and Save, while it waits for a report, says so beside it.  The server decides whether the recipient may have the report: an
- * account that may not read it is refused under the address, and an address no
- * account holds must be confirmed with a checkbox that appears once the server
+ * account that may not read it is refused under the address, and an address without
+ * an account must be confirmed with a checkbox that appears once the server
  * has asked for it.
  */
 import { useMemo, useRef, useState } from 'react';
@@ -101,7 +101,7 @@ function setValues(values: FilterValues): Record<string, string> {
 /**
  * The filters an edit starts from: the subscription's own, less any the form does not
  * draw for its report, such as a fixed contributions year from before the report took a
- * period, so Save never sends back a filter nobody can see.
+ * period, so Save never sends back a filter the form hides.
  */
 export function storedFilters(subscription: ReportSubscription | undefined): FilterValues {
   if (subscription === undefined) return {};

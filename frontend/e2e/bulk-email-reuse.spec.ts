@@ -12,7 +12,7 @@ import type { Page } from '@playwright/test';
 
 import { DEMO, signIn } from './helpers';
 
-/** A name no other run of this spec has used. */
+/** A name unique to this run of the spec. */
 function fresh(what: string): string {
   return `${what} ${Date.now().toString(36)}`;
 }

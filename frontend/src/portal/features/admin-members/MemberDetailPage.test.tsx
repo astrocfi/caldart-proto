@@ -113,7 +113,7 @@ describe('MemberDetailPage', () => {
     expect(header).toHaveTextContent('Profile updated 08/11/2026');
   });
 
-  it('says a profile nobody has written has never been edited', async () => {
+  it('says a profile without an update date has never been edited', async () => {
     server.use(...detailHandlers(makeDetail({ profile_updated_at: null })));
     renderDetail();
 

@@ -70,8 +70,8 @@ function memberCount(dart: AdminDart): string {
  * What deleting this DART leaves behind, as one sentence, or null when nothing.
  *
  * Both relations are `SET_NULL`: the members on the DART become unaffiliated
- * and a linked website page keeps its own content and loses its DART.  A DART
- * nothing points at doesn't need a warning, so the sentence is only built when a
+ * and a linked website page keeps its own content and loses its DART.  An unused
+ * DART doesn't need a warning, so the sentence is only built when a
  * count is above zero, and it names only the counts that are.
  */
 export function deleteWarning(dart: AdminDart): string | null {

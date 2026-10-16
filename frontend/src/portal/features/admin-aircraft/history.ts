@@ -69,7 +69,7 @@ export function changeLine(change: AircraftChange): string {
  * The eyebrow over a record's details: `Last updated 09/01/2026 by Dana Fiske`.
  *
  * The name is left off when no account is recorded against the last write,
- * rather than blaming the seed for a record nobody has touched since.
+ * rather than blaming the seed for a record untouched since.
  */
 export function lastUpdatedLine(updatedAt: string, updatedBy: AircraftActor | null): string {
   const date = formatDate(updatedAt);

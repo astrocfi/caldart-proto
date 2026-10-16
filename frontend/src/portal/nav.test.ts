@@ -44,7 +44,7 @@ describe('visibleNavItems', () => {
   });
 
   it('offers every route the portal can render', () => {
-    // A nav entry that points nowhere, or a screen nothing links to, is the
+    // A nav entry that points nowhere, or an unlinked screen, is the
     // integration bug this catches.
     expect(NAV_ITEMS.map((item) => item.to)).toContain('/change-password');
   });

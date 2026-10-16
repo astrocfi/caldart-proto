@@ -106,7 +106,7 @@ describe('LeaderAircraftPage search', () => {
     expect(within(row).getByText('NO-GO')).toBeInTheDocument();
   });
 
-  it('marks a current policy nobody has verified NO-GO, read out as not verified', async () => {
+  it('marks an unverified current policy NO-GO, read out as not verified', async () => {
     const user = setupUser();
     server.use(...registerFinds([makeVerifiedAircraft({ insurance_verification: NOT_VERIFIED })]));
 
@@ -344,7 +344,7 @@ describe('LeaderAircraftPage card', () => {
     expect(list.getByRole('listitem')).toHaveTextContent(/^Marta ReyesNot cleared to flyNO-GO$/);
   });
 
-  it('reads a pilot nobody has verified NO-GO, as the member check does', async () => {
+  it('reads an unverified pilot NO-GO, as the member check does', async () => {
     const list = await renderPilots([
       { ...PILOT, go_no_go: { membership: true, medical: true, verified: false } },
     ]);

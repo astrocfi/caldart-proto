@@ -166,7 +166,7 @@ export function dartPayload(values: DartFormValues): AdminDartPatch {
     airport_identifiers: splitAirports(values.airport_identifiers).join(', '),
     website_url: values.website_url.trim(),
     is_active: values.is_active,
-    // A row nobody typed into is not a person: an empty form should not save
+    // A blank row is not a person: an empty form should not save
     // a nameless contact, and clearing every row really does clear the list.
     contacts: values.contacts
       .filter((contact) => contact.name.trim() || contact.title.trim())
