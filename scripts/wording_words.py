@@ -82,6 +82,7 @@ FLAGGED_VERBS = (
     "fit fits fitted fitted fitting", "flag flags flagged flagged flagging",
     "flip flips flipped flipped flipping", "fly flies flew flown flying",
     "follow follows followed followed following",
+    "foresee foresees foresaw foreseen foreseeing",
     "forward forwards forwarded forwarded forwarding",
     "gather gathers gathered gathered gathering",
     "generate generates generated generated generating", "get gets got gotten getting",
@@ -211,13 +212,18 @@ FLAGGED_VERBS = (
 #: The modals, which always wait for a verb.
 MODALS = "can could may might must shall should will would"
 
+#: The conjunctions, relative words, and adverbs, which introduce a negative subject.
+CLAUSE_OPENERS = (
+    "after alone although and because before but deliberately else here if nor once only",
+    "or otherwise possibly simply since so that then there though until when where",
+    "whereas whether which while who whom why yet",
+)
+
 ALLOWED_WORDS = (
     # Modals.
     MODALS,
     # Conjunctions, relative words, and adverbs, which introduce a negative subject.
-    "after alone although and because before but deliberately else here if nor once only",
-    "or otherwise possibly simply since so that then there though until when where",
-    "whereas whether which while who whom why yet",
+    *CLAUSE_OPENERS,
     # Comparison with zero.
     "than",
     # Pronouns, articles, and the rest.
@@ -270,11 +276,19 @@ ADVERBS = (
     "really", "simply", "still", "then", "virtually",
 )
 
-#: A word before the verb form that makes it a noun: "a change nobody made".
+#: A word before the verb form that makes it a noun: the "change" in "a change".
 DETERMINERS = frozenset((
     "a", "an", "any", "each", "every", "her", "his", "its", "my", "our", "some", "the",
     "their", "whose", "your",
 ))
+
+#: The words that open a noun phrase a negative relative clause can hang from: the
+#: determiners, the demonstratives, and ``one``.
+RELATIVE_DETERMINERS = DETERMINERS | frozenset(("one", "that", "these", "this", "those"))
+
+#: The words read past between a negative subject and its verb in a relative clause:
+#: ``else`` and ``ever`` ("nobody else", "no reader ever"), and the adverbs.
+RELATIVE_FILLERS = frozenset(("else", "ever", *ADVERBS))
 
 #: A word after ``no`` that makes it an adverb rather than an object: "no longer", "no
 #: deeper than".

@@ -93,6 +93,25 @@ Sphinx build requirements for all documentation in this repository. Docstring ru
   by a blank line, covers the whole next paragraph. The check fails on any hit and
   prints each one with its suggestion; `--path <dir>` limits it, or `--coordinated`, to
   a subtree.
+- Write the way people talk: never hang a negative clause off a noun. A noun followed by
+  a clause whose subject is "no X", "nobody", "nothing", "none", or "no one" reads as a
+  puzzle, and nobody says it aloud:
+  "refuse a day no statement can have carried yet", "an id no row has", "a caller <!-- wording:ignore -->
+  nobody has signed in", "a draft nobody has touched", "a DART nobody is on". <!-- wording:ignore -->
+  Say it plainly, preferring an adjective or a plain statement of what the code does,
+  read from the code itself: "refuse a future date" (the check is `is_in_the_future`),
+  "an unknown id", "a signed-out caller", "an untouched draft", "an empty DART", "a
+  filter the form hides". A positive relative clause is fine when no plain word fits
+  ("an id that doesn't match a row"), and a negative subject that starts a clause of
+  its own is fine too ("On any failure nothing is written", "the filters stay when
+  nothing matches"). Never trade one awkward construction for another: the rewrite must
+  still put a negation on the verb. `make lint-wording` flags this too: a determiner, at
+  most one adjective, and a noun, followed by a negative subject and its verb, with the
+  suggestion "rewrite as an adjective or 'that doesn't ...'". It passes over "no longer"
+  and "no matter"; a negative after a comma, a colon, a semicolon, or a conjunction; a
+  noun phrase led by a preposition that opens its sentence or clause; and a quoted label
+  or a value. It misses a relative clause inside such a lead-in ("For a type" followed
+  by a negative subject), so read a sentence that opens with a preposition by hand.
 - Define each CalDART-specific term on first use, such as DART. Don't define
   standard aviation terms (N-number, BasicMed, medical classes, flight review):
   the readers are pilots and DART volunteers.

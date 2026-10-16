@@ -373,8 +373,9 @@ list, in full:
        ``lint-spelling``, then ``lint-wording``
    * - ``lint-backend``
      - ``ruff check``, ``ruff format --check`` and ``mypy`` over ``backend``,
-       ``frontend/e2e/prefix_proxy.py``, ``scripts/check_wording.py``, and
-       ``scripts/wording_words.py``
+       ``frontend/e2e/prefix_proxy.py``, ``scripts/check_wording.py``, and the
+       three modules beside it, ``scripts/wording_words.py``,
+       ``scripts/wording_text.py``, and ``scripts/wording_relative.py``
    * - ``lint-shell``
      - ``shellcheck`` over every script under ``deploy/`` and ``scripts/``
    * - ``lint-frontend``
@@ -384,8 +385,9 @@ list, in full:
    * - ``lint-spelling``
      - ``codespell`` — American spelling and common typos
    * - ``lint-wording``
-     - ``scripts/check_wording.py`` — a negative object or complement,
-       failing on any hit; see :doc:`testing`
+     - ``scripts/check_wording.py`` — a negative object or complement, or a
+       negative relative clause hung off a noun, failing on any hit; see
+       :doc:`testing`
    * - ``format``
      - ``ruff format``, ``ruff check --fix``, ``prettier --write``
    * - ``check``

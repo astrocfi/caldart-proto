@@ -560,7 +560,7 @@ its work.
 **The console is a gate.**  ``src/test/console.ts`` replaces ``console.error``
 and ``console.warn`` with capturing spies before every test and fails the test
 afterwards if it wrote a message — React's complaint about a missing ``key``, a
-library's deprecation notice, msw's report of a request nobody stubbed.  It is
+library's deprecation notice, msw's report of an unhandled request.  It is
 the frontend's counterpart to pytest's ``filterwarnings = error``.  A test whose
 subject *is* the message declares it first:
 
@@ -574,7 +574,7 @@ subject *is* the message declares it first:
    });
 
 The declaration covers the current test only, and every message it does not
-match still fails.  It runs in both directions: a declaration nothing matched
+match still fails.  It runs in both directions: an unmatched declaration
 fails the test too, so a test whose subject is the warning cannot keep passing
 once the warning stops being written.
 
@@ -668,7 +668,7 @@ The measurement covers production code only: ``src/**/*.{ts,tsx}`` minus
 ``src/portal/api/schema.d.ts``.
 
 No threshold fails the run, and CI does not gate on the number.  The report is
-there to find the module nothing exercises, not to be argued with.
+there to find the modules the tests never reach, not to be argued with.
 
 What the frontend suite covers
 ------------------------------
@@ -1286,7 +1286,7 @@ Linting and type-checking
    $ make lint-shell      # shellcheck over deploy/ and scripts/
    $ make lint-frontend   # tsc --noEmit, eslint --max-warnings 0, prettier --check
    $ make lint-spelling   # codespell over the prose, the code and the tests
-   $ make lint-wording    # a negative object or complement, which fails on any hit
+   $ make lint-wording    # a negative object, complement, or relative clause; fails on any hit
    $ make format          # fix what can be fixed automatically
 
 ``ruff`` is configured in ``pyproject.toml``: line length 100, target
@@ -1315,9 +1315,10 @@ every diagnostic it raises is a Django or DRF signature such as ``get(self,
 request, *args, **kwargs)``, where the framework dictates the parameter list.
 
 ``mypy`` type-checks ``backend`` — the application and the tests alike — and
-the three Python files kept outside it, ``frontend/e2e/prefix_proxy.py``,
-``scripts/check_wording.py``, and ``scripts/wording_words.py``, as the third
-step of ``make lint-backend``.  ``[tool.mypy]`` in ``pyproject.toml`` sets
+the Python files kept outside it, ``frontend/e2e/prefix_proxy.py``,
+``scripts/check_wording.py``, and the three modules the wording check imports,
+``scripts/wording_words.py``, ``scripts/wording_text.py``, and
+``scripts/wording_relative.py``, as the third step of ``make lint-backend``.  ``[tool.mypy]`` in ``pyproject.toml`` sets
 ``strict = true``, the ``mypy_django_plugin`` and ``mypy_drf_plugin`` plugins,
 and ``caldart.settings.test`` as the settings module the Django plugin reads;
 migrations are excluded.  ``disallow_subclassing_any`` is off because Wagtail's
@@ -1349,8 +1350,8 @@ rules below.
 file to the TypeScript program that already owns it, so a path added to
 ``tsconfig.json``'s ``include`` is type-checked by the linter without a second
 list to maintain.  The rules that information buys are the ones review keeps
-missing — ``@typescript-eslint/no-floating-promises`` (a promise nothing awaits
-or marks with the ``void`` operator), ``no-misused-promises`` (an async
+missing — ``@typescript-eslint/no-floating-promises`` (a promise that isn't awaited
+or marked with the ``void`` operator), ``no-misused-promises`` (an async
 function handed to an attribute that expects a void return),
 ``no-unsafe-assignment`` and ``no-unsafe-argument`` (an ``any`` flowing into
 typed code), ``no-unnecessary-type-assertion`` and ``require-await``.  React
@@ -1416,7 +1417,9 @@ source, and the golden files under ``backend/tests/golden/``), lock files, and
 binaries, it reports a flagged word followed by ``no``, ``nothing``, ``nobody``,
 ``none``, ``no one``, or ``nobody's`` or ``no one's`` as a determiner, and fails
 on any hit.  The word lists live beside the script in
-``scripts/wording_words.py``.  The flagged words are the verb forms in
+``scripts/wording_words.py``, and the way it reads text (the space between
+words, word boundaries, lines, and markers) in ``scripts/wording_text.py``.
+The flagged words are the verb forms in
 ``FLAGGED_VERBS``, past participles such as *given*, *sent*, and *told*
 included; the forms of *be* and the prepositions in ``FLAGGED_WORDS``, so that
 *there is* and *with* before a negative count as well; the contractions of
@@ -1447,8 +1450,8 @@ word in lower case or none, such as a quoted message (a capitalized word after
 it reads as a title, which is flagged); a negative that starts a clause of
 its own: *nothing*, *nobody*, *none*, or *no one* before a form of *be*, a
 modal, *has*, *have*, or *had* (``SUBJECT_AUXILIARIES``), or *nothing* or
-*none* before a present verb (``SUBJECT_VERBS``), such as the clause
-*nothing needs fixing*; *nobody's* meaning "nobody is" or "nobody has", which
+*none* before a present verb (``SUBJECT_VERBS``, which lets *nothing needs
+fixing* through); *nobody's* meaning "nobody is" or "nobody has", which
 is read from the words after it (a participle spelled unlike its base and its
 past, or an *-ing*, *-ed*, or base-form participle followed by a particle, a
 preposition, a pronoun, an adverb, a determiner, or nothing at all); ``no``
@@ -1468,6 +1471,33 @@ when the word is a simple present or past form, a past participle after
 of *be* (*there isn't a payment*), a contraction (*there's* becomes *there
 isn't*), or *with*.  A bound keeps its meaning: *no more than 255* becomes
 *at most 255*, and *no fewer than* or *no less than* becomes *at least*.
+
+The same check keeps a negative clause off a noun, because people don't talk
+that way: a noun followed by a clause with a negative subject (*nobody*,
+*nothing*, *none*, *no one*, or *no* with a noun) is a hit, so write *a future date*,
+*an unknown id*, *a signed-out caller*, *an empty DART*, or, when no plain
+word fits, a positive relative clause such as *an id that doesn't match a
+row*.  ``find_relative_clauses`` in ``scripts/wording_relative.py`` reports a
+determiner from ``RELATIVE_DETERMINERS``, at most one adjective, and a noun,
+followed by the negative subject and its verb: a form of *be*, a modal,
+*has*, *have*, or *had*, a listed verb's third-person, past, or participle
+form (its base form too after a plural noun), an unlisted *-ed* word, or,
+after a negative pronoun, an unlisted word ending in a single *s*
+(*awaits*).  *No* may take up to three nouns before the verb (*no active
+plan*), and *else*, *ever*, and the adverbs (``RELATIVE_FILLERS``) may stand
+before it.  It passes over *no longer*, *no matter*, and the rest of
+``NOT_OBJECTS``; a negative after a comma, a colon, a semicolon, or a
+conjunction, since none of those leaves a noun right before it; a noun slot
+holding a word that opens a clause, a preposition, a form of *be* or
+*have*, a pronoun, or a verb (a past form, or a present form after an
+adjective, as in *the page says* before a negative subject); a value or a
+quoted label; and a noun phrase led by a preposition that follows the start
+of the text, a sentence's end, an opening quote or bracket, a list item, a
+comment, or a word that opens a clause, which leads in to a clause of its own
+(*On any failure nothing is written*).  A comma before the preposition
+doesn't count, because a phrase after a comma as often finishes the clause
+before it.  The hit is reported once, on the determiner's line, with the
+suggestion *rewrite as an adjective or 'that doesn't ...'*.
 
 The check doesn't catch everything; these gaps are known, and are reviewed by
 hand:
@@ -1490,6 +1520,10 @@ hand:
   a quoted message is flagged too: rewrite the sentence around the quote.
 * The literal join needs straight quotes on both sides; a JavaScript template
   literal or a typographic quote between two literals isn't joined.
+* A relative clause inside a lead-in phrase (*For a type* followed by a
+  negative subject and its verb, at the start of a sentence) is read as the
+  lead-in and passed over, and so is one whose noun carries two adjectives or
+  a possessive, or whose subject is the possessive *nobody's*.
 
 To keep a line verbatim, such as a third party's error message, end it with a
 ``wording:ignore`` comment, or put a ``wording:ignore-next-line`` comment on

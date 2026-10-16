@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""Flag a verb whose object is a negative, and fail on any hit.
+"""Flag a negative object or a negative relative clause, and fail on any hit.
 
 The project's prose rule puts a negation on the verb, never on its object, its
 complement, or the object of a preposition: write "doesn't have a portal account",
 "didn't take anything", "there isn't a payment", or "without a term", or a plain finding
 such as "No payment found".  A negative subject reads naturally ("Nobody changes their
-own roles", "Nothing is due") and is never flagged.
+own roles", "Nothing is due") and is never flagged, except as the subject of a relative
+clause hung off a noun, which reads as a puzzle: write "a future date", "an unknown id",
+"a signed-out caller", or "an id that doesn't match a row" (``find_relative_clauses``, in
+``scripts/wording_relative.py``).
 
 A hit is a flagged word followed by ``no``, ``nothing``, ``nobody``, ``none``, ``no
 one``, or ``nobody's`` or ``no one's`` as a determiner (``nobody's role``).  The
@@ -42,7 +45,8 @@ other.  These are passed over:
   ``SUBJECT_VERBS`` ("says nothing needs fixing"), and ``nobody's`` or ``no one's``
   meaning "nobody is" or "nobody has" ("says nobody's signed in");
 * a verb form preceded by a determiner (``a``, ``the``, ``every``, ...), which makes it a
-  noun ("a change nobody made");
+  noun (the "change" in "a change"), whose negative is then read as the subject of a
+  relative clause;
 * ``no`` followed by a word in ``NOT_OBJECTS`` (``longer``, ``matter``, ``later``,
   ``deeper``, ...), which makes it an adverb rather than an object;
 * a line that carries the marker ``wording:ignore`` (in whatever comment the file type
@@ -53,17 +57,44 @@ other.  These are passed over:
   error message.
 
 The word lists (``FLAGGED_VERBS``, ``ALLOWED_WORDS``, ``FLAGGED_WORDS``, and the small
-tables beside them) live in ``scripts/wording_words.py``, which this script imports from
-its own directory.
+tables beside them) live in ``scripts/wording_words.py``, and the way the check reads
+text (the space between words, word boundaries, lines, markers, and ``Hit``) in
+``scripts/wording_text.py``; this script imports both, and the relative-clause check,
+from its own directory.
 
 The scanned tree is the one ``make lint-spelling`` scans, as git lists it (tracked files,
 plus untracked files ``.gitignore`` does not exclude), minus generated files, lock files,
 and binaries.  Hits in the generated OpenAPI files are reported at their source, the
 serializer and view docstrings.
 
+A negative relative clause is a hit too: a determiner from ``RELATIVE_DETERMINERS``, at
+most one adjective, and a noun, followed by ``no``, ``nothing``, ``nobody``, ``none``, or
+``no one`` as the subject of a verb, such as "an id" followed by "no row has", or "a
+claim" followed by "nobody finished".  The verb is a form of "be", a modal, a perfect
+auxiliary, a listed verb's third-person, past, or participle form, a listed base form
+after a plural noun, or an unlisted ``-ed`` word, and after a negative pronoun an
+unlisted word ending in a single ``s`` ("awaits").  ``no`` may take up to three nouns
+before the verb ("no active plan"), and the words in ``RELATIVE_FILLERS`` may stand
+between the negative and the verb (``else``, ``ever``, and the adverbs).  These are
+passed over:
+
+* a word in ``NOT_OBJECTS`` after ``no``: "the link" followed by "no longer works";
+* a noun that is a word opening a clause (``when``, ``and``, ...), a preposition, a form
+  of "be" or "have", a pronoun, or another determiner, or that is a verb: a past form, or
+  a third-person form after an adjective, as in "the page says nothing is hidden";
+* a negative that is a value or a quoted label: ``None``, an all-caps negative after a
+  noun that isn't all caps, or a capitalized negative after a lower-case noun;
+* a noun phrase that follows a preposition, where the preposition follows the start of
+  the text, a character that ends a sentence or opens a quote, a bracket, a list item, or
+  a comment, or a word that opens a clause: "On any failure nothing is written" leads in
+  to a clause of its own.  After a comma the phrase is read as part of the clause before
+  it ("blank, for a category ...").
+
 Run without a switch, the check prints every hit as ``path:line: text``, with a suggested
 rewrite below it where the rewrite is simple, then the total and the remedy, and exits
-1.  It exits 0 when it doesn't find a hit.
+1.  It exits 0 when it doesn't find a hit.  A relative clause is reported on the line its
+determiner is on, once, with the suggestion "rewrite as an adjective or 'that doesn't
+...'".
 
 Usage::
 
@@ -88,23 +119,40 @@ Known gaps, reviewed by hand:
 * a contracted ``'s`` or ``'d``, read as "is" or "had", so a possessive before a
   negative is flagged as a contraction;
 * a join between two string literals with a typographic quote or a backtick, which
-  isn't read.
+  isn't read;
+* a relative clause after a preposition that leads off a sentence, which is read as a
+  lead-in, so "For a type" followed by "nobody may turn off" is passed over; one whose
+  noun has two adjectives or a possessive; and one whose subject is ``nobody's``.
 """
 
 import argparse
-import bisect
 import re
 import shutil
 import subprocess
 import sys
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
 from pathlib import Path
 from typing import NamedTuple
 
+from wording_relative import find_relative_clauses
+from wording_text import (
+    ALLOWED_FORMS,
+    APOSTROPHES,
+    CONTRACTION,
+    FAMILY_OF,
+    GAP,
+    NEXT_WORD,
+    PREPOSITION_FORMS,
+    PREVIOUS_WORD,
+    SEPARATOR,
+    SUBJECT_AUXILIARIES,
+    WORD_END,
+    WORD_START,
+    Hit,
+    read_lines,
+)
 from wording_words import (
     ADVERBS,
-    ALLOWED_WORDS,
     ANY_BEFORE,
     BE_FORMS,
     BOUNDS,
@@ -188,12 +236,6 @@ FLAGGED_FORMS = frozenset(
     + [word for group in FLAGGED_WORDS for word in group.split()]
 )
 
-#: Every deliberately allowed word, lower case.
-ALLOWED_FORMS = frozenset(word for group in ALLOWED_WORDS for word in group.split())
-
-#: The prepositions, lower case: a pronoun after one is its object, never read past.
-PREPOSITION_FORMS = frozenset(word for group in PREPOSITIONS for word in group.split())
-
 #: A word after a negative that makes the negative a subject, once a pronoun stands
 #: before it ("tell them nobody is coming"): a verb form, a form of "be", or a modal.
 CLAUSE_VERBS = frozenset(
@@ -201,11 +243,6 @@ CLAUSE_VERBS = frozenset(
     + BE_FORMS.split()
     + MODALS.split()
 )
-
-#: A word after ``nothing``, ``nobody``, ``none``, or ``no one`` (past an ``else``) that
-#: makes the negative the subject of a clause of its own ("says nobody is signed in",
-#: "says nothing has gone"): a form of "be", a modal, or a perfect auxiliary.
-SUBJECT_AUXILIARIES = frozenset(BE_FORMS.split() + MODALS.split() + list(PERFECT_AUXILIARIES))
 
 #: A third-person present verb, which does the same after ``nothing`` or ``none`` alone
 #: ("says nothing else needs fixing").  After ``nobody`` or ``no one`` the same word is
@@ -231,145 +268,53 @@ CONTRACTION_COMPLEMENTS = frozenset((*BE_FORMS.split(), "here", "there"))
 #: "the member said no."
 ANSWER_ENDINGS = frozenset(".,;:!?)]}\"'" + chr(0x2019) + chr(0x201D))
 
-# Where one string literal ends and the next begins: a closing quote, an optional ``+``,
-# an optional line break with its indentation, and an opening quote ('x ' + 'y').  A
-# space must stand on one side of the quotes, inside one literal or the other, or the
-# two words would run together.
-_JOIN = r"[ \t]*\+?[ \t]*(?:\r?\n[ \t]*\+?[ \t]*)?"
-_LITERAL_JOIN = rf"(?:[ \t]+[\"']{_JOIN}[\"']|[\"']{_JOIN}[\"'][ \t]+)"
-
-# A single space or tab, so that a table's padding never joins two cells; one line
-# break, with the continuation's indentation and comment leader; or a literal join.
-_SEPARATOR = r"(?:[ \t]|[ \t]*\r?\n[ \t]*(?:(?:\#:?|//|\*)[ \t]*)?|" + _LITERAL_JOIN + ")"
-
-# Emphasis may close before a separator and open after it ("**x** y", "<em>x</em> y"),
-# so that bold or italic text is checked like plain text.
-_OPEN_EMPHASIS = r"(?:\*\*?|<(?:b|strong|em|i)>)"
-_CLOSE_EMPHASIS = r"(?:\*\*?|</(?:b|strong|em|i)>)"
-_GAP = rf"{_CLOSE_EMPHASIS}?{_SEPARATOR}{_OPEN_EMPHASIS}?"
-
-#: The apostrophes that join a contraction into one word: straight and typographic.
-_APOSTROPHES = "'" + chr(0x2019)
-
-# A word starts after anything but a letter, a digit, or an underscore, and after an
-# apostrophe only when no letter stands before it: an opening quote ("it('sends") starts a
-# word, while the apostrophe inside a contraction ("doesn't") joins its letters into one.
-_WORD_START = rf"(?<!\w)(?<!\w[{_APOSTROPHES}])"
-
-# A word ends before anything but a letter, a digit, an underscore, or a hyphen, and
-# before an apostrophe only when no letter follows it: a closing quote ("it('is done')")
-# ends a word, while one inside a contraction or a possessive ("none's") joins the next.
-_WORD_END = rf"(?![\w-])(?![{_APOSTROPHES}]\w)"
-
 # A lookahead, so that every word start is tried and one candidate never hides the next.
-# A contraction of "be" or "have" ("there's", "we're", "you've", "they'd") is one word,
-# flagged before a negative like the form it stands for.
-_CONTRACTION = rf"[{_APOSTROPHES}](?:{'|'.join(sorted(CONTRACTIONS))})"
-
 _CANDIDATE = re.compile(
-    _WORD_START
-    + rf"(?=(?P<verb>[A-Za-z]+(?:{_CONTRACTION})?)"
-    + _GAP
+    WORD_START
+    + rf"(?=(?P<verb>[A-Za-z]+(?:{CONTRACTION})?)"
+    + GAP
     + rf"(?:(?P<middle>{'|'.join(PRONOUNS + ADVERBS)})"
-    + _GAP
+    + GAP
     + ")?"
-    + rf"(?P<negative>nobody[{_APOSTROPHES}]s|no{_SEPARATOR}one[{_APOSTROPHES}]s"
+    + rf"(?P<negative>nobody[{APOSTROPHES}]s|no{SEPARATOR}one[{APOSTROPHES}]s"
     + r"|nothing|nobody|none|no)"
-    + _WORD_END
+    + WORD_END
     + ")",
     re.IGNORECASE,
 )
 
-_NEXT_WORD = re.compile(_GAP + r"([A-Za-z]+)", re.IGNORECASE)
-
-_THAN = re.compile(_GAP + r"[A-Za-z]+" + _GAP + r"than\b", re.IGNORECASE)
+_THAN = re.compile(GAP + r"[A-Za-z]+" + GAP + r"than\b", re.IGNORECASE)
 
 # A coordinating conjunction before a negative: "gets 400 and no message".  The rule
 # covers a coordinated object, but the check can't tell one from a new negative subject
 # ("and no email is sent"), so ``--coordinated`` only lists these for review by hand.
 _COORDINATED = re.compile(
-    _WORD_START
+    WORD_START
     + r"(?=(?P<verb>and|but|or)"
-    + _SEPARATOR
+    + SEPARATOR
     + r"(?P<negative>nothing|nobody|none|no)"
-    + _WORD_END
+    + WORD_END
     + ")",
     re.IGNORECASE,
 )
 
-_PREVIOUS_WORD = re.compile(
-    rf"(?<![\w{_APOSTROPHES}])([A-Za-z]+(?:{_CONTRACTION})?)" + _GAP + r"\Z", re.IGNORECASE
-)
-
-_MARKER = "wording:ignore"
-
-_SAME_LINE_MARKER = re.compile(r"wording:ignore(?!-next-line)")
-
-_NEXT_LINE_MARKER = "wording:ignore-next-line"
-
-# A reStructuredText comment that holds only the next-line marker.
-_PARAGRAPH_MARKER = re.compile(r"\s*\.\.\s+wording:ignore-next-line\s*")
-
-
-class _Family(NamedTuple):
-    """The five forms of one flagged verb, in ``FLAGGED_VERBS`` order."""
-
-    base: str
-    third: str
-    past: str
-    participle: str
-    present_participle: str
-
-
-def _families() -> dict[str, _Family]:
-    """Map each flagged form to its family; a family with other than five forms raises."""
-    families = {}
-    for line in FLAGGED_VERBS:
-        family = _Family(*line.split())
-        for form in family:
-            families[form] = family
-    return families
-
-
-_FAMILY_OF = _families()
-
 #: The family whose forms make a passive before a past participle: "gets paid".
-_GET = _FAMILY_OF["get"]
+_GET = FAMILY_OF["get"]
 
 #: The forms of "be" that leave a past participle's rewrite to the reader: "has been
 #: sent" moves the negation to ``has``, which the check doesn't see.
 _UNNEGATED_BE = frozenset(("be", "been", "being"))
 
 
-@dataclass(frozen=True)
-class Hit:
-    """One flagged phrase: where it is, its line's text, and a rewrite if one is simple.
-
-    ``line`` is the 1-based line the verb is on.  ``text`` is that line stripped, joined
-    with the next line when the phrase wraps.  ``suggestion`` reads ``"<phrase> ->
-    <rewrite>"`` for a third-person present form, a simple past that differs from the
-    base form, or a past participle after ``has``, ``have``, ``had``, ``is``, ``are``,
-    ``was``, ``were``, ``am``, ``get``, ``gets``, or ``got``, each with at most a pronoun
-    before the negative, and for ``is``, ``are``, ``was``, ``were``, ``am``, and
-    ``with`` (``NEGATED_WORDS``).  It is ``None`` for every other hit (a base form, an
-    ``-ing`` form, an unlisted ``-ed`` word, a past participle after ``be``, ``been``, or
-    ``being``, any other word from ``FLAGGED_WORDS``, or a phrase with an adverb in it),
-    whose rewrite depends on the words around it.
-    """
-
-    path: str
-    line: int
-    text: str
-    suggestion: str | None
-
-
 def find_hits(text: str, path: str) -> list[Hit]:
     """Return every hit in ``text``, the contents of the file at ``path``, in order.
 
-    ``path`` is only recorded on each hit.  See the module docstring for what is flagged
-    and what is passed over.
+    ``path`` is only recorded on each hit.  The hits are the negative objects and the
+    negative relative clauses, sorted by line.  See the module docstring for what is
+    flagged and what is passed over.
     """
-    return _find(text, path, coordinated=False)
+    hits = _find(text, path, coordinated=False) + find_relative_clauses(text, path)
+    return sorted(hits, key=lambda hit: hit.line)
 
 
 def find_coordinated(text: str, path: str) -> list[Hit]:
@@ -385,18 +330,14 @@ def find_coordinated(text: str, path: str) -> list[Hit]:
 
 def _find(text: str, path: str, *, coordinated: bool) -> list[Hit]:
     """The hits, or with ``coordinated`` the conjunction candidates, in ``text``."""
-    lines = text.split("\n")
-    line_starts = [0]
-    for line in lines[:-1]:
-        line_starts.append(line_starts[-1] + len(line) + 1)
-    silenced = _silenced_lines(lines) if _MARKER in text else set()
+    index = read_lines(text)
     hits = []
     for match in (_COORDINATED if coordinated else _CANDIDATE).finditer(text):
         verb, negative = match["verb"], match["negative"]
         middle = None if coordinated else match["middle"]
         if not coordinated and not _is_flagged(verb):
             continue
-        next_match = _NEXT_WORD.match(text, match.end("negative"))
+        next_match = NEXT_WORD.match(text, match.end("negative"))
         next_word = next_match[1] if next_match is not None else None
         if _is_not_an_object(text, match, next_word):
             continue
@@ -409,13 +350,9 @@ def _find(text: str, path: str, *, coordinated: bool) -> list[Hit]:
         if not is_after_a_preposition and _is_a_subject(text, match, next_word):
             continue
         verb_start = match.start("verb")
-        previous_match = _PREVIOUS_WORD.search(text, max(0, verb_start - 80), verb_start)
+        previous_match = PREVIOUS_WORD.search(text, max(0, verb_start - 80), verb_start)
         previous = previous_match[1] if previous_match is not None else None
         if previous is not None and previous.lower() in DETERMINERS:
-            continue
-        first = bisect.bisect_right(line_starts, verb_start)
-        last = bisect.bisect_right(line_starts, match.start("negative"))
-        if any(number in silenced for number in range(first, last + 1)):
             continue
         phrase = _Phrase(
             verb,
@@ -425,14 +362,10 @@ def _find(text: str, path: str, *, coordinated: bool) -> list[Hit]:
             previous=previous,
             is_bound=_THAN.match(text, match.end("negative")) is not None,
         )
-        hits.append(
-            Hit(
-                path=path,
-                line=first,
-                text=" ".join(lines[number - 1].strip() for number in range(first, last + 1)),
-                suggestion=None if coordinated else _suggestion(phrase),
-            )
-        )
+        span = (verb_start, match.start("negative"))
+        hit = index.hit(path, span, None if coordinated else _suggestion(phrase))
+        if hit is not None:
+            hits.append(hit)
     return hits
 
 
@@ -494,7 +427,7 @@ def _is_a_contraction(words: list[str]) -> bool:
     first = words[0]
     if first in CONTRACTION_COMPLEMENTS:
         return True
-    family = _FAMILY_OF.get(first)
+    family = FAMILY_OF.get(first)
     is_participle = family is not None and first == family.participle
     if is_participle and family is not None and first not in (family.base, family.past):
         return True
@@ -508,7 +441,7 @@ def _words_after(text: str, end: int, count: int) -> list[str]:
     words: list[str] = []
     position = end
     while len(words) < count:
-        found = _NEXT_WORD.match(text, position)
+        found = NEXT_WORD.match(text, position)
         if found is None:
             break
         words.append(found[1].lower())
@@ -526,7 +459,7 @@ def _is_flagged(word: str) -> bool:
 
 def _contraction(word: str) -> tuple[str, str] | None:
     """``word`` split into its base and its contracted ending, if it is a contraction."""
-    for apostrophe in _APOSTROPHES:
+    for apostrophe in APOSTROPHES:
         if apostrophe in word:
             base, ending = word.split(apostrophe, 1)
             return (base, ending) if ending in CONTRACTIONS else None
@@ -553,32 +486,6 @@ def _is_not_an_object(text: str, match: re.Match[str], next_word: str | None) ->
     end = match.end("negative")
     is_answer = end < len(text) and text[end] in ANSWER_ENDINGS
     return negative.lower() == "no" and is_answer
-
-
-def _silenced_lines(lines: list[str]) -> set[int]:
-    """The 1-based numbers of the lines a marker covers.
-
-    A line carrying ``wording:ignore`` covers itself, and one carrying
-    ``wording:ignore-next-line`` covers the line after it.  A reStructuredText comment
-    that holds only the next-line marker (``.. wording:ignore-next-line``, which a blank
-    line must follow) covers the whole next paragraph: it skips the blank lines
-    after it, then covers every line through the next blank one.
-    """
-    silenced = set()
-    for index, line in enumerate(lines):
-        number = index + 1
-        if _SAME_LINE_MARKER.search(line) is not None:
-            silenced.add(number)
-        if _PARAGRAPH_MARKER.fullmatch(line) is not None:
-            following = index + 1
-            while following < len(lines) and lines[following].strip() == "":
-                following += 1
-            while following < len(lines) and lines[following].strip() != "":
-                silenced.add(following + 1)
-                following += 1
-        elif _NEXT_LINE_MARKER in line:
-            silenced.add(number + 1)
-    return silenced
 
 
 class _Phrase(NamedTuple):
@@ -627,9 +534,9 @@ def _suggestion(phrase: _Phrase) -> str | None:
     if contraction is not None:
         base, ending = contraction
         return f"{verb} {objects} -> {_like(verb, base)} {CONTRACTIONS[ending]} {positive}"
-    if form not in _FAMILY_OF:
+    if form not in FAMILY_OF:
         return None
-    family = _FAMILY_OF[form]
+    family = FAMILY_OF[form]
     if previous is not None and form == family.participle:
         lead = previous.lower()
         if lead in _UNNEGATED_BE:
@@ -817,8 +724,8 @@ def _report(hits: dict[str, list[Hit]]) -> int:
         return 0
     _out(
         f"{_plural(total, 'hit')} in {_plural(len(hits), 'file')}.  Put the negation on the "
-        "verb, as each suggestion shows, or end a line that must stay verbatim with a "
-        "wording:ignore comment.\n"
+        "verb, or rewrite a negative relative clause, as each suggestion shows, or end a "
+        "line that must stay verbatim with a wording:ignore comment.\n"
     )
     return 1
 
