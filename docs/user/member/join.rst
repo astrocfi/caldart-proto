@@ -193,8 +193,8 @@ The payment tabs
 **Card · Apple Pay · Google Pay**
   Type a card number, or tap the **Apple Pay** or **Google Pay** button above the
   card fields when your browser and device offer it. Then press the button that says
-  **Pay** and the amount. Your card details go straight to Stripe, the card
-  processor, and CalDART never sees them. With some cards, your bank asks you to
+  **Pay** and the amount. Your card details go straight to Stripe, the payment
+  service for cards, and CalDART never sees them. With some cards, your bank asks you to
   confirm the payment on its own page. You then come back to **Finishing your
   payment** while the wizard checks with Stripe.
 
