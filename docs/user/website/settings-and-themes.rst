@@ -4,8 +4,8 @@
 Settings and themes
 ===================
 
-**Settings**, then **Site settings**, in the editor's left-hand menu holds the details that
-appear on every page of the public site, and the theme that decides its colors and
+In the editor's left-hand menu, **Settings** and then **Site settings** hold the details
+that appear on every page of the public site, and the theme that sets its colors and
 typefaces. This page explains each setting and how to choose a theme.
 
 What you see
@@ -18,7 +18,7 @@ changes.
 
 * **Org name**, the organization's full name. It ends every page's title in the browser
   tab, heads the footer, and names the member portal. It also begins the subject of the
-  emails the site sends, such as receipts. It reads **CalDART** until an administrator
+  emails the site sends, such as receipts. It is **CalDART** until an administrator
   changes it here.
 * **Tagline**, shown under the logo, and used as a page's description for search engines
   when the page doesn't have one of its own.
@@ -27,7 +27,7 @@ changes.
 **Contact**
 
 * **Contact email**, shown in the footer, on the contact page, and on the members-only
-  page, and given in the emails the site sends as the address for questions.
+  page. The emails the site sends give it as the address for questions.
 * **Duty officer phone**, the number to call about a mission. It is shown at the top of
   every page, in the footer, and on the contact page, and it is the only phone number
   the site publishes.
@@ -81,7 +81,7 @@ Preview a theme first
 
 While you are signed in as a website or system administrator, add ?theme= and the
 theme's first word in lowercase to the end of any page's address, such as
-caldart.org/about/?theme=night. For the two-word names use a hyphen:
+caldart.org/about/?theme=night. For a two-word name, use a hyphen:
 ?theme=flight-deck or ?theme=monterey-night. The preview lasts only for the page you
 added it to, and it doesn't change anything for anybody else.
 
@@ -89,6 +89,6 @@ If something looks wrong
 ========================
 
 If a detail in the footer or at the top of the page is wrong, it comes from these
-settings, so correct it here and save; every page follows. If a footer link is missing,
+settings. Correct it here and save, and every page follows. If a footer link is missing,
 its setting is empty. If a theme looks wrong for one person only, they may be previewing
 another theme with ?theme= in the address.
