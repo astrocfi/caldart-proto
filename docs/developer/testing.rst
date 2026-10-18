@@ -25,8 +25,8 @@ all of which CI runs on every push to ``main`` and every pull request:
 ``make test`` runs the first two.  ``make e2e`` is separate because it needs a
 built frontend, a seeded database and a browser.
 
-``make rehearse-deploy`` is a fourth, slower check that no pull request
-waits on and CI does not run: the server installer, run for real in a
+``make rehearse-deploy`` is a fourth, slower check, which pull requests
+don't wait on and CI does not run: the server installer, run for real in a
 throwaway container (:ref:`testing-rehearsal`).
 
 ``make screenshots`` is a review aid rather than a check: it shoots every screen
@@ -560,7 +560,7 @@ its work.
 **The console is a gate.**  ``src/test/console.ts`` replaces ``console.error``
 and ``console.warn`` with capturing spies before every test and fails the test
 afterwards if it wrote a message — React's complaint about a missing ``key``, a
-library's deprecation notice, msw's report of a request nobody stubbed.  It is
+library's deprecation notice, msw's report of an unhandled request.  It is
 the frontend's counterpart to pytest's ``filterwarnings = error``.  A test whose
 subject *is* the message declares it first:
 
@@ -574,7 +574,7 @@ subject *is* the message declares it first:
    });
 
 The declaration covers the current test only, and every message it does not
-match still fails.  It runs in both directions: a declaration nothing matched
+match still fails.  It runs in both directions: an unmatched declaration
 fails the test too, so a test whose subject is the warning cannot keep passing
 once the warning stops being written.
 
@@ -668,7 +668,7 @@ The measurement covers production code only: ``src/**/*.{ts,tsx}`` minus
 ``src/portal/api/schema.d.ts``.
 
 No threshold fails the run, and CI does not gate on the number.  The report is
-there to find the module nothing exercises, not to be argued with.
+there to find the modules the tests never reach, not to be argued with.
 
 What the frontend suite covers
 ------------------------------
@@ -1286,7 +1286,7 @@ Linting and type-checking
    $ make lint-shell      # shellcheck over deploy/ and scripts/
    $ make lint-frontend   # tsc --noEmit, eslint --max-warnings 0, prettier --check
    $ make lint-spelling   # codespell over the prose, the code and the tests
-   $ make lint-wording    # a negative object or complement, which fails on any hit
+   $ make lint-wording    # a negative object, complement, or relative clause; fails on any hit
    $ make format          # fix what can be fixed automatically
 
 ``ruff`` is configured in ``pyproject.toml``: line length 100, target
@@ -1315,25 +1315,27 @@ every diagnostic it raises is a Django or DRF signature such as ``get(self,
 request, *args, **kwargs)``, where the framework dictates the parameter list.
 
 ``mypy`` type-checks ``backend`` — the application and the tests alike — and
-the three Python files kept outside it, ``frontend/e2e/prefix_proxy.py``,
-``scripts/check_wording.py``, and ``scripts/wording_words.py``, as the third
-step of ``make lint-backend``.  ``[tool.mypy]`` in ``pyproject.toml`` sets
-``strict = true``, the ``mypy_django_plugin`` and ``mypy_drf_plugin`` plugins,
-and ``caldart.settings.test`` as the settings module the Django plugin reads;
+the Python files kept outside it, ``frontend/e2e/prefix_proxy.py``,
+``scripts/check_wording.py``, and the three modules the wording check imports,
+``scripts/wording_words.py``, ``scripts/wording_text.py``, and
+``scripts/wording_relative.py``, as the third step of ``make lint-backend``.
+``[tool.mypy]`` in ``pyproject.toml`` sets ``strict = true``, the
+``mypy_django_plugin`` and ``mypy_drf_plugin`` plugins, and
+``caldart.settings.test`` as the settings module the Django plugin reads;
 migrations are excluded.  ``disallow_subclassing_any`` is off because Wagtail's
 page, block, and settings base classes don't carry types, and Wagtail, the four
-libraries it builds on (``django-modelcluster``, ``django-taggit``
-, ``django-treebeard``, and ``modelsearch``), ``django-environ``,
+libraries it builds on (``django-modelcluster``, ``django-taggit``,
+``django-treebeard``, and ``modelsearch``), ``django-environ``,
 ``django-filter``, ``django-vite``, and ``whitenoise`` are declared as untyped
 imports for the same reason.  ``factory_boy`` is followed rather than skipped,
 so that a factory's model type reaches its callers, and two settings absorb its
 stub gaps: ``untyped_calls_exclude = ["factory"]`` accepts the unannotated
 declarative API (``Faker``, ``Sequence``, ``SubFactory``, ``LazyFunction``,
 ``LazyAttribute``, ``post_generation``), and ``implicit_reexport`` accepts the
-names ``factory`` re-exports without an ``as`` alias.  As with the ruff rule sets,
-no ``[[tool.mypy.overrides]]`` entry carries ``ignore_errors = true``: mypy checks
-the whole backend clean.  Silencing one line takes ``# type: ignore[<code>]`` with
-a comment naming the stub gap behind it.
+names ``factory`` re-exports without an ``as`` alias.  As with the ruff rule
+sets, no ``[[tool.mypy.overrides]]`` entry carries ``ignore_errors = true``:
+mypy checks the whole backend clean.  Silencing one line takes
+``# type: ignore[<code>]`` with a comment naming the stub gap behind it.
 
 TypeScript runs in strict mode; ``tsc --noEmit`` is
 part of linting rather than of the build, so a type error fails ``make lint``.
@@ -1349,8 +1351,8 @@ rules below.
 file to the TypeScript program that already owns it, so a path added to
 ``tsconfig.json``'s ``include`` is type-checked by the linter without a second
 list to maintain.  The rules that information buys are the ones review keeps
-missing — ``@typescript-eslint/no-floating-promises`` (a promise nothing awaits
-or marks with the ``void`` operator), ``no-misused-promises`` (an async
+missing — ``@typescript-eslint/no-floating-promises`` (a promise that isn't awaited
+or marked with the ``void`` operator), ``no-misused-promises`` (an async
 function handed to an attribute that expects a void return),
 ``no-unsafe-assignment`` and ``no-unsafe-argument`` (an ``any`` flowing into
 typed code), ``no-unnecessary-type-assertion`` and ``require-await``.  React
@@ -1416,7 +1418,9 @@ source, and the golden files under ``backend/tests/golden/``), lock files, and
 binaries, it reports a flagged word followed by ``no``, ``nothing``, ``nobody``,
 ``none``, ``no one``, or ``nobody's`` or ``no one's`` as a determiner, and fails
 on any hit.  The word lists live beside the script in
-``scripts/wording_words.py``.  The flagged words are the verb forms in
+``scripts/wording_words.py``, and the way it reads text (the space between
+words, word boundaries, lines, and markers) in ``scripts/wording_text.py``.
+The flagged words are the verb forms in
 ``FLAGGED_VERBS``, past participles such as *given*, *sent*, and *told*
 included; the forms of *be* and the prepositions in ``FLAGGED_WORDS``, so that
 *there is* and *with* before a negative count as well; the contractions of
@@ -1447,8 +1451,8 @@ word in lower case or none, such as a quoted message (a capitalized word after
 it reads as a title, which is flagged); a negative that starts a clause of
 its own: *nothing*, *nobody*, *none*, or *no one* before a form of *be*, a
 modal, *has*, *have*, or *had* (``SUBJECT_AUXILIARIES``), or *nothing* or
-*none* before a present verb (``SUBJECT_VERBS``), such as the clause
-*nothing needs fixing*; *nobody's* meaning "nobody is" or "nobody has", which
+*none* before a present verb (``SUBJECT_VERBS``, which lets *nothing needs
+fixing* through); *nobody's* meaning "nobody is" or "nobody has", which
 is read from the words after it (a participle spelled unlike its base and its
 past, or an *-ing*, *-ed*, or base-form participle followed by a particle, a
 preposition, a pronoun, an adverb, a determiner, or nothing at all); ``no``
@@ -1468,6 +1472,74 @@ when the word is a simple present or past form, a past participle after
 of *be* (*there isn't a payment*), a contraction (*there's* becomes *there
 isn't*), or *with*.  A bound keeps its meaning: *no more than 255* becomes
 *at most 255*, and *no fewer than* or *no less than* becomes *at least*.
+
+The same check keeps a negative clause off a noun, because people don't talk
+that way: a noun followed by a clause with a negative subject (*nobody*,
+*nothing*, *none*, *no one*, or *no* with a noun) is a hit, with or without a
+*that* or a *which* between them.  Write *a future date*, *an unknown id*, *a
+signed-out caller*, *an empty DART*, or *a corporate name not used by
+anybody*, and when the sentence is still hard to follow, break it into short
+sentences that each say one thing.  A positive relative clause such as *an id
+that doesn't match a row* is fine when no plain word fits.
+
+``find_relative_clauses`` in ``scripts/wording_relative.py`` reports four
+shapes.  The reduced one is a determiner from ``RELATIVE_DETERMINERS``, at
+most one adjective, and a noun, or a plural without a determiner, or an
+indefinite pronoun such as *everything*, followed by the negative subject and
+its verb: a form of *be*, a modal, *has*, *have*, or *had*, a listed verb's
+third-person, past, or participle form (its base form too after a plural
+noun), an unlisted *-ed* word, or, after a negative pronoun or *no* and a
+singular noun, an unlisted word ending in a single *s* (*awaits*, *stands*).
+*No* may take up to three nouns before the verb (*no active plan*), and
+*else*, *ever*, and the adverbs (``RELATIVE_FILLERS``) may stand before it.
+A bare plural is passed over when it is a listed verb form, an unlisted *-ed*
+word, a word in ``NOT_BARE_NOUNS`` (an unlisted verb such as *decides*, or
+an adverb such as *sometimes*), an *-ly* adverb, a word ending in *ss* or
+*us*, or a word after a subject pronoun (*As it stands*).  The full one is a noun followed by *that*, *which*, *who*, or *whom*
+(or by a preposition and *which* or *whom*), read as the reduced one reads
+its noun, then the negative subject and its verb.  The third is a comma
+followed by *which*, *who*, or *whom*, after any word, and the negative
+subject and its verb (*Operational email,* followed by *which nobody may
+turn off*).  The last is a verb of telling (``TELLING_VERBS``: *tell*,
+*warn*, *remind*, *assure*, *promise*, *inform*, *notify*; and *explain to*,
+from ``TELLING_TO_VERBS``), a person as its object, and a negative subject
+without the *that* it needs, as in *tells the member that nothing is due*.
+The person is a pronoun from ``PERSON_PRONOUNS``, or a noun from
+``PERSON_NOUNS``, bare or after a determiner and at most one adjective.
+*Show* isn't a verb of telling, since its object is usually a thing, and
+after any verb of telling a thing as the object, or *who* or *which* after
+the object, hangs a relative clause off it (*promises a refund* and then
+*nobody can claim*), which is reported as one.  So does a negative subject
+after *show* and its object: *The list shows the members* and then *nobody
+has verified* reads *The list shows the unverified members*.
+
+These are passed over: *no longer*, *no matter*, and the rest of
+``NOT_OBJECTS``; a negative right after a comma, a colon, a semicolon, or a
+conjunction, since none of those leaves a noun right before it; a noun slot
+holding a word that opens a clause, a preposition, a form of *be* or *have*,
+a pronoun, or a verb (a past form, or a present form after an adjective, as
+in *the page says* before a negative subject); a person after a verb of
+telling, or any noun after *so* or *such*, before *that*; a noun from
+``ADVERBIAL_NOUNS`` after any determiner but *a* or *an*, which says when,
+how, or why, in a phrase that opens a sentence or a clause or follows a
+comma or a preposition (*That way nothing is lost*, *The day nothing is
+due*), while as a verb's object it takes a relative clause like any noun; a
+noun from ``CONTENT_NOUNS`` before *that*, which states the clause's content
+when the clause goes on past its verb (*the note that nothing listens on
+port 25*), while a clause that stops at its verb has left the object out
+and is a hit; a value or a quoted label; and a noun phrase led by a preposition that opens the
+text, a paragraph, a list item, or a comment, or follows a sentence's end,
+an opening quote, a word that opens a clause, a coordinating conjunction
+after a comma, or an opening bracket or a colon when the preposition is
+capitalized, which leads in to a clause of its own (*On any failure nothing
+is written*), with a two-word preposition read as one (*Thanks to the
+lock*, from ``COMPOUND_PREPOSITION_HEADS``).  A comma, a dash, or a lower-case bracket or colon before the
+preposition doesn't count, and neither does a conjunction without a comma,
+because the phrase after one as often finishes the clause before it.  A
+clause is reported once, on its first word's line, with the suggestion
+*rewrite as an adjective or 'that doesn't ...'* for a reduced one, *say it
+plainly (an adjective, or 'not <verb>ed by anybody') or in short sentences*
+for a full one, and the same words with *that* added for a verb of telling.
 
 The check doesn't catch everything; these gaps are known, and are reviewed by
 hand:
@@ -1490,6 +1562,17 @@ hand:
   a quoted message is flagged too: rewrite the sentence around the quote.
 * The literal join needs straight quotes on both sides; a JavaScript template
   literal or a typographic quote between two literals isn't joined.
+* A relative clause inside a lead-in phrase (*For a type* followed by a
+  negative subject and its verb, at the start of a sentence) is read as the
+  lead-in and passed over, and so is one whose noun carries two adjectives or
+  a possessive, or whose subject is the possessive *nobody's*.
+* A bare noun that is also a listed verb form, before *that* or a negative
+  subject (*limits* followed by *that nobody recorded*), reads as the verb,
+  and a bracket between the noun and *that* hides the noun.
+* A content noun whose clause leaves its verb's object out without stopping
+  there (*a note that* and then *nobody reads in time*) is passed over.
+* A verb of telling whose object is a name, a noun with two adjectives, or a
+  person missing from ``PERSON_NOUNS`` isn't read as telling a person.
 
 To keep a line verbatim, such as a third party's error message, end it with a
 ``wording:ignore`` comment, or put a ``wording:ignore-next-line`` comment on

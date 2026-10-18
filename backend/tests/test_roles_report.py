@@ -403,7 +403,7 @@ def test_the_pdf_heads_each_role_s_section(
     assert [text for text in strings if text in SECTION_TITLES] == SECTION_TITLES
 
 
-def test_the_pdf_says_so_under_a_role_nobody_holds(
+def test_the_pdf_says_so_under_a_vacant_role(
     account_admin_client: APIClient, pdf_text: PdfText
 ) -> None:
     """With only the account administrator signed in, the verifier's section is empty."""

@@ -93,6 +93,52 @@ Sphinx build requirements for all documentation in this repository. Docstring ru
   by a blank line, covers the whole next paragraph. The check fails on any hit and
   prints each one with its suggestion; `--path <dir>` limits it, or `--coordinated`, to
   a subtree.
+- Write the way people talk: never hang a negative clause off a noun. A noun followed by
+  a clause whose subject is "no X", "nobody", "nothing", "none", or "no one" reads as a
+  puzzle, and nobody says it aloud, with or without a "that" or a "which" between them:
+  "refuse a day no statement can have carried yet", "an id no row has", "a caller <!-- wording:ignore -->
+  nobody has signed in", "a draft nobody has touched", "a DART nobody is on", <!-- wording:ignore -->
+  "a corporate name that nobody uses", "Operational email, which nobody may turn off". <!-- wording:ignore -->
+  Say it plainly, preferring an adjective or a plain statement of what the code does,
+  read from the code itself: "refuse a future date" (the check is `is_in_the_future`),
+  "an unknown id", "a signed-out caller", "an untouched draft", "an empty DART", "a
+  corporate name not used by anybody", "Operational email, which can't be turned off".
+  When the sentence is still hard to follow, use simpler sentence construction: break it
+  into short sentences, each saying one thing ("when that document hasn't been checked
+  yet"). A positive relative clause is fine when no plain word fits ("an id that doesn't
+  match a row"), and a negative subject that starts a clause of its own is fine too ("On
+  any failure nothing is written", "the filters stay when nothing matches", "That way
+  nothing is lost", "the note that nothing listens on port 25"). Never trade one awkward
+  construction for another: a rewrite that keeps a negative puts it on the verb.
+- After a verb of telling (tell, warn, remind, assure, promise, inform, notify, or
+  "explain to") and a person, put "that" before a negative subject: "The banner tells
+  the member that nothing is due", "Tell them that nobody can sign in", in place of <!-- wording:ignore -->
+  "tells the member nothing is due" or "Tell them nobody can sign in". <!-- wording:ignore -->
+- `make lint-wording` flags both. It flags a determiner, at most one adjective, and a
+  noun, or a bare plural or an indefinite pronoun ("everything"), followed by a negative
+  subject and its verb, with the suggestion "rewrite as an adjective or 'that doesn't
+  ...'"; a noun followed by "that", "which", "who", or "whom" (or a preposition and
+  "which" or "whom"), or a comma followed by "which", "who", or "whom", then a negative
+  subject and its verb, with the suggestion "say it plainly (an adjective, or 'not
+  <verb>ed by anybody') or in short sentences"; and a verb of telling, a person as its
+  object (a pronoun, or a noun from `PERSON_NOUNS`), and a negative subject and its verb,
+  with the suggestion to add "that". After a verb of telling, a thing as the object, or
+  "who" or "which", is a relative clause like any other, and so is any clause after
+  "show", whose object is usually a thing: "The list shows the members" followed by <!-- wording:ignore -->
+  "nobody has verified" reads "The list shows the unverified members". It passes over "no longer" and "no matter"; a negative after a comma,
+  a colon, a semicolon, or a conjunction; a noun phrase led by a preposition that opens
+  its sentence, paragraph, list item, or clause; a noun that says when, how, or why
+  ("That way", "Every time", "The day") after any determiner but "a" or "an", where its
+  phrase opens a sentence or a clause or follows a preposition; a noun that states the
+  content of a "that" clause that goes on past its verb ("the note that ..."); "so" or
+  "such" before "that"; and a quoted label or a value. Its known gaps, which
+  `docs/developer/testing.rst` lists too, are a relative clause inside a
+  sentence-opening lead-in ("For a type" followed by a negative subject); a noun with two
+  adjectives or a possessive; a "nobody's" subject; a bare noun that is also a verb form
+  before "that" ("limits" followed by "that nobody recorded"), or a bracket between the
+  noun and "that"; a content noun whose clause leaves its verb's object out without
+  stopping there; a person missing from `PERSON_NOUNS`; and a verb of telling whose
+  object is a name or has two adjectives. Read those by hand.
 - Define each CalDART-specific term on first use, such as DART. Don't define
   standard aviation terms (N-number, BasicMed, medical classes, flight review):
   the readers are pilots and DART volunteers.

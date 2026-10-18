@@ -249,7 +249,7 @@ the session's.  A reader's reach is the set of restricted docnames they may not
 open.  Both
 trims are cached in memory per file, modification time, and reach, so readers
 with the same reach share one copy, and a rebuilt guide is trimmed afresh; a
-system administrator, from whom nothing is hidden, is served every file as
+system administrator, who may open every page, is served every file as
 built.  A page and the index carry an ``ETag`` made of the file's modification
 time and a digest of the reach, beside the ``Last-Modified`` every file
 carries, so a reader whose roles change is sent the file again instead of a

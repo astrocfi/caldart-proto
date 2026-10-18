@@ -321,8 +321,8 @@ def set_hidden(bulk: BulkEmail, *, hidden: bool, actor: User) -> BulkEmail:
 
     Nothing else about the email changes: its copies, counts, and history stay as they
     are, and CalDART management still sees it on the Sent page.  Raises ``DomainError``
-    with :data:`NOT_STARTED_MESSAGE` for an email that has never started sending, which
-    nobody has received.  One ``bulk_email.hide`` audit line names ``actor`` and the
+    with :data:`NOT_STARTED_MESSAGE` for an email that has never started sending, since
+    nobody has received it.  One ``bulk_email.hide`` audit line names ``actor`` and the
     choice, written only when it changes.
     """
     with transaction.atomic():

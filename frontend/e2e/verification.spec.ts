@@ -66,7 +66,7 @@ async function signedInName(page: Page): Promise<string> {
 
 /**
  * A registration whose insurance is current, whose airplane is in service, and whose
- * insurance nobody has verified, read from the register as the signed-in member.
+ * insurance is unverified, read from the register as the signed-in member.
  */
 async function unverifiedAirplane(page: Page): Promise<string> {
   const response = await page.request.get('api/v1/aircraft?insurance=current&page_size=200');

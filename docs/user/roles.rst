@@ -71,7 +71,7 @@ adds the **Operations** group:
 * **Member check** (:doc:`admin/member-check`): look up a member, read their
   verdict, and press **Verify** to correct and verify their pilot certificate,
   medical, and photo ID in one save. It also downloads the CalDART verification
-  report of everything nobody has verified yet.
+  report of everything not yet verified.
 * **Aircraft check** (:doc:`admin/aircraft-check`): look up an airplane and press
   **Verify** to correct and verify its insurance.
 

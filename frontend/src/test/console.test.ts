@@ -38,7 +38,7 @@ describe('assertConsoleClean', () => {
     expect(() => assertConsoleClean()).toThrow(/declared 1 console message\(s\) nothing wrote/);
   });
 
-  it('names the declaration nothing matched', () => {
+  it('names the unmatched declaration', () => {
     installConsoleGuard();
     expectConsoleMessage(/a warning that stopped/);
 

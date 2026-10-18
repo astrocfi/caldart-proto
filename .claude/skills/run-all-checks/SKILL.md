@@ -11,7 +11,7 @@ Execute all project checks (lint, tests, Django and build checks, docs, dependen
 
 The Makefile is the **single source of truth** for which checks this repo runs (see the `environment` rule). The set of checks MUST be consistent across this skill (the AI), CI (`.github/workflows/ci.yml`, which calls the same make targets), and the Makefile — and the Makefile is authoritative.
 
-- Run the checks the make targets actually run, and **only** those. Do not run out-of-band tools (mypy, PyMarkdown, a coverage gate) that no target enables.
+- Run the checks the make targets actually run, and **only** those. Do not run out-of-band tools (mypy, PyMarkdown, a coverage gate) unless a target runs them.
 - Treat the commands in this skill as a description of the targets. When the Makefile and this skill disagree, follow the Makefile (`make help` lists every target).
 - If you believe a check should be added or removed, change it in the Makefile first (and keep CI in step with it in the same change), rather than running an out-of-band check from the skill.
 

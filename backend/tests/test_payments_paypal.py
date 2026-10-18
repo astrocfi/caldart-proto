@@ -129,7 +129,7 @@ def capture_payload(
 # --------------------------------------------------------------------------
 # live HTTP guard
 # --------------------------------------------------------------------------
-def test_a_call_no_route_matches_never_reaches_paypal() -> None:
+def test_an_unmatched_call_never_reaches_paypal() -> None:
     """A test that forgets to mock a route fails outright instead of calling PayPal."""
     with pytest.raises(AllMockedAssertionError, match="not mocked"):
         paypal_api.access_token()

@@ -356,7 +356,7 @@ class MemberProfile(TimestampedModel):
     #: When profile information was last written: a member's own edit, an
     #: administrator's edit to the profile or to the account's name or email,
     #: an aircraft attached or detached, or the profile's creation.  ``NULL``
-    #: until one of those happens, so a seeded profile nobody has touched
+    #: until one of those happens, so an untouched seeded profile
     #: answers ``NULL``.  Set only by ``apps.members.services.touch_profile``;
     #: never by a payment, a membership grant or renewal, a reminder, or a
     #: role change.

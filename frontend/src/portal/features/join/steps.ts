@@ -101,8 +101,8 @@ function owesFirstDues(user: User): boolean {
 /**
  * How far the visitor has got, from the server's view of them.
  *
- * No session at all means they still need an account; an address nobody has
- * verified yet means they still have to click the link we mailed; a session
+ * No session at all means they still need an account; an unverified
+ * address means they still have to click the link we mailed; a session
  * without a usable profile means the profile step; a member who still owes their
  * first dues is at the pay step however often they leave and come back.  Everybody
  * else (`isOnboarded`) has joined.  A friend doesn't owe anything, so the wizard offers a

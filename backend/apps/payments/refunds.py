@@ -85,7 +85,7 @@ def payments_url() -> str:
 def remaining_cents(payment: Payment) -> int:
     """What is still refundable on ``payment``: its amount less its succeeded refunds.
 
-    A payment nobody has refunded answers its whole ``amount_cents``, and one
+    An unrefunded payment answers its whole ``amount_cents``, and one
     that has been given back in full answers ``0``.  Pending and failed refunds
     don't count, so a refund the provider refused does not lock money away.
     This is the figure a screen shows; :func:`issue_refund` holds itself to the
@@ -354,8 +354,8 @@ def _ask_the_provider(payment: Payment, refund: Refund) -> ProviderRefund:
 
     A payment recorded by hand is answered without calling anything: the money
     goes back the way it came, by check or in cash, and no provider is involved.
-    Anything the provider raises -- its own ``PaymentError``, or a fault nobody
-    foresaw -- marks ``refund`` failed and travels on to the caller, so no path
+    Anything the provider raises -- its own ``PaymentError``, or an unexpected
+    fault -- marks ``refund`` failed and travels on to the caller, so no path
     leaves a row stranded ``pending``.  A provider that could not be reached may
     still have given the money back, so its error is raised again with
     :data:`CHECK_DASHBOARD_MESSAGE` after it.

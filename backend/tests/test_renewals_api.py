@@ -154,7 +154,7 @@ def test_setup_refuses_a_lifetime_plan_with_a_400(
 def test_setup_refuses_a_plan_that_is_not_on_offer(
     member_client: APIClient, annual_plan: MembershipPlan
 ) -> None:
-    """A slug no active plan carries is refused, naming ``plan``."""
+    """An unknown plan slug is refused, naming ``plan``."""
     response = member_client.post(SETUP, setup_body(plan="platinum"))
     assert response.json()["plan"] == "Unknown membership plan 'platinum'."
 
@@ -238,7 +238,7 @@ def test_a_patch_without_a_plan_leaves_the_plan_alone(
     assert RenewalMandate.objects.get(user=member).plan_id == annual_plan.pk
 
 
-def test_a_plan_nobody_offers_is_refused(
+def test_a_plan_outside_the_catalog_is_refused(
     member_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
     """A slug outside the catalog is a 400 keyed by ``plan``."""

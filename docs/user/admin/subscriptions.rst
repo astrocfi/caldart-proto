@@ -109,11 +109,11 @@ it.
 Press **Add emailed report**, or **Cancel** or Escape. *Report added.* confirms a save. An
 address that belongs to a CalDART account is refused when that account doesn't hold a role
 that may read the report, with *does not hold a role that may read this report* under the
-address: the treasurer cannot be sent the membership report, whose
-medical and certificate details are not theirs to read. An address no account holds is
-refused until you check **This address is outside CalDART and may receive this report**, which
-appears once CalDART asks for it. A filter the report cannot use is named, with the reason,
-under the filters.
+address: the treasurer cannot be sent the membership report, whose medical and certificate
+details are not theirs to read. An address that doesn't belong to an account is refused until
+you check **This address is outside CalDART and may receive this report**, which appears once
+CalDART asks for it. A filter the report cannot use is named, with the reason, under the
+filters.
 
 
 Changing one

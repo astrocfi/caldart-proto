@@ -30,7 +30,7 @@ describe('VerifiedMark', () => {
     expect(container).toHaveTextContent(/^Not verified$/);
   });
 
-  it('draws a check nobody has made yet in amber, not the alarm red', () => {
+  it('draws a pending check in amber, not the alarm red', () => {
     render(<VerifiedMark verification={UNVERIFIED} />);
     expect(screen.getByText('Not verified').closest('[data-tone]')).toHaveAttribute(
       'data-tone',
@@ -51,7 +51,7 @@ describe('VerifiedMark', () => {
     expect(container).toHaveTextContent(/^Expired\s*Verified by Dana Leader on 05\/01\/2026$/);
   });
 
-  it('says Expired beside a lapsed date nobody verified', () => {
+  it('says Expired beside an unverified lapsed date', () => {
     const { container } = render(<VerifiedMark verification={UNVERIFIED} expired />);
     expect(container).toHaveTextContent(/^Expired\s*Not verified$/);
   });

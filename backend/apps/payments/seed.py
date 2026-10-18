@@ -203,7 +203,7 @@ STRIPE_WALLETS: tuple[tuple[str, int], ...] = (
 #: What each provider charges, as the rate in ten-thousandths and the fixed part
 #: in cents: Stripe 2.9% + 30 cents, PayPal 3.49% + 49 cents.  PayPal's rate
 #: needs the finer granularity: 3.49% is not a whole number of thousandths.  A
-#: provider nobody lists here doesn't take anything, which is what a payment
+#: provider missing from this table doesn't take anything, which is what a payment
 #: recorded by hand costs.
 PROVIDER_FEES: dict[str, tuple[int, int]] = {
     PaymentProvider.STRIPE: (290, 30),

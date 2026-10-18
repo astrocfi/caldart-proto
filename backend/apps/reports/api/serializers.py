@@ -24,7 +24,8 @@ NO_COLUMNS_MESSAGE = "Choose at least one column."
 #: What a subscription for an account that may not read its report is refused with.
 NOT_PERMITTED_MESSAGE = "{name} does not hold a role that may read this report."
 
-#: What a subscription to an address no account holds is refused with until confirmed.
+#: What a subscription to an address without an account is refused with until it is
+#: confirmed.
 CONFIRM_MESSAGE = "Check the box to confirm this address may receive this report."
 
 #: What a ``columns`` entry among a subscription's filters is refused with.

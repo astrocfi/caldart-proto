@@ -475,7 +475,7 @@ How it works
    The report counts as one bounce of that row's recipient, whatever address its
    ``Final-Recipient`` names.  A report without such an address is *unmatched*, one
    count per failure, and doesn't change anything: one sent to the bare ``BOUNCE_ADDRESS``,
-   one whose signature is wrong, one naming an id no row has or one the database
+   one whose signature is wrong, one naming an unknown id or one the database
    has since given another message, and one about an older send.  Neither the returned original's
    ``Message-ID`` nor the ``Final-Recipient`` address ever matches a report to a
    row, since anybody can copy either into a forged one.

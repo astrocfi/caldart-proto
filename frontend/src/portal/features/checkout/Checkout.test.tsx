@@ -683,7 +683,7 @@ describe('Checkout · PayPal', () => {
     );
   });
 
-  it('reports an SDK failure that no checkout call caused', async () => {
+  it('reports an error the PayPal SDK raises on its own', async () => {
     const user = userEvent.setup();
     serveConfig(payPalConfig);
     serveCheckout({ order_id: 'ORDER-9' });
@@ -726,7 +726,7 @@ describe('Checkout · PayPal', () => {
 
 /**
  * A client that keeps a cached query alive without an observer, so the state of
- * a query nothing is watching can still be read after the payment.
+ * an inactive query can still be read after the payment.
  */
 function makeRetainingQueryClient(): QueryClient {
   return new QueryClient({

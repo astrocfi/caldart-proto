@@ -838,7 +838,7 @@ name (``Contra Costa``), so the column holds the name as a person reads it.
 
 ``Aircraft.category`` and ``AircraftType.category``: what kind of aircraft an
 airframe is, as the FAA registry classes it (:doc:`aircraft-registry`).  Both
-columns may be blank, for a category nobody has recorded.
+columns may be blank when the category isn't recorded.
 
 .. list-table::
    :header-rows: 1
@@ -925,8 +925,8 @@ blank.
 ------------------------------------------------
 
 ``Registration.registrant_type``: who holds an FAA registration, mapped from the
-registry's registrant type code.  ``unknown`` stands for a code the registry
-uses that none of the others covers.
+registry's registrant type code.  ``unknown`` stands for any other code the
+registry uses.
 
 .. list-table::
    :header-rows: 1
@@ -1610,7 +1610,7 @@ and ``PermissionsMixin`` classes it builds on.
    * - ``is_demo``
      - ``BooleanField``
      - not null; default ``False``
-     - true for a demo account ``seed_demo`` writes, which no role requires to use two-factor sign-in while ``DEMO_ACCOUNTS_SKIP_TWO_FACTOR`` is on (:ref:`configuration-demo-two-factor`); only the seed sets it, and ``create_admin`` taking the account back, a new password (changed or set from a reset link), and a completed change of address clear it; no endpoint or admin form writes it
+     - true for a demo account ``seed_demo`` writes; while ``DEMO_ACCOUNTS_SKIP_TWO_FACTOR`` is on, such an account signs in without two-factor whatever its roles (:ref:`configuration-demo-two-factor`); only the seed sets it, and ``create_admin`` taking the account back, a new password (changed or set from a reset link), and a completed change of address clear it; no endpoint or admin form writes it
    * - ``groups``
      - ``ManyToManyField`` to ``auth.Group``
      - not null; empty by default
@@ -1618,7 +1618,7 @@ and ``PermissionsMixin`` classes it builds on.
    * - ``user_permissions``
      - ``ManyToManyField`` to ``auth.Permission``
      - not null; empty by default
-     - inherited from ``PermissionsMixin``: per-user Django permissions, which nothing in CalDART grants; related name ``user_set``
+     - inherited from ``PermissionsMixin``: per-user Django permissions, which CalDART never grants; related name ``user_set``
 
 **Constraints, indexes, and ordering.**
 
@@ -2493,7 +2493,7 @@ on ``GET /admin/members/{id}``.
 ``profile_updated_at`` is when profile information was last written: a member's
 own edit, an administrator's edit to the profile or to the account's name or
 email, an aircraft attached or detached, or the profile's creation.  It stays
-``NULL`` until one of those happens, so a seeded profile nobody has touched
+``NULL`` until one of those happens, so an untouched seeded profile
 answers ``NULL``, and it never moves for a payment, a membership grant or
 renewal, a reminder, or a role change.  ``apps.members.services.touch_profile``
 is its only writer.
@@ -2834,7 +2834,7 @@ The translation, term by term:
 ``coverage_end``
     ``_coverage`` walks forward from the covering term.  In SQL that walk is
     replaced by its endpoint: **the earliest active term ending on or after
-    today that no other active term continues**.  A *follower* is an active
+    today and not continued by any other active term**.  A *follower* is an active
     term for the same user starting no later than ``ends_on + 1 day`` and
     reaching further (``ends_on IS NULL`` or ``ends_on > ends_on``).
 
@@ -3126,7 +3126,7 @@ row is ever updated.
    * - ``changed_by``
      - ``ForeignKey`` to ``accounts.User``, ``SET_NULL``
      - null; default ``NULL``
-     - who wrote it; null for a change no signed-in account made; related name ``aircraft_changes``
+     - who wrote it; null when no signed-in account made the change; related name ``aircraft_changes``
    * - ``changed_at``
      - ``DateTimeField``
      - not null; set on insert
@@ -4354,7 +4354,7 @@ system said to whom, which is what ``GET /system/emails`` reads
    * - ``to_name``
      - ``CharField(200)``
      - not null; default ``""``
-     - the recipient's name as it was at send time; blank for a bare address nobody named
+     - the recipient's name as it was at send time; blank for an unnamed bare address
    * - ``user``
      - ``ForeignKey`` to ``accounts.User``, ``SET_NULL``
      - null; default ``NULL``

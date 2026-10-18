@@ -285,8 +285,8 @@ def send_templated(
             mailer.send_messages([message])
     except Exception as exc:
         # Every failure is recorded before it travels on, whatever it is: the log
-        # exists to answer "did this member hear from us?", and a refusal nobody
-        # wrote down is exactly the case that leaves that unanswerable.
+        # exists to answer "did this member hear from us?", and an unrecorded
+        # refusal is exactly the case that leaves that unanswerable.
         _record(
             to=to,
             subject=subject,

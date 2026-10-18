@@ -61,7 +61,7 @@ def report_name(spec: Report) -> str:
 def report_or_404(slug: str) -> Report:
     """The report registered under ``slug``.
 
-    A slug no report carries raises ``Http404`` reading ``No report named '<slug>'.``.
+    An unknown slug raises ``Http404`` reading ``No report named '<slug>'.``.
     """
     if slug not in REPORTS:
         raise Http404(f"No report named '{slug}'.")

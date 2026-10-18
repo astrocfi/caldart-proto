@@ -361,7 +361,7 @@ describe('AutoRenewalCard', () => {
     );
   });
 
-  it('shows an amount no tier matches in the box that can edit it', async () => {
+  it("shows an amount that doesn't match a tier in the box that can edit it", async () => {
     const user = userEvent.setup();
     mount(makeMandate({ contribution_cents: 7500 }));
 

@@ -265,7 +265,7 @@ def test_two_spf_records_fail(dns_zone: Zone) -> None:
     ids=["bad-ip", "ipv6-in-ip4", "unknown-term", "include-without-domain", "ipv4-in-ip6"],
 )
 def test_a_malformed_spf_record_fails(dns_zone: Zone, record: str) -> None:
-    """A term no receiver can read is a failure, whatever else the record says."""
+    """An unreadable term is a failure, whatever else the record says."""
     dns_zone[("example.org", "TXT")] = [record]
 
     result = finding(run(), SPF_NAME)
@@ -558,7 +558,7 @@ def test_a_lookup_that_times_out_fails_the_line_in_plain_words(
     assert "Timeout" not in result.detail
 
 
-def test_a_lookup_no_name_server_can_answer_points_at_the_domains_dns(dns_zone: Zone) -> None:
+def test_an_unanswerable_lookup_points_at_the_domains_dns(dns_zone: Zone) -> None:
     """``NoNameservers`` is a problem with the domain's DNS; the fix says who to ask."""
     no_servers = dns.resolver.NoNameservers()  # type: ignore[no-untyped-call]  # dnspython
     dns_zone[("_dmarc.example.org", "TXT")] = no_servers

@@ -69,7 +69,7 @@ GUIDE_PRIVATE_FILES = frozenset({GUIDE_ROLES, GUIDE_SIGNED_OUT, "objects.inv"})
 #: needs and which doesn't name a page.
 GUIDE_STATIC_DIR = "_static"
 
-#: The pages Sphinx writes that no source file makes, so no build lists them among its
+#: The pages Sphinx writes without a source file, so no build lists them among its
 #: docnames: the search page and the general index.  Neither is served signed out.
 GUIDE_GENERATED_PAGES = frozenset({"genindex", SEARCH_DOCNAME})
 
@@ -300,7 +300,7 @@ def _guide_content(target: Path, relative: Path, modified: int, hidden: frozense
     """The body of the guide file ``target`` for a reader who may not open ``hidden``.
 
     A page or the search index is trimmed when anything is hidden; every other file,
-    and every file for a reader from whom nothing is hidden, is the file itself.
+    and every file for a reader who may open every page, is the file itself.
     Raises ``Http404`` for a search index that cannot be trimmed, after logging it.
     """
     if len(hidden) == 0:
@@ -326,8 +326,8 @@ def _guide_file(root: Path, path: str) -> Path:
     """Resolve ``path`` inside ``root``, answering 404 for anything that leaves it.
 
     ``..`` segments, absolute paths and a symlink pointing outside the root all
-    resolve to somewhere else and are refused; a NUL byte, which no file name
-    may carry, is refused the same way.
+    resolve to somewhere else and are refused; a NUL byte, which a file name can't
+    carry, is refused the same way.
     """
     try:
         target = (root / path).resolve()

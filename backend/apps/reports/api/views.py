@@ -66,7 +66,7 @@ if TYPE_CHECKING:
 def readable_report(request: Request, slug: str) -> Report:
     """The report ``slug`` names, when the caller may read it.
 
-    Raises ``Http404`` for a slug no report carries, whoever asks, and DRF's
+    Raises ``Http404`` for an unknown slug, whoever asks, and DRF's
     ``PermissionDenied`` for a caller the report's roles do not admit.
     """
     spec = report_or_404(slug)

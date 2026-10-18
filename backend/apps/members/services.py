@@ -24,8 +24,8 @@ The translation, term by term:
 ``coverage_end``
     ``_coverage`` walks forward from the covering term through terms that start
     no later than the day after the previous one ends.  The end of that walk is
-    the earliest *boundary*: an active term ending on or after today that no
-    other active term continues.  Anything ending earlier inside the chain has
+    the earliest *boundary*: an active term ending on or after today and not
+    continued by any other active term.  Anything ending earlier inside the chain has
     a follower by definition, and anything in a later chain ends after the gap,
     so "earliest boundary" and "end of the walk" are the same date.  NULL means
     the chain reaches a lifetime term (or that nothing covers today).
@@ -1130,9 +1130,8 @@ def cancel_term(term: Membership, *, actor: User | None = None, note: str = "") 
     older text that is trimmed, from its front, when the two together exceed
     ``MAX_TERM_NOTE`` characters, and a note that fills the field on its own
     replaces what was there.  ``actor`` is the administrator behind the
-    cancellation, and is recorded in the audit log; a cancellation nobody
-    initiated, such as one a provider's webhook caused, is recorded under
-    ``command``.
+    cancellation, and is recorded in the audit log; a cancellation without one,
+    such as the demo seed's, is recorded under ``command``.
 
     Canceling a term that is already canceled changes only the note.
     """

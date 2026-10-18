@@ -376,7 +376,7 @@ def _paid_with(receipt: ReceiptData) -> str:
 def _letterhead(org: OrgDetails) -> list[Flowable]:
     """The organization's name, address, EIN and contact address, then a gap.
 
-    A field nobody has filled in doesn't draw a line at all, so an unconfigured site
+    A blank field doesn't draw a line at all, so an unconfigured site
     still yields a tidy page.
     """
     story: list[Flowable] = [Paragraph(escape_markup(org.name), TITLE_STYLE)]

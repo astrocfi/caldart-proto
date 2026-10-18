@@ -582,7 +582,7 @@ def test_a_treasurer_downloads_any_members_statement(
 
 
 def test_a_statement_for_an_unknown_member_is_a_404(treasurer_client: APIClient) -> None:
-    """An id nobody holds answers 404 rather than an empty statement."""
+    """An unknown member id answers 404 rather than an empty statement."""
     url = "/api/v1/admin/payments/ledger/9999/statements/2026.pdf"
 
     assert treasurer_client.get(url).status_code == 404

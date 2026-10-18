@@ -238,7 +238,7 @@ rate is a **429**.
 
 ``AUTH_THROTTLE_DONATE``
    ``POST /donations/checkout``, which starts a gift on the public donation page
-   and may make a donor account for a caller nobody has signed in.  Reading the
+   and may make a donor account for a signed-out caller.  Reading the
    form's config and finishing a payment are not counted.
 
    :Development: ``10/hour``
@@ -970,8 +970,8 @@ Content-Security-Policy
 Every response carries an enforced ``Content-Security-Policy`` header — not
 ``Content-Security-Policy-Report-Only``, so a browser refuses a resource the
 policy does not name.  django-csp builds it from the
-``CONTENT_SECURITY_POLICY`` setting in ``backend/caldart/settings/base.py``,
-which no environment variable touches: widening the policy means editing that
+``CONTENT_SECURITY_POLICY`` setting in ``backend/caldart/settings/base.py``.
+An environment variable can't change it: widening the policy means editing that
 dictionary and shipping the change.
 
 Each vendor's entries are copied from that vendor's own published policy

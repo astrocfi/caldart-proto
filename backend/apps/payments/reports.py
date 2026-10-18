@@ -580,7 +580,7 @@ class PaymentReportQuerySerializer(serializers.Serializer[dict[str, Any]]):
         """The validated parameters as the narrowing the report functions take.
 
         Call it after ``is_valid``.  The summary reads its period from
-        ``validated_data["group"]``, which no filter uses.
+        ``validated_data["group"]``; the filters don't use it.
         """
         data = self.validated_data
         return PaymentFilters(

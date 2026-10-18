@@ -128,7 +128,7 @@ describe('PaymentDetailPage', () => {
     expect(within(table).getByText("The provider's dashboard")).toBeInTheDocument();
   });
 
-  it('says in one quiet line that nothing has been refunded, and where refunds are listed', async () => {
+  it('says that nothing has been refunded in one quiet line, and where refunds are listed', async () => {
     servePayment();
     renderDetail();
 
@@ -388,7 +388,7 @@ describe('PaymentDetailPage', () => {
     expect(term.nextElementSibling).toHaveTextContent(/^—$/);
   });
 
-  it('says a payment nobody automated was paid by the member', async () => {
+  it('reads No, paid by the member for a payment that was not automatic', async () => {
     servePayment();
     renderDetail();
 

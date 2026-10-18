@@ -99,7 +99,7 @@ def test_each_row_counts_the_members_on_that_dart(account_admin_client: APIClien
     assert row["member_count"] == 2
 
 
-def test_a_dart_nobody_is_on_counts_zero(account_admin_client: APIClient) -> None:
+def test_an_empty_dart_counts_zero(account_admin_client: APIClient) -> None:
     """``member_count`` is zero for a DART without any profiles on it."""
     DartFactory(name="Angwin")
     assert account_admin_client.get(LIST_URL).json()[0]["member_count"] == 0
@@ -277,7 +277,7 @@ def test_retiring_a_dart_keeps_it_and_its_members(account_admin_client: APIClien
 # --------------------------------------------------------------------------
 # Deleting
 # --------------------------------------------------------------------------
-def test_deleting_a_dart_nobody_is_on_removes_it(account_admin_client: APIClient) -> None:
+def test_deleting_an_empty_dart_removes_it(account_admin_client: APIClient) -> None:
     """A DART without members or pages is deleted outright."""
     dart = DartFactory(name="Angwin")
     assert account_admin_client.delete(detail_url(dart)).status_code == 204

@@ -139,8 +139,8 @@ filters            same way: :doc:`api-members` for ``members``,
                    ``GET /admin/renewals``), and :doc:`api-system` for
                    ``emails``.  A value the list refuses is
                    refused here with the same **400**, keyed by the parameter.
-                   The verification report, which no list backs, reads its
-                   own ``status`` and ``dart``
+                   The verification report doesn't have a list behind it,
+                   so it reads its own ``status`` and ``dart``
                    (:ref:`reports-verification`).
 ``ordering``       The list's own ordering, with the list's own rules: the
                    payments report refuses an unknown field as the payment list
@@ -322,7 +322,7 @@ Refusals:
 * **400** ``{"recipient_email": ["<name> does not hold a role that may read
   this report."]}`` for an account that may not read it, confirmed or not;
 * **400** ``{"confirmed": ["Check the box to confirm this address may receive
-  this report."]}`` for an address no account holds, until it is confirmed;
+  this report."]}`` for an address without an account, until it is confirmed;
 * **400** ``{"report": ["\"<slug>\" is not a valid choice."]}`` for an unknown
   report, and likewise for ``formats`` and ``cadence``; ``weekday`` outside 0
   to 6 is refused under ``weekday``;

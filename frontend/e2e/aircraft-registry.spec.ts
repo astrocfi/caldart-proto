@@ -74,13 +74,13 @@ function screenDate(iso: string): string {
   return `${month}/${date}/${day.getFullYear()}`;
 }
 
-/** A registration nobody has used: never in the fixture, whose N-numbers never end in ZQ. */
+/** An unused registration: never in the fixture, whose N-numbers never end in ZQ. */
 function unusedNNumber(): string {
   return `N${1 + Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 100)}ZQ`;
 }
 
 /**
- * A model no fixture type holds: `Zq` and five random letters, written as the register
+ * A model outside every fixture type: `Zq` and five random letters, written as the register
  * prints a word of letters longer than three.  It doesn't carry any digits, because a query
  * holding digits also finds every type whose model contains them.
  */

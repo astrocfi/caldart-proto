@@ -547,7 +547,7 @@ so resending it is the retry.
 
 A receipt exists only for money that arrived.  A pending or failed payment doesn't
 have one, and every endpoint below answers **404** for one, exactly as it does for
-an id nobody holds.
+an unknown id.
 
 Every active account that gave — a member, a friend, or a donor — is mailed
 the previous calendar year's statement each January, unasked, by
@@ -681,7 +681,7 @@ Some payment methods settle after the charge, and until they do there isn't a
 fee to record: the payment keeps ``fee_cents`` and ``net_cents`` at zero, and
 Stripe's ``charge.updated`` webhook fills them in when the balance transaction
 appears.  A payment whose ``net_cents`` is zero against a non-zero amount is
-one whose fee nobody has reported yet.
+one whose fee the provider hasn't reported yet.
 
 
 Webhooks

@@ -6,7 +6,7 @@
  *
  * `make e2e` sets `BULK_EMAIL_UNDO_SECONDS=0`, so a send is ready for the sender's
  * next run at once.  The two filter sets choose the holders of two roles, which the
- * seed gives to one demo account each, and whose inboxes no other spec reads.
+ * seed gives to one demo account each, and whose inboxes only this spec reads.
  */
 import { readFile } from 'node:fs/promises';
 
@@ -15,7 +15,7 @@ import type { Page } from '@playwright/test';
 
 import { DEMO, latestEmailTo, signIn } from './helpers';
 
-/** A subject no other run of this spec has used. */
+/** A subject unique to this run of the spec. */
 function freshSubject(what: string): string {
   return `${what} ${Date.now().toString(36)}`;
 }

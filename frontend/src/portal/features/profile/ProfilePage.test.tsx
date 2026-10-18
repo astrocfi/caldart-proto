@@ -434,7 +434,7 @@ describe('<ProfilePage/> inline complaints', () => {
     );
   });
 
-  it('reads Not yet verified for an item nobody has checked', async () => {
+  it('reads Not yet verified for an unchecked item', async () => {
     server.use(
       http.get(`${API}/me/profile`, () =>
         HttpResponse.json(makeVerifiedProfile({ verification: NONE_VERIFIED })),

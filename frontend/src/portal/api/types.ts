@@ -1794,7 +1794,7 @@ export interface SendableEmailType {
 /**
  * One type a person may turn off, and whether they have, from `GET
  * /me/email-preferences` or `GET /admin/members/{id}/email-preferences`.
- * `email_type` is the type's id. Types nobody may turn off are not listed. For a type
+ * `email_type` is the type's id. A type that can't be turned off isn't listed. For a type
  * turned off, `opted_out_source` says where and `opted_out_at` when; `''` and null for
  * a type left on.
  */
@@ -1933,7 +1933,7 @@ export interface JobStatus {
   state: JobState;
   /** The job's latest run, whoever started it. */
   last_run: JobRun | null;
-  /** The trigger no run followed, for `overdue` and `never_run`. */
+  /** The trigger the job missed, for `overdue` and `never_run`. */
   missed_at: IsoDateTime | null;
 }
 

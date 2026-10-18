@@ -3,7 +3,7 @@
 Login, registration, password-reset, and email-verification requests are where a
 caller can burn server time, guess at a token, or spray an inbox, every endpoint that
 takes a two-factor code is a place to guess one, and a gift on the public donation
-page writes an account and a payment for a caller nobody signed in, so each gets its
+page writes an account and a payment for a signed-out caller, so each gets its
 own scope.  Every scope counts by client address, signed in or not.
 
 Rates come from the ``AUTH_THROTTLE_RATES`` setting rather than DRF's
@@ -98,7 +98,7 @@ class DonateThrottle(AuthScopedThrottle):
     """Throttles ``POST /donations/checkout`` under the ``donate`` rate.
 
     Each gift on the public donation page can make a donor account and a pending
-    payment for a caller nobody has signed in, so the start of one is counted by
+    payment for a signed-out caller, so the start of one is counted by
     client address like the auth endpoints.
     """
 
@@ -109,7 +109,7 @@ class DonateConfirmThrottle(AuthScopedThrottle):
     """Throttles the public Stripe confirm and PayPal capture under ``donate_confirm``.
 
     ``POST /donations/stripe/confirm`` and ``/donations/paypal/capture`` each ask the
-    provider about a gift for a caller nobody has signed in, so they are counted by
+    provider about a gift from a signed-out caller, so they are counted by
     client address under one budget.
     """
 

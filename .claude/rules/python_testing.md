@@ -91,7 +91,7 @@ pytest is configured under `[tool.pytest.ini_options]`; do not add separate `pyt
     - `settings` (pytest-django) to override Django settings for one test — it
       auto-reverts after the test.
     - `capsys` (or `capfd`) to capture and assert on stdout/stderr.
-- If a test must mutate global or class state that no fixture manages, restore
+- If a test must mutate global or class state and no fixture manages it, restore
   the original value in a fixture teardown or a `try`/`finally` so it cannot
   leak into other tests.
 

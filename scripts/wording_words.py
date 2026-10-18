@@ -30,6 +30,7 @@ FLAGGED_VERBS = (
     "apply applies applied applied applying", "approve approves approved approved approving",
     "ask asks asked asked asking", "assert asserts asserted asserted asserting",
     "assign assigns assigned assigned assigning", "assume assumes assumed assumed assuming",
+    "assure assures assured assured assuring",
     "attach attaches attached attached attaching", "award awards awarded awarded awarding",
     "bear bears bore borne bearing", "become becomes became become becoming",
     "bill bills billed billed billing", "bind binds bound bound binding",
@@ -69,11 +70,14 @@ FLAGGED_VERBS = (
     "edit edits edited edited editing", "email emails emailed emailed emailing",
     "emit emits emitted emitted emitting", "enable enables enabled enabled enabling",
     "encode encodes encoded encoded encoding", "end ends ended ended ending",
-    "enforce enforces enforced enforced enforcing", "enter enters entered entered entering",
+    "enforce enforces enforced enforced enforcing",
+    "ensure ensures ensured ensured ensuring", "enter enters entered entered entering",
     "exclude excludes excluded excluded excluding", "execute executes executed executed executing",
     "exempt exempts exempted exempted exempting", "exist exists existed existed existing",
     "expand expands expanded expanded expanding", "expect expects expected expected expecting",
-    "expire expires expired expired expiring", "export exports exported exported exporting",
+    "expire expires expired expired expiring",
+    "explain explains explained explained explaining",
+    "export exports exported exported exporting",
     "expose exposes exposed exposed exposing", "extend extends extended extended extending",
     "fail fails failed failed failing", "fetch fetches fetched fetched fetching",
     "file files filed filed filing", "fill fills filled filled filling",
@@ -82,11 +86,14 @@ FLAGGED_VERBS = (
     "fit fits fitted fitted fitting", "flag flags flagged flagged flagging",
     "flip flips flipped flipped flipping", "fly flies flew flown flying",
     "follow follows followed followed following",
+    "foresee foresees foresaw foreseen foreseeing",
     "forward forwards forwarded forwarded forwarding",
     "gather gathers gathered gathered gathering",
     "generate generates generated generated generating", "get gets got gotten getting",
     "give gives gave given giving", "go goes went gone going",
-    "grant grants granted granted granting", "handle handles handled handled handling",
+    "grant grants granted granted granting",
+    "guarantee guarantees guaranteed guaranteed guaranteeing",
+    "handle handles handled handled handling",
     "have has had had having", "hear hears heard heard hearing",
     "help helps helped helped helping", "hide hides hid hidden hiding", "hit hits hit hit hitting",
     "hold holds held held holding", "host hosts hosted hosted hosting",
@@ -94,7 +101,8 @@ FLAGGED_VERBS = (
     "ignore ignores ignored ignored ignoring", "imply implies implied implied implying",
     "import imports imported imported importing", "impose imposes imposed imposed imposing",
     "include includes included included including", "incur incurs incurred incurred incurring",
-    "infer infers inferred inferred inferring", "inherit inherits inherited inherited inheriting",
+    "infer infers inferred inferred inferring",
+    "inform informs informed informed informing", "inherit inherits inherited inherited inheriting",
     "inject injects injected injected injecting",
     "install installs installed installed installing", "invite invites invited invited inviting",
     "involve involves involved involved involving", "issue issues issued issued issuing",
@@ -114,6 +122,7 @@ FLAGGED_VERBS = (
     "modify modifies modified modified modifying", "mount mounts mounted mounted mounting",
     "move moves moved moved moving", "name names named named naming",
     "narrow narrows narrowed narrowed narrowing", "need needs needed needed needing",
+    "note notes noted noted noting",
     "notify notifies notified notified notifying", "obtain obtains obtained obtained obtaining",
     "occupy occupies occupied occupied occupying", "offer offers offered offered offering",
     "omit omits omitted omitted omitting", "open opens opened opened opening",
@@ -211,13 +220,18 @@ FLAGGED_VERBS = (
 #: The modals, which always wait for a verb.
 MODALS = "can could may might must shall should will would"
 
+#: The conjunctions, relative words, and adverbs, which introduce a negative subject.
+CLAUSE_OPENERS = (
+    "after alone although and because before but deliberately else here if nor once only",
+    "or otherwise possibly simply since so that then there though until when where",
+    "whereas whether which while who whom why yet",
+)
+
 ALLOWED_WORDS = (
     # Modals.
     MODALS,
     # Conjunctions, relative words, and adverbs, which introduce a negative subject.
-    "after alone although and because before but deliberately else here if nor once only",
-    "or otherwise possibly simply since so that then there though until when where",
-    "whereas whether which while who whom why yet",
+    *CLAUSE_OPENERS,
     # Comparison with zero.
     "than",
     # Pronouns, articles, and the rest.
@@ -236,7 +250,7 @@ BE_FORMS = "am are be been being is was were"
 
 #: The prepositions, flagged before a negative object.
 PREPOSITIONS = (
-    "about against as at by during for from in into like of on onto over per plus",
+    "about against as at by during for from in into like of on onto over past per plus",
     "through to toward towards under upon via with within without",
 )
 
@@ -270,10 +284,82 @@ ADVERBS = (
     "really", "simply", "still", "then", "virtually",
 )
 
-#: A word before the verb form that makes it a noun: "a change nobody made".
+#: A word before the verb form that makes it a noun: the "change" in "a change".
 DETERMINERS = frozenset((
     "a", "an", "any", "each", "every", "her", "his", "its", "my", "our", "some", "the",
     "their", "whose", "your",
+))
+
+#: The words that open a noun phrase a negative relative clause can hang from: the
+#: determiners, the demonstratives, and ``one``.
+RELATIVE_DETERMINERS = DETERMINERS | frozenset(("one", "that", "these", "this", "those"))
+
+#: The words read past between a negative subject and its verb in a relative clause:
+#: ``else`` and ``ever`` ("nobody else", "no reader ever"), and the adverbs.
+RELATIVE_FILLERS = frozenset(("else", "ever", *ADVERBS))
+
+#: The verbs of telling, by base form: before a person, a negative subject needs a
+#: "that" ("tells the member that nothing is due").  Each has a family in
+#: ``FLAGGED_VERBS``.  "show" isn't one: its object is usually a thing, and "The list
+#: shows the members" followed by "nobody has verified" is a relative clause ("The list
+#: shows the unverified members").
+TELLING_VERBS = ("assure", "inform", "notify", "promise", "remind", "tell", "warn")
+
+#: The verbs that tell a person through "to", by base form: "explain to the member that
+#: nothing is due".  Each has a family in ``FLAGGED_VERBS``.
+TELLING_TO_VERBS = ("explain",)
+
+#: The nouns for a person, the object a verb of telling takes before its "that".  After
+#: a verb of telling, any other noun is a thing, and a negative subject after it hangs a
+#: relative clause off it ("promises a refund" followed by "nobody can claim").
+PERSON_NOUNS = frozenset((
+    "administrator", "administrators", "admin", "admins", "applicant", "applicants",
+    "caller", "callers", "coordinator", "coordinators", "customer", "customers", "donor",
+    "donors", "friend", "friends", "leader", "leaders", "manager", "managers", "member",
+    "members", "operator", "operators", "owner", "owners", "people", "person", "pilot",
+    "pilots", "reader", "readers", "recipient", "recipients", "sender", "senders", "staff",
+    "subscriber", "subscribers", "team", "teams", "treasurer", "treasurers", "user",
+    "users", "verifier", "verifiers", "viewer", "viewers", "volunteer", "volunteers",
+))
+
+#: The pronouns that name a person as a verb's object: "Tell them that nobody can sign
+#: in".  ``it`` names a thing.
+PERSON_PRONOUNS = ("her", "him", "me", "them", "us", "you")
+
+#: The subject pronouns, after which a word ending in ``s`` is a verb, not a plural: "As
+#: it stands nothing is sent".
+SUBJECT_PRONOUNS = frozenset(("he", "i", "it", "she", "they", "we", "you"))
+
+#: The first word of a two-word preposition ("Thanks to", "Due to"), which leads in to a
+#: clause where the preposition alone would: "Thanks to the lock nothing runs twice".
+COMPOUND_PREPOSITION_HEADS = frozenset((
+    "according", "ahead", "apart", "because", "contrary", "due", "instead", "owing",
+    "prior", "regardless", "thanks",
+))
+
+#: Nouns that say when, how, or why, and so take a clause of their own without a
+#: relative word: "That way nothing is lost", "The day nothing is due".
+ADVERBIAL_NOUNS = frozenset((
+    "day", "days", "hour", "minute", "moment", "month", "morning", "night", "place",
+    "point", "reason", "time", "times", "way", "week", "year",
+))
+
+#: Nouns that take a "that" clause stating their content, which is not a relative
+#: clause: "the note that nothing listens on port 25", "confirmation that nothing more
+#: is charged".
+CONTENT_NOUNS = frozenset((
+    "assurance", "confirmation", "evidence", "fact", "guarantee", "hint", "idea", "news",
+    "note", "notice", "possibility", "promise", "proof", "reminder", "sign", "warning",
+))
+
+#: Words before "that" or before a negative that are neither nouns nor listed verbs:
+#: unlisted verbs that take a "that" clause, the words that join one ("except that",
+#: "now that"), and adverbs ending in ``s``, which could pass for a bare plural.
+NOT_BARE_NOUNS = frozenset((
+    "afterwards", "agree", "agrees", "always", "believe", "believes", "besides",
+    "decide", "decides", "except", "hence", "insist", "insists",
+    "nevertheless", "now", "perhaps", "provided", "realize", "realizes", "regardless",
+    "sometimes", "such", "think", "thinks", "thus", "unless",
 ))
 
 #: A word after ``no`` that makes it an adverb rather than an object: "no longer", "no

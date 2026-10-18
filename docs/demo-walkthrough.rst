@@ -254,7 +254,7 @@ airplane for us today?" in one screen.*
      verified.
    - **Aircraft** — a row per airplane attached to the profile, each with its
      own insurance state, limits, and expiry, and *not verified* beside any
-     policy nobody has checked.
+     unchecked policy.
 
    The verdict is membership, medical, and verification.  Insurance is shown
    per airplane rather than folded into the verdict, because which airplane
@@ -284,11 +284,11 @@ airplane for us today?" in one screen.*
    registration, e.g. ``N206KM``, and tap the result.  You get the airplane's
    insurance card and a list of the members who fly it, each with their own
    membership and medical currency.  The verdict is **INSURED** for a current
-   policy somebody has verified, **NOT VERIFIED** for a current one nobody
-   has, and **NOT INSURED** without a current policy; the seed leaves about three
-   in ten airplanes unverified, ``N206KM`` among them.  Press **Verify**, check
-   **Insurance verified**, and save to turn **NOT VERIFIED** into
-   **INSURED**.
+   policy somebody has verified, **NOT VERIFIED** for a current one still
+   awaiting verification, and **NOT INSURED** without a current policy; the
+   seed leaves about three in ten airplanes unverified, ``N206KM`` among them.
+   Press **Verify**, check **Insurance verified**, and save to turn
+   **NOT VERIFIED** into **INSURED**.
 
 **What success looks like.**  The subject of the card is in the query string,
 so a card can be reloaded, backed out of, or sent to another leader as a link.
@@ -404,7 +404,7 @@ roles; press *Send password reset* and watch the email arrive in Mailpit.  See
 **Notification emails** — sign in as ``accountadmin@example.org`` and open
 ``/portal/admin/notifications``.  The seed has already subscribed this
 administrator to every Membership and Accounts event and the treasurer to every
-Money event.  Press **New subscription**, type an address no account holds,
+Money event.  Press **New subscription**, type an address without an account,
 check **Sign-up** and **Friend became a member**, and save.  The server asks you
 to confirm the outside address: check the box and save again.  Then, in a
 private window, join as a friend through ``/portal/join`` and pick a DART on

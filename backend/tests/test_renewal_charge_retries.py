@@ -51,7 +51,7 @@ pytestmark = pytest.mark.django_db
 
 SECRET_KEY = "sk_test_retries"  # noqa: S105 - test fixture
 
-#: Minutes after which a claim nobody finished is taken to have died, in these tests.
+#: Minutes after which an unfinished claim is taken to have died, in these tests.
 STALE_MINUTES = 60
 
 #: What Stripe says about a card it refused.

@@ -36,7 +36,7 @@ export const ROSTERS_KEY = ['reports', 'rosters'] as const;
 /** A report's parameters: a value, a list of values such as the columns, or `undefined`. */
 export type ReportParams = Readonly<Record<string, string | readonly string[] | undefined>>;
 
-/** The list page's own parameter, which no report takes: a report carries every row. */
+/** The list page's own parameter. A report doesn't take it: a report carries every row. */
 const PAGE_PARAM = 'page';
 
 /**
@@ -99,8 +99,8 @@ export function useSubscriptions(): UseQueryResult<ReportSubscription[]> {
  * Sets up a subscription via `POST /reports/subscriptions`.
  *
  * A refusal is an `ApiError` whose body is keyed by field: `recipient_email`
- * for an account that may not read the report, `confirmed` for an address no
- * account holds, and `filters` holding the report's own errors by filter.
+ * for an account that may not read the report, `confirmed` for an address without
+ * an account, and `filters` holding the report's own errors by filter.
  */
 export function useCreateSubscription(): UseMutationResult<
   ReportSubscription,

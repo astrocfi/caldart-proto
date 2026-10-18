@@ -90,14 +90,14 @@ each, are kept on :doc:`email-types`.
 Then write the **Subject**, one line, and the **Message**. Your work is automatically saved: a
 quiet note under the message reads *Saving…* and then *Saved*.
 
-**Replies go to** is where a reader's reply goes. Every copy comes from the site's own address,
-which nobody reads, so without it a reply wouldn't reach anybody. Left empty, replies go to the
-address your organization chose for replies, or to your own address; the hint under the box
-names which. Type any address that should get the replies instead, such as a DART leader's
-or a shared operations mailbox; empty the box to go back to the one the hint names. The
-address saves when you leave the field or press Enter, and *Address for replies saved.* says so. An
-address that is not one, such as *ops@*, reads *Enter a valid email address.*, and the one
-saved before stays until you fix it.
+**Replies go to** is where a reader's reply goes. Every copy comes from the site's own address.
+Nobody reads that mailbox, so without a reply-to address a reply wouldn't reach anybody. Left
+empty, replies go to the address your organization chose for replies, or to your own address;
+the hint under the box names which. Type any address that should get the replies instead, such
+as a DART leader's or a shared operations mailbox; empty the box to go back to the one the hint
+names. The address saves when you leave the field or press Enter, and *Address for replies
+saved.* says so. An address that is not one, such as *ops@*, reads *Enter a valid email
+address.*, and the one saved before stays until you fix it.
 
 The buttons over the message format it: **Bold**, **Italic**, **Heading**, **Bulleted list**,
 and **Numbered list**. A button stays pressed while the words at the cursor have its style;
@@ -130,12 +130,11 @@ Braces a link's web address needs are written *%7B* and *%7D*, as the message sa
 styled in part is refused too: put it in again with **Insert field**.
 
 Each copy comes from the site's own address, with replies going to the **Replies go to**
-address. Under the message it carries a short footer
-with your organization's name and the contact address when one is set. For a type people may
-turn off, the footer says *You receive Mission email from CalDART because you have not turned
-it off. To stop it, unsubscribe here:* with a link for that person, and their mail program
-can offer its own **Unsubscribe** button. For a type nobody may turn off, it says why they
-receive it instead.
+address. Under the message it carries a short footer with your organization's name and the
+contact address when one is set. For a type people may turn off, the footer says *You receive
+Mission email from CalDART because you have not turned it off. To stop it, unsubscribe here:*
+with a link for that person, and their mail program can offer its own **Unsubscribe** button.
+For a type people can't turn off, it says why they receive it instead.
 
 **Send me a test**, at the bottom of the card, sends the email to you alone, so you can see it
 in your own mail program as the people on the recipient list will: the same layout, pictures, links,

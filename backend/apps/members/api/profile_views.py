@@ -123,8 +123,8 @@ class MyProfileAircraftView(APIView):
     def post(self, request: Request) -> Response:
         """200 with the caller's aircraft list once ``aircraft_id`` is attached.
 
-        A body without an integer ``aircraft_id`` is a 400, and an id no
-        aircraft has is a 404.  Attaching an aircraft already attached doesn't
+        A body without an integer ``aircraft_id`` is a 400, and an unknown
+        aircraft id is a 404.  Attaching an aircraft already attached doesn't
         change anything and still answers 200.  The profile's ``profile_updated_at``
         is stamped either way.
         """
@@ -151,7 +151,7 @@ class MyProfileAircraftDetailView(APIView):
     def delete(self, request: Request, aircraft_id: int) -> Response:
         """204 once the aircraft is off the caller's profile.
 
-        An id no aircraft has is a 404; one the caller never attached is still a
+        An unknown aircraft id is a 404; one the caller never attached is still a
         204, and the aircraft record itself is left alone either way.  The
         profile's ``profile_updated_at`` is stamped either way too.
         """

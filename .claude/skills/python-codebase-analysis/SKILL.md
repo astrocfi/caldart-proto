@@ -21,7 +21,7 @@ Produce a structured analysis and recommendations report. Do not implement chang
 - App boundaries: each Django app under `backend/apps/<app>/` owns its models, `api/`, `admin.py`, `seed.py`, and management commands; project-level code lives in `backend/caldart/`. Look for circular imports between apps and code that sits in the wrong app.
 - File and module size: modules > ~500–1000 lines; single-file "god" modules (e.g. one views module serving every endpoint of an app).
 - Naming: consistent with language norms (e.g. Python: lowercase_with_underscores, TitleCase for classes).
-- Dead or orphaned code: unused modules, commented-out blocks, unreachable branches, endpoints nothing calls.
+- Dead or orphaned code: unused modules, commented-out blocks, unreachable branches, endpoints that are never called.
 - Duplication: copy-paste, similar logic that could be shared (DRY).
 
 **Evidence**: Paths, line counts, import graphs if available.
@@ -97,7 +97,7 @@ Compare against project rules (`.claude/rules/python.md`). Check:
 
 - Declared deps: single source of truth (`pyproject.toml` with `uv.lock`; `frontend/package.json` with its lock file); dev tooling in the `dev` dependency group (see `dependency_management`).
 - Version policy: minimum versions in `pyproject.toml`, exact pins only in lock files.
-- Tooling: consistent formatter and linter; CI (`.github/workflows/ci.yml`) calls the same make targets the Makefile defines (see `environment`). Note any CI step that runs a command no target defines, or a target CI skips.
+- Tooling: consistent formatter and linter; CI (`.github/workflows/ci.yml`) calls the same make targets the Makefile defines (see `environment`). Note any CI step that runs a command outside the make targets, or a target CI skips.
 - Configuration consistency: tool configs in `pyproject.toml` (ruff, pytest) are consistent with each other and with project rules. No stale config sections for tools no longer used (e.g. `[tool.black]` or `[tool.isort]` when ruff handles both). Ruff's `line-length` and `target-version` agree with `requires-python`, `.python-version`, the Prettier `printWidth`, and the rules.
 
 **Evidence**: `pyproject.toml`, `Makefile`, `.github/workflows/ci.yml`. Grep for stale `[tool.*]` sections.

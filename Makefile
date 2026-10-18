@@ -643,14 +643,14 @@ rehearse-deploy: ## Rehearse the server install in a throwaway systemd container
 lint: lint-backend lint-shell lint-frontend lint-spelling lint-wording ## ruff + mypy + shellcheck + tsc + eslint + prettier + contrast + codespell + wording
 
 # The wording check is Python kept under scripts/, so mypy checks it beside the backend.
-# Its word lists sit beside it in scripts/wording_words.py.
+# Its word lists, the way it reads text, and its relative-clause check sit beside it.
 WORDING_CHECK := scripts/check_wording.py
-WORDING_WORDS := scripts/wording_words.py
+WORDING_MODULES := scripts/wording_words.py scripts/wording_text.py scripts/wording_relative.py
 
 lint-backend: ## ruff check + ruff format --check + mypy
 	$(UV) run ruff check .
 	$(UV) run ruff format --check .
-	$(UV) run mypy backend $(E2E_PROXY) $(WORDING_CHECK) $(WORDING_WORDS)
+	$(UV) run mypy backend $(E2E_PROXY) $(WORDING_CHECK) $(WORDING_MODULES)
 
 # Every shell script: the server installer under deploy/ and the developer
 # conveniences under scripts/.  shellcheck comes from the shellcheck-py wheel in
@@ -668,8 +668,9 @@ lint-spelling: ## codespell over docs, prose and code
 	  frontend/e2e frontend/scripts scripts .github deploy .claude
 
 # The prose rule that puts a negation on the verb, never on its object or complement,
-# over the tree lint-spelling scans.  Any hit fails, printed with a suggested rewrite.
-lint-wording: ## a negative object or complement (scripts/check_wording.py)
+# and never hangs a negative clause off a noun, over the tree lint-spelling scans.  Any
+# hit fails, printed with a suggested rewrite.
+lint-wording: ## a negative object, complement, or relative clause (scripts/check_wording.py)
 	$(UV) run python $(WORDING_CHECK)
 
 lint-frontend: ## tsc --noEmit + eslint + prettier --check

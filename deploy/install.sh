@@ -180,8 +180,8 @@ apply_record_flags() {
     done
 }
 
-# Stop with a usage error naming the flag a first run is missing, or a value
-# no step can use.
+# Stop with a usage error naming the flag a first run is missing, or an invalid
+# value.
 validate() {
     [[ -n "$CALDART_HOSTNAME" ]] || usage_error "--hostname is required on the first run"
     validate_hostname "$CALDART_HOSTNAME"

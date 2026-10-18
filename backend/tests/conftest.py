@@ -283,7 +283,7 @@ def pytest_runtest_setup(item: pytest.Item) -> None:
 #
 # The payment providers are the only code that talks to a third party, so the
 # payment test modules are the only ones that can leave the machine.  Arming a
-# respx router around each of their tests turns a call no route matches into an
+# respx router around each of their tests turns an unmatched call into an
 # ``AllMockedAssertionError`` instead of a request: a test that forgets a mock
 # fails loudly rather than depending on the network.
 # --------------------------------------------------------------------------

@@ -1,5 +1,5 @@
-/* A read-only chip in a list or on the Sent detail: the editor's chip, which nothing
- * opens, kept whole on one line. */
+/* A read-only chip in a list or on the Sent detail: the editor's chip, but not clickable,
+ * kept whole on one line. */
 .field-chip {
   cursor: default;
   white-space: nowrap;

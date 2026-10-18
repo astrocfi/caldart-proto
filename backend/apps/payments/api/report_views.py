@@ -437,8 +437,8 @@ def search_members(term: str) -> list[User]:
 
     The term is matched against the full name as well as each half of it, so a
     treasurer holding a check made out to "Marta Reyes" can type what is written
-    on it.  An empty term doesn't match anybody: the search is a form control, and a
-    form nobody has typed in asks for an empty list rather than for all the members.  A
+    on it.  An empty term doesn't match anybody: the search is a form control, and an
+    untouched form asks for an empty list rather than for all the members.  A
     deactivated account, a deleted member's tombstone included, is never offered: money
     recorded against it wouldn't buy anything or reach anybody.
     """

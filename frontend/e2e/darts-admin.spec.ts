@@ -17,7 +17,7 @@ const DELETABLE = 'San Carlos';
 /** That team's own page on the public site, which outlives the team. */
 const DELETABLE_PAGE = 'about/darts/sql/';
 
-/** A seeded DART no other spec edits, whose people this file adds to. */
+/** A seeded DART only this spec edits, whose people this file adds to. */
 const GROWING = 'Watsonville';
 
 /** The Roster cell of `dart`'s row in the DARTs table. */

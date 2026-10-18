@@ -6,7 +6,7 @@
  *
  * `make e2e` sets `BULK_EMAIL_UNDO_SECONDS=0`, so a send is ready for the sender's next
  * run at once.  The two people are the demo verifier and the demo user administrator,
- * found by address, whose inboxes no other spec reads.
+ * found by address, whose inboxes only this spec reads.
  */
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';

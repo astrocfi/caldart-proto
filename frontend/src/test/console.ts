@@ -8,7 +8,7 @@
  * `expectConsoleMessage(/…/)` before the code that writes it.
  *
  * The declaration is a two-way contract: an undeclared message fails the test,
- * and so does a declaration nothing matched, so a test whose subject is the
+ * and so does an unmatched declaration, so a test whose subject is the
  * warning cannot quietly keep passing once the warning stops being written.
  */
 import { vi } from 'vitest';
@@ -54,7 +54,7 @@ export function installConsoleGuard(): void {
  * one it never wrote.
  *
  * The thrown error names every undeclared message, one per line, prefixed with
- * the method that wrote it, and every declared pattern nothing matched.  Either
+ * the method that wrote it, and every unmatched declared pattern.  Either
  * way the guard's state is reset, so the next test starts from a clean slate.
  */
 export function assertConsoleClean(): void {

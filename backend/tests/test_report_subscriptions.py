@@ -194,7 +194,7 @@ def test_a_recipient_who_may_not_read_the_report_is_refused(
 def test_a_bare_address_is_refused_until_it_is_confirmed(
     account_admin_client: APIClient,
 ) -> None:
-    """An address no account holds needs ``confirmed``, keyed so the form can ask."""
+    """An address without an account needs ``confirmed``, keyed so the form can ask."""
     response = account_admin_client.post(
         SUBSCRIPTIONS_URL,
         new_subscription(recipient_email="board@example.org"),

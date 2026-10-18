@@ -407,7 +407,7 @@ def _record_limit(locked: BulkEmail) -> DartLimit | None:
     """``locked``'s DART limit, recorded as its ``dart``; ``None`` without a limit.
 
     Raises ``DomainError`` with ``OWNER_NO_DART_MESSAGE`` for an email whose limit
-    doesn't name a DART, to which nobody may be added.
+    doesn't name a DART, because then nobody may be added.
     """
     limit = dart_limit(locked)
     if limit is None:
@@ -769,7 +769,7 @@ def _value_label(key: str, value: str) -> str:
 def _dart_label(value: str) -> str:
     """A ``dart`` filter in words: each DART of a list of ids by name, else as given.
 
-    Ids are named in the order given, and an id no DART has any more stays a number.
+    Ids are named in the order given, and the id of a deleted DART stays a number.
     """
     ids = [piece.strip() for piece in value.split(",") if piece.strip()]
     if len(ids) == 0 or not all(piece.isdigit() for piece in ids):

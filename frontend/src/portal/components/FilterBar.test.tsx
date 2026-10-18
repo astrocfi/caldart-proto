@@ -7,7 +7,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { FilterField, FilterValues, Option } from '@/portal/reports/types';
 import { FilterBar } from './FilterBar';
 
-/** A change nobody needs to see. */
+/** A change handler that ignores the change. */
 const handleNothing = (): void => {};
 
 const FIELDS: FilterField[] = [

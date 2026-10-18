@@ -1,7 +1,8 @@
 /**
  * The **Reply-To** field of the compose screen's **What it says** card: the
  * address a reader's reply goes to. Every bulk email comes from the site's own
- * address, which nobody reads, so without this a reply doesn't reach anyone.
+ * address. Nobody reads that mailbox, so without a reply-to address a reply
+ * doesn't reach anyone.
  *
  * Empty, it stands for the sender's default address, which the hint names; nothing
  * is written in the box itself, so it never looks filled in. It saves itself on its

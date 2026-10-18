@@ -63,7 +63,7 @@ describe('<AircraftEditor/>', () => {
     expect(await screen.findByRole('button', { name: 'Save changes' })).toBeInTheDocument();
   });
 
-  it('shows liability limits that nobody recorded as blank boxes, not as 0', async () => {
+  it('shows unrecorded liability limits as blank boxes, not as 0', async () => {
     renderEditor(
       makeDetail({
         insurance_liability_per_occurrence_cents: 0,

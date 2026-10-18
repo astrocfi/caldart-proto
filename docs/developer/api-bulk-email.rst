@@ -219,7 +219,7 @@ before it starts: **400** keyed ``closes_at``, worded as **Send** words it.
 
 ``email_type`` is the id of a type the caller may send (``GET
 /email-types/sendable``); any other is **400** *You cannot send <type> email. Choose
-another type.*, and an id no type carries is DRF's *Invalid pk* message.  A mission
+another type.*, and an unknown id is DRF's *Invalid pk* message.  A mission
 callout takes the Mission type only: another is **400** ``{"email_type": ["A mission
 callout goes as the Mission type."]}``.  Choosing
 a type changes who the batch skips, since everybody who has turned it off is.

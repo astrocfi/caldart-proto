@@ -82,8 +82,8 @@ class JobStatusSerializer(serializers.Serializer[Any]):
     """One scheduled job, judged from its latest run and its schedule.
 
     ``state`` is one of ``ok``, ``running``, ``waiting`` (nothing due yet), ``failed``,
-    ``stopped``, ``overdue``, and ``never_run``; ``missed_at`` is the trigger no run
-    followed, for ``overdue`` and ``never_run``, and null otherwise.  ``last_run`` is the
+    ``stopped``, ``overdue``, and ``never_run``; ``missed_at`` is the trigger the job
+    missed, for ``overdue`` and ``never_run``, and null otherwise.  ``last_run`` is the
     job's latest run, whoever started it, or null.
     """
 

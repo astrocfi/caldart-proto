@@ -230,7 +230,7 @@ def begin_mandate(
 
     Whatever setup the replaced mandate left open at its provider is closed first
     (:meth:`~apps.payments.providers.base.Provider.abandon_setup`), under the provider
-    it was begun with, so a Stripe SetupIntent nobody will confirm never takes a card.
+    it was begun with, so an abandoned Stripe SetupIntent never takes a card.
 
     Raises ``DomainValidationError`` keyed by :data:`AUTO_RENEW_FIELD` for
     anything :func:`check_renewable` refuses, and doesn't write anything when anything
@@ -349,8 +349,8 @@ def cancel_mandate(
 
     ``actor`` is the member themselves or the administrator who turned it off,
     and is recorded as ``canceled_by`` and in the audit record's
-    ``self_service`` flag; it is ``None`` for a cancellation nobody signed for.
-    Every scheduled attempt still waiting is marked ``skipped``, so the next scan
+    ``self_service`` flag; it is ``None`` when the system cancels on its own.  Every
+    scheduled attempt still waiting is marked ``skipped``, so the next scan
     doesn't charge anything.  An attempt whose charge was already sent to the provider,
     and whose outcome was never learned, is left for the scan to settle: it records a
     charge the provider took and doesn't charge anything new.  Writes one
@@ -433,8 +433,8 @@ def discard_pending_mandate(user: User) -> None:
     never been announced to anybody, so a checkout that declines automatic renewal
     deletes it outright rather than canceling it: there isn't a standing authority to
     withdraw or anything to tell the member.  Each one's open setup at its provider is
-    closed first (:meth:`~apps.payments.providers.base.Provider.abandon_setup`), so a
-    Stripe SetupIntent nobody will confirm never takes a card.  A mandate in any other
+    closed first (:meth:`~apps.payments.providers.base.Provider.abandon_setup`), so an
+    abandoned Stripe SetupIntent never takes a card.  A mandate in any other
     state is left alone.
 
     A pending mandate that was an active one until a new setup reset it may still

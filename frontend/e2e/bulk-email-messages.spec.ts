@@ -5,7 +5,7 @@
  *
  * `make e2e` sets `BULK_EMAIL_UNDO_SECONDS=0`, so a send is ready for the sender's next
  * run at once.  The batch is the holder of the website administrator role, whom the seed
- * gives one demo account and whose inbox no other spec reads.
+ * gives one demo account and whose inbox only this spec reads.
  */
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';

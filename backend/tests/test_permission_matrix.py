@@ -1,4 +1,4 @@
-"""Endpoint x role combinations no other test module covers.
+"""Endpoint x role combinations not covered by any other test module.
 
 Every case here pins down behavior that already exists: anonymous access to
 the signed-in endpoints, ``system_admin`` writes on the members-admin API, three

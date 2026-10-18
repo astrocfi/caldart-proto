@@ -53,7 +53,7 @@ _GUIDE_ORIGIN = "https://guide.invalid/"
 #: The navigation a page carries: the sidebar and every table of contents.
 _TREES = ".sidebar-tree, .toctree-wrapper"
 
-#: The search page Sphinx writes, which no source file makes.
+#: The search page, which Sphinx writes itself rather than from a source file.
 SEARCH_DOCNAME = "search"
 
 #: The search box in a page's sidebar, which submits to the search page.

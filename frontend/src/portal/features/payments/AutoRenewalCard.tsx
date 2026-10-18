@@ -115,8 +115,8 @@ export function MandateCard({ scope }: MandateCardProps): JSX.Element {
           Checking your {title.toLowerCase()} settings…
         </p>
       ) : query.error ? (
-        // Saying "Off" here would be a statement about the member's money that
-        // nothing has established, so the card says only that it does not know.
+        // Saying "Off" here would be an unfounded claim about the member's money, so
+        // the card says only that it does not know.
         <EmptyState
           title={`Your ${title.toLowerCase()} settings could not be read`}
           description={`We cannot tell you whether CalDART charges you for a ${title.toLowerCase()}. Try again, or contact CalDART if it keeps happening.`}

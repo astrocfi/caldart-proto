@@ -153,7 +153,7 @@ def generated_summaries(openapi_schema: dict[str, Any]) -> dict[str, ComponentSu
 
 
 def squawk_summaries() -> dict[str, ComponentSummary]:
-    """A two-component fixture no serializer produces, for the comparison's own tests.
+    """A made-up two-component fixture, for the comparison's own tests.
 
     ``Squawk`` carries a code, a description and a reference to ``Squawker``, which
     carries a name.  Nothing in the project generates either, so a test built on them

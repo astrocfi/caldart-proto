@@ -240,7 +240,7 @@ def set_opt_out(
 
 
 def _check(fields: EmailTypeFields, *, exclude: EmailType | None) -> None:
-    """Refuse a name another type holds, or a sender role no type may name.
+    """Refuse a name another type holds, or a role that can't send bulk email.
 
     ``exclude`` is the type being edited, which may keep its own name.  Raises
     ``DomainValidationError`` on ``name`` with :data:`NAME_NEEDS_LETTERS` or

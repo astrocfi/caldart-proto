@@ -199,7 +199,7 @@ def test_a_draft_can_be_duplicated_too(management: User) -> None:
 
 
 def test_duplicating_an_unknown_email_is_not_found(management_client: APIClient) -> None:
-    """An email nobody has is a 404."""
+    """An unknown email is a 404."""
     assert management_client.post("/api/v1/bulk-email/9999/duplicate", {}).status_code == 404
 
 

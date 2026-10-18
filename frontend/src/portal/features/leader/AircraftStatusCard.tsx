@@ -50,7 +50,7 @@ const VERDICT: Record<StatusTone, Verdict> = {
   none: { word: 'NOT INSURED', why: 'No policy on file', mark: 'Not insured', go: false },
 };
 
-/** A current policy nobody has checked against the documents: not yet a go. */
+/** A current policy that hasn't been checked against the documents: not yet a go. */
 const NOT_VERIFIED: Verdict = {
   word: 'NOT VERIFIED',
   why: 'Coverage is current but not verified',
@@ -66,7 +66,7 @@ type InsuranceFacts = Pick<
 
 /**
  * The aircraft check's verdict: INSURED for a current, verified policy (one about
- * to expire included), NOT VERIFIED for a current one nobody has verified, and NOT
+ * to expire included), NOT VERIFIED for an unverified current one, and NOT
  * INSURED when there isn't a current policy.  The results list and the card read the same answer.
  */
 export function insuranceVerdict(aircraft: InsuranceFacts, today?: Date): Verdict {
@@ -106,8 +106,8 @@ export interface InsuranceCheckDotProps {
 }
 
 /**
- * An airplane's insurance as the aircraft check reads it, in one mark: a current policy
- * nobody has verified reads *Not verified* in amber, and anything else reads as the
+ * An airplane's insurance as the aircraft check reads it, in one mark: an unverified current
+ * policy reads *Not verified* in amber, and anything else reads as the
  * insurance dot does.  Both checks draw this, the aircraft check on its insurance line and
  * the member check on its aircraft rows, so they give the same airplane the same answer.
  */

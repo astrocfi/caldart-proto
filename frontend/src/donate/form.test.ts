@@ -51,7 +51,7 @@ describe('validateDonation', () => {
 });
 
 describe('donorBody', () => {
-  it('leaves out a phone number nobody typed', () => {
+  it('leaves out a blank phone number', () => {
     expect(donorBody({ ...FILLED, phone: '' })).not.toHaveProperty('phone');
   });
 

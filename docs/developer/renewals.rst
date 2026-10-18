@@ -247,8 +247,8 @@ A default charge falls on the term's ``ends_on``, which that term still covers, 
 a member is never charged for the coming year while a whole year of coverage
 remains.  A decline is retried after the term has run out -- the next day, three
 days later, and a week after that -- and the term a late charge buys starts on the
-day the money arrives, not on the old expiry, so the days nobody was covered stay
-visible in the record.  When all three retries are refused the mandate is paused,
+day the money arrives, not on the old expiry, so the days the member wasn't covered
+stay visible in the record.  When all three retries are refused the mandate is paused,
 the member is told automatic renewal is off, and the reminders take over.
 
 .. _renewals-scanner:
@@ -332,7 +332,7 @@ things in order.
    one email, so ``mark_succeeded`` doesn't send a plain receipt for a payment a
    renewal attempt owns.  A charge taken after the member has already
    expired starts its term on the day the money arrives, never back-dated to the
-   old expiry, so the days nobody was covered stay visible in the record.
+   old expiry, so the days the member wasn't covered stay visible in the record.
 
    On a decline the payment is marked failed, the provider's reason is stored on
    the attempt, the failure count rises, and ``renewal_failed`` goes out naming
@@ -348,8 +348,8 @@ things in order.
    ``scheduled`` for the next scan, and the run counts it as ``provider_down``.
    No retry rung is spent, no email goes out, and the mandate stays ``active``.
    A provider that could not be reached may have charged before its answer was
-   lost, so the pending payment stays on the attempt; only a payment no provider
-   was ever asked about (one not configured or switched off, on the payment's
+   lost, so the pending payment stays on the attempt; only a payment never sent to a
+   provider (one not configured or switched off, on the payment's
    first try) is deleted.
 
    A charge the provider accepted and has not settled -- a Stripe intent in

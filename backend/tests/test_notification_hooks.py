@@ -824,7 +824,7 @@ def mailed_token(mailoutbox: list[EmailMessage], to: str = "moved@example.test")
 def test_requesting_a_new_address_does_not_raise_anything_until_it_is_confirmed(
     user_admin: User, member: User, recorded: Recorded
 ) -> None:
-    """An address nobody has proved yet is not a change of address."""
+    """An unconfirmed address is not a change of address."""
     request_email_change(user_admin, member, "moved@example.test")
 
     assert recorded == []

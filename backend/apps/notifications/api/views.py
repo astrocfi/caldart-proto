@@ -84,8 +84,8 @@ class SubscriptionListView(APIView):
 class SubscriptionDetailView(generics.RetrieveUpdateDestroyAPIView[NotificationSubscription]):
     """``GET``, ``PATCH`` and ``DELETE /notifications/subscriptions/{id}``.
 
-    ``PATCH`` changes ``events`` and ``is_active``; ``DELETE`` answers 204.  An id no
-    subscription carries is a 404, and ``PUT`` a 405.
+    ``PATCH`` changes ``events`` and ``is_active``; ``DELETE`` answers 204.  An unknown
+    id is a 404, and ``PUT`` a 405.
     """
 
     permission_classes = [IsAccountAdmin]

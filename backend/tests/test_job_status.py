@@ -234,7 +234,7 @@ def test_a_success_before_the_last_trigger_is_overdue() -> None:
 
 
 def test_an_overdue_job_names_the_trigger_it_missed() -> None:
-    """``missed_at`` is the trigger no run followed."""
+    """``missed_at`` is the trigger the job missed."""
     a_run("renewals", pacific(2026, 10, 14, 6, 31))
     status = next(s for s in job_statuses(NOW) if s.job.key == "renewals")
     assert status.missed_at == pacific(2026, 10, 15, 6, 30)

@@ -1042,7 +1042,7 @@ whole flow.
 #. **The notice.**  The recovery address, while the account keeps one, or else the
    current address when it is verified, is mailed *your email address is changing*
    (``templates/emails/email_change_notice.{txt,html}``), naming the new address and
-   carrying a link that undoes the change.  An address nobody has verified isn't
+   carrying a link that undoes the change.  An unverified address isn't
    told anything: it may belong to somebody else entirely, who must not be handed a link
    that takes the account.
 #. **Completing.**  Following the link (`POST /auth/email/verify`_) works only while
@@ -1934,7 +1934,7 @@ the account signed in *to*.  A wrong password at ``POST /auth/login`` or
 ``POST /auth/reactivate`` and a wrong code at any two-factor endpoint each count
 one failure.  The address is resolved as sign-in resolves it (``email__iexact``), so
 every spelling the database matches to an account counts against that account; an
-address no account holds is counted under the database's own ``UPPER()`` of it, the
+address without an account is counted under the database's own ``UPPER()`` of it, the
 comparison ``email__iexact`` makes, so no spelling of an address is counted apart
 from the account it would sign in to, and the answers never say which addresses are
 registered.  Once ``LOGIN_LOCKOUT_ATTEMPTS`` (10) failures fall within
