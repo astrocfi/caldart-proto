@@ -1508,8 +1508,10 @@ The person is a pronoun from ``PERSON_PRONOUNS``, or a noun from
 ``PERSON_NOUNS``, bare or after a determiner and at most one adjective.
 *Show* isn't a verb of telling, since its object is usually a thing, and
 after any verb of telling a thing as the object, or *who* or *which* after
-the object, hangs a relative clause off it (*tells the story* and then
-*nobody knows*), which is reported as one.
+the object, hangs a relative clause off it (*promises a refund* and then
+*nobody can claim*), which is reported as one.  So does a negative subject
+after *show* and its object: *The list shows the members* and then *nobody
+has verified* reads *The list shows the unverified members*.
 
 These are passed over: *no longer*, *no matter*, and the rest of
 ``NOT_OBJECTS``; a negative right after a comma, a colon, a semicolon, or a

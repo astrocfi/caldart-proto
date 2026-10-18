@@ -103,7 +103,9 @@ noun from ``PERSON_NOUNS`` after a determiner and at most one adjective, or bare
 negative subject with its verb is a hit too, whose suggestion puts "that" after the
 object: "tells the caller" followed by "nothing changed".  "show" isn't a verb of
 telling, and a verb of telling whose object is a thing hangs a relative clause off the
-thing ("tells the story" followed by "nobody knows"), which is reported as one.
+thing ("promises a refund" followed by "nobody can claim"), which is reported as one, as
+is a negative subject after "show" and its object: "The list shows the members" followed
+by "nobody has verified" reads "The list shows the unverified members".
 
 These are passed over:
 

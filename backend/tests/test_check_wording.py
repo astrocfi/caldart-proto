@@ -396,7 +396,7 @@ FULL_RELATIVE_CLAUSES = {
     "bare-noun-before-that": "Global or class state that no fixture manages.",  # wording:ignore
     "which-without-a-comma": "It is the page which nobody reads.",  # wording:ignore
     "comma-which": "Operational email, which nobody may turn off.",  # wording:ignore
-    "comma-which-after-a-verb": "The page it writes, which no source file makes.",  # wording:ignore
+    "comma-which-after-a-verb": "The run fails, which nobody expects.",  # wording:ignore
     "comma-which-after-a-literal": "It reads ``group``, which no filter uses.",  # wording:ignore
     "unlisted-verb-after-a-singular": "A change, which no account stands behind.",  # wording:ignore
     "preposition-which": "A DART, to which nobody may be added.",  # wording:ignore
@@ -495,8 +495,8 @@ ADVERBIAL_NOUNS = {
     "guarantees": "The lock guarantees nobody is charged twice.",
     "notes": "The page notes nothing is due.",
     "after-a-preposition": "It stops on the day that nothing is due.",
-    "the-point": "The point nothing changes is the end of the run.",
-    "every-place": "Every place nothing is stored, it says so.",
+    "the-point": "Past this point nothing can be undone.",
+    "the-place": "The one place nothing is cached is the sign-in page.",
     "so-before-that": "It is so slow that nobody waits.",
     "such-before-that": "It is such a mess that nobody reads it.",
     "subject-pronoun-before-a-verb": "As it stands nothing is sent.",
@@ -573,30 +573,36 @@ def test_a_telling_verb_before_a_person_suggests_that(text: str, told: str) -> N
     assert hit.suggestion == f"{told} nothing is -> {told} that nothing is"
 
 
-#: A verb of telling (or "show") whose object is a thing, or a person before "who": the
-#: negative hangs a relative clause off the object, so each is a relative-clause hit.
-TOLD_THINGS = {
-    "shows-the-page": ("It shows the page nobody can see.", "reduced"),  # wording:ignore
-    "shows-the-list": ("It shows the list nobody reads.", "reduced"),  # wording:ignore
-    "tells-the-story": ("It tells the story nobody knows.", "reduced"),  # wording:ignore
-    "shows-the-page-that": ("It shows the page that nobody can see.", "full"),  # wording:ignore
-    "tells-the-story-that": ("It tells the story that nobody knows.", "full"),  # wording:ignore
-    "shows-the-leader-who": ("It shows the leader who nobody checked.", "full"),  # wording:ignore
-    "tells-the-member-who": ("It tells the member who nobody paid.", "full"),  # wording:ignore
+#: "show", or a verb of telling, whose object is a thing: the negative hangs a reduced
+#: relative clause off the object, so each is a relative-clause hit.
+TOLD_THINGS_REDUCED = {
+    "show-members": "The list shows the members nobody has verified.",  # wording:ignore
+    "promise-a-refund": "It promises a refund nobody can claim.",  # wording:ignore
+}
+
+#: The same, and a person before "who", with a full relative clause.
+TOLD_THINGS_FULL = {
+    "show-members-that": "The list shows the members that nobody has verified.",  # wording:ignore
+    "promise-a-refund-that": "It promises a refund that nobody can claim.",  # wording:ignore
+    "show-leaders-who": "The list shows the leaders who nobody has verified.",  # wording:ignore
+    "notify-a-member-who": "It notifies the member who nobody has paid back.",  # wording:ignore
 }
 
 #: The end of each kind of relative-clause suggestion.
-REMEDIES = {
-    "reduced": "rewrite as an adjective or 'that doesn't ...'",
-    "full": "say it plainly (an adjective, or 'not <verb>ed by anybody') or in short sentences",
-}
+REDUCED_REMEDY = "rewrite as an adjective or 'that doesn't ...'"
+FULL_REMEDY = "say it plainly (an adjective, or 'not <verb>ed by anybody') or in short sentences"
 
 
-@pytest.mark.parametrize(("text", "kind"), list(TOLD_THINGS.values()), ids=list(TOLD_THINGS))
-def test_a_thing_after_a_telling_verb_is_a_relative_clause(text: str, kind: str) -> None:
+@pytest.mark.parametrize(
+    ("text", "remedy"),
+    [(text, REDUCED_REMEDY) for text in TOLD_THINGS_REDUCED.values()]
+    + [(text, FULL_REMEDY) for text in TOLD_THINGS_FULL.values()],
+    ids=[*TOLD_THINGS_REDUCED, *TOLD_THINGS_FULL],
+)
+def test_a_thing_after_a_telling_verb_is_a_relative_clause(text: str, remedy: str) -> None:
     """The object is a thing, or "who" follows it, so the hit asks for a plain rewrite."""
     hits = checker.find_hits(text, "x")
-    assert [hit.suggestion.endswith(REMEDIES[kind]) for hit in hits] == [True]
+    assert [hit.suggestion.endswith(remedy) for hit in hits] == [True]
 
 
 def test_a_telling_verb_and_a_pronoun_are_one_hit() -> None:

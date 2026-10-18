@@ -217,14 +217,18 @@ def _reduced_clause(text: str, match: re.Match[str]) -> tuple[int, int, str] | N
     """The hit for a determiner, a noun, and a negative subject, if it is one.
 
     The noun must read as one (``_is_a_noun``) and must not say when, how, or why
-    (``_is_adverbial``: "That way nothing is lost"); the negative must not be a value
-    or a quoted label (``_is_a_value``); the noun phrase must not lead in to a clause
-    after a preposition (``_is_a_lead_in``); and a verb must follow the negative subject
-    (``_subject_and_verb``).  When a verb of telling stands before the determiner and
-    the noun names a person, the hit asks for a "that" instead (``_missing_that``).
+    (``_is_adverbial``: "That way nothing is lost"); the negative must not be a value or a
+    quoted label (``_is_a_value``); the noun phrase must not lead in to a clause after a
+    preposition (``_is_a_lead_in``); and a verb must follow the negative subject
+    (``_subject_and_verb``).  "one" after a determiner is that determiner's adjective
+    ("The one place nothing is cached"), read from the determiner instead.  When a verb of
+    telling stands before the determiner and the noun names a person, the hit asks for a
+    "that" instead (``_missing_that``).
     """
     noun, negative, adjective = match["noun"], match["negative"], match["adjective"]
     start = match.start("determiner")
+    if match["determiner"].lower() == "one" and _determiner_before(text, start) is not None:
+        return None
     if not _is_a_noun(noun, adjective) or _is_adverbial(text, start, match["determiner"], noun):
         return None
     if _is_a_value(noun, negative) or _is_a_lead_in(text, start):

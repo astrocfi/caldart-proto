@@ -250,7 +250,7 @@ BE_FORMS = "am are be been being is was were"
 
 #: The prepositions, flagged before a negative object.
 PREPOSITIONS = (
-    "about against as at by during for from in into like of on onto over per plus",
+    "about against as at by during for from in into like of on onto over past per plus",
     "through to toward towards under upon via with within without",
 )
 
@@ -300,8 +300,9 @@ RELATIVE_FILLERS = frozenset(("else", "ever", *ADVERBS))
 
 #: The verbs of telling, by base form: before a person, a negative subject needs a
 #: "that" ("tells the member that nothing is due").  Each has a family in
-#: ``FLAGGED_VERBS``.  "show" isn't one: its object is usually a thing ("shows the page"
-#: followed by a relative clause).
+#: ``FLAGGED_VERBS``.  "show" isn't one: its object is usually a thing, and "The list
+#: shows the members" followed by "nobody has verified" is a relative clause ("The list
+#: shows the unverified members").
 TELLING_VERBS = ("assure", "inform", "notify", "promise", "remind", "tell", "warn")
 
 #: The verbs that tell a person through "to", by base form: "explain to the member that
@@ -310,7 +311,7 @@ TELLING_TO_VERBS = ("explain",)
 
 #: The nouns for a person, the object a verb of telling takes before its "that".  After
 #: a verb of telling, any other noun is a thing, and a negative subject after it hangs a
-#: relative clause off it ("tells the story" followed by "nobody knows").
+#: relative clause off it ("promises a refund" followed by "nobody can claim").
 PERSON_NOUNS = frozenset((
     "administrator", "administrators", "admin", "admins", "caller", "callers",
     "coordinator", "coordinators", "customer", "customers", "donor", "donors", "friend",

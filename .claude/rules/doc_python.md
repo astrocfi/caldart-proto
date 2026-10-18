@@ -123,8 +123,9 @@ Sphinx build requirements for all documentation in this repository. Docstring ru
   <verb>ed by anybody') or in short sentences"; and a verb of telling, a person as its
   object (a pronoun, or a noun from `PERSON_NOUNS`), and a negative subject and its verb,
   with the suggestion to add "that". After a verb of telling, a thing as the object, or
-  "who" or "which", is a relative clause like any other ("tells the story" followed by <!-- wording:ignore -->
-  "nobody knows"). It passes over "no longer" and "no matter"; a negative after a comma,
+  "who" or "which", is a relative clause like any other, and so is any clause after
+  "show", whose object is usually a thing: "The list shows the members" followed by <!-- wording:ignore -->
+  "nobody has verified" reads "The list shows the unverified members". It passes over "no longer" and "no matter"; a negative after a comma,
   a colon, a semicolon, or a conjunction; a noun phrase led by a preposition that opens
   its sentence, paragraph, list item, or clause; a noun that says when, how, or why
   ("That way", "Every time", "The day") after any determiner but "a" or "an", where its
