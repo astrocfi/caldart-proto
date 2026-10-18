@@ -2,20 +2,19 @@
 Answering a mission callout
 ==============================
 
-When CalDART activates for a mission it sends a mission callout: a bulk email asking who can
-fly.
-This page shows what the email looks like and how to answer it. You do not need to sign in
-to answer.
+When CalDART activates for a mission, it sends a mission callout: an email to many
+members at once, asking who can fly. This page explains what the email looks like and
+how to answer it. You don't need to sign in to answer.
 
 
 What you see
 ============
 
 Under the message the email asks *Can you participate? Choose your answer.* with three buttons:
-**Available**, **Available with limits**, and **Not available**. It also says until when you
-can change your answer. A mail program that shows plain text lists the same three choices,
-each with its own link. The buttons are yours alone: do not forward the email for somebody
-else to answer, because their answer would be recorded as yours.
+**Available**, **Available with limits**, and **Not available**. It also says how long you
+can change your answer for. If your mail program shows plain text, you see the same three
+choices, each with its own link. The buttons are linked to you alone. Don't forward the
+email for somebody else to answer, because their answer would be recorded as yours.
 
 
 Answering
@@ -24,29 +23,29 @@ Answering
 Press the button that fits. A page opens with the callout's subject, your answer chosen,
 and a **Note (optional)** box for anything the people organizing the mission should know,
 such as *can fly Saturday only* or *aircraft at KSQL*. It asks *Can you participate? Choose
-your answer and press "Send answer".*, and names the email address you are answering for,
-whoever is signed in to the site on that computer. Press **Send answer**. The page
-then reads *Thank you. Your answer is* and your answer. Nothing is recorded until you press
-**Send answer**.
+your answer and press "Send answer".* It also shows the email address you are answering
+for, whoever is signed in to the site on that computer. Press **Send answer**. The page
+then says *Thank you. Your answer is*, followed by your answer. Nothing is recorded until
+you press **Send answer**.
 
 To change your answer, press a button in the email again, or open the page again, choose
-another answer, and press **Send answer**. The page shows the answer you gave and when. Below
-the form the page shows the email itself.
+another answer, and press **Send answer**. The page shows the answer you gave and when you
+gave it. Below the form, the page shows the email itself.
 
-If you do not answer, CalDART may send the callout again as a reminder. Once you have
-answered you are not sent a reminder.
+If you don't answer, CalDART may send the callout again as a reminder. Once you have
+answered, you don't get a reminder.
 
-The callout's link *View this email in your browser*, and its line on :doc:`messages`, open
-the same page.
+The link *View this email in your browser* in the callout opens the same page, and so does
+the callout's line on :doc:`messages`.
 
 
 If something looks wrong
 ========================
 
 *This callout has closed.* means the time for answers has passed, or the organizers closed
-it, and nothing was recorded. *This link no longer works* means your account is no longer
-active. If you change your answer many times in an hour, the page asks you to try again
-later. Changing only your note updates it without telling anybody again. *This link does
-not work* means the link was copied incompletely or changed; open the email again and
-press one of its buttons. To stop receiving Mission email altogether, use
+the callout. Your answer wasn't recorded. *This link no longer works* means your account
+isn't active. If you change your answer many times in an hour, the page asks you to try
+again later. If you change only your note, CalDART updates it without telling anybody
+again. *This link does not work* means part of the link is missing or was changed. Open
+the email again and press one of its buttons. To stop getting Mission email at all, use
 :doc:`email-preferences`.
