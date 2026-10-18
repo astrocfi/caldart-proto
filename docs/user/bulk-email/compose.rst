@@ -91,13 +91,13 @@ Then write the **Subject**, one line, and the **Message**. Your work is automati
 quiet note under the message reads *Saving…* and then *Saved*.
 
 **Replies go to** is where a reader's reply goes. Every copy comes from the site's own address.
-Nobody reads that mailbox, so without it a reply wouldn't reach anybody. Left empty, replies go
-to the address your organization chose for replies, or to your own address; the hint under the
-box names which. Type any address that should get the replies instead, such as a DART leader's
-or a shared operations mailbox; empty the box to go back to the one the hint names. The address
-saves when you leave the field or press Enter, and *Address for replies saved.* says so. An
-address that is not one, such as *ops@*, reads *Enter a valid email address.*, and the one
-saved before stays until you fix it.
+Nobody reads that mailbox, so without a reply-to address a reply wouldn't reach anybody. Left
+empty, replies go to the address your organization chose for replies, or to your own address;
+the hint under the box names which. Type any address that should get the replies instead, such
+as a DART leader's or a shared operations mailbox; empty the box to go back to the one the hint
+names. The address saves when you leave the field or press Enter, and *Address for replies
+saved.* says so. An address that is not one, such as *ops@*, reads *Enter a valid email
+address.*, and the one saved before stays until you fix it.
 
 The buttons over the message format it: **Bold**, **Italic**, **Heading**, **Bulleted list**,
 and **Numbered list**. A button stays pressed while the words at the cursor have its style;

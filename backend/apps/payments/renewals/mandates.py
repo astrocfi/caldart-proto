@@ -349,8 +349,8 @@ def cancel_mandate(
 
     ``actor`` is the member themselves or the administrator who turned it off,
     and is recorded as ``canceled_by`` and in the audit record's
-    ``self_service`` flag; it is ``None`` for a cancellation without a person behind
-    it.  Every scheduled attempt still waiting is marked ``skipped``, so the next scan
+    ``self_service`` flag; it is ``None`` when the system cancels on its own.  Every
+    scheduled attempt still waiting is marked ``skipped``, so the next scan
     doesn't charge anything.  An attempt whose charge was already sent to the provider,
     and whose outcome was never learned, is left for the scan to settle: it records a
     charge the provider took and doesn't charge anything new.  Writes one

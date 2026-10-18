@@ -22,7 +22,7 @@ urlpatterns = [
     ),
     # ``path:`` rather than ``str:`` on purpose: a traversal attempt should
     # reach the view and be rejected there, not fall through to a 404 from the
-    # URL resolver, which a test can't tell from a typo.
+    # URL resolver.  A test can't tell that 404 from a typo.
     path(
         "system/backups/<path:name>/download",
         views.BackupDownloadView.as_view(),

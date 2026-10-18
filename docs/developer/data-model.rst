@@ -1610,7 +1610,7 @@ and ``PermissionsMixin`` classes it builds on.
    * - ``is_demo``
      - ``BooleanField``
      - not null; default ``False``
-     - true for a demo account ``seed_demo`` writes; while ``DEMO_ACCOUNTS_SKIP_TWO_FACTOR`` is on, a role doesn't require such an account to use two-factor sign-in (:ref:`configuration-demo-two-factor`); only the seed sets it, and ``create_admin`` taking the account back, a new password (changed or set from a reset link), and a completed change of address clear it; no endpoint or admin form writes it
+     - true for a demo account ``seed_demo`` writes; while ``DEMO_ACCOUNTS_SKIP_TWO_FACTOR`` is on, such an account signs in without two-factor whatever its roles (:ref:`configuration-demo-two-factor`); only the seed sets it, and ``create_admin`` taking the account back, a new password (changed or set from a reset link), and a completed change of address clear it; no endpoint or admin form writes it
    * - ``groups``
      - ``ManyToManyField`` to ``auth.Group``
      - not null; empty by default

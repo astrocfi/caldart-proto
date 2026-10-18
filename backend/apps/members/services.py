@@ -1131,7 +1131,7 @@ def cancel_term(term: Membership, *, actor: User | None = None, note: str = "") 
     ``MAX_TERM_NOTE`` characters, and a note that fills the field on its own
     replaces what was there.  ``actor`` is the administrator behind the
     cancellation, and is recorded in the audit log; a cancellation without one,
-    such as one a provider's webhook caused, is recorded under ``command``.
+    such as the demo seed's, is recorded under ``command``.
 
     Canceling a term that is already canceled changes only the note.
     """
