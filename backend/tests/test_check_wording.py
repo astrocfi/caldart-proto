@@ -585,7 +585,7 @@ TOLD_THINGS_FULL = {
     "show-members-that": "The list shows the members that nobody has verified.",  # wording:ignore
     "promise-a-refund-that": "It promises a refund that nobody can claim.",  # wording:ignore
     "show-leaders-who": "The list shows the leaders who nobody has verified.",  # wording:ignore
-    "notify-a-member-who": "It notifies the member who nobody has paid back.",  # wording:ignore
+    "notify-a-member-who": "It notifies the member who nobody has verified.",  # wording:ignore
 }
 
 #: The end of each kind of relative-clause suggestion.

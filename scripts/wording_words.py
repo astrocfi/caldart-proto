@@ -313,13 +313,13 @@ TELLING_TO_VERBS = ("explain",)
 #: a verb of telling, any other noun is a thing, and a negative subject after it hangs a
 #: relative clause off it ("promises a refund" followed by "nobody can claim").
 PERSON_NOUNS = frozenset((
-    "administrator", "administrators", "admin", "admins", "caller", "callers",
-    "coordinator", "coordinators", "customer", "customers", "donor", "donors", "friend",
-    "friends", "leader", "leaders", "manager", "managers", "member", "members", "operator",
-    "operators", "owner", "owners", "people", "person", "pilot", "pilots", "reader",
-    "readers", "recipient", "recipients", "sender", "senders", "staff", "subscriber",
-    "subscribers", "treasurer", "treasurers", "user", "users", "verifier", "verifiers",
-    "viewer", "viewers", "volunteer", "volunteers",
+    "administrator", "administrators", "admin", "admins", "applicant", "applicants",
+    "caller", "callers", "coordinator", "coordinators", "customer", "customers", "donor",
+    "donors", "friend", "friends", "leader", "leaders", "manager", "managers", "member",
+    "members", "operator", "operators", "owner", "owners", "people", "person", "pilot",
+    "pilots", "reader", "readers", "recipient", "recipients", "sender", "senders", "staff",
+    "subscriber", "subscribers", "team", "teams", "treasurer", "treasurers", "user",
+    "users", "verifier", "verifiers", "viewer", "viewers", "volunteer", "volunteers",
 ))
 
 #: The pronouns that name a person as a verb's object: "Tell them that nobody can sign
