@@ -5,11 +5,11 @@ One payment
 ===========
 
 A payment's own screen shows everything about one payment: who paid, what for, what the
-provider kept, what has gone back, and the two things you record on it yourself. The
-provider is the company that took the payment online, such as Stripe or PayPal. This screen
-is also where you refund a payment and send a receipt again. To reach it, click a name on
-the payment list or a receipt number in a member's money history. It also opens after you
-record a payment by hand.
+payment service kept, what has gone back, and the two things you record on it yourself. The
+payment service is the company that took the payment online, such as Stripe or PayPal. This
+screen is also where you refund a payment and send a receipt again. To reach it, click a
+name on the payment list or a receipt number in a member's money history. It also opens
+after you record a payment by hand.
 
 What you see
 ============
@@ -32,11 +32,12 @@ The **This payment** card lists the facts:
   contribution**) and the plan's name.
 * **Paid**, the day the money arrived.
 * **Dues**, **Contribution**, and **Total**.
-* **Fee**, what the provider kept, or *Not reported yet* until the provider says.
+* **Fee**, what the payment service kept, or *Not reported yet* until the payment service
+  says.
 * **Net**, what reached the bank, and **Refunded**, what has gone back.
-* **Method**, the provider and how the member paid, such as **Stripe · Card**, or one
+* **Method**, the payment service and how the member paid, such as **Stripe · Card**, or one
   word when the two are the same, such as **PayPal**.
-* **Reference**, the provider's own reference for the payment, or the check number.
+* **Reference**, the payment service's own reference for the payment, or the check number.
 * **Receipt emailed**, when the receipt last went to the member.
 * **Term**, the membership term the payment bought, with its dates and state, such as
   *01/09/2026 to 01/08/2027 · Active*, or a dash if it didn't buy one.
@@ -79,8 +80,8 @@ Send or download the receipt
 receipt for* and the amount, for example *CalDART: your receipt for $50.00*. **Download
 receipt** gives you the same receipt as a PDF.
 
-Ask the provider for the fee
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Ask the payment service for the fee
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Fetch fee from provider** appears only while the fee is unknown. Stripe and PayPal
 report what they kept a little after the money arrives, and sometimes later still. This
@@ -119,14 +120,14 @@ Press **Refund** to issue it. **Cancel** or Escape closes the form and takes you
 **Refund** button that opened it. The screen confirms with *Refunded* and the amount. If the
 site refuses an amount, the reason shows under **Amount**, and the cursor goes back there.
 
-The site asks the provider to send the money back to the card or account the member paid
-with. Their bank decides how quickly it appears, usually a few working days. The member is
-emailed with the subject *CalDART: a refund of* and the amount. The email names what the
+The site asks the payment service to send the money back to the card or account the member
+paid with. Their bank decides how quickly it appears, usually a few working days. The member
+is emailed with the subject *CalDART: a refund of* and the amount. The email names what the
 payment was for and the reason you chose. If you ended the term, it also says that their
-membership has ended. The payment's status then says **Partly refunded** while some of it
-is still kept, and **Refunded** once all of it has gone back.
+membership has ended. The payment's status then says **Partly refunded** while some of it is
+still kept, and **Refunded** once all of it has gone back.
 
-A payment recorded by hand is refunded the same way, except that no provider is asked.
+A payment recorded by hand is refunded the same way, except that no payment service is asked.
 Write the check, record the refund here, and the books match.
 
 A refund of more than is left is refused with *Only $… of this payment is left to
@@ -143,10 +144,10 @@ member's money history (see :doc:`member-ledger`).
 If something looks wrong
 ========================
 
-If the provider refuses a refund, the refund is kept with the status **Failed**, and no
-money moved. Try again, or make the refund in the provider's dashboard. A refund made in
-Stripe's or PayPal's dashboard appears here on its own, marked **The provider's
-dashboard**, and it never ends a membership. If that refund should end the member's term,
-an account administrator ends it on the **Memberships** tab of the member's record. If a
+If the payment service refuses a refund, the refund is kept with the status **Failed**, and
+no money moved. Try again, or make the refund in the payment service's dashboard. A refund
+made in Stripe's or PayPal's dashboard appears here on its own, marked **The provider's
+dashboard**, and it never ends a membership. If that refund should end the member's term, an
+account administrator ends it on the **Memberships** tab of the member's record. If a
 payment that bought a plan shows **Paid** but its **Term** is a dash, ask an account
 administrator to grant the term, and report the fault.

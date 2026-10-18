@@ -34,9 +34,9 @@ donation. With the starting columns, each row shows:
   - *Card declined*, followed by the words the member was emailed if the card company
     said more, such as *Card declined (member was told: "Your card has expired")*;
   - *PayPal refused the saved payment method*;
-  - *Payment could not be verified*, with what was recorded. The provider took a charge
+  - *Payment could not be verified*, with what was recorded. The payment service took a charge
     the site couldn't match to the payment, such as one for a different amount;
-  - *Charge refused*, with what the provider said, for anything else.
+  - *Charge refused*, with what the payment service said, for anything else.
 * **Actions**, the **Turn off** button, or *Turned off* once it is off.
 
 Three more columns are hidden at first: **Cadence**, how often it charges; **Failed
@@ -59,15 +59,15 @@ The second table, **Recent charges**, has one row per scheduled charge, fifty to
 Each row shows the day it was **Scheduled**, the **Member**, the **Outcome** (**Scheduled**,
 **Charged**, **Failed**, **Skipped**, or **Needs checking**), when it was **Tried**, and the
 **Reason** a charge failed, worded as under a paused renewal's status. The member's name
-opens their money history. The charges still to come are listed first, then the rest by when they
-were tried, newest first.
+opens their money history. The charges still to come are listed first, then the rest by when
+they were tried, newest first.
 
 **Needs checking** marks a charge PayPal may have taken without telling the site. Either
 PayPal never answered, or it said the charge's invoice was already paid. The site doesn't
 charge it again until you settle it, and its **Reason** says why. You can subscribe to
 *Automatic charge needs checking* on the **Notification emails** screen. You are then
 emailed when a charge is held this way, and again if the member's membership runs out while
-it waits. You are also emailed about any charge the payment provider has held as pending
+it waits. You are also emailed about any charge the payment service has held as pending
 for more than three days.
 
 What you can do
@@ -142,7 +142,7 @@ alone. A message then confirms what was turned off and for whom, such as
 What happens next:
 
 * Every charge still scheduled for it is dropped. The exception is a charge already sent
-  to the payment provider that hasn't been answered yet. The site still records that one if
+  to the payment service that hasn't been answered yet. The site still records that one if
   the money was taken, and doesn't charge anything new.
 * The membership itself runs to the end of its term.
 * The row stays in the table, marked **Turned off**.

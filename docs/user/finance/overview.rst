@@ -5,8 +5,8 @@ The money overview
 ==================
 
 The **Money overview** screen answers "how are we doing?" at a glance: what came in, what
-the payment providers kept, what reached the bank, and what went back in refunds. The
-payment providers are the companies that take payments online, such as Stripe. This is
+the payment services kept, what reached the bank, and what went back in refunds. The
+payment services are the companies that take payments online, such as Stripe. This is
 the first tab of the finance area, and **Accounting** under **Finance** in the menu opens
 it.
 
@@ -51,11 +51,11 @@ There are three tiles, each covering every payment on the site:
 * **Year to date**, from January 1 to today.
 * **Last 12 months**, a rolling twelve-month window.
 
-Each tile shows, in large type, the gross amount taken in, and how many payments made it
-up. Beneath that are the **Fees** the providers kept, the **Net** that reached the bank,
+Each tile shows, in large type, the gross amount taken in, and how many payments made it up.
+Beneath that are the **Fees** the payment services kept, the **Net** that reached the bank,
 and what was **Refunded**. A card that was declined never brought in any money, so it is
-left out. A payment that was later refunded did bring money in, so it is counted, with
-the refund shown beside it.
+left out. A payment that was later refunded did bring money in, so it is counted, with the
+refund shown beside it.
 
 Payments by period
 ~~~~~~~~~~~~~~~~~~
@@ -64,14 +64,14 @@ Below the tiles, **Payments by period** adds the same money up by month or by ye
 **Month** and **Year** buttons switch between the two. The newest period is at the top.
 
 For each period the table shows the number of **Payments**, how much was **Dues**, how
-much was **Contributions**, a column for each payment provider that took money in the
+much was **Contributions**, a column for each payment service that took money in the
 range, the **Fees**, the **Net**, what was **Refunded**, and the **Total**.
 
 To compare this year with last year, choose **Year** and read down the **Total**
 column. Click a column heading to sort the table by it, and click it again to reverse the
 order.
 
-On a narrower screen, the provider columns drop out first, then **Dues**,
+On a narrower screen, the payment service columns drop out first, then **Dues**,
 **Contributions**, **Payments**, **Refunded**, **Fees**, and **Net**, so the **Total**
 always stays beside the period. If the table is still too wide, it scrolls sideways inside
 the page, a note above it says so, and the period stays pinned at the left.
@@ -101,10 +101,10 @@ reconciliation, and contributions reports, and for the treasurer, the donors rep
 If something looks wrong
 ========================
 
-If the tiles don't match a provider's own dashboard, check three common reasons first.
-The tiles count only money that arrived, and a provider's dashboard may count attempts
+If the tiles don't match a payment service's own dashboard, check three common reasons first.
+The tiles count only money that arrived, and a payment service's dashboard may count attempts
 too. The tiles show the gross, and a dashboard often shows the net. The tiles date a
-payment by the day it went through, which can be a day before or after the provider's
+payment by the day it went through, which can be a day before or after the payment service's
 settlement date. The :doc:`reconciliation` screen shows the gross, the fees,
 and the net side by side for exactly this comparison. If the period table says *No
 payments in this range*, widen the dates or press **Reset filters**.

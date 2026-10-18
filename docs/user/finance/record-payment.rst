@@ -47,7 +47,7 @@ taken to the first field to fix instead.
 What happens next
 ~~~~~~~~~~~~~~~~~
 
-* The payment is recorded as already paid, with **By hand** as its provider and without a
+* The payment is recorded as already paid, with **By hand** as its **Provider** and without a
   fee, so its net is the whole amount.
 * If it paid for a plan, the membership term starts at once.
 * The member is emailed their receipt, with the subject *CalDART: your receipt for* and

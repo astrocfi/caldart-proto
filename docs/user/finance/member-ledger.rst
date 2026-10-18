@@ -26,7 +26,7 @@ Totals
 ~~~~~~
 
 The **Totals** card covers the member's whole history: what they have **Paid**, what they
-have **Contributed**, what the payment providers (such as Stripe) kept in **Fees**, and what
+have **Contributed**, what the payment services (such as Stripe) kept in **Fees**, and what
 has been **Refunded**.
 
 Automatic renewal
@@ -41,8 +41,8 @@ renewal and contribution**. It shows:
 * **Method**, the saved card or PayPal account.
 * **Charges**, the plan (or **Donation** for a recurring donation) and the amount.
 * **Next charge**, the day it falls due.
-* **Last failed charge**, when the last charge was declined, with the reason the provider
-  gave. It is the same wording the member was emailed.
+* **Last failed charge**, when the last charge was declined, with the reason the payment
+  service gave. It is the same wording the member was emailed.
 
 If a member isn't set up to be charged automatically, the card says *This member renews by
 hand.* For a friend, or a member who hasn't paid yet, the card appears only if they are set
@@ -53,14 +53,14 @@ Payments
 
 The **Payments** card lists every payment, including attempts that failed. For each one it
 shows the day it was **Paid**, the **Receipt** number, what it was **For**, the **Total**,
-what was **Refunded**, the provider under **Method**, and the **Status**. The receipt number
-opens the payment's own screen (see :doc:`payment-record`). **For** names the plan, such as
-**Annual** or **Annual and contribution**, or says **Contribution**. If the member hasn't made
-any payments, the card says *No payments recorded*. A term an administrator granted by hand
-doesn't have a payment behind it. Receipt numbers are always shown whole. On a narrower
-screen, **Refunded** and **Method** drop out, then **For**. On a phone, the table scrolls
-sideways inside the card, a note above it says so, and **Paid**, the date, stays pinned at
-the left with the whole receipt number beside it.
+what was **Refunded**, the payment service under **Method**, and the **Status**. The receipt
+number opens the payment's own screen (see :doc:`payment-record`). **For** names the plan,
+such as **Annual** or **Annual and contribution**, or says **Contribution**. If the member
+hasn't made any payments, the card says *No payments recorded*. A term an administrator
+granted by hand doesn't have a payment behind it. Receipt numbers are always shown whole. On
+a narrower screen, **Refunded** and **Method** drop out, then **For**. On a phone, the table
+scrolls sideways inside the card, a note above it says so, and **Paid**, the date, stays
+pinned at the left with the whole receipt number beside it.
 
 Contribution statements
 ~~~~~~~~~~~~~~~~~~~~~~~
