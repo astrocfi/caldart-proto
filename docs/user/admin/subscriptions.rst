@@ -4,180 +4,191 @@
 Emailed reports
 ===============
 
-**Emailed reports** is where you tell CalDART to email a report on a schedule, and where each DART's
-monthly roster is sent from. A roster is the list of a DART's members and friends with the
-details a team needs to reach them.
+**Emailed reports** is where you tell CalDART to email a report on a schedule. It is also
+where each DART's monthly roster is sent from. A roster is the list of a DART's members and
+friends, with the details a team needs to reach them.
 
 An account administrator and the treasurer find it as **Emailed reports** under
-**Administration** in the menu. A
-system administrator can open it too. The treasurer sees the subscriptions for the money
-reports; the DART rosters belong to account administrators alone.
+**Administration** in the menu. A system administrator can open it too. The treasurer sees
+the subscriptions for the money reports. Only account administrators see the DART rosters.
 
 
 Reports on a schedule
 =====================
 
 CalDART emails each report to one address on the schedule you choose, with the filters and
-columns chosen for it. The **Reports on a schedule** card lists every one for a report you
-may read:
+columns chosen for it. The **Reports on a schedule** card lists every subscription for a
+report you may see:
 
-- **Report**: the report's name, as its own screen's tab or menu entry names it, such as
+- **Report**: the report's name, the same as its own screen's tab or menu entry, such as
   *Members*, *Payments*, *Reconciliation*, *Contributions*, or *Donors*.
-- **Recipient**: the account's name, or the bare address for somebody outside CalDART.
+- **Recipient**: the account's name, or just the address for somebody outside CalDART.
 - **Schedule**: *Weekly on Monday* (or another day), *Monthly*, *Quarterly*, or *Yearly*.
 - **Formats**: *CSV*, *PDF*, or *Both*.
 - **Last sent** and **Next**: when it last went and when it is due.
 - **Active**: *Active* beside a green dot while it is being sent, and *Paused* beside a gray
   one while it is paused.
 
-Each row carries four controls, last on the line under an **Actions** heading a screen
-reader announces. A message in the corner of the screen says what the last three did. On a
-screen too narrow for every column, **Last sent**, then **Next**, then **Formats**, then
-**Schedule**, then **Recipient** are left out, and the controls wrap onto two lines; on a phone the table
-scrolls sideways, says so above it, and keeps **Report** pinned at the left.
+Each row has four controls at the end of the line, under an **Actions** heading that a
+screen reader announces. A message in the corner of the screen says what the last three
+did. If the screen is too narrow for every column, the table drops **Last sent**, then
+**Next**, then **Formats**, then **Schedule**, then **Recipient**, and the controls wrap
+onto two lines. On a phone, the table scrolls sideways, says so above it, and keeps
+**Report** pinned at the left.
 
 **Edit**
-   Opens the subscription's form above the table, where **Add a scheduled report** opens it, to
-   change its filters, columns, formats, and schedule, as **Changing one** below describes.
+   Opens the subscription's form above the table, in the same place as **Add a scheduled
+   report**. There you can change its filters, columns, formats, and schedule, as
+   **Changing one** below describes.
 
 **Send now**
-   Sends the report at once, whatever the date, and leaves its next date alone. The message
-   reads *Sent to* the recipient, or says why nothing went: the report could not be built or
-   the mail server refused it, or the recipient no longer holds a role that may read the
-   report, in which case its emails are paused.
+   Sends the report at once, whatever the date, and leaves its next date as it was. The
+   message says *Sent to* and the recipient, or says why the report didn't go. Either the
+   report couldn't be built, or the mail server refused it, or the recipient has lost the
+   role the report needs. In that last case, its emails are paused.
 
 **Pause** and **Resume**
-   A paused subscription keeps everything it was set up with and doesn't send anything
-   until you resume it. Resuming one whose recipient may no longer read the report is
-   refused, and the message says why.
+   A paused subscription keeps everything it was set up with, but it doesn't send anything
+   until you resume it. If the recipient has since lost the right to see the report,
+   CalDART refuses to resume it, and the message says why.
 
 **The trashcan**
-   Asks first: press it and it turns into **Delete** and **Cancel**. Press **Delete** and
-   the emailed report is gone; **Cancel**, Escape, or a click elsewhere leaves it as it is.
+   Asks first: press it, and it turns into **Delete** and **Cancel**. Press **Delete** to
+   remove the emailed report. **Cancel**, Escape, or a click elsewhere leaves it as it is.
 
-Until one is set up, the table reads *No reports are sent by email yet*.
+Until you set one up, the table says *No reports are sent by email yet*.
 
 
 Setting one up
 ~~~~~~~~~~~~~~
 
-**Add a scheduled report** opens the form above the table and takes you to its first box. Until
-you choose a report, **Add emailed report** waits, and *Choose a report first.* sits beside
-it.
+**Add a scheduled report** opens the form above the table and puts you in its first box.
+Until you choose a report, **Add emailed report** is grayed out, with *Choose a report
+first.* beside it.
 
-#. **Report** offers the reports you may read, each by the name its own screen uses: the
-   membership report, the roles report, the verification report, the aircraft,
-   the payments, the renewals, the reconciliation, and the contributions for an account
-   administrator; the payments, the renewals, the reconciliation, the contributions, and
-   the donors for the treasurer; and every one of them plus the sent emails for a system
-   administrator. The roles report lists the people who hold each role other than member,
-   in a section per role that says *Nobody holds this role.* when it is empty; it filters
-   by name or email, by role, and by kind, and it can go to a user administrator as well
-   as an account administrator. The verification report lists what a verifier checks, in
-   two sections, *People* and *Aircraft insurance*, each saying *Nothing to show.* when it
-   is empty. A person has one row: their DART, then **Photo ID**, **Certificate**, and
-   **Medical**, each *Not verified*, *Verified*, or *Not provided* for an item they do not
-   hold; then what is on file, the medical's expiry date in **Expires**, and the day it
-   last changed. An aircraft's row names its N-number, its owner, the carrier, the
-   policy's expiry date, and the day it last changed. In the PDF each section has its own
-   header row, and the aircraft's doesn't have the check columns; in the CSV one header
-   row covers both, the owner under **DART or owner**, and an aircraft's check cells are
-   blank. **Verified** (*Yes* when everything on the row is verified), **Verified by**,
-   and **Verified on** (the most recent verification on the row) are there to add from
-   **Columns**. Its **Status** filter lists the rows with anything not yet verified when
-   left blank, or the fully **Verified** ones, or **All** of them, and its **DART** filter
-   keeps one DART's people and the aircraft they fly. It can go to a verifier, a DART
-   leader, a user administrator, or an account administrator. Choosing a report draws the
-   same filters its own screen has, without the **Reset filters** button. The payments and
-   donors reports add **Period**: **This month**, **Last month**, **This year**, or **Last
-   year**, worked out on the day each email goes, so a monthly subscription for **Last
-   month** always carries the month before the one it is sent in. The reconciliation
-   report offers **Period** in place of its screen's fixed **From** and **To** dates, and
-   the contributions report has one **Year** control: **This year** or **Last year**, also
-   worked out on the day each email goes.
-#. **Columns** chooses what the report carries, as on the report's own screen; left alone,
-   it carries the default columns. A column left out is left out of every section of the
-   PDF that has it. The reconciliation and contributions reports have fixed
-   columns and don't offer a chooser.
+#. **Report** offers the reports you may see, each with the name its own screen uses. An
+   account administrator gets the membership report, the roles report, the verification
+   report, the aircraft, the payments, the renewals, the reconciliation, and the
+   contributions. The treasurer gets the payments, the renewals, the reconciliation, the
+   contributions, and the donors. A system administrator gets every one of them, plus the
+   sent emails.
+
+   The roles report lists the people who hold each role other than member, in a section per
+   role. An empty section says *Nobody holds this role.* The report filters by name or
+   email, by role, and by kind. It can go to a user administrator as well as an account
+   administrator.
+
+   The verification report lists what a verifier checks, in two sections, *People* and
+   *Aircraft insurance*. An empty section says *Nothing to show.* Each person has one row:
+   their DART, then **Photo ID**, **Certificate**, and **Medical**. Each of these says *Not
+   verified* or *Verified*, or *Not provided* for an item the person doesn't hold. Then come
+   what is on file, the medical's expiry date in **Expires**, and the day it last changed.
+   An aircraft's row gives its N-number, its owner, the carrier, the policy's expiry date,
+   and the day it last changed. In the PDF, each section has its own header row, and the
+   aircraft section doesn't have the check columns. In the CSV, one header row covers both
+   sections, the owner goes under **DART or owner**, and an aircraft's check cells are
+   blank. You can add **Verified** (*Yes* when everything on the row is verified),
+   **Verified by**, and **Verified on** (the most recent verification on the row) from
+   **Columns**. Left blank, its **Status** filter lists the rows with anything not yet
+   verified. It can also list only the fully **Verified** rows, or **All** of them. Its
+   **DART** filter keeps one DART's people and the aircraft they fly. The report can go to
+   a verifier, a DART leader, a user administrator, or an account administrator.
+
+   When you choose a report, the form shows the same filters as the report's own screen,
+   without the **Reset filters** button. The payments and donors reports add **Period**:
+   **This month**, **Last month**, **This year**, or **Last year**. CalDART works out the
+   period on the day each email goes, so a monthly subscription for **Last month** always
+   covers the month before the one it is sent in. The reconciliation report offers
+   **Period** instead of its screen's fixed **From** and **To** dates. The contributions
+   report has a single **Year** control, **This year** or **Last year**, also worked out on
+   the day each email goes.
+#. **Columns** chooses what the report includes, as on the report's own screen. If you
+   leave it alone, the report has the default columns. A column you leave out is left out
+   of every section of the PDF that has it. The reconciliation and contributions reports
+   have fixed columns and don't offer a chooser.
 #. **Formats** attaches a CSV, a PDF, or both.
-#. **Schedule** is **Weekly**, **Monthly**, **Quarterly**, or **Yearly**. A weekly one asks
-   for the **Day** it goes. A monthly subscription goes on the first of the month, a
+#. **Schedule** is **Weekly**, **Monthly**, **Quarterly**, or **Yearly**. For a weekly one,
+   choose the **Day** it goes. A monthly subscription goes on the first of the month, a
    quarterly one on the first of January, April, July, and October, and a yearly one on the
    first of January.
 #. **Recipient email** is where it goes.
 
-Press **Add emailed report**, or **Cancel** or Escape. *Report added.* confirms a save. An
-address that belongs to a CalDART account is refused when that account doesn't hold a role
-that may read the report, with *does not hold a role that may read this report* under the
-address: the treasurer cannot be sent the membership report, whose medical and certificate
-details are not theirs to read. An address that doesn't belong to an account is refused until
-you check **This address is outside CalDART and may receive this report**, which appears once
-CalDART asks for it. A filter the report cannot use is named, with the reason, under the
-filters.
+Press **Add emailed report**, or **Cancel** or Escape. *Report added.* confirms a save. If
+the address belongs to a CalDART account, and that account doesn't hold a role allowed to
+see the report, CalDART refuses it. The message *does not hold a role that may read this
+report* appears under the address. For example, you can't send the treasurer the
+membership report, because its medical and certificate details aren't theirs to see. If
+the address doesn't belong to an account, CalDART refuses it until you check **This
+address is outside CalDART and may receive this report**. That box appears once CalDART
+asks for it. If the report can't use a filter, the filter is named, with the reason, under
+the filters.
 
 
 Changing one
 ~~~~~~~~~~~~
 
-**Edit** on a row opens the same form above the table, headed **Edit emailed report** and filled
-with everything the subscription was set up with: its filters, its columns, its formats, and
-its schedule and day. A subscription on the report's default columns opens with the defaults
-checked. The **Report** and the **Recipient** are shown as plain text, since neither can
-change: to send a different report, or to send it to somebody else, delete the subscription
-and set up another.
+**Edit** on a row opens the same form above the table, headed **Edit emailed report**. It
+is filled in with everything the subscription was set up with: its filters, its columns,
+its formats, and its schedule and day. If the subscription uses the report's default
+columns, the form opens with the defaults checked. The **Report** and the **Recipient** are
+shown as plain text, because you can't change them. To send a different report, or to send
+it to somebody else, delete the subscription and set up another one.
 
-Change what you need and press **Save changes**; the form closes, *Report saved.* confirms
-it, and the row shows the change. A changed schedule moves **Next** to the schedule's next
-day after today. **Cancel**, or Escape, closes the form without changing anything, and you
-are back on the row's **Edit**. A filter the report cannot use is named, with the reason,
-under the filters, as when setting one up.
+Change what you need and press **Save changes**. The form closes, *Report saved.* confirms
+it, and the row shows the change. If you change the schedule, **Next** moves to the
+schedule's next day after today. **Cancel**, or Escape, closes the form without changing
+anything, and you land back on the row's **Edit**. If the report can't use a filter, the
+filter is named, with the reason, under the filters, just as when you set one up.
 
-One form is open at a time. **Add a scheduled report** closes an open edit, **Edit** on another row
-opens that row's subscription in its place, and **Edit** on the row being edited closes it.
+Only one form is open at a time. **Add a scheduled report** closes a form you are editing.
+**Edit** on another row opens that row's subscription instead, and **Edit** on the row you
+are editing closes it.
 
 
 What happens next
 ~~~~~~~~~~~~~~~~~
 
-The emails go out every morning at 6:00 AM. The subject reads *CalDART report:* with the
-report's title and the date, such as *(09/27/2026)*, and the files are attached. A
-subscription that could not be sent is tried again the next morning. One whose recipient
-has lost the role is paused.
+The emails go out every morning at 6:00 AM. The subject says *CalDART report:* with the
+report's title and the date, such as *(09/27/2026)*, and the files are attached. If a
+subscription couldn't be sent, CalDART tries again the next morning. If its recipient has
+lost the role, the subscription is paused.
 
 
 DART rosters
 ============
 
-Early each month every active DART's roster goes as a PDF to each of the DART's people checked
-**Roster** on the :doc:`darts` screen who has an email address. The subject is the DART's
-name, the word *roster*, and the date. A roster lists the DART's members and friends by name,
-with each person's phone, email, certificate, medical, aircraft, expiry, and a **Kind** column
-saying which each one is. It never lists a deactivated account or a donor.
+Early each month, every active DART's roster goes out as a PDF. It goes to each of the
+DART's people who has **Roster** checked on the :doc:`darts` screen and has an email
+address. The subject is the DART's name, the word *roster*, and the date. A roster lists the
+DART's members and friends by name, with each person's phone, email, certificate, medical,
+aircraft, and expiry. A **Kind** column says whether each one is a member or a friend. A
+roster never lists a deactivated account or a donor.
 
-The **DART rosters** card lists each active DART, its **Recipients** (the checked people with
-an address), and when its roster was **Last sent**. No roster goes to a DART without anyone
-set to receive it.
+The **DART rosters** card lists each active DART, its **Recipients** (the checked people
+with an address), and when its roster was **Last sent**. If nobody at a DART is set to get
+the roster, it isn't sent.
 
-Under the table sit the box **Practice run: show what would happen without sending anything**, checked
-to begin with, the button beside it, and under them what the last run did, so the button
-never moves when a long result appears. While the box is checked the button reads
-**Preview rosters**: press it, and under it the card reads **What this run would do**, where
-the cursor moves, and a line such as *Would send 7 emails, skipped 1.* When something was skipped, a further
-line gives the reasons: *nobody to send to* for a DART without anyone set to receive it,
-and *no address on file* for a checked person without an email address. A table names each email
-with **Who** and **What**, and **Report or DART** when an email names one. Clear the box,
-and the button reads **Send rosters now**: it sends every DART's roster at once, whatever
-the date, and the heading then reads **What this run did**.
+Under the table are the box **Practice run: show what would happen without sending
+anything**, checked to begin with, and the button beside it. What the last run did appears
+under them, so the button stays in place when a long result appears. While the box is
+checked, the button says **Preview rosters**. Press it, and the card shows the heading
+**What this run would do**, where the cursor moves. Under it is a line such as *Would send 7
+emails, skipped 1.* If anything was skipped, another line gives the reasons: *nobody to send
+to* for a DART where nobody is set to get it, and *no address on file* for a checked person
+without an email address. A table names each email with **Who** and **What**, and **Report
+or DART** when an email names one. If you clear the box, the button says **Send rosters
+now**. It sends every DART's roster at once, whatever the date, and the heading then says
+**What this run did**.
 
 
 If something looks wrong
 ========================
 
-If a subscription stops arriving, look at its **Active** column: *Paused* means it was paused,
-often because the recipient lost the role that reads the report, and **Resume** tells you
-whether that is still so. If a roster never reaches a DART's people, check on :doc:`darts`
-that somebody is checked **Roster** and has an email address, then press **Preview
-rosters**, with **Practice run: show what would happen without sending anything** checked, to see who
-it would reach. If a line reads *Not sent*
-and blames the mail server, try **Send now** again later, and tell a system administrator if
-it keeps failing; they can see every email CalDART tried to send on the :doc:`sent-emails` page.
+If a subscription stops arriving, look at its **Active** column. *Paused* means it was
+paused, often because the recipient lost the role the report needs. **Resume** tells you
+whether that is still true. If a roster never reaches a DART's people, check on
+:doc:`darts` that somebody has **Roster** checked and has an email address. Then press
+**Preview rosters**, with **Practice run: show what would happen without sending anything**
+checked, to see who it would reach. If a line says *Not sent* and blames the mail server,
+try **Send now** again later. If it keeps failing, tell a system administrator. They can
+see every email CalDART tried to send on the :doc:`sent-emails` page.
