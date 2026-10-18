@@ -2,7 +2,7 @@
 Email preferences
 =================
 
-**Email preferences** is where you choose which types of bulk email CalDART sends you.
+On **Email preferences**, you choose which types of bulk email CalDART sends you.
 Bulk email is the news CalDART writes to many members and friends at once, such as
 meeting announcements, appeals for donations, and requests for pilots. Open it from
 **My account** in the menu.
@@ -11,25 +11,26 @@ meeting announcements, appeals for donations, and requests for pilots. Open it f
 What you see
 ============
 
-One switch for each type of email you may turn off, with its name and a sentence saying
-what it is for. A switch that is on, with the word **On** beside the name, means you receive
-that type; **Off** means you do not. Everyone starts with every switch on.
+There is one switch for each type of email you can turn off, with its name and a sentence
+saying what it is for. When a switch is on, the word **On** shows beside the name, and you
+get that type of email. **Off** means you don't. Every switch starts out on.
 
-A type of email that everybody must receive is not listed. A note under the switches says
-that email about your own account, such as receipts, renewal reminders, and password links,
-is not bulk email and always reaches you. A system administrator names the types and
-writes their sentences.
+If everybody must get a type of email, it isn't listed. A note under the switches says that
+email about your own account, such as receipts, renewal reminders, and password links, isn't
+bulk email and always reaches you. A system administrator names the types and writes their
+sentences.
 
 
 What you can do
 ===============
 
 Press a switch, or move to it with the Tab key and press the space bar or Enter. The change
-is saved at once, and a message such as *Mission turned off.* confirms it. Nothing else needs
-pressing.
+is saved at once, and a message such as *Mission turned off.* confirms it. You don't need to
+press anything else.
 
-Turning a type back on works the same way. Your earlier choice is kept even if CalDART
-later decides a type cannot be turned off; it applies again if that changes back.
+Turning a type back on works the same way. If CalDART later makes a type impossible to turn
+off, it still remembers your choice. Your choice applies again if the type can be turned off
+again.
 
 
 Unsubscribing from an email
@@ -38,17 +39,16 @@ Unsubscribing from an email
 Each bulk email of a type you can turn off ends with a line such as *You receive Mission
 email from CalDART because you have not turned it off. To stop it, unsubscribe here:* and a
 link. Your mail program may also show its own **Unsubscribe** button beside the sender's
-name, which does the same thing.
+name. It does the same thing.
 
-The link opens a page on the CalDART site, without asking you to sign in, titled
-**Unsubscribe from Mission email** (with the type's own name), the email address it is for,
-and one **Unsubscribe** button. Opening the page doesn't change anything; pressing the
-button turns that one
-type off, and the page then reads **You are unsubscribed** and *You will no longer receive
-Mission email from CalDART for* your address. Other types keep arriving. To turn it back
-on, sign in and use the switch on this screen.
+The link opens a page on the CalDART site. It doesn't ask you to sign in. The page is titled
+**Unsubscribe from Mission email** (with the type's own name), and shows the email address it
+is for and one **Unsubscribe** button. Opening the page doesn't change anything. Pressing the
+button turns off that one type. The page then says **You are unsubscribed** and *You will no
+longer receive Mission email from CalDART for*, followed by your address. Other types keep
+arriving. To turn the type back on, sign in and use its switch on this screen.
 
-An email of a type that cannot be turned off doesn't carry the link. Its last line says
+An email of a type that can't be turned off doesn't have the link. Instead, its last line says
 *CalDART sends Operational email to everyone it writes to, so it cannot be turned off.*
 
 
@@ -56,7 +56,6 @@ If something looks wrong
 ========================
 
 If the unsubscribe page says **This link no longer works**, the link is too old (links last
-about six months) or was copied incompletely. Sign in and turn the type off here instead.
-If you turned a type off and still receive it, check this screen: a type that is no longer
-listed is one CalDART sends to everyone. Ask an account administrator if you think that
-is a mistake.
+about six months), or part of it is missing. Sign in and turn the type off here instead. If
+you turned a type off and still get it, check this screen. If the type isn't listed, CalDART
+sends it to everyone. Ask an account administrator if you think that is a mistake.

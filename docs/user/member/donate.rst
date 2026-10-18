@@ -2,12 +2,12 @@
 Donate
 ======
 
-The **Donate** screen is where any member or friend gives to CalDART, once or on a
-schedule. A gift doesn't buy a membership and doesn't need one. *Every gift pays for training,
-fuel, and equipment.* Open it from **Donate** in the menu, or from **Set up** on the
-**Recurring donation** card of :doc:`payments`.
+On the **Donate** screen, any member or friend can give to CalDART, once or on a
+schedule. A gift doesn't buy a membership, and you don't need a membership to give.
+*Every gift pays for training, fuel, and equipment.* Open it from **Donate** in the
+menu, or from **Set up** on the **Recurring donation** card of :doc:`payments`.
 
-Somebody without an account gives from the public donation page instead (see
+People without an account give from the public donation page instead (see
 :doc:`public-website`).
 
 
@@ -19,120 +19,119 @@ each month by recurring donation. To change it, press Change on Payments. A
 recurring donation set up here replaces it.* Its **Go to Payments** button takes you
 there.
 
-Then the form, in a card of its own:
+Then comes the form, in its own card:
 
 * **Your donation**: *Gifts to CalDART, a 501(c)(3), are tax deductible.* Then the
-  tiers (Participating $20, Bronze $100, Silver $300,
-  Gold $1,000, Diamond $3,000, and Platinum $10,000), or **Other amount**, where you
-  type whole dollars from $5 up to $99,999. For more than that, talk to the
-  treasurer.
-* **Total today**, the sum that will be charged now.
+  gift levels (Participating $20, Bronze $100, Silver $300, Gold $1,000, Diamond
+  $3,000, and Platinum $10,000), and **Other amount**, where you type whole dollars
+  from $5 up to $99,999. For more than that, talk to the treasurer.
+* **Total today**, the amount you will be charged now.
 * **Make this a recurring donation**, a box to check for a gift that repeats.
 * **How would you like to pay?**, the payment tabs, described on :doc:`join`.
 
-No amount is chosen when the screen opens, and there isn't a "No thank you", since
-giving is what the screen is for. Until you choose an amount the screen says *Choose
-a donation amount to continue.* Choosing **Other amount** opens a box with its hint,
-*From $5 up to $99,999.*, above it at the form's full width. An amount under $5 says
-*A donation must be at least $5.* in place of the payment tabs: $5 is the smallest
-gift CalDART takes on its own. A contribution added to your dues on :doc:`renew`
-doesn't have a smallest amount.
+The screen opens without an amount chosen. There isn't a "No thank you" choice,
+because giving is what the screen is for. Until you choose an amount, the screen
+says *Choose a donation amount to continue.* **Other amount** opens a box across the
+full width of the form, with its hint above it: *From $5 up to $99,999.* If you type
+less than $5, the screen shows *A donation must be at least $5.* instead of the
+payment tabs. $5 is the smallest gift CalDART takes on its own. A contribution added
+to your dues on :doc:`renew` doesn't have a minimum.
 
 
 Giving once
 ===========
 
 Choose the amount and pay from a tab. When the payment clears, *Thank you for your
-donation.* appears and you move to :doc:`payments`, where the gift is listed. The
+donation.* appears, and you go to :doc:`payments`, where the gift is listed. The
 receipt arrives by email, subject *CalDART: your receipt for $100.00* with your own
-amount. It counts towards your year's contribution statement.
+amount. The gift counts toward your contribution statement for the year.
 
 
 Giving on a schedule
 ====================
 
 A recurring donation gives the same amount monthly, quarterly, or yearly, from a
-card or PayPal account saved for the purpose. Any member, life member, or friend may
-hold one, beside an automatic renewal or without one. It doesn't renew anything or buy a
+card or PayPal account saved for it. Any member, life member, or friend can have
+one, with or without an automatic renewal. It doesn't renew anything or buy a
 membership.
 
 #. Choose the amount.
 #. Check **Make this a recurring donation**.
 #. Under **How often**, choose **Monthly**, **Quarterly**, or **Yearly**.
-#. Choose **First charge on**. It opens on today and takes no earlier day.
+#. Choose **First charge on**. It starts at today, and you can't pick an earlier day.
 #. Read the line under it, for example *CalDART charges $20.00 today, and each month
    after that. We email you a receipt after every charge. You can change it or turn
    it off at any time from Payments.*
 #. Pay, or save the method, from the tabs.
 
-With the first charge today, the gift is paid now and the card or account is saved
-for the charges after it. With a later day, nothing is paid today and **Total
-today** reads $0.00: the tabs save a card or PayPal account without charging it, and
-the screen says *Your recurring donation is set up. The first charge is on
-03/01/2027.* Either way you move to :doc:`payments`, and CalDART emails *CalDART:
-your recurring donation is on*.
+If the first charge is today, you pay the gift now, and CalDART saves the card or
+account for the later charges. If you pick a later day, you don't pay anything
+today, and **Total today** says $0.00. The tabs save a card or PayPal account
+without charging it, and the screen says *Your recurring donation is set up. The
+first charge is on 03/01/2027.* Either way, you go to :doc:`payments`, and CalDART
+emails you *CalDART: your recurring donation is on*.
 
-Each charge moves the next one on by a month, a quarter, or a year from the day it
-was due, keeping its day of the month where the month has one. A monthly donation
-that started on January 31 is next charged on February 28.
+After each charge, the next one comes a month, a quarter, or a year after the day it
+was due. It stays on the same day of the month when that month has the day. So a
+monthly donation that started on January 31 is next charged on February 28.
 
 
 One contribution in one place
 =============================
 
-An automatic renewal can carry a contribution beside your dues, and a recurring
-donation is a contribution of its own. You hold one or the other. If your renewal
-already takes a contribution, the screen asks before anything is charged, in place
-of the payment tabs: *Your automatic renewal already includes a contribution of
-$100.00 a year. Set up a recurring donation and that contribution comes off the
-renewal; your dues still renew automatically.* **Continue** agrees and brings the
-tabs back. Your renewal keeps renewing your dues, and the donation gives from then
-on.
+An automatic renewal can include a contribution along with your dues, and a
+recurring donation is a contribution of its own. You can have one or the other. If
+your renewal already includes a contribution, the screen asks before anything is
+charged. Instead of the payment tabs, it says *Your automatic renewal already
+includes a contribution of $100.00 a year. Set up a recurring donation and that
+contribution comes off the renewal; your dues still renew automatically.*
+**Continue** agrees and brings the tabs back. Your renewal keeps renewing your dues,
+and the donation does the giving from then on.
 
-While you hold a recurring donation, a contribution on your renewal is refused with
-*You already have a recurring donation. Change it on the Donate screen.*
+If you have a recurring donation and try to add a contribution to your renewal, you
+see *You already have a recurring donation. Change it on the Donate screen.*
 
 
 Changing or stopping it
 =======================
 
-On :doc:`payments`, the **Recurring donation** card's **Change** opens **Change your
-recurring donation**: the amount, **How often**, and **Next charge on**. It waits
-for an amount with *Choose an amount to give.*, and for at least $5 with *A donation
-must be at least $5.* Press **Save changes**.
+On :doc:`payments`, the **Change** button on the **Recurring donation** card opens
+**Change your recurring donation**: the amount, **How often**, and **Next charge
+on**. Until you choose an amount, it says *Choose an amount to give.* If the amount
+is under $5, it says *A donation must be at least $5.* Press **Save changes**.
 
 **Turn off** asks *Turn your recurring donation off? Nothing further is charged and
-your saved method is dropped.* **Turn it off** stops it at once, and CalDART
-emails *CalDART: your recurring donation is off*.
+your saved method is dropped.* **Turn it off** stops it at once, and CalDART emails
+you *CalDART: your recurring donation is off*.
 
 
 The emails it sends
 ===================
 
-* A yearly donation gets a warning 14 days before every charge: *CalDART: we
-  will take your recurring donation on* the day of the charge. A monthly or
-  quarterly one doesn't get a warning.
-* Each charge sends *CalDART: thank you for your recurring donation*, with the
-  receipt attached. That is the one message per charge.
-* A card that will expire before the next charge earns *CalDART: the card we take
-  your recurring donation with expires soon*.
-* A refused charge sends *CalDART: we could not take your recurring donation*, with
-  the reason. CalDART tries again the next day, then three days after that, then a
-  week after that.
-  After four refusals the donation stops and the card on :doc:`payments` reads
-  **Stopped** with the reason. Set it up again with another method from this screen.
-* A charge the treasurer closes because it couldn't be completed sends the same
-  subject: your recurring donation is paused, so you won't be charged automatically,
-  and you can give by hand or set it up again from this screen. The treasurer may get
-  in touch with you too.
+* For a yearly donation, you get a warning 14 days before every charge: *CalDART:
+  we will take your recurring donation on* the day of the charge. You don't get a
+  warning for a monthly or quarterly one.
+* After each charge, you get *CalDART: thank you for your recurring donation*, with
+  the receipt attached. That is the only email for each charge.
+* If your card will expire before the next charge, you get *CalDART: the card we
+  take your recurring donation with expires soon*.
+* If a charge is refused, you get *CalDART: we could not take your recurring
+  donation*, with the reason. CalDART tries again the next day, then three days
+  after that, then a week after that. After four refusals, the donation stops, and
+  the card on :doc:`payments` says **Stopped**, with the reason. Set it up again with
+  another method from this screen.
+* If the treasurer closes a charge because it couldn't be completed, you get an
+  email with the same subject. Your recurring donation is paused, so you won't be
+  charged automatically. You can give by hand or set it up again from this screen.
+  The treasurer may also get in touch with you.
 
 
 If something looks wrong
 ========================
 
-A declined card isn't charged. The card form clears, with the reason
-above it, so you can try another card or the PayPal tab; each try is a payment of
-its own. If the screen says the request was throttled, you have started or
-confirmed many payments within the hour: wait the time it names and try again. If
+If your card is declined, you aren't charged. The card form clears and shows the
+reason above it, so you can try another card or the PayPal tab. Each try counts as a
+separate payment. If the screen says the request was throttled, you have started or
+confirmed many payments within the hour. Wait the time it gives and try again. If
 the screen says **Online payment is not set up yet**, contact CalDART to give by
 check. To give more than $99,999 at once, talk to the treasurer.

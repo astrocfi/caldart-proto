@@ -3,7 +3,7 @@ Members-only content
 ====================
 
 Some pages of the public site, and some documents on it, are for members. CalDART
-calls them members-only. They hold the handbooks, exercise material and forms, the
+calls them members-only. They contain the handbooks, exercise material and forms, the
 DART leader and member roster, and training and exercise invitations. This page says
 who can read them and what everybody else sees.
 
@@ -16,34 +16,36 @@ these is true:
 
 * your membership is current, which includes a life membership and the last day of
   a term;
-* you hold any role beyond member, such as a DART leader, the treasurer, or an
-  administrator. They read these pages whatever their own membership is doing.
+* you hold any role besides member, such as a DART leader, the treasurer, or an
+  administrator. Then you can read these pages whatever the state of your own
+  membership.
 
-Nobody else can: a visitor who is not signed in, a member whose membership has
-expired, a friend of CalDART (a supporter who doesn't pay dues), and somebody who joined as
-a member and has not paid yet, who is offered **Pay dues** instead (below).
+Nobody else can read them. That means a visitor who isn't signed in, a member whose
+membership has expired, a friend of CalDART (a supporter who doesn't pay dues), and
+somebody who joined as a member and hasn't paid yet. That last person sees **Pay
+dues** instead (below).
 
 
 Where you find them
 ===================
 
 The members-only pages sit at the right of the public site's top menu, beside
-**Sign in** or **Welcome, <first name>**. On the seeded site the entry is **Members
-Only**, with pages such as **Notices** and **Documents and Links** under it. A news
-post can be members-only too: the news list shows it, marked **Members only**, only
-to a reader who may open it.
+**Sign in** or **Welcome, <first name>**. On the site as first set up, the entry is
+**Members Only**, with pages such as **Notices** and **Documents and Links** under it.
+A news post can be members-only too. The news list only shows it to readers who can
+open it, marked **Members only**.
 
-Signed in with a current membership, you also find them listed on the **Member
+If you are signed in with a current membership, they are also listed on the **Member
 content** card of your :doc:`dashboard`, and under **What you can read now** at the
-end of :doc:`join`. Both say **Nothing published yet** when there aren't any.
+end of :doc:`join`. Both say **Nothing published yet** if there aren't any.
 
 
 The wall
 ========
 
-Anybody who may not read a page sees the wall in its place. The wall keeps the
-page's title, headed **Members only**, and says what to do next. Its sidebar, **What
-membership includes**, lists what the pages hold.
+If you can't read a page, you see the wall instead: a notice that covers the page.
+The wall keeps the page's title, is headed **Members only**, and says what to do
+next. Its sidebar, **What membership includes**, lists what the pages contain.
 
 **Not signed in**
   *This page is open to CalDART members with a current membership, and to DART
@@ -55,7 +57,7 @@ membership includes**, lists what the pages hold.
   takes a minute and reopens it immediately.* Buttons: **Renew my membership** (see
   :doc:`renew`) and **Member portal**.
 
-**A member who has not paid yet**
+**A member who hasn't paid yet**
   *This page is open to CalDART members. Pay your dues to read it.* Buttons: **Pay
   dues** (see :doc:`become-a-member`) and **Member portal**.
 
@@ -73,5 +75,5 @@ If something looks wrong
 
 The wall ends with *Already paid, or think this is wrong?* and the address to write
 to. Before writing, check the membership status on your :doc:`dashboard`. If it says
-**Current** and the wall still appears, make sure you are signed in on this browser:
-**Sign in** in the top menu means you are not.
+**Current** and the wall still appears, make sure you are signed in on this browser.
+If the top menu shows **Sign in**, you aren't.

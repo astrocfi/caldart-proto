@@ -7,8 +7,8 @@ The **Change email** screen moves your account to another address. Open it from
 sign in with: *Your sign-in address is marta.reyes@example.org. We will send a link to
 the new address; the change takes effect when you open it.*
 
-Your address is how you sign in and where a password reset link goes, so nothing
-changes until the new address has proved it is yours.
+You sign in with your address, and password reset links go to it. So nothing
+changes until you prove that the new address is yours.
 
 
 What you see
@@ -17,7 +17,7 @@ What you see
 Two boxes:
 
 **New email address**
-  The address you want to sign in with from now on.
+  The address you want to sign in with.
 
 **Current password**
   Your password, to prove the request is yours.
@@ -30,31 +30,31 @@ What happens next
 =================
 
 *We sent a link to marta@example.net. Your sign-in address stays
-marta.reyes@example.org until you follow it.* appears. You stay signed in, and the
-whole portal stays open to you.
+marta.reyes@example.org until you follow it.* appears. You stay signed in, and you
+can still use the whole portal.
 
-Two messages go out:
+CalDART sends two emails:
 
-* The new address gets *CalDART: confirm your new email address*. Open its link: the
-  screen says **Email address changed** and *marta@example.net is your sign-in
-  address from now on.* (see :doc:`verify-email`). The link is good for three days.
+* The new address gets *CalDART: confirm your new email address*. Open its link, and
+  the screen says **Email address changed** and *marta@example.net is your sign-in
+  address from now on.* (see :doc:`verify-email`). The link works for three days.
 * Your current address gets *CalDART: your email address is changing*, so that you
-  hear of a change you did not ask for. When the change is made, it gets *CalDART:
-  your email address has changed* as well. Each has a link that undoes the change
-  (see :doc:`undo-email-change`). If the change is yours, ignore them. An address you
-  never verified is not sent these.
+  hear about any change you didn't ask for. When the change happens, it also gets
+  *CalDART: your email address has changed*. Each email has a link that undoes the
+  change (see :doc:`undo-email-change`). If the change is yours, ignore them. If you
+  never verified your current address, CalDART doesn't send these.
 
-Until you open the link, you sign in with your current address, and this screen
-shows a **Change waiting** card with the same sentence and a **Resend verification
-message** button, which sends the link to the new address again. To move to a
-different address instead, change it again: only the newest link works.
+Until you open the link, you sign in with your current address. This screen shows a
+**Change waiting** card with the same sentence and a **Resend verification message**
+button, which sends the link to the new address again. To move to a different
+address instead, change it again. Only the most recent link works.
 
 Capital letters don't make a difference: Marta@example.org and marta@example.org are the
 same address.
 
-If you change the address from the join wizard's **Check your email** step, to fix a
-mistyped address, the step names the address waiting and sends its link there. Open
-it and the wizard carries on.
+You can also fix a mistyped address from the **Check your email** step of the join
+wizard. The step then shows the waiting address and sends the link there. Open the
+link, and the wizard goes on.
 
 
 If the screen says something else
@@ -64,31 +64,34 @@ If the screen says something else
   The password is wrong. Type it again.
 
 *That is already your email address.*
-  The new address is the one you have.
+  The new address is the same as your current one.
 
 *Your sign-in address changed in the last seven days, so it cannot change again until 10/19/2026.*
-  For seven days after a change, the address you left is kept so that you can undo the
-  change from it (see :doc:`undo-email-change`), and your address cannot change again.
-  Wait until the date it gives. An account administrator can still change it for you.
+  For seven days after a change, CalDART holds your previous address so that you can
+  undo the change from it (see :doc:`undo-email-change`). During that time your
+  address can't change again. Wait until the date it gives. An account administrator
+  can still change it for you.
 
 *Request was throttled. Expected available in ... seconds.*
-  Too many changes have been asked for from your network in the last hour. Wait the
+  Too many change requests have come from your network in the last hour. Wait the
   time it gives.
 
 
 If something looks wrong
 ========================
 
-If the message to the new address does not arrive, look in your spam folder, then
+If the message to the new address doesn't arrive, look in your spam folder, then
 press **Resend verification message** in the **Change waiting** card. If you typed the
-new address wrong, change it again to the right one. If no message ever arrives, the
-address may already belong to another account, which is never sent a link: each
-address belongs to one account, so choose another, or sign in to the other account if
-it is yours. If the link says *Another account already uses that email address.*,
-somebody took the address after you asked for it; choose another.
+new address wrong, change it again to the right one. If a message never arrives, the
+address may already belong to another account. Each address belongs to one account,
+so CalDART never sends a link to an address another account uses. Choose another
+address, or sign in to the other account if it is yours. If the link says *Another
+account already uses that email address.*, somebody else took the address after you
+asked for it. Choose another.
 
-Changing your password drops a change still waiting, and its link stops working; ask
-again if you still want it.
+Changing your password cancels a change that is still waiting, and its link stops
+working. Ask again if you still want the change.
 
 An account administrator can also change your address on your member record. That
-works the same way: the new address is sent the link, and your address is told.
+works the same way. The new address gets the link, and your current address gets
+the notices.
