@@ -14,29 +14,30 @@ What you see
 The directory
 ~~~~~~~~~~~~~
 
-The **DARTs** page is a DART index. Above its table sit an **Intro** and a **Body** you
-write. The table lists every published DART page, alphabetically by title, with the
+The **DARTs** page is a DART index. Above its table are an **Intro** and a **Body** that
+you write. The table lists every published DART page, alphabetically by title, with the
 team's **DART** name, its **Airport**, and its **Leader**. The caption counts the teams.
 
-The home page's **Find your DART** box lists every active team; choosing one and pressing
-**Go** opens that team's page, or the directory when the team doesn't have a published page.
+The home page's **Find your DART** box lists every active team. Choose one and press
+**Go** to open that team's page. If the team doesn't have a published page, the directory
+opens instead.
 
 One team's page
 ~~~~~~~~~~~~~~~
 
-A DART page has three things you fill in, and one it reads for itself:
+A DART page has three things you fill in. It finds a fourth, the airport, on its own:
 
-* **Dart**, the team this page belongs to, chosen from the teams the membership records
-  hold. The list shows each team's name with its airport identifiers.
+* **Dart**, the team this page belongs to, chosen from the teams in the membership
+  records. The list shows each team's name with its airport identifiers.
 * **Leader name** and **Leader contact**, under **DART leader**. The contact is an email
-  address or a phone number, and visitors can click it to write or call. A leader's
-  name typed all in capitals or all in lower case is saved in title case, *SMITH* as
-  **Smith**; one typed with both is kept as typed.
+  address or a phone number, and visitors can click it to write or call. If you type a
+  leader's name all in capitals or all in lower case, it is saved in title case, so
+  *SMITH* becomes **Smith**. A name typed with both is kept as typed.
 * **Body**, the page's own words, built from blocks (see :doc:`pages-and-blocks`).
 
 The airport shown on the page and in the directory comes from the team chosen under
-**Dart**, so the identifiers are never typed twice. A **This team** box beside the body
-shows the airport and the leader, and a link at the bottom returns to **All DARTs**.
+**Dart**, so nobody types the identifiers twice. A **This team** box beside the body
+shows the airport and the leader, and a link at the bottom goes back to **All DARTs**.
 
 What you can do
 ===============
@@ -61,8 +62,8 @@ Open the team's page, change **Leader name** and **Leader contact**, and publish
 If something looks wrong
 ========================
 
-If a page shows the wrong airport, or doesn't show one, the airport comes from the team's
-record in the portal, which an account administrator corrects; every page that names the
-team follows. Check too that **Dart** names the right team. If **Find your DART** opens
+If a page shows the wrong airport, or doesn't show one, look at the team's record in the
+portal. The airport comes from there, and an account administrator corrects it. Every page
+that names the team then follows. Check too that **Dart** names the right team. If **Find your DART** opens
 the directory for a team, that team doesn't have a published page, or its page names a
 different team under **Dart**.

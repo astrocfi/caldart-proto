@@ -16,17 +16,17 @@ website administrator, and a system administrator must use two-factor sign-in: a
 code from an authenticator app on their phone each time they sign in (see
 :doc:`member/two-factor`).
 
-Those six are the **two-factor roles**, which messages call the administrative roles, and
-they are granted with care. A user administrator grants or takes away a two-factor role only
-while holding it themselves: one who is also an account administrator can make somebody else
-an account administrator, but one who is not the treasurer can neither grant nor take away
-Treasurer. Any user administrator grants and takes away Member, Verifier, and DART leader. A
-system administrator grants and takes away every role. Nobody changes their own roles, a
-system administrator included: ask another administrator.
+These six are the **two-factor roles**. The portal's messages call them the
+administrative roles. A user administrator can grant or take away a two-factor role only
+if they hold it themselves. One who is also an account administrator can make somebody
+else an account administrator. One who isn't the treasurer can't grant or take away
+Treasurer. Any user administrator can grant and take away Member, Verifier, and DART
+leader. A system administrator can grant and take away every role. Nobody can change their
+own roles. That includes a system administrator, so ask another administrator.
 
-This guide works the same way. It shows each reader the screens their roles reach:
-its menu and its contents list only the pages you can use, and the address of any
-other page brings you back to the guide's front page. A system administrator sees
+This guide works the same way. Its menu and its contents list only the pages for the
+screens you can use. If you open the address of any other page, you land on the
+guide's front page. A system administrator sees
 every page. The links on this page lead to every role's screens, so some of them
 may bring you back to the front page too.
 
@@ -48,7 +48,7 @@ Every member and every friend of CalDART holds the member role. It opens the
   every payment with its receipt, and contribution statements.
 * **Donate** (:doc:`member/donate`): a gift, once or on a schedule.
 * **Renew** (:doc:`member/renew`): your next term. A friend and a life member don't
-  have a **Renew** entry; a life member gives through **Donate**.
+  have a **Renew** entry. A life member gives through **Donate**.
 * **Change password** (:doc:`member/change-password`) and **Change email**
   (:doc:`member/change-email`).
 * **Email to me** (:doc:`member/messages`) and **Email preferences**
@@ -71,21 +71,21 @@ adds the **Operations** group:
 * **Member check** (:doc:`admin/member-check`): look up a member, read their
   verdict, and press **Verify** to correct and verify their pilot certificate,
   medical, and photo ID in one save. It also downloads the CalDART verification
-  report of everything not yet verified.
+  report, which lists everything still waiting to be verified.
 * **Aircraft check** (:doc:`admin/aircraft-check`): look up an airplane and press
   **Verify** to correct and verify its insurance.
 
-A verifier does not browse the membership list. A DART leader or a user
+A verifier can't browse the membership list. A DART leader or a user
 administrator grants the role from the member check, and a user administrator can
 also grant it on the **User record** (:doc:`admin/user-record`). Anyone with a portal
 account can be made a verifier, whatever other roles they hold, a treasurer included.
-Nobody makes themselves a verifier. You may verify your own documents.
+You can't make yourself a verifier, but you may verify your own documents.
 
 
 DART leader
 ===========
 
-A DART leader checks, before a mission, whether a member is fit to fly for
+Before a mission, a DART leader checks whether a member is fit to fly for
 CalDART. The role adds the **Operations** group and one entry of
 **Administration**:
 
@@ -97,20 +97,20 @@ CalDART. The role adds the **Operations** group and one entry of
 * **Aircraft check** (:doc:`admin/aircraft-check`): look up an airplane by N-number,
   see its insurance and who flies it, and verify the insurance.
 * **Members** (:doc:`admin/members`): the whole membership list, with its filters
-  and downloads. The member record behind each name stays the account
-  administrator's.
+  and downloads. Only an account administrator opens the member record behind each
+  name.
 
-The role also adds entries of the **Bulk email** group, for writing to the members and
-friends of the DART on the leader's own profile (:doc:`bulk-email/dart-leaders`):
+The role also adds part of the **Bulk email** group, for writing to the members and
+friends of the leader's own DART, the one on their profile (:doc:`bulk-email/dart-leaders`):
 **Compose** (:doc:`bulk-email/compose`), **Drafts and scheduled**
 (:doc:`bulk-email/drafts`), and **Sent** (:doc:`bulk-email/sent`). A leader sees only the
 emails they wrote. **Callouts** (:doc:`bulk-email/callouts`) collects the answers to the
-mission callouts the leader sent and to those sent to their DART. Which types of email a
-leader may send is set on **Email types**; as the site starts, those are Operational and
-Mission email.
+mission callouts the leader sent and to those sent to their DART. **Email types** sets
+which types of email a leader may send. To begin with, those are Operational and Mission
+email.
 
-Every role beyond member also opens the members-only pages, whatever the holder's
-own membership.
+Every role other than member also opens the members-only pages, whether or not the
+holder's own membership is current.
 
 
 User administrator
@@ -121,17 +121,17 @@ A user administrator looks after accounts. The role adds:
 * **Roles and status** (:doc:`admin/users`): every account, with filters, and the
   **User record** (:doc:`admin/user-record`) behind each: the roles it holds,
   deactivating and reactivating it, blocking it from reactivating, correcting its
-  email address, and sending a password reset link or a verification message. The screen also downloads the
-  CalDART roles report as a CSV or a PDF.
+  email address, and sending a password reset link or a verification message. The
+  screen also downloads the CalDART roles report as a CSV or a PDF.
 * **Member check** and **Aircraft check** (:doc:`admin/member-check`,
   :doc:`admin/aircraft-check`): verifying, as a verifier does, and making a member a
   verifier from the member check.
 * The **CalDART roles report**: the people who hold each role other than member,
-  in a section per role, Verifier among them. An account administrator can have it emailed to a user
-  administrator on a schedule (:doc:`admin/subscriptions`).
+  with a section for each role, Verifier included. An account administrator can have
+  it emailed to a user administrator on a schedule (:doc:`admin/subscriptions`).
 
-A user administrator cannot grant or take away the system administrator role, nor a
-two-factor role they do not hold themselves, and cannot change their own roles.
+A user administrator can't grant or take away the system administrator role, or a
+two-factor role they don't hold themselves. They can't change their own roles either.
 
 
 Treasurer
@@ -170,13 +170,13 @@ An account administrator looks after the membership records. The role adds:
 * **Accounting**: the finance area as the treasurer sees it, without **Donors**
   (:doc:`finance/index`).
 * **Reminders** (:doc:`admin/reminders`): every renewal reminder CalDART has sent, and the
-  reminder schedule that dates them.
-* **Emailed reports** (:doc:`admin/subscriptions`): reports by email, the CalDART roles report
-  among them, and sending each DART its roster.
+  reminder schedule that sets when they go out.
+* **Emailed reports** (:doc:`admin/subscriptions`): reports by email, including the CalDART
+  roles report, and sending each DART its roster.
 * **Notification emails** (:doc:`admin/notifications`): who hears about what by email,
   from a sign-up to a refund.
 * **Member check** and **Aircraft check** (:doc:`admin/member-check`,
-  :doc:`admin/aircraft-check`), with verifying, as a verifier has them. An account
+  :doc:`admin/aircraft-check`), with verifying, just as a verifier has them. An account
   administrator also verifies from each member record and aircraft record.
 
 
@@ -189,21 +189,22 @@ group of the menu:
 * **Compose** (:doc:`bulk-email/compose`): build a recipient list with the same filters the
   member list uses, write the message, send yourself a test, read the checks and the
   preview, and send it now or schedule it, with two minutes to cancel.
-* **Drafts and scheduled** (:doc:`bulk-email/drafts`): every email not yet sent, to open,
+* **Drafts and scheduled** (:doc:`bulk-email/drafts`): every unsent email, to open,
   cancel, or delete.
-* **Sent** (:doc:`bulk-email/sent`): every email sent, with what became of each person's
-  copy, to stop or finish a send, retry the failed copies, view one person's copy, hide it
-  from **Email to me**, download the results, and start a new draft from an email with
-  **Duplicate**.
-* **Templates** (:doc:`bulk-email/templates`): the messages kept to start an email from,
+* **Sent** (:doc:`bulk-email/sent`): every email sent, and what happened to each person's
+  copy. From there you stop or finish a send, retry the failed copies, view one person's
+  copy, hide it from **Email to me**, download the results, and start a new draft from an
+  email with **Duplicate**.
+* **Templates** (:doc:`bulk-email/templates`): saved messages to start an email from,
   such as reminders about an exercise.
-* **Recipient groups** (:doc:`bulk-email/groups`): the people kept to add to a recipient list in one
-  step, either a fixed list or filters run again each time.
+* **Recipient groups** (:doc:`bulk-email/groups`): saved sets of people to add to a
+  recipient list in one step. A group is either a fixed list or filters that run again
+  each time.
 * **Callouts** (:doc:`bulk-email/callouts`): the answers to every mission callout, who can
-  fly and who has not answered, to remind the rest or close the answers.
+  fly and who hasn't answered. From there you remind the rest or close the answers.
 
-CalDART management writes to anybody, and sees every bulk email, its sender, and, for a DART
-leader's email, its DART. The role doesn't open a member record or a payment. A system
+CalDART management can write to anybody. It sees every bulk email and its sender, and
+the DART of each DART leader's email. The role doesn't open a member record or a payment. A system
 administrator, or a user administrator who is also CalDART management, grants it.
 
 
@@ -222,7 +223,7 @@ portal's menu beyond the member's screens.
 System administrator
 ====================
 
-A system administrator holds every role above and can do everything they can. The
+A system administrator holds every role above and can do everything those roles do. The
 role adds:
 
 * **Health and database** (:doc:`admin/health-database`): the site's health, whether other

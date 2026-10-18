@@ -2,8 +2,8 @@
 Quick start
 ===========
 
-The first things most people do with CalDART, each as a short walk through the
-screens. Every button is named as the site shows it. Each screen has a **Help**
+This page walks you through the first things most people do with CalDART, one
+short walk each. Every button is named as the site shows it. Each screen has a **Help**
 button in the portal's top bar that opens its own page of this guide.
 
 
@@ -24,10 +24,10 @@ Create an account
    CalDART**, or press **Continue without a gift**.
 #. On **Welcome to CalDART**, press **Go to my dashboard**.
 
-Until the last step, the wizard is the whole portal: there isn't a menu, and signing
-in again brings you back to the step you still have to finish. A member who would
-rather not pay after all chooses **Join as a friend instead (no dues)** on **Pay
-your dues**, then **Continue without a gift**.
+Until the last step, the wizard is the whole portal. There isn't a menu, and if you
+sign in again you come back to the step you haven't finished. If you decide not to
+pay after all, choose **Join as a friend instead (no dues)** on **Pay your dues**,
+then **Continue without a gift**.
 
 Next time, choose **Sign in** in the public site's top menu and use the same email
 address and password. See :doc:`member/join`, :doc:`member/verify-email`, and
@@ -40,7 +40,7 @@ Add an aircraft you fly
 #. Sign in and choose **My aircraft** in the menu.
 #. In **Search CalDART's aircraft list**, type the N-number.
 #. Click the airplane in the results. It joins **Your aircraft**.
-#. If it is not on CalDART's list, press **Add a new aircraft**, fill in the
+#. If it isn't on CalDART's list, press **Add a new aircraft**, fill in the
    **N-number**, **Make**, **Model**, and the **Insurance expires** date, and press
    **Add aircraft**.
 
@@ -75,13 +75,13 @@ Pay, renew, and give
 To renew your membership:
 
 #. Choose **Renew** in the menu, or the **Renew** button on your **Dashboard**.
-#. Check **Your membership**. The first plan listed is chosen for you. A site
-   without a membership plan set up shows *No membership plan is set up yet. Ask an
-   administrator.* instead of the plans.
-#. Check **Renew automatically each year** if you want CalDART to renew you from
-   now on.
+#. Check **Your membership**. The first plan listed is chosen for you. If nobody
+   has set up a membership plan yet, you see *No membership plan is set up yet. Ask
+   an administrator.* instead of the plans.
+#. Check **Renew automatically each year** if you want CalDART to renew you every
+   year.
 #. Pay from the **Card · Apple Pay · Google Pay** tab or the **PayPal** tab. If you
-   are still current, the new term starts the day after your present one ends; if
+   are still current, the new term starts the day after your present one ends. If
    you have lapsed, it starts today.
 
 See :doc:`member/renew`.
@@ -124,14 +124,15 @@ Send a bulk email
 CalDART management, and a DART leader writing to their own DART:
 
 #. Choose **Compose** under **Bulk email** in the menu.
-#. Under **1. Who gets it**, choose filters and press **Add these people**. Add again until the
-   recipient list holds everybody the email is for.
+#. Under **1. Who gets it**, choose filters and press **Add these people**. Repeat
+   until the recipient list has everybody the email is for.
 #. Under **2. What it says**, choose the **Type of email**, write the **Subject** and the
    **Message**, and press **Send me a test** to see it in your own mail program.
 #. Under **3. Check and send**, fix anything marked **Must fix**, then press **Send to 38
-   people** (with your own count) and **Send**. Above 50 people, type the count first.
-#. For two minutes, **Cancel** turns the email back into a draft. Then **Sent** shows what
-   became of each person's copy.
+   people** (with your own count) and **Send**. For more than 50 people, you type the
+   count first.
+#. For the next two minutes, **Cancel** turns the email back into a draft. After
+   that, **Sent** shows what happened to each person's copy.
 
 See :doc:`bulk-email/index`, which explains the words these screens use, and
 :doc:`bulk-email/compose`.
@@ -143,23 +144,23 @@ Forms, confirmations, and messages
 Every screen of the portal behaves the same way when you save, change, or delete
 something, so what you learn on one screen holds on the next.
 
-**A form that cannot be saved** says so beside the field that needs fixing, in red, and
-moves you to the first such field, scrolling it into view. A line beside the button you
-pressed says how many fields to check, such as *Check the 2 highlighted fields.*, and
-it counts down as you correct them. A complaint about a field goes as soon as you edit
-that field.
+**A form that cannot be saved** says so in red beside each field that needs fixing,
+and scrolls to the first one. A line beside the button you pressed says how many
+fields to check, such as *Check the 2 highlighted fields.*, and the count goes down
+as you correct them. The red note on a field goes away as soon as you edit it.
 
-**Anything that cannot be undone asks first.** A trashcan turns into a red **Delete**
-(or **Remove**) and **Cancel**; any other such action, such as turning off an automatic
-renewal or deactivating an account, opens a short panel below its row of buttons that
-says what will happen, with a red button that names the act and **Cancel**. Only the
-red button acts. **Cancel** or the Escape key closes the question and doesn't change anything,
-and so does a click anywhere else while a trashcan is asking.
+**Anything that cannot be undone asks first.** When you press a trashcan, it turns
+into a red **Delete** (or **Remove**) button and a **Cancel** button. Any other such
+action, such as turning off an automatic renewal or deactivating an account, opens a
+short panel below its buttons. The panel says what will happen, and it has a red
+button named for the action, and **Cancel**. Only the red button acts. **Cancel** or
+the Escape key closes the question without changing anything. So does a click
+anywhere else while a trashcan is asking.
 
-**A form that opens in place**, such as **Edit** on a row, takes you to its first box.
-Escape closes it as **Cancel** does, and closing it, or saving it, takes you back to the
-button that opened it.
+**A form that opens in place**, such as the one **Edit** opens on a row, puts you in
+its first box. Escape closes it, just as **Cancel** does. When you close it or save
+it, you go back to the button that opened it.
 
-**Every save, send, and delete is confirmed** by a short message in the corner of the
-screen, which goes away on its own after a few seconds, or at once when you press its
-**×**. A message about something that went wrong is drawn in red.
+**Every save, send, and delete is confirmed** by a short message in the corner of
+the screen. It goes away on its own after a few seconds, or at once when you press
+its **×**. A message about a problem is shown in red.

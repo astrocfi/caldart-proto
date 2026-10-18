@@ -2,8 +2,8 @@
 FAQ
 ===
 
-Short answers to the questions the office hears most. Each points at the page that
-covers it in full.
+These are short answers to the questions the office hears most. Each one links to
+the page that covers it in full.
 
 
 Membership
@@ -13,7 +13,7 @@ When does my membership expire?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Sign in and look at your dashboard. The membership card shows your membership's status and
-the date it runs to. An Annual term runs 365 days counting the day it starts, so
+the date it runs to. An Annual term runs 365 days, counting the day it starts, so
 a term that starts on 03/01/2026 ends on 02/28/2027. A life membership reads **Never
 expires**. See :doc:`member/dashboard`.
 
@@ -30,8 +30,8 @@ What happens if I let my membership lapse?
 
 Your account stays as it is: your sign-in, profile, aircraft, and history are kept.
 You lose the members-only pages, and a DART leader's check shows your membership as
-lapsed. Renew and you are current again the moment the payment clears; the new term
-starts that day. See :doc:`member/renew`.
+lapsed. When you renew, you are current again the moment the payment clears, and the
+new term starts that day. See :doc:`member/renew`.
 
 Will you remind me?
 ~~~~~~~~~~~~~~~~~~~
@@ -44,7 +44,7 @@ See :doc:`member/renew`.
 What is a friend of CalDART?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Somebody with an account and the member portal who doesn't pay dues. Nothing expires,
+A friend has an account and the member portal but doesn't pay dues. Nothing expires,
 no reminder is sent, and members-only pages stay closed. A friend can give whenever
 they like, and becomes a member by paying for a plan. See :doc:`overview`.
 
@@ -52,32 +52,33 @@ Can I join without paying dues?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Yes, as a friend of CalDART. Choose **Join as a friend** on the first step of the
-join wizard. The payment step then offers a contribution you may skip with **Not
-now**. A member pays dues: you are a member from the moment your first payment
-clears. See :doc:`member/join`.
+join wizard. The payment step then offers a contribution, which you may skip with
+**Continue without a gift**. A member pays dues, and you are a member from the moment
+your first payment clears. See :doc:`member/join`.
 
 Why can I see only the Check your email screen?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Your email address is not verified yet, so nothing else in the portal is open to
-you. Open the message *CalDART: verify your email address* and follow its link.
-If it has not arrived, look in your spam folder, then press **Resend verification
+You haven't verified your email address yet, so the rest of the portal stays closed.
+Open the message *CalDART: verify your email address* and follow its link. If it
+hasn't arrived, look in your spam folder, then press **Resend verification
 message** on that screen. See :doc:`member/verify-email`.
 
 I registered as a member but did not pay. What am I?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Not a member yet, because you have not finished joining. Every time you sign in, the join wizard
-puts you back on **Pay your dues**, and the rest of the portal stays closed until you
-pay or choose **I changed my mind, I just want to be a friend** there. You are a
+You aren't a member yet, because you haven't finished joining. Every time you sign
+in, the join wizard puts you back on **Pay your dues**. The rest of the portal stays
+closed until you pay, or until you choose **Join as a friend instead (no dues)**
+there. You are a
 member as soon as the payment clears. See :doc:`member/join`.
 
 How do I stop being a member but keep supporting CalDART?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Press **Make me a friend** on your dashboard or on **My profile**. A current
-membership runs to its end first. Automatic renewal is turned off, and a
-contribution it carried can carry on as a yearly recurring donation. To become a
+membership runs to its end first. Automatic renewal is turned off. If it included a
+contribution, you can keep giving that amount as a yearly recurring donation. To become a
 member again, press **Make me a member**. See :doc:`member/profile` and
 :doc:`member/become-a-member`.
 
@@ -109,7 +110,7 @@ How do I change the card on file?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Turn the automatic renewal or recurring donation off on **My payments** and set it up
-again with the new card. CalDART keeps a card only for those two. See
+again with the new card. CalDART keeps a card on file only for those two. See
 :doc:`member/payments`.
 
 How do I stop being charged automatically?
@@ -128,8 +129,8 @@ receipt can be downloaded again from **My payments**. See :doc:`member/payments`
 Can I get a statement of my contributions for my taxes?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Yes. CalDART emails one each January for the year before, and **My payments** offers a
-button for each year you gave in. A year of dues alone doesn't have one. See
+Yes. CalDART emails one each January for the year before, and **My payments** has a
+button for each year you gave. A year when you paid only dues doesn't get one. See
 :doc:`member/payments`.
 
 My payment failed. Was I charged?
@@ -151,23 +152,23 @@ Profile and aircraft
 Why is my medical showing as expired?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The **Medical expires** date on your profile has passed. CalDART reads the date you
-typed; it doesn't work anything out for you. Update it on **My profile**. See
+The **Medical expires** date on your profile has passed. CalDART goes by the date
+you typed and doesn't work anything out for you. Update it on **My profile**. See
 :doc:`member/profile`.
 
 Why is an aircraft's insurance showing as expired?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The insurance expiry on the aircraft's record has passed, or the record doesn't have one.
-If you added the airplane, correct it with **Edit** on **My aircraft**; otherwise ask
-an account administrator. See :doc:`member/my-aircraft`.
+The insurance expiration date on the aircraft's record has passed, or the record
+doesn't have a date. If you added the airplane, correct it with **Edit** on **My
+aircraft**. Otherwise, ask an account administrator. See :doc:`member/my-aircraft`.
 
 Which aircraft does CalDART's insurance cover?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The coverage policy says which aircraft categories, such as helicopters, and which
 airworthiness categories, such as experimental, CalDART's insurance leaves out. Its note
-to members stands at the top of **My aircraft**, and an airplane on your list that it
+to members is at the top of **My aircraft**, and any airplane on your list that it
 leaves out is marked **Not covered**. A DART leader's aircraft check shows such an
 airplane as a no-go, so talk to your DART leader before offering it for a mission. See
 :doc:`member/my-aircraft`.
@@ -175,8 +176,8 @@ airplane as a no-go, so talk to your DART leader before offering it for a missio
 Somebody already added the airplane I fly. Should I add another?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-No. There is one register for everybody. Search for the airplane and attach the
-record that is there. See :doc:`member/my-aircraft`.
+No. There is one register for everybody. Search for the airplane and add the record
+that's already there. See :doc:`member/my-aircraft`.
 
 
 Signing in and access
@@ -194,17 +195,18 @@ Can I change my email address?
 Yes, on **Change email**, with your current password. You sign in with the new
 address from then on. See :doc:`member/change-email`.
 
-Why can I not see a members-only page?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Why can't I see a members-only page?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You are signed out, your membership has lapsed, or you are a friend. The wall says
-which and offers the way through. See :doc:`member/members-only-content`.
+You are signed out, your membership has lapsed, or you are a friend. The page tells
+you which, and shows you the way in. See :doc:`member/members-only-content`.
 
 A menu entry I expect is missing, or a screen says Not allowed
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You lack the role for it. A user administrator can grant it, though a two-factor role only
-a system administrator or a user administrator who holds it can grant. See :doc:`roles` and
+You don't have the role for it. A user administrator can grant most roles. Only a
+system administrator, or a user administrator who holds the role, can grant a
+two-factor role. See :doc:`roles` and
 :doc:`admin/index`.
 
 Can I close my account?
@@ -227,9 +229,9 @@ Use **Member check**, which a DART leader and an account administrator have. See
 Who corrects my name, a membership date, or a payment?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Anything on **My profile** you can fix yourself. For the rest, contact the office,
-at the address in the footer of every public page; an account administrator or the
-treasurer can correct it. See :doc:`admin/index` and :doc:`finance/index`.
+You can fix anything on **My profile** yourself. For anything else, write to the
+office at the address in the footer of every public page. An account administrator or
+the treasurer can correct it. See :doc:`admin/index` and :doc:`finance/index`.
 
 How do I change a page on the public site?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

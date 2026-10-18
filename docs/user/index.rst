@@ -4,7 +4,7 @@ User guide
 
 This guide explains CalDART's website to the people who use it: members and
 friends of CalDART, DART leaders, and the administrators who look after accounts,
-money, the website, and the system. It doesn't need any technical knowledge.
+money, the website, and the system. You don't need any technical knowledge to read it.
 
 The guide is arranged by screen. Each page describes one screen of the site: what
 it is for, what you see, what you can do, and what happens next. The screens are
