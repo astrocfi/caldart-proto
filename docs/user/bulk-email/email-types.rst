@@ -10,81 +10,80 @@ whether members and friends may turn it off. Only a system administrator sees it
 **Bulk email** in the menu.
 
 The types matter to the people who receive the email. Every member and friend can turn off
-any type that allows it, on their own :doc:`../member/email-preferences` screen or from the
-unsubscribe link at the bottom of an email of that type, and an account administrator can do
-it for them on the :doc:`../admin/member-record`. Turning off one type leaves every other
-type arriving as before.
+any type that allows it. They do it on their own :doc:`../member/email-preferences` screen,
+or with the unsubscribe link at the bottom of an email of that type. An account
+administrator can do it for them on the :doc:`../admin/member-record`. Turning off one type
+doesn't stop any other type.
 
 
 What you see
 ============
 
-A table with one row per type, in the order every screen lists them. The description and
-the senders wrap, so they read in full:
+You see a table with one row per type, in the order every screen lists them. The description
+and the senders wrap, so you can read them in full:
 
-- **Name**, what every screen and every email calls it.
-- **What it is for**, one sentence that members read beside the switch that turns it off.
-  It never narrows below a readable width, and it breaks only between words.
+- **Name**: what every screen and every email calls the type.
+- **What it is for**: one sentence that members read beside the switch that turns it off.
+  The column never gets too narrow to read, and it breaks only between words.
 - **Who may send it**: **DART leader**, **CalDART management**, or both. A type with
-  neither reads **System administrators only**, because a system administrator can send
+  neither says **System administrators only**, because a system administrator can send
   every type.
 - **Can be turned off**: **Yes** or **No**, with a colored dot.
 - **Edit** and a trashcan, last.
 
-On a screen too narrow for every column, **Can be turned off**, then **Who may send it**
-are left out, and **Edit** and the trashcan sit one above the other; on a phone the table
-scrolls sideways, says so above it, and keeps **Name** pinned at the left. When there
-aren't any types, the table reads *No email types yet*, with a **New email type** button.
+On a narrow screen, **Can be turned off** and then **Who may send it** drop out, and **Edit**
+and the trashcan sit one above the other. On a phone, the table scrolls sideways, a note
+above it says so, and **Name** stays pinned at the left. If there aren't any types, the table
+says *No email types yet* and has a **New email type** button.
 
-Every site starts with three types: **Operational** and **Mission**, sent by CalDART
-management and DART leaders, and **Fundraising**, sent by CalDART management alone. All
-three can be turned off. They are ordinary types: edit them, delete them, or add more.
+Every site starts with three types. **Operational** and **Mission** are sent by CalDART
+management and DART leaders, and **Fundraising** by CalDART management alone. All three can
+be turned off. They are ordinary types: you can edit them, delete them, or add more.
 
 
 Adding or changing a type
 =========================
 
-Press **New email type**, or **Edit** on a row. The form opens above the table and takes you
-to its first box, scrolling it into view. Fill it in:
+Press **New email type**, or **Edit** on a row. The form opens above the table and scrolls
+to its first box, with the cursor in it. Fill it in:
 
 **Name**
    At most 60 characters, and different from every other type's name. Capitals and
-   punctuation do not make a name different: with **Mission** on the list, *mission* and
+   punctuation don't make a name different. With **Mission** on the list, *mission* and
    *Mission!* are both refused with *Another email type already has this name.*
 **What it is for**
    One sentence in plain words. Members read it on their **Email preferences** screen when
-   deciding whether to keep the email.
+   they decide whether to keep the email.
 **Who may send it**
    Check **DART leader**, **CalDART management**, or both. Leave both clear to keep the type
    for system administrators.
 **Recipients may turn it off**
-   Checked, each email of this type carries an unsubscribe link, and the type appears on
-   everyone's **Email preferences**. Clear it only for email every member and friend must
-   receive: such an email says at its foot that it cannot be turned off. Clearing the box
-   keeps everyone's earlier choice, and checking it again brings those choices back.
+   When this is checked, each email of this type has an unsubscribe link, and the type
+   appears on everyone's **Email preferences**. Clear it only for email every member and
+   friend must receive. Such an email says at its foot that it can't be turned off. Clearing
+   the box keeps everyone's earlier choice, and checking it again brings those choices back.
 
-Press **Add email type** or **Save changes**. The message *Operational added.* or *Operational saved.*
-confirms it, with the type's own name. **Cancel**, or Escape, closes the form and doesn't
-change anything, and you are back on the button that opened it.
+Press **Add email type** or **Save changes**. The message *Operational added.* or
+*Operational saved.*, with the type's own name, confirms it. **Cancel**, or Escape, closes
+the form without changing anything, and you are back on the button that opened it.
 
 
 Deleting a type
 ===============
 
-Press the trashcan on the row. It turns into **Delete** and **Cancel**; press **Delete** to
-go ahead. *Operational deleted.* confirms it, and every member's choice about that type goes
-with it.
+Press the trashcan on the row. It turns into **Delete** and **Cancel**. Press **Delete** to
+go ahead. *Operational deleted.* confirms it, and every member's choice about that type is
+deleted with it.
 
-A type that a bulk email has already used cannot be deleted, because the record of that
-email names it. Its trashcan is grayed out, and a line under the table says why; holding the
-pointer over the trashcan gives the reason in full: *Operational has been used for a bulk
+You can't delete a type that a bulk email has already used, because the record of that
+email names it. Its trashcan is grayed out, and a line under the table says why. Hold the
+pointer over the trashcan to see the reason in full: *Operational has been used for a bulk
 email, so it cannot be deleted. To keep DART leaders and CalDART management from sending it,
-take their roles off it instead.* Edit the type, clear both boxes under **Who may send it**,
-and save.
+take their roles off it instead.* So edit the type, clear both boxes under **Who may send
+it**, and save. After that, only a system administrator can send it.
 
-The **Mission** type is the one every mission callout goes as, so it can be neither deleted
-nor renamed; its description, its senders, and whether members may turn it off can change.
-After that only a system administrator can send it.
+Every mission callout goes as the **Mission** type, so you can't delete it or rename it. You
+can still change its description, its senders, and whether members may turn it off.
 
 
 If something looks wrong
@@ -92,6 +91,6 @@ If something looks wrong
 
 If a member says they still receive email they turned off, open their
 :doc:`../admin/member-record` (as an account administrator) and look at their **Email
-preferences**. A type whose **Can be turned off** reads **No** reaches everyone whatever
+preferences**. A type whose **Can be turned off** says **No** reaches everyone, whatever
 they chose earlier. Email about a person's own account, such as receipts, renewal
-reminders, and password links, is not bulk email and always arrives.
+reminders, and password links, isn't bulk email, and it always arrives.
