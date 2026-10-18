@@ -5,15 +5,15 @@ Overview
 CalDART's website has two halves. The **public site** is the home page, the
 directory of DARTs (Disaster Airlift Response Teams, local groups of volunteer
 pilots and ground crew at one airport), the news, the events, and the contact and
-donation pages. Anybody can read it. The **member portal** is where you sign in,
-and what it shows you depends on the roles your account holds: members keep their
-own details current and read the bulk email CalDART sends them, DART leaders check
-whether somebody is fit to fly and write to their own DART, CalDART management writes
-to the whole membership, and administrators look after accounts, money, the website,
-and the system.
+donation pages. Anybody can read it. The **member portal** is where you sign in.
+What it shows you depends on the roles your account holds. Members keep their own
+details current and read the bulk email CalDART sends them. DART leaders check
+whether somebody is fit to fly, and write to their own DART. CalDART management
+writes to the whole membership. Administrators look after accounts, money, the
+website, and the system.
 
-This page is the shape of the whole thing: the three kinds of people the site knows,
-what a membership is and how it runs its course, and the roles. :doc:`quick-start`
+This page gives the big picture: the three kinds of people the site knows, what a
+membership is and how it runs its course, and the roles. :doc:`quick-start`
 walks through the first things you will do, :doc:`member/index` describes every
 screen you will use, and :doc:`bulk-email/index` covers writing to many people at once.
 
@@ -37,9 +37,9 @@ Every account belongs to one of three kinds of person.
 
 **Donor**
   Somebody who gave to CalDART from the public donation page without joining.
-  CalDART keeps the gifts and the receipts, but a donor doesn't have a password,
-  cannot sign in, and doesn't appear in any member list. A donor who later joins, with the same
-  email address, keeps every gift.
+  CalDART keeps the gifts and the receipts. A donor doesn't have a password, can't
+  sign in, and isn't in any member list. A donor who later joins with the same email
+  address keeps every gift.
 
 Members and friends sign in to the same portal. A donor does not.
 
@@ -52,9 +52,9 @@ administrator, with a start date and an end date. You are current whenever a ter
 covers today, up to and including its last day. An Annual term runs 365 days. A Life
 term doesn't have an end date and never runs out.
 
-Buying a plan a second time does not replace the first term; it adds another after
-it. So renewing early never loses you days: the new term starts the day after your
-present one ends. Renewing after you lapse starts the new term today.
+Buying a plan a second time doesn't replace the first term. It adds another term
+after it, so renewing early never costs you any days: the new term starts the day
+after your present one ends. Renewing after you lapse starts the new term today.
 
 A current membership opens the members-only pages of the public site, and it is the
 first thing a DART leader checks before letting you fly a mission.
@@ -166,32 +166,35 @@ What each state means:
   **Renew** button first. Nothing is taken away.
 
 **Expired**
-  Your last term ran out, and no other covers today. The day after the end date is
-  the first day it no longer counts. You can still sign in, see your profile, and
-  renew; members-only pages show a wall.
+  Your last term ran out, and no other term covers today. A term stops counting on
+  the day after its end date. You can still sign in, see your profile, and renew,
+  but members-only pages ask you to renew first.
 
 **Life member**
   A Life term never runs out, so you are never asked to renew or sent a reminder.
 
 **Friend**
-  No dues, so nothing expires and nothing reminds you. You are a member once you
-  pay: if you join as a member and stop the join wizard before paying, you are a
-  friend until your first payment clears or an administrator grants you a term.
-  The portal works; members-only pages do not. Terms you held as a member stay in
-  your history but no longer count.
+  You don't pay dues, so nothing expires and you aren't sent reminders. You become
+  a member once you pay. If you join as a member and stop the join wizard before
+  paying, you are a friend until your first payment clears or an administrator
+  grants you a term. The portal works, but members-only pages stay closed. Terms you
+  held as a member stay in your history, but they don't count.
 
 
 What CalDART does about expiry
 ==============================
 
-Each night CalDART marks terms whose end date has passed as expired, makes a friend
-of every member whose day to become one has come, and sends the renewal reminders.
-There are five, each covering a stretch of the calendar, so you receive every one
-whichever day you joined. On the default schedule they go 60, 30, and 7 days before the
-end date, on the day, and 30 days after; a system administrator can change those days.
-Each is sent once per term, and renewing stops the rest.
-Life members, friends, deactivated accounts, and members whose automatic renewal
-covers the term are not sent them. :doc:`member/renew` lists the subject lines.
+Each night CalDART does three things. It marks a term expired once its end date
+has passed. It makes a friend of each member who asked to become one, once their day
+comes. And it sends the renewal reminders.
+
+There are five reminders. Each one covers a stretch of the calendar, so you receive
+every one, whatever day you joined. On the default schedule they go 60, 30, and 7
+days before the end date, on the day itself, and 30 days after. A system
+administrator can change those days. Each reminder is sent once per term, and
+renewing stops the rest. They aren't sent to Life members, friends, deactivated
+accounts, or members whose automatic renewal covers the term. :doc:`member/renew`
+lists the subject lines.
 
 
 The roles
@@ -206,10 +209,10 @@ your roles open. :doc:`roles` lists every screen each one reaches.
   email you receive, under **My account** in the menu.
 
 **DART leader**
-  Checks, before a mission, whether a member is current to fly: membership, medical,
+  Checks before a mission whether a member is current to fly: membership, medical,
   pilot certificate, and aircraft insurance. Reads the member list and downloads it.
-  Writes bulk email to the members and friends of their own DART, mission callouts
-  among them, and collects the callouts' answers.
+  Writes bulk email, mission callouts included, to the members and friends of their
+  own DART, and collects the answers to the callouts.
 
 **User administrator**
   Looks after accounts: who holds which role, activating and deactivating, and
@@ -225,15 +228,15 @@ your roles open. :doc:`roles` lists every screen each one reaches.
   members as a DART leader does.
 
 **CalDART management**
-  Writes to the membership as a whole: one email to many members and friends,
-  sent now or at a time chosen ahead. Keeps templates and recipient groups to use
-  again, sends mission callouts and collects who can fly, and checks that other mail
-  systems will trust the email CalDART sends.
+  Writes to the membership as a whole: one email to many members and friends, sent
+  now or scheduled for later. Keeps templates and recipient groups to use again.
+  Sends mission callouts and collects the answers on who can fly. Checks that other
+  mail systems will trust the email CalDART sends.
 
 **Website administrator**
   Writes and publishes the public site's pages, news, and events.
 
 **System administrator**
-  Can do everything above, and looks after the system itself: health, backups,
-  the jobs that run on a schedule, the bulk email sender among them, and the types of
-  bulk email CalDART sends and who may send each.
+  Can do everything above, and looks after the system itself: its health, the
+  backups, and the scheduled jobs, including the one that sends bulk email. Also
+  decides the types of bulk email CalDART sends and who may send each type.
