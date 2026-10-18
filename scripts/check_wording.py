@@ -6,9 +6,11 @@ complement, or the object of a preposition: write "doesn't have a portal account
 "didn't take anything", "there isn't a payment", or "without a term", or a plain finding
 such as "No payment found".  A negative subject reads naturally ("Nobody changes their
 own roles", "Nothing is due") and is never flagged, except as the subject of a relative
-clause hung off a noun, which reads as a puzzle: write "a future date", "an unknown id",
-"a signed-out caller", or "an id that doesn't match a row" (``find_relative_clauses``, in
-``scripts/wording_relative.py``).
+clause hung off a noun, with or without "that" or "which", which reads as a puzzle: write
+"a future date", "an unknown id", "a signed-out caller", "a corporate name not used by
+anybody", or a few short sentences (``find_relative_clauses``, in
+``scripts/wording_relative.py``).  After a verb of telling and its object, a negative
+subject needs a "that": "tells the member that nothing is due".
 
 A hit is a flagged word followed by ``no``, ``nothing``, ``nobody``, ``none``, ``no
 one``, or ``nobody's`` or ``no one's`` as a determiner (``nobody's role``).  The
@@ -73,28 +75,54 @@ most one adjective, and a noun, followed by ``no``, ``nothing``, ``nobody``, ``n
 claim" followed by "nobody finished".  The verb is a form of "be", a modal, a perfect
 auxiliary, a listed verb's third-person, past, or participle form, a listed base form
 after a plural noun, or an unlisted ``-ed`` word, and after a negative pronoun an
-unlisted word ending in a single ``s`` ("awaits").  ``no`` may take up to three nouns
-before the verb ("no active plan"), and the words in ``RELATIVE_FILLERS`` may stand
-between the negative and the verb (``else``, ``ever``, and the adverbs).  These are
-passed over:
+unlisted word ending in a single ``s`` ("awaits"), as it is after ``no`` and a singular
+noun ("no account stands").  ``no`` may take up to three nouns before the verb ("no
+active plan"), and the words in ``RELATIVE_FILLERS`` may stand between the negative and
+the verb (``else``, ``ever``, and the adverbs).  A plural noun without a determiner, or
+an indefinite pronoun such as ``everything``, may lead the clause too ("Types" followed
+by "nobody may turn off"), unless it is a listed verb form, an unlisted ``-ed`` word, a
+word in ``NOT_BARE_NOUNS`` (an unlisted verb such as ``explains``, or an adverb such as
+``sometimes``), an ``-ly`` adverb, or a word ending in ``ss`` or ``us``.
+
+A full relative clause is a hit the same way: a noun followed by ``that``, ``which``,
+``who``, or ``whom`` (or by a preposition and ``which`` or ``whom``), or a comma followed
+by ``which``, ``who``, or ``whom`` after any word, then the negative subject and its
+verb: "a corporate name" followed by "that nobody uses", or "Operational email," followed
+by "which nobody may turn off".  The noun is read as above, after a determiner, or as a
+bare noun without one.  A noun from ``CONTENT_NOUNS`` before ``that`` ("the note that
+nothing listens") states the clause's content and is passed over.
+
+A verb of telling (``TELLING_VERBS``, in any form), its object (a pronoun, or a
+determiner, at most one adjective, and a noun), and a negative subject with its verb is
+a hit too, whose suggestion puts "that" after the object: "tells the caller" followed by
+"nothing changed".
+
+These are passed over:
 
 * a word in ``NOT_OBJECTS`` after ``no``: "the link" followed by "no longer works";
 * a noun that is a word opening a clause (``when``, ``and``, ...), a preposition, a form
   of "be" or "have", a pronoun, or another determiner, or that is a verb: a past form, or
-  a third-person form after an adjective, as in "the page says nothing is hidden";
+  a third-person form after an adjective, as in "the page says nothing is hidden", or a
+  verb of telling before ``that``;
+* a noun from ``ADVERBIAL_NOUNS`` after any determiner but ``a`` or ``an``, which says
+  when, how, or why: "That way nothing is lost", "The day nothing is due";
 * a negative that is a value or a quoted label: ``None``, an all-caps negative after a
   noun that isn't all caps, or a capitalized negative after a lower-case noun;
-* a noun phrase that follows a preposition, where the preposition follows the start of
-  the text, a character that ends a sentence or opens a quote, a bracket, a list item, or
-  a comment, or a word that opens a clause: "On any failure nothing is written" leads in
-  to a clause of its own.  After a comma the phrase is read as part of the clause before
-  it ("blank, for a category ...").
+* a noun phrase that follows a preposition, where the preposition opens the text, a
+  paragraph, a list item, or a comment, or follows a character that ends a sentence or
+  opens a quote, an opening bracket or a colon when the preposition is capitalized, a
+  word that opens a clause, or a coordinating conjunction after a comma: "On any failure
+  nothing is written" leads in to a clause of its own.  After a comma, a dash, or a
+  bracket, or a conjunction without a comma, the phrase is read as part of the clause
+  before it ("blank, for a category ...").
 
 Run without a switch, the check prints every hit as ``path:line: text``, with a suggested
 rewrite below it where the rewrite is simple, then the total and the remedy, and exits
 1.  It exits 0 when it doesn't find a hit.  A relative clause is reported on the line its
-determiner is on, once, with the suggestion "rewrite as an adjective or 'that doesn't
-...'".
+determiner (or its noun, or the word before its comma) is on, once, with the suggestion
+"rewrite as an adjective or 'that doesn't ...'", or for a full one "say it plainly ('not
+used by anybody') or in short sentences".  A telling verb's hit is reported on the verb's
+line.
 
 Usage::
 
@@ -122,7 +150,10 @@ Known gaps, reviewed by hand:
   isn't read;
 * a relative clause after a preposition that leads off a sentence, which is read as a
   lead-in, so "For a type" followed by "nobody may turn off" is passed over; one whose
-  noun has two adjectives or a possessive; and one whose subject is ``nobody's``.
+  noun has two adjectives or a possessive; one whose subject is ``nobody's``; one after a
+  bare noun that is also a listed verb form ("limits" followed by "that nobody
+  recorded"), or after a bracket that stands between the noun and ``that``; and a verb
+  of telling whose object is a name or has two adjectives.
 """
 
 import argparse
@@ -237,7 +268,9 @@ FLAGGED_FORMS = frozenset(
 )
 
 #: A word after a negative that makes the negative a subject, once a pronoun stands
-#: before it ("tell them nobody is coming"): a verb form, a form of "be", or a modal.
+#: before it ("bet you nobody is coming"): a verb form, a form of "be", or a modal.
+#: After a verb of telling ("tell them" and a negative subject), the missing "that" is a
+#: hit of its own (``wording_relative``).
 CLAUSE_VERBS = frozenset(
     [form for family in FLAGGED_VERBS for form in family.split()]
     + BE_FORMS.split()
@@ -374,8 +407,9 @@ def _starts_a_clause(verb: str, middle: str, next_word: str | None) -> bool:
 
     A pronoun after a preposition is that preposition's object ("without it nothing
     runs"), and a pronoun followed by a negative and then a verb, a form of "be", or a
-    modal is an object whose own clause has a negative subject ("tell them nobody is
-    coming").  An adverb in between never ends the phrase.
+    modal is an object whose own clause has a negative subject ("bet you nobody is
+    coming"), which ``wording_relative`` reports as a missing "that" after a verb of
+    telling.  An adverb in between never ends the phrase.
     """
     if middle.lower() not in PRONOUNS:
         return False

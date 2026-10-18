@@ -193,8 +193,8 @@ ALLOWED = {
     "all-caps-constant": "It returns NONE when the key is unset.",
     "table-padding": "joined_on   Joined      no      Start",
     "preposition-then-pronoun": "Pass --yes; without it nothing runs.",
-    "pronoun-then-a-clause": "Tell them nobody is coming.",
-    "pronoun-then-a-modal": "Tell them nobody can sign in.",
+    "pronoun-then-a-clause": "Bet you nobody is coming.",
+    "pronoun-then-a-modal": "Bet you nobody can sign in.",
     "indeed-no": "Indeed no payment was found.",
     "noun-object-known-gap": "It sends a donor nothing.",
     "determiner-before-a-verb-form": "A change is made, so nobody is signed in.",
@@ -385,6 +385,204 @@ def test_a_negative_that_starts_a_clause_of_its_own_is_not_flagged(text: str) ->
     """A negative after punctuation, a conjunction, or a lead-in phrase is a subject.
 
     So is one after a verb, an idiom after ``no``, a quoted label, and a value.
+    """
+    assert _hit_count(text) == 0
+
+
+FULL_RELATIVE_CLAUSES = {
+    "that-nobody": "It reads as a corporate name that nobody uses.",  # wording:ignore
+    "that-nobody-has": "One for each of the three that nobody has checked yet.",  # wording:ignore
+    "that-no-noun": "It reads it as a change that no account made.",  # wording:ignore
+    "bare-noun-before-that": "Global or class state that no fixture manages.",  # wording:ignore
+    "which-without-a-comma": "It is the page which nobody reads.",  # wording:ignore
+    "comma-which": "Operational email, which nobody may turn off.",  # wording:ignore
+    "comma-which-after-a-verb": "The page it writes, which no source file makes.",  # wording:ignore
+    "comma-which-after-a-literal": "It reads ``group``, which no filter uses.",  # wording:ignore
+    "unlisted-verb-after-a-singular": "A change, which no account stands behind.",  # wording:ignore
+    "preposition-which": "A DART, to which nobody may be added.",  # wording:ignore
+    "preposition-whom": "A reader from whom nothing is hidden.",  # wording:ignore
+    "whom": "A member whom nobody has called.",  # wording:ignore
+}
+
+
+@pytest.mark.parametrize(
+    "text", list(FULL_RELATIVE_CLAUSES.values()), ids=list(FULL_RELATIVE_CLAUSES)
+)
+def test_a_full_relative_clause_with_a_negative_subject_is_flagged(text: str) -> None:
+    """A noun or a comma, "that", "which", or "whom", and a negative subject is a hit."""
+    assert _hit_count(text) == 1
+
+
+NOT_FULL_RELATIVE_CLAUSES = {
+    "content-noun": "With the note that nothing listens on port 25, install it.",
+    "content-noun-confirmation": "It sends confirmation that nothing more is charged.",
+    "after-a-verb": "The test asserts that no operation is left empty.",
+    "after-a-verb-after-a-noun": "The page says that nobody is signed in.",
+    "after-an-imperative": "Check that nothing listens on the new port.",
+    "after-an-unlisted-verb": "It explains that nothing is due.",
+    "after-ensure": "The test ensures that nothing is sent.",
+    "after-a-base-verb": "It makes the check warn that no selector is configured.",
+    "so-that": "The widths are set so that no cell wraps.",
+    "except-that": "It is the same, except that no link is mailed.",
+    "adverbial-noun": "It stops on the day that nothing is due.",
+    "no-longer": "It reads the rule, which no longer applies.",
+    "none-of": "It reads the rows, none of which match.",
+    "telling-verb-before-that": "The banner tells the member that nothing is due.",
+}
+
+
+@pytest.mark.parametrize(
+    "text", list(NOT_FULL_RELATIVE_CLAUSES.values()), ids=list(NOT_FULL_RELATIVE_CLAUSES)
+)
+def test_a_that_clause_stating_a_content_is_not_flagged(text: str) -> None:
+    """A "that" after a verb, a content noun, or a joining word opens a clause of its own.
+
+    So does one after a noun that says when, and an idiom or a "none of" after "which".
+    """
+    assert _hit_count(text) == 0
+
+
+def test_a_full_relative_clause_carries_its_suggestion() -> None:
+    """The hit names the phrase and points at a plain rewrite."""
+    text = "It reads as a corporate name that nobody uses."  # wording:ignore
+    hit = checker.find_hits(text, "page.rst")[0]
+    assert hit.suggestion == (
+        "a corporate name that nobody uses -> "  # wording:ignore
+        "say it plainly ('not used by anybody') or in short sentences"
+    )
+
+
+BARE_CLAUSES = {
+    "bare-plural": "Types nobody may turn off are not listed.",  # wording:ignore
+    "bare-plural-after-an-adjective": "It finds dead endpoints nothing calls.",  # wording:ignore
+    "bare-plural-before-no": "It lists screens no rail entry leads to.",  # wording:ignore
+    "indefinite-pronoun": "It reports everything nobody has verified yet.",  # wording:ignore
+}
+
+
+@pytest.mark.parametrize("text", list(BARE_CLAUSES.values()), ids=list(BARE_CLAUSES))
+def test_a_negative_clause_after_a_bare_plural_is_flagged(text: str) -> None:
+    """A plural without a determiner, or ``everything``, takes a relative clause too."""
+    assert _hit_count(text) == 1
+
+
+NOT_BARE_CLAUSES = {
+    "unlisted-verb": "It explains nothing is due.",
+    "adverb-ending-in-s": "Sometimes nothing is due.",
+    "adverb-perhaps": "Perhaps nobody is signed in.",
+    "unless": "It stops unless nothing is due.",
+    "listed-verb": "It says nothing is hidden.",
+    "lead-in": "For types nobody may turn off, the footer says why.",
+}
+
+
+@pytest.mark.parametrize("text", list(NOT_BARE_CLAUSES.values()), ids=list(NOT_BARE_CLAUSES))
+def test_a_word_that_is_not_a_bare_plural_is_not_flagged(text: str) -> None:
+    """A verb, an adverb ending in ``s``, or a lead-in before a negative subject passes.
+
+    ``lead-in`` is a gap the check documents: a phrase led by a preposition at the start
+    of a sentence is read as a lead-in.
+    """
+    assert _hit_count(text) == 0
+
+
+ADVERBIAL_NOUNS = {
+    "that-way": "That way nothing is lost.",
+    "every-time": "Every time nothing is due, it says so.",
+    "the-day": "The day nothing is due, it skips the run.",
+    "the-reason": "The reason nothing was sent is logged.",
+    "ensures": "The test ensures nothing is sent.",
+    "guarantees": "The lock guarantees nobody is charged twice.",
+    "notes": "The page notes nothing is due.",
+}
+
+
+@pytest.mark.parametrize("text", list(ADVERBIAL_NOUNS.values()), ids=list(ADVERBIAL_NOUNS))
+def test_a_noun_of_when_or_a_verb_before_a_negative_subject_is_not_flagged(text: str) -> None:
+    """A noun that says when, how, or why takes a clause of its own; so does a verb."""
+    assert _hit_count(text) == 0
+
+
+TELLING = {
+    "tells-a-noun": "It tells the caller nothing changed.",  # wording:ignore
+    "shows-a-noun": "It shows the leader nobody is on the DART.",  # wording:ignore
+    "warns-a-noun": "It warns each member no payment was taken.",  # wording:ignore
+    "tells-a-pronoun": "Tell them nobody can sign in.",  # wording:ignore
+    "told-a-pronoun": "It told you nothing was due.",  # wording:ignore
+    "reminds-an-adjective": "It reminds the DART leader nobody is on call.",  # wording:ignore
+}
+
+
+@pytest.mark.parametrize("text", list(TELLING.values()), ids=list(TELLING))
+def test_a_telling_verb_without_that_before_a_negative_subject_is_flagged(text: str) -> None:
+    """A verb of telling, its object, and a negative subject need a "that" between."""
+    assert _hit_count(text) == 1
+
+
+def test_a_telling_verb_hit_suggests_that() -> None:
+    """The suggestion puts "that" after the object."""
+    hit = checker.find_hits("It tells the caller nothing changed.", "x")[0]  # wording:ignore
+    told = "tells the caller"
+    assert (
+        hit.suggestion == f"{told} nothing changed -> {told} that nothing changed"
+    )  # wording:ignore
+
+
+def test_a_telling_verb_and_a_pronoun_are_one_hit() -> None:
+    """The pronoun form is reported once, with the same suggestion."""
+    hits = checker.find_hits("Tell them nobody can sign in.", "x")  # wording:ignore
+    assert [hit.suggestion for hit in hits] == [
+        "Tell them nobody can -> Tell them that nobody can"  # wording:ignore
+    ]
+
+
+NOT_TELLING = {
+    "with-that": "It tells the caller that nothing changed.",
+    "pronoun-with-that": "Tell them that nobody can sign in.",
+    "without-an-object": "It shows nobody is on the DART.",
+}
+
+
+@pytest.mark.parametrize("text", list(NOT_TELLING.values()), ids=list(NOT_TELLING))
+def test_a_telling_verb_with_that_or_without_an_object_is_not_flagged(text: str) -> None:
+    """With its "that", or straight before the clause, a verb of telling passes."""
+    assert _hit_count(text) == 0
+
+
+LEAD_IN_HITS = {
+    "after-a-colon": "The default: for a key nobody set it is blank.",  # wording:ignore
+    "after-a-dash": "It is null -- for a change nobody is signed in for.",  # wording:ignore
+    "after-a-bracket": "It is blank (for a category nobody has recorded).",  # wording:ignore
+    "after-a-conjunction": "It stops and for a key nobody set it is blank.",  # wording:ignore
+}
+
+
+@pytest.mark.parametrize("text", list(LEAD_IN_HITS.values()), ids=list(LEAD_IN_HITS))
+def test_a_preposition_inside_a_sentence_does_not_hide_a_relative_clause(text: str) -> None:
+    """A lower-case preposition inside a sentence is not read as a lead-in.
+
+    Without a comma before "and", or a capital after the colon or the bracket, the
+    phrase finishes the clause before it, so the clause after its noun is a hit.
+    """
+    assert _hit_count(text) == 1
+
+
+#: Read from this file, a quote stands before each text, so the ones that open a list
+#: item or a paragraph carry the marker.
+LEAD_INS = {
+    "list-item": "- On any failure nothing is written.",  # wording:ignore
+    "star-list-item": "* On any failure nothing is written.",  # wording:ignore
+    "capitalized-after-a-colon": "One rule: On any failure nothing is written.",
+    "capitalized-after-a-bracket": "It ends (On any failure nothing is written).",
+    "paragraph-start": "It ends\n\nOn any failure nothing is written.",  # wording:ignore
+}
+
+
+@pytest.mark.parametrize("text", list(LEAD_INS.values()), ids=list(LEAD_INS))
+def test_a_preposition_that_opens_a_sentence_or_an_item_leads_in(text: str) -> None:
+    """A preposition opening a list item, a paragraph, or a capitalized clause leads in.
+
+    The negative after its noun phrase is then the subject of a clause of its own.
     """
     assert _hit_count(text) == 0
 

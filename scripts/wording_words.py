@@ -30,6 +30,7 @@ FLAGGED_VERBS = (
     "apply applies applied applied applying", "approve approves approved approved approving",
     "ask asks asked asked asking", "assert asserts asserted asserted asserting",
     "assign assigns assigned assigned assigning", "assume assumes assumed assumed assuming",
+    "assure assures assured assured assuring",
     "attach attaches attached attached attaching", "award awards awarded awarded awarding",
     "bear bears bore borne bearing", "become becomes became become becoming",
     "bill bills billed billed billing", "bind binds bound bound binding",
@@ -69,7 +70,8 @@ FLAGGED_VERBS = (
     "edit edits edited edited editing", "email emails emailed emailed emailing",
     "emit emits emitted emitted emitting", "enable enables enabled enabled enabling",
     "encode encodes encoded encoded encoding", "end ends ended ended ending",
-    "enforce enforces enforced enforced enforcing", "enter enters entered entered entering",
+    "enforce enforces enforced enforced enforcing",
+    "ensure ensures ensured ensured ensuring", "enter enters entered entered entering",
     "exclude excludes excluded excluded excluding", "execute executes executed executed executing",
     "exempt exempts exempted exempted exempting", "exist exists existed existed existing",
     "expand expands expanded expanded expanding", "expect expects expected expected expecting",
@@ -87,7 +89,9 @@ FLAGGED_VERBS = (
     "gather gathers gathered gathered gathering",
     "generate generates generated generated generating", "get gets got gotten getting",
     "give gives gave given giving", "go goes went gone going",
-    "grant grants granted granted granting", "handle handles handled handled handling",
+    "grant grants granted granted granting",
+    "guarantee guarantees guaranteed guaranteed guaranteeing",
+    "handle handles handled handled handling",
     "have has had had having", "hear hears heard heard hearing",
     "help helps helped helped helping", "hide hides hid hidden hiding", "hit hits hit hit hitting",
     "hold holds held held holding", "host hosts hosted hosted hosting",
@@ -95,7 +99,8 @@ FLAGGED_VERBS = (
     "ignore ignores ignored ignored ignoring", "imply implies implied implied implying",
     "import imports imported imported importing", "impose imposes imposed imposed imposing",
     "include includes included included including", "incur incurs incurred incurred incurring",
-    "infer infers inferred inferred inferring", "inherit inherits inherited inherited inheriting",
+    "infer infers inferred inferred inferring",
+    "inform informs informed informed informing", "inherit inherits inherited inherited inheriting",
     "inject injects injected injected injecting",
     "install installs installed installed installing", "invite invites invited invited inviting",
     "involve involves involved involved involving", "issue issues issued issued issuing",
@@ -115,6 +120,7 @@ FLAGGED_VERBS = (
     "modify modifies modified modified modifying", "mount mounts mounted mounted mounting",
     "move moves moved moved moving", "name names named named naming",
     "narrow narrows narrowed narrowed narrowing", "need needs needed needed needing",
+    "note notes noted noted noting",
     "notify notifies notified notified notifying", "obtain obtains obtained obtained obtaining",
     "occupy occupies occupied occupied occupying", "offer offers offered offered offering",
     "omit omits omitted omitted omitting", "open opens opened opened opening",
@@ -289,6 +295,36 @@ RELATIVE_DETERMINERS = DETERMINERS | frozenset(("one", "that", "these", "this", 
 #: The words read past between a negative subject and its verb in a relative clause:
 #: ``else`` and ``ever`` ("nobody else", "no reader ever"), and the adverbs.
 RELATIVE_FILLERS = frozenset(("else", "ever", *ADVERBS))
+
+#: The verbs of telling, by base form: before an object, a negative subject needs a
+#: "that" ("tells the member that nothing is due").  Each has a family in
+#: ``FLAGGED_VERBS``.
+TELLING_VERBS = ("assure", "inform", "notify", "promise", "remind", "show", "tell", "warn")
+
+#: Nouns that say when, how, or why, and so take a clause of their own without a
+#: relative word: "That way nothing is lost", "The day nothing is due".
+ADVERBIAL_NOUNS = frozenset((
+    "day", "days", "hour", "minute", "moment", "month", "morning", "night", "reason",
+    "time", "times", "way", "week", "year",
+))
+
+#: Nouns that take a "that" clause stating their content, which is not a relative
+#: clause: "the note that nothing listens on port 25", "confirmation that nothing more
+#: is charged".
+CONTENT_NOUNS = frozenset((
+    "assurance", "confirmation", "evidence", "fact", "guarantee", "hint", "idea", "news",
+    "note", "notice", "possibility", "promise", "proof", "reminder", "sign", "warning",
+))
+
+#: Words before "that" or before a negative that are neither nouns nor listed verbs:
+#: unlisted verbs that take a "that" clause, the words that join one ("except that",
+#: "now that"), and adverbs ending in ``s``, which could pass for a bare plural.
+NOT_BARE_NOUNS = frozenset((
+    "afterwards", "agree", "agrees", "always", "believe", "believes", "besides",
+    "decide", "decides", "except", "explain", "explains", "hence", "insist", "insists",
+    "nevertheless", "now", "perhaps", "provided", "realize", "realizes", "regardless",
+    "sometimes", "such", "think", "thinks", "thus", "unless",
+))
 
 #: A word after ``no`` that makes it an adverb rather than an object: "no longer", "no
 #: deeper than".

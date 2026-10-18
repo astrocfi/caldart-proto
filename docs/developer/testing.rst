@@ -25,8 +25,8 @@ all of which CI runs on every push to ``main`` and every pull request:
 ``make test`` runs the first two.  ``make e2e`` is separate because it needs a
 built frontend, a seeded database and a browser.
 
-``make rehearse-deploy`` is a fourth, slower check that no pull request
-waits on and CI does not run: the server installer, run for real in a
+``make rehearse-deploy`` is a fourth, slower check, which pull requests
+don't wait on and CI does not run: the server installer, run for real in a
 throwaway container (:ref:`testing-rehearsal`).
 
 ``make screenshots`` is a review aid rather than a check: it shoots every screen
@@ -1318,23 +1318,24 @@ request, *args, **kwargs)``, where the framework dictates the parameter list.
 the Python files kept outside it, ``frontend/e2e/prefix_proxy.py``,
 ``scripts/check_wording.py``, and the three modules the wording check imports,
 ``scripts/wording_words.py``, ``scripts/wording_text.py``, and
-``scripts/wording_relative.py``, as the third step of ``make lint-backend``.  ``[tool.mypy]`` in ``pyproject.toml`` sets
-``strict = true``, the ``mypy_django_plugin`` and ``mypy_drf_plugin`` plugins,
-and ``caldart.settings.test`` as the settings module the Django plugin reads;
+``scripts/wording_relative.py``, as the third step of ``make lint-backend``.
+``[tool.mypy]`` in ``pyproject.toml`` sets ``strict = true``, the
+``mypy_django_plugin`` and ``mypy_drf_plugin`` plugins, and
+``caldart.settings.test`` as the settings module the Django plugin reads;
 migrations are excluded.  ``disallow_subclassing_any`` is off because Wagtail's
 page, block, and settings base classes don't carry types, and Wagtail, the four
-libraries it builds on (``django-modelcluster``, ``django-taggit``
-, ``django-treebeard``, and ``modelsearch``), ``django-environ``,
+libraries it builds on (``django-modelcluster``, ``django-taggit``,
+``django-treebeard``, and ``modelsearch``), ``django-environ``,
 ``django-filter``, ``django-vite``, and ``whitenoise`` are declared as untyped
 imports for the same reason.  ``factory_boy`` is followed rather than skipped,
 so that a factory's model type reaches its callers, and two settings absorb its
 stub gaps: ``untyped_calls_exclude = ["factory"]`` accepts the unannotated
 declarative API (``Faker``, ``Sequence``, ``SubFactory``, ``LazyFunction``,
 ``LazyAttribute``, ``post_generation``), and ``implicit_reexport`` accepts the
-names ``factory`` re-exports without an ``as`` alias.  As with the ruff rule sets,
-no ``[[tool.mypy.overrides]]`` entry carries ``ignore_errors = true``: mypy checks
-the whole backend clean.  Silencing one line takes ``# type: ignore[<code>]`` with
-a comment naming the stub gap behind it.
+names ``factory`` re-exports without an ``as`` alias.  As with the ruff rule
+sets, no ``[[tool.mypy.overrides]]`` entry carries ``ignore_errors = true``:
+mypy checks the whole backend clean.  Silencing one line takes
+``# type: ignore[<code>]`` with a comment naming the stub gap behind it.
 
 TypeScript runs in strict mode; ``tsc --noEmit`` is
 part of linting rather than of the build, so a type error fails ``make lint``.
@@ -1474,30 +1475,59 @@ isn't*), or *with*.  A bound keeps its meaning: *no more than 255* becomes
 
 The same check keeps a negative clause off a noun, because people don't talk
 that way: a noun followed by a clause with a negative subject (*nobody*,
-*nothing*, *none*, *no one*, or *no* with a noun) is a hit, so write *a future date*,
-*an unknown id*, *a signed-out caller*, *an empty DART*, or, when no plain
-word fits, a positive relative clause such as *an id that doesn't match a
-row*.  ``find_relative_clauses`` in ``scripts/wording_relative.py`` reports a
-determiner from ``RELATIVE_DETERMINERS``, at most one adjective, and a noun,
-followed by the negative subject and its verb: a form of *be*, a modal,
-*has*, *have*, or *had*, a listed verb's third-person, past, or participle
-form (its base form too after a plural noun), an unlisted *-ed* word, or,
-after a negative pronoun, an unlisted word ending in a single *s*
-(*awaits*).  *No* may take up to three nouns before the verb (*no active
-plan*), and *else*, *ever*, and the adverbs (``RELATIVE_FILLERS``) may stand
-before it.  It passes over *no longer*, *no matter*, and the rest of
-``NOT_OBJECTS``; a negative after a comma, a colon, a semicolon, or a
+*nothing*, *none*, *no one*, or *no* with a noun) is a hit, with or without a
+*that* or a *which* between them.  Write *a future date*, *an unknown id*, *a
+signed-out caller*, *an empty DART*, or *a corporate name not used by
+anybody*, and when the sentence is still hard to follow, break it into short
+sentences that each say one thing.  A positive relative clause such as *an id
+that doesn't match a row* is fine when no plain word fits.
+
+``find_relative_clauses`` in ``scripts/wording_relative.py`` reports four
+shapes.  The reduced one is a determiner from ``RELATIVE_DETERMINERS``, at
+most one adjective, and a noun, or a plural without a determiner, or an
+indefinite pronoun such as *everything*, followed by the negative subject and
+its verb: a form of *be*, a modal, *has*, *have*, or *had*, a listed verb's
+third-person, past, or participle form (its base form too after a plural
+noun), an unlisted *-ed* word, or, after a negative pronoun or *no* and a
+singular noun, an unlisted word ending in a single *s* (*awaits*, *stands*).
+*No* may take up to three nouns before the verb (*no active plan*), and
+*else*, *ever*, and the adverbs (``RELATIVE_FILLERS``) may stand before it.
+A bare plural is passed over when it is a listed verb form, an unlisted *-ed*
+word, a word in ``NOT_BARE_NOUNS`` (an unlisted verb such as *explains*, or
+an adverb such as *sometimes*), an *-ly* adverb, or a word ending in *ss* or
+*us*.  The full one is a noun followed by *that*, *which*, *who*, or *whom*
+(or by a preposition and *which* or *whom*), read as the reduced one reads
+its noun, then the negative subject and its verb.  The third is a comma
+followed by *which*, *who*, or *whom*, after any word, and the negative
+subject and its verb (*Operational email,* followed by *which nobody may
+turn off*).  The last is a verb of telling (``TELLING_VERBS``: *tell*,
+*warn*, *show*, *remind*, *assure*, *promise*, *inform*, *notify*), its
+object, and a negative subject without the *that* it needs, as in *tells
+the member that nothing is due*.  The object is a pronoun, or a determiner,
+at most one adjective, and a noun.
+
+These are passed over: *no longer*, *no matter*, and the rest of
+``NOT_OBJECTS``; a negative right after a comma, a colon, a semicolon, or a
 conjunction, since none of those leaves a noun right before it; a noun slot
-holding a word that opens a clause, a preposition, a form of *be* or
-*have*, a pronoun, or a verb (a past form, or a present form after an
-adjective, as in *the page says* before a negative subject); a value or a
-quoted label; and a noun phrase led by a preposition that follows the start
-of the text, a sentence's end, an opening quote or bracket, a list item, a
-comment, or a word that opens a clause, which leads in to a clause of its own
-(*On any failure nothing is written*).  A comma before the preposition
-doesn't count, because a phrase after a comma as often finishes the clause
-before it.  The hit is reported once, on the determiner's line, with the
-suggestion *rewrite as an adjective or 'that doesn't ...'*.
+holding a word that opens a clause, a preposition, a form of *be* or *have*,
+a pronoun, or a verb (a past form, or a present form after an adjective, as
+in *the page says* before a negative subject, or a verb of telling before
+*that*); a noun from ``ADVERBIAL_NOUNS`` after any determiner but *a* or
+*an*, which says when, how, or why (*That way nothing is lost*, *The day
+nothing is due*); a noun from ``CONTENT_NOUNS`` before *that*, which states
+the clause's content (*the note that nothing listens on port 25*); a value
+or a quoted label; and a noun phrase led by a preposition that opens the
+text, a paragraph, a list item, or a comment, or follows a sentence's end,
+an opening quote, a word that opens a clause, a coordinating conjunction
+after a comma, or an opening bracket or a colon when the preposition is
+capitalized, which leads in to a clause of its own (*On any failure nothing
+is written*).  A comma, a dash, or a lower-case bracket or colon before the
+preposition doesn't count, and neither does a conjunction without a comma,
+because the phrase after one as often finishes the clause before it.  A
+clause is reported once, on its first word's line, with the suggestion
+*rewrite as an adjective or 'that doesn't ...'* for a reduced one, *say it
+plainly ('not used by anybody') or in short sentences* for a full one, and
+the same words with *that* added for a verb of telling.
 
 The check doesn't catch everything; these gaps are known, and are reviewed by
 hand:
@@ -1524,6 +1554,11 @@ hand:
   negative subject and its verb, at the start of a sentence) is read as the
   lead-in and passed over, and so is one whose noun carries two adjectives or
   a possessive, or whose subject is the possessive *nobody's*.
+* A bare noun that is also a listed verb form, before *that* or a negative
+  subject (*limits* followed by *that nobody recorded*), reads as the verb,
+  and a bracket between the noun and *that* hides the noun.
+* A verb of telling whose object is a name, or a noun with two adjectives,
+  isn't read.
 
 To keep a line verbatim, such as a third party's error message, end it with a
 ``wording:ignore`` comment, or put a ``wording:ignore-next-line`` comment on
