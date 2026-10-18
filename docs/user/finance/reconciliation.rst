@@ -4,26 +4,27 @@
 Reconciliation
 ==============
 
-The **Reconciliation** tab lays the books out the way a bank statement reads them: for a
-range of dates you choose, what arrived, what the providers kept, what reached the bank,
-and what went back. Use it to match the site's figures against a statement, month by
-month.
+The **Reconciliation** tab sets out the books the way a bank statement does. For a range of
+dates you choose, it shows what arrived, what the payment providers (such as Stripe) kept,
+what reached the bank, and what went back. Use it to match the site's figures against a
+statement, month by month.
 
 What you see
 ============
 
-One row per month to begin with, or per year or per payment provider if you choose. Each
-row shows the number of **Payments**, the **Gross** taken, the **Fees**, the **Net**, what
-was **Refunded**, the **Net after refunds**, and **Reconciled**, how many of that period's
-payments you have already found on a statement, such as *12 of 15*. The months and the
-years run newest first, as on the **Money overview**. Under the rows, a **Total** row adds
-every column up, so you can check the whole range against the statement at once.
+The table starts with one row per month. You can choose one row per year, or per payment
+provider, instead. Each row shows the number of **Payments**, the **Gross** taken, the
+**Fees**, the **Net**, what was **Refunded**, the **Net after refunds**, and
+**Reconciled**. **Reconciled** is how many of that period's payments you have already found
+on a statement, such as *12 of 15*. The months and the years run newest first, as on the
+**Money overview**. Under the rows, a **Total** row adds up every column, so you can check
+the whole range against the statement at once.
 
-On a narrower screen the table leaves out the columns that matter least, one at a time, so
-the **Net** and **Reconciled**, with its link, stay beside the period: first **Refunded**,
-then **Net after refunds**, **Fees**, **Payments**, and **Gross**. A line above the table
-names what it left out. If even that is too wide, the table scrolls sideways inside the
-page, a line above it says so, and the period stays pinned at the left.
+On a narrower screen, the columns that matter least drop out one at a time, so the **Net**
+and **Reconciled**, with its link, stay beside the period. **Refunded** goes first, then
+**Net after refunds**, **Fees**, **Payments**, and **Gross**. A note above the table names
+the hidden columns. If even that is too wide, the table scrolls sideways inside the page, a
+note above it says so, and the period stays pinned at the left.
 
 Two dating rules make the rows line up with a statement, and the screen repeats them
 above the table:
@@ -32,7 +33,7 @@ above the table:
 * A refund counts in the period it was taken. A January payment refunded in February
   shows its refund in February, which is where the bank shows it.
 
-A month in which money only went back still gets a row.
+A month when money only went back still gets a row.
 
 What you can do
 ===============
@@ -40,13 +41,13 @@ What you can do
 Choose the rows and the range
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-* **From** and **To** bound the dates counted.
-* **Provider** counts one payment provider alone.
+* **From** and **To** set the range of dates counted.
+* **Provider** counts only one payment provider.
 * **Rows** chooses **By month** (the starting choice), **By year**, or **By provider**.
 
-Each filter applies as soon as you set it, **Reset filters** clears them all, and the
-filters are kept in the page's address so you can bookmark a view. Click a column heading
-to sort by it, and click it again to reverse the order; every heading sorts, and the arrow
+Each filter applies as soon as you set it, and **Reset filters** clears them all. The
+filters are kept in the page's address, so you can bookmark a view. Click a column heading
+to sort by it, and click it again to reverse the order. Every heading sorts, and the arrow
 beside one shows the order the table is in.
 
 Match payments as you go
@@ -54,25 +55,25 @@ Match payments as you go
 
 When you find a payment on the statement, open it from the payment list and set its
 **Reconciled on** date (see :doc:`payment-record`). The site records that it was you. The
-**Reconciled** column here then counts it. A **Reconciled** figure short of the count,
-such as *0 of 4*, opens the payment list (see :doc:`payment-list`) narrowed to that
-period and to **Not reconciled**, so you see the four payments still to find; with
-**Rows** set to **By provider**, it narrows to that provider over the range you chose.
+**Reconciled** column here then counts it. When a **Reconciled** figure is short, such as
+*0 of 4*, click it. It opens the payment list (see :doc:`payment-list`) narrowed to that
+period and to **Not reconciled**, so you see the four payments still to find. With **Rows**
+set to **By provider**, it narrows the list to that provider over the range you chose.
 
 Download the rows
 ~~~~~~~~~~~~~~~~~
 
-**Export CSV** and **Export PDF** carry the rows on screen, grouped the same way. Each
-file is named for the day it was made, and the PDF prints the range it covers under its
+**Export CSV** and **Export PDF** download the rows on screen, grouped the same way. Each
+file's name has the date it was made, and the PDF prints the range it covers under its
 title. The **Emailed reports** screen can also send this report on a schedule, for a fixed
 range or for a **Period** such as **Last month**.
 
 If something looks wrong
 ========================
 
-If a month's net does not match the statement, check whether a refund taken that month
-belongs to a payment from an earlier month; it counts here in the month it was taken. If
-the table says *Nothing was taken in this range*, widen the dates or press **Reset
-filters**, which appears under the empty table too. With **Rows** set to
-**By provider**, a provider gets a row only when it took money in the range, and a
-demonstration site shows everything under **Test**.
+If a month's net doesn't match the statement, check whether a refund taken that month
+belongs to a payment from an earlier month. The refund counts here in the month it was
+taken. If the table says *Nothing was taken in this range*, widen the dates or press
+**Reset filters**, which appears under the empty table too. With **Rows** set to **By
+provider**, a provider gets a row only if it took money in the range. A demonstration site
+shows everything under **Test**.

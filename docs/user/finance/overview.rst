@@ -5,15 +5,16 @@ The money overview
 ==================
 
 The **Money overview** screen answers "how are we doing?" at a glance: what came in, what
-the payment providers kept, what reached the bank, and what went back in refunds. It is the
-first tab of the finance area, and the one **Accounting** under **Finance** in the menu
-opens.
+the payment providers kept, what reached the bank, and what went back in refunds. The
+payment providers are the companies that take payments online, such as Stripe. This is
+the first tab of the finance area, and **Accounting** under **Finance** in the menu opens
+it.
 
 Who sees this screen
 ====================
 
 The treasurer and an account administrator. A treasurer sees every payment, fee, refund,
-and automatic renewal, and never the medical and certificate details on a member's
+and automatic renewal, but never the medical and certificate details on a member's
 record. An account administrator sees the same money and the member records as well.
 
 Moving around the finance area
@@ -44,15 +45,15 @@ What you see
 The three figures across the top
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Three tiles, each covering every payment on the site:
+There are three tiles, each covering every payment on the site:
 
 * **This month**, the calendar month you are in.
 * **Year to date**, from January 1 to today.
 * **Last 12 months**, a rolling twelve-month window.
 
-Each tile shows the gross taken in large type, how many payments made it up, and
-beneath that the **Fees** the providers kept, the **Net** that reached the bank, and
-what was **Refunded**. A card that was declined never brought in any money, so it is
+Each tile shows, in large type, the gross amount taken in, and how many payments made it
+up. Beneath that are the **Fees** the providers kept, the **Net** that reached the bank,
+and what was **Refunded**. A card that was declined never brought in any money, so it is
 left out. A payment that was later refunded did bring money in, so it is counted, with
 the refund shown beside it.
 
@@ -70,10 +71,10 @@ To compare this year with last year, choose **Year** and read down the **Total**
 column. Click a column heading to sort the table by it, and click it again to reverse the
 order.
 
-On a narrower screen the table leaves out the provider columns first, then **Dues**,
+On a narrower screen, the provider columns drop out first, then **Dues**,
 **Contributions**, **Payments**, **Refunded**, **Fees**, and **Net**, so the **Total**
 always stays beside the period. If the table is still too wide, it scrolls sideways inside
-the page, a line above it says so, and the period stays pinned at the left.
+the page, a note above it says so, and the period stays pinned at the left.
 
 What you can do
 ===============
@@ -85,24 +86,25 @@ Above the period table, **From**, **To**, **Provider**, **Status**, and **Search
 what the table adds up. They work exactly as they do on the payment list (see
 :doc:`payment-list`). The three tiles ignore them: **This month** is always this month.
 
-Each filter applies as soon as you set it. A typed one applies once you pause. **Reset
-filters** clears them all, and appears under an empty table too. The filters are kept in the page's address, so you can
-bookmark a filtered view or send the link to another treasurer.
+Each filter applies as soon as you set it. A filter you type in applies once you stop
+typing. **Reset filters** clears them all, and it appears under an empty table too. The
+filters are kept in the page's address, so you can bookmark a filtered view or send the
+link to another treasurer.
 
 Reports by email
 ~~~~~~~~~~~~~~~~
 
-The **Emailed reports** screen, under **Administration**, sends the payments,
-reconciliation, and contributions reports, and for the treasurer the donors report, to you
-or to anyone else allowed to read them, on a schedule you choose.
+The **Emailed reports** screen, under **Administration**, sends reports on a schedule you
+choose, to you or to anyone else allowed to read them. It sends the payments,
+reconciliation, and contributions reports, and for the treasurer, the donors report.
 
 If something looks wrong
 ========================
 
-If the tiles do not match a provider's own dashboard, check three ordinary reasons
-first. The tiles count only money that arrived, and a provider's dashboard may count
-attempts too. The tiles show the gross, and a dashboard often shows the net. The tiles
-date a payment by the day it completed, which can fall a day either side of the
-provider's settlement date. The :doc:`reconciliation` screen shows the gross, the fees,
+If the tiles don't match a provider's own dashboard, check three common reasons first.
+The tiles count only money that arrived, and a provider's dashboard may count attempts
+too. The tiles show the gross, and a dashboard often shows the net. The tiles date a
+payment by the day it went through, which can be a day before or after the provider's
+settlement date. The :doc:`reconciliation` screen shows the gross, the fees,
 and the net side by side for exactly this comparison. If the period table says *No
 payments in this range*, widen the dates or press **Reset filters**.

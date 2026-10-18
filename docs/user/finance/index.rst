@@ -2,12 +2,12 @@
 The treasurer's screens
 =======================
 
-The screens where the money is read, recorded, reconciled, and refunded.
+These are the screens where you read, record, reconcile, and refund the money.
 
 The treasurer and an account administrator both reach them from **Accounting** under
-**Finance** in the portal's menu. Each screen shows only the member's name, email
-address, and money; it doesn't show anything from the member's record about medicals
-or certificates. The **Donors** tab is the treasurer's alone.
+**Finance** in the portal's menu. Each screen shows only a member's name, email
+address, and money. Nothing from the member's record about medicals or certificates
+appears here. Only the treasurer has the **Donors** tab.
 
 .. toctree::
    :maxdepth: 1
