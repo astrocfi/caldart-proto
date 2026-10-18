@@ -52,7 +52,7 @@ Use this when you need concrete examples for a dimension or wording guidance. Th
 - **Finding**: A hand-written `requirements.txt` duplicates `pyproject.toml` with different versions. **Evidence**: `requirements.txt` pins `django==5.1.2`; `pyproject.toml` says `django>=5.1,<6.0`. **Suggestion**: Delete it; `pyproject.toml` with `uv.lock` is the single source of truth (`dependency_management`).
 
 **Dependencies – CI/CD consistency**
-- **Finding**: CI runs a check in a raw `run:` step that no make target defines. **Evidence**: `.github/workflows/ci.yml` vs `make help`. **Suggestion**: Add the check to a make target and have CI call the target (`environment`).
+- **Finding**: CI runs a check in a raw `run:` step instead of a make target. **Evidence**: `.github/workflows/ci.yml` vs `make help`. **Suggestion**: Add the check to a make target and have CI call the target (`environment`).
 
 **Dependencies – configuration consistency**
 - **Finding**: Ruff is configured with `line-length = 88` while Prettier's `printWidth` and the project rules say 100. **Evidence**: `pyproject.toml` `[tool.ruff]` vs the Prettier config and `.claude/rules/python.md`. **Suggestion**: Align the line length across tools and rules.

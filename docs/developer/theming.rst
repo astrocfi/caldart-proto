@@ -280,12 +280,12 @@ and ``--color-muted`` over all three grounds, ``--color-primary`` as link text,
 button's fill at rest and under the pointer, ``--color-accent`` on the ground,
 and each status color both on the ground and on its own translucent fill --
 composited over the ground first, because an ``#rrggbbaa`` value read raw
-reports a contrast that never appears on the screen.  It also measures the bulk email
-editor's field chips: ``--color-fg`` and ``--color-muted`` on their fill, the
-primary mixed 10% into ``--color-bg-raised`` (``CHIP_TINT``, which must match the
-``color-mix`` in ``base.css``), and their ``--color-muted`` edge against both of
-the editor's grounds.  Text pairs must reach 4.5:1 and non-text ones, such as the
-focus ring and the chip's edge, 3:1.
+reports a contrast that never appears on the screen.  It also measures the bulk
+email editor's field chips: ``--color-fg`` and ``--color-muted`` on their fill,
+the primary mixed 10% into ``--color-bg-raised`` (``CHIP_TINT``, which must
+match the ``color-mix`` in ``base.css``), and their ``--color-muted`` edge
+against both of the editor's grounds.  Text pairs must reach 4.5:1 and non-text
+ones, such as the focus ring and the chip's edge, 3:1.
 
 ``npm run theme-contrast`` prints a table per theme and exits non-zero on any
 failure; ``make lint`` runs it, so a theme that fails cannot merge.
@@ -440,8 +440,8 @@ House rules
 * **Plain and civic.**  Type, rules, and the panel carry the design, not
   decoration: the design doesn't use gradients, glassmorphism or backdrop
   blur, hero blobs, or emoji bullets.
-* **Semantic tokens only** in components.  If you need a color that no token
-  names, add the token — do not inline a hex value.  The one exception is
+* **Semantic tokens only** in components.  If you need a color without a
+  token, add the token — do not inline a hex value.  The one exception is
   :ref:`the Stripe panel <theming-stripe-colors>`, which has to hand computed
   values across an iframe boundary.
 * **Boxes on the public site, hairlines in the portal.**  A public page is a

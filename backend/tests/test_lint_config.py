@@ -1,4 +1,4 @@
-"""Conventions about the backend's own source that no linter we run can express.
+"""Conventions about the backend's own source that our linters can't express.
 
 The annotation, docstring and mypy gates cover the whole backend without a ratchet left:
 the adoption ratchet in ``pyproject.toml`` (``ANN``/``D`` per-file ignores and

@@ -70,8 +70,8 @@ IMAP_URL_FORM = "BOUNCE_IMAP_URL must be imaps://user:password@host[:port]/MAILB
 #: kilobytes even with the original's headers; anything bigger is left unread.
 MAX_MESSAGE_BYTES = 1_048_576
 
-#: Every control character, NUL included, which no header value the check stores may
-#: carry: Postgres refuses a NUL in text outright.
+#: Every control character, NUL included.  A header value the check stores can't carry
+#: one: Postgres refuses a NUL in text outright.
 CONTROL_CHARACTERS = re.compile(r"[\x00-\x1f\x7f]")
 
 #: The longest ``bounce_detail`` stored, the width of both columns that hold it.
@@ -359,7 +359,7 @@ def bounce_checking_enabled() -> bool:
     """True when a bounce mailbox and the address its reports return to are configured.
 
     That is ``BOUNCE_IMAP_URL`` and ``BOUNCE_ADDRESS`` both set to anything: without the
-    address no message goes out from a signed address, so no report could be matched.
+    address, no message goes out from a signed address, so no report could be matched.
     Whether the mailbox can be read is only known once a run tries.
     """
     return bool(settings.BOUNCE_IMAP_URL) and bool(settings.BOUNCE_ADDRESS)

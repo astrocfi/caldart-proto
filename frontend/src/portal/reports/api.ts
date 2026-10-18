@@ -36,7 +36,7 @@ export const ROSTERS_KEY = ['reports', 'rosters'] as const;
 /** A report's parameters: a value, a list of values such as the columns, or `undefined`. */
 export type ReportParams = Readonly<Record<string, string | readonly string[] | undefined>>;
 
-/** The list page's own parameter, which no report takes: a report carries every row. */
+/** The list page's own parameter. A report doesn't take it: a report carries every row. */
 const PAGE_PARAM = 'page';
 
 /**

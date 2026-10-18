@@ -75,8 +75,8 @@ and names each reason:
   membership: the medical and photo ID of a person who cannot fly are not listed.
 - *Medical expired*, *No medical on file*, or *No medical expiry on file* when the member
   chose a class of medical and never entered its date.
-- *Medical not verified*, *Certificate not verified*, and *Photo ID not verified*, one for
-  each of the three that nobody has checked against the documents yet.
+- *Medical not verified*, *Certificate not verified*, or *Photo ID not verified* when that
+  document hasn't been checked yet.
 - *No photo ID on file* when the photo ID reads *Not provided*.
 
 Each document gives one reason at most. A medical that has expired, or that is not on
@@ -179,8 +179,8 @@ The verification report
 =======================
 
 Above the search box, *Everything requiring validation:* stands beside **Export CSV**
-and **Export PDF**, which download the CalDART verification report of everything nobody
-has verified yet, in two sections:
+and **Export PDF**, which download the CalDART verification report of everything not yet
+verified, in two sections:
 
 - **People**, one row per person with something to verify, sorted by name, under the
   columns **Name**, **DART**, **Photo ID**, **Certificate**, **Medical**, **Details**,

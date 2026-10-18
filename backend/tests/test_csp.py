@@ -103,7 +103,7 @@ def dev_settings() -> ModuleType:
 def script_prefix() -> Iterator[None]:
     """Resolve URLs under ``/app/`` for one test, as a WSGI ``SCRIPT_NAME`` would.
 
-    The prefix is process-wide thread-local state that no fixture manages, so
+    The prefix is process-wide thread-local state, and no fixture manages it, so
     it is put back afterwards.
     """
     set_script_prefix("/app/")

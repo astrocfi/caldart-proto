@@ -21,7 +21,7 @@ Produce a structured analysis and recommendations report. Do not implement chang
 - App boundaries: each Django app under `backend/apps/<app>/` owns its models, `api/`, `admin.py`, `seed.py`, and management commands; project-level code lives in `backend/caldart/`. Look for circular imports between apps and code that sits in the wrong app.
 - File and module size: modules > ~500–1000 lines; single-file "god" modules (e.g. one views module serving every endpoint of an app).
 - Naming: consistent with language norms (e.g. Python: lowercase_with_underscores, TitleCase for classes).
-- Dead or orphaned code: unused modules, commented-out blocks, unreachable branches, endpoints nothing calls.
+- Dead or orphaned code: unused modules, commented-out blocks, unreachable branches, endpoints that are never called.
 - Duplication: copy-paste, similar logic that could be shared (DRY).
 
 **Evidence**: Paths, line counts, import graphs if available.

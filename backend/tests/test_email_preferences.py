@@ -39,7 +39,7 @@ def mission(no_email_types: None) -> EmailType:
 
 @pytest.fixture
 def operational(no_email_types: None) -> EmailType:
-    """Operational email, which nobody may turn off."""
+    """Operational email, which can't be turned off."""
     return EmailTypeFactory(name="Operational", allow_opt_out=False, position=2)
 
 

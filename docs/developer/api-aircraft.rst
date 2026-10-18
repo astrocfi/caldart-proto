@@ -546,7 +546,7 @@ Statuses:
 ------------------------
 
 Adds an aircraft type the FAA has never registered — a homebuilt, or a type
-built abroad that no US owner has registered yet — so an aircraft of that type
+built abroad and not yet registered by a US owner — so an aircraft of that type
 can go on the register.  Every type the FAA has registered is already in the
 vocabulary, so this is the exception, and only ``account_admin`` (and
 ``system_admin``) may do it.

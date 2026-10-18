@@ -73,8 +73,8 @@ filter and ordering code its list runs — the member list's filter set and
 ordering, the register's, the payment list's query serializer, the email log's filter set — so the same
 query string gives the same rows, in the same order, on the screen and in the
 file.  ``?ordering=`` is honored with the list's own rules, and nothing is
-paginated.  The roles report and the verification report, which no list backs,
-are the exceptions: each reads its own filters and has a fixed order.  The roles
+paginated.  The roles report and the verification report are the exceptions:
+neither has a list behind it, so each reads its own filters and has a fixed order.  The roles
 report (:ref:`reports-roles`) lists active accounts only; the verification report
 (:ref:`reports-verification`) lists checkable people and active aircraft.
 
@@ -126,8 +126,8 @@ Sections
 
 A report can group its rows under titled headings.  A spec whose ``section``
 function is set names each row's section, and its query answers
-``ReportQuery.sections``, every title in the order they are drawn, so a section no
-row falls in still appears.  ``spec.table()`` answers a ``ReportTable`` whose
+``ReportQuery.sections``, every title in the order they are drawn, so an empty
+section still appears.  ``spec.table()`` answers a ``ReportTable`` whose
 ``rows`` are every row in the order the query answered them and whose ``sections``
 are ``ReportSection(title, rows, header=None, widths=None)`` entries grouping the
 same rows:

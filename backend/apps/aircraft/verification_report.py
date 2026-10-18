@@ -2,27 +2,26 @@
 
 Two sections, in this order: *People*, one row per checkable person with a profile who
 holds at least one of a photo ID, a pilot certificate, and a medical, and *Aircraft
-insurance*, one row per aircraft in service with a policy on file.  An item a person
-doesn't hold (a non-pilot's certificate, a medical of *None*, a photo ID of *Not
-provided*, insurance without an expiration) doesn't leave anything to verify, and a
-person who doesn't hold any of the three, like an aircraft without a policy, is never
-listed.  A person's row has a
-check column for each item, Photo ID, Certificate, and Medical in that order, each
-reading *Verified*, *Not verified*, or *Not provided* for an item the person does not
-hold.  Then what is on file, the medical's expiry (the policy's for an aircraft) in a
-column of its own, and when the record last changed.  The PDF draws each section under
-its own header: People under Name, DART, the three checks, Details, Expires, and
+insurance*, one row per aircraft in service with a policy on file.  An item that isn't on
+file (a non-pilot's certificate, a medical of *None*, a photo ID of *Not provided*,
+insurance without an expiration) doesn't leave anything to verify, and a person who
+doesn't hold any of the three, like an aircraft without a policy, is never listed.  A
+person's row has a check column for each item, Photo ID, Certificate, and Medical in that
+order, each reading *Verified*, *Not verified*, or *Not provided* for an item the person
+does not hold.  Then what is on file, the medical's expiry (the policy's for an aircraft)
+in a column of its own, and when the record last changed.  The PDF draws each section
+under its own header: People under Name, DART, the three checks, Details, Expires, and
 Updated, and Aircraft insurance under N-number, Owner, Carrier, Expires, and Updated,
-without check columns.  The CSV is one table under one header, the union of the two, so
-an aircraft's row leaves the three check cells blank and its N-number, owner, and
-carrier sit under *Name*, *DART or owner*, and *Details*.  The Section column is a
-default in the CSV, which doesn't have headings, and left to the headings in the PDF;
-the three verification stamp columns (whether, by whom, and on which day) are there to
-choose, and off by default, since the default list is of rows with something nobody has
-verified.  The house style lives in ``caldart.reports``; this module decides which rows
-the report holds, how its two filters narrow them, and what each cell prints.  It lives
-in the aircraft app, which sits above the members app and already decides who the
-leader's member check can find, because it lists both people and aircraft.
+without check columns.  The CSV is one table under one header, the union of the two, so an
+aircraft's row leaves the three check cells blank and its N-number, owner, and carrier sit
+under *Name*, *DART or owner*, and *Details*.  The Section column is a default in the CSV,
+which doesn't have headings, and left to the headings in the PDF; the three verification
+stamp columns (whether, by whom, and on which day) are there to choose, and off by
+default, since the default list is of rows with something not yet verified.  The house
+style lives in ``caldart.reports``; this module decides which rows the report holds, how
+its two filters narrow them, and what each cell prints.  It lives in the aircraft app,
+which sits above the members app and already decides who the leader's member check can
+find, because it lists both people and aircraft.
 """
 
 from __future__ import annotations

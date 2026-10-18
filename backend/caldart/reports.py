@@ -695,9 +695,9 @@ class ReportQuery[RowT]:
     ``rows`` may be a one-shot iterator, such as a queryset's ``iterator()``; it is
     read once.  ``filters`` maps each applied filter's name to its value, and is what
     the PDF subtitle prints through :func:`filter_summary`.  ``sections`` lists every
-    section title of a sectioned report, in the order they are drawn, so a section no
-    row falls in still appears; ``None`` takes the titles in the order the rows first
-    name them.
+    section title of a sectioned report, in the order they are drawn, so an empty
+    section still appears; ``None`` takes the titles in the order the rows first name
+    them.
     """
 
     rows: Iterable[RowT]

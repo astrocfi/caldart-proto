@@ -22,7 +22,8 @@ UNKNOWN_EVENT_MESSAGE = "Unknown event '{slug}'."
 #: What an event the bound account's roles do not admit is refused with.
 NOT_PERMITTED_MESSAGE = "{name} does not hold a role that may receive {label}."
 
-#: The refusal a subscription to an address without an account gets until confirmed.
+#: What a subscription to an address without an account is refused with until it is
+#: confirmed.
 CONFIRM_MESSAGE = "Check the box to confirm this address may receive these notifications."
 
 #: What a second subscription for one address is refused with.

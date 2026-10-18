@@ -285,10 +285,10 @@ airplane for us today?" in one screen.*
    insurance card and a list of the members who fly it, each with their own
    membership and medical currency.  The verdict is **INSURED** for a current
    policy somebody has verified, **NOT VERIFIED** for a current one still
-   awaiting verification, and **NOT INSURED** without a current policy; the seed leaves about three
-   in ten airplanes unverified, ``N206KM`` among them.  Press **Verify**, check
-   **Insurance verified**, and save to turn **NOT VERIFIED** into
-   **INSURED**.
+   awaiting verification, and **NOT INSURED** without a current policy; the
+   seed leaves about three in ten airplanes unverified, ``N206KM`` among them.
+   Press **Verify**, check **Insurance verified**, and save to turn
+   **NOT VERIFIED** into **INSURED**.
 
 **What success looks like.**  The subject of the card is in the query string,
 so a card can be reloaded, backed out of, or sent to another leader as a link.

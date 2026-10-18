@@ -407,7 +407,7 @@ def _record_limit(locked: BulkEmail) -> DartLimit | None:
     """``locked``'s DART limit, recorded as its ``dart``; ``None`` without a limit.
 
     Raises ``DomainError`` with ``OWNER_NO_DART_MESSAGE`` for an email whose limit
-    doesn't name a DART, to which nobody may be added.
+    doesn't name a DART, because then nobody may be added.
     """
     limit = dart_limit(locked)
     if limit is None:

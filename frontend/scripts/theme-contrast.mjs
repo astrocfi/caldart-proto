@@ -40,7 +40,7 @@ const HOVER_SHIFT_RATIO = 1.3;
  * The public site fills an opaque `.panel` (`--color-bg-raised`) and the
  * portal an opaque shell (`--color-bg-sunken`); with such a theme neither ever
  * leaves small text on the ground, so measuring against it would report a
- * contrast no reader meets.  Those themes are checked against the panel.
+ * contrast that never reaches a reader.  Those themes are checked against the panel.
  */
 const GROUND_IS_NOT_A_SURFACE = new Set(['duty']);
 

@@ -139,8 +139,8 @@ filters            same way: :doc:`api-members` for ``members``,
                    ``GET /admin/renewals``), and :doc:`api-system` for
                    ``emails``.  A value the list refuses is
                    refused here with the same **400**, keyed by the parameter.
-                   The verification report, which no list backs, reads its
-                   own ``status`` and ``dart``
+                   The verification report doesn't have a list behind it,
+                   so it reads its own ``status`` and ``dart``
                    (:ref:`reports-verification`).
 ``ordering``       The list's own ordering, with the list's own rules: the
                    payments report refuses an unknown field as the payment list

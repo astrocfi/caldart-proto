@@ -184,7 +184,7 @@ def test_the_command_resets_from_the_server(subject: User) -> None:
 
 
 def test_the_command_is_recorded_under_the_system(subject: User) -> None:
-    """The history reads it as a change that no account made."""
+    """The history reads it as a change made by the system rather than an account."""
     call_command("reset_two_factor", email=subject.email, stdout=StringIO())
     change = AccountChange.objects.get(user=subject)
     assert (change.kind, change.by_command) == (AccountChangeKind.MFA_RESET, True)

@@ -200,7 +200,7 @@ export const NAV_GROUPS: NavGroup[] = [
 ];
 
 /**
- * Screens no rail entry leads to directly, and the group they belong to: the join
+ * Screens without a rail entry of their own, and the group they belong to: the join
  * page a friend opens from the dashboard to become a member, and `/system`, which
  * opens the first System screen.
  */

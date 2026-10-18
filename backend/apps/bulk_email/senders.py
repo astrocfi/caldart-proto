@@ -149,8 +149,8 @@ def sender_notice(bulk: BulkEmail) -> str:
     That is :data:`OWNER_NO_DART_MESSAGE` naming the sender when the email's limit
     (:func:`dart_limit`) doesn't name a DART, as happens to a DART leader's email once
     their profile doesn't name one, so a manager who opens the email reads whose it is.
-    Blank for any other email, including one that has started sending, which nobody can
-    change.
+    Blank for any other email, including one that has started sending, since nobody can
+    change it.
     """
     if not bulk.can_edit or bulk.sender is None:
         return ""

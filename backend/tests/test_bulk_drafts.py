@@ -318,10 +318,10 @@ def test_send_refuses_an_email_without_a_subject_or_message(
     assert response.json() == {field: [message]}
 
 
-def test_send_refuses_a_batch_of_skips_alone(
+def test_send_refuses_a_batch_where_everyone_is_skipped(
     management_client: APIClient, management: User
 ) -> None:
-    """A batch of skips alone is refused under ``batch``."""
+    """A batch where everyone is skipped is refused under ``batch``."""
     bulk = BulkEmailFactory(sender=management)
     add_to_batch(bulk, make_person("gone@example.test", is_active=False))
     response = management_client.post(url(bulk, "send"), {}, format="json")

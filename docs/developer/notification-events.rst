@@ -97,7 +97,7 @@ Membership
      - ``user``, ``term``, ``actor``
    * - ``membership_expired``
      - ``members.lifecycle.expire_lapsed_memberships``, once per account whose terms
-       it flipped and that no other term still covers
+       it flipped, if no other term still covers the account
      - ``user``; ``term``, the flipped term that ended last
 
 Registering (``POST /auth/register``) doesn't raise anything, because the account

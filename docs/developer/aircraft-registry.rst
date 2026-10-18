@@ -240,7 +240,7 @@ characters or shorter as the FAA writes it (``172S``, ``PA-28-181``, ``SR22``,
 *Skyhawk*, ``EUROFOX`` is *Eurofox*).
 
 Add a manufacturer to ``MAKE_NAMES`` when its FAA spellings would otherwise read
-as two names, or as a corporate name that nobody uses.
+as two names, or as a corporate name not used by anybody.
 
 
 Aliases and search

@@ -428,7 +428,7 @@ normalize_url_prefix() {
         [[ "$segment" =~ $PREFIX_SEGMENT_PATTERN && "$segment" != . && "$segment" != .. ]] ||
             return 1
     done
-    # read stops at a newline, which no segment may carry.
+    # read stops at a newline, and a segment may not carry one.
     [[ "$(IFS=/; printf '%s' "${segments[*]}")" == "$value" ]] || return 1
     printf '/%s\n' "$value"
 }

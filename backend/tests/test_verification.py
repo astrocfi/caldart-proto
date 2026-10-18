@@ -127,7 +127,7 @@ def test_clear_stale_does_not_clear_anything_for_a_value_resent_unchanged(
     assert clear_stale(verified_profile, changes) == []
 
 
-def test_clear_stale_ignores_an_unverified_field(verified_profile: MemberProfile) -> None:
+def test_clear_stale_ignores_a_field_outside_verification(verified_profile: MemberProfile) -> None:
     """Editing the unverified ratings, flight review, or hours keeps every stamp."""
     changes = {"ratings": ["instrument"], "total_hours": 9000}
     assert clear_stale(verified_profile, changes) == []

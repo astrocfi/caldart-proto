@@ -21,7 +21,7 @@ from caldart import events
 from caldart.exceptions import DomainValidationError
 
 #: How a payment recorded by hand can have been presented.  Every other wallet
-#: describes something a provider told us, which nobody can say of a check.
+#: describes something a provider told us, and a check doesn't come from a provider.
 MANUAL_METHODS = (
     PaymentWallet.CHECK,
     PaymentWallet.CASH,

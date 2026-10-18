@@ -141,13 +141,13 @@ def clear_stale(profile: MemberProfile, changes: Mapping[str, object]) -> list[s
     """Clear every verified item of ``profile`` whose covered fields ``changes`` moves.
 
     ``changes`` maps profile field names to the values about to be written; call this
-    before they are assigned, while ``profile`` still holds the stored values.  An item
-    is cleared -- both ``<slug>_verified_at`` and ``<slug>_verified_by`` set to
-    ``None`` on ``profile``, not yet saved -- when any field it covers carries a value
-    different from the stored one.  A field resent at its stored value, or one that no
-    item covers, doesn't clear anything.  Returns the slugs of the items that were
-    verified and are cleared, in the order of :data:`ITEMS`; an item that was not
-    verified is not reported.
+    before they are assigned, while ``profile`` still holds the stored values.  An item is
+    cleared -- both ``<slug>_verified_at`` and ``<slug>_verified_by`` set to ``None`` on
+    ``profile``, not yet saved -- when any field it covers carries a value different from
+    the stored one.  A field resent at its stored value, or a field that isn't part of any
+    item, doesn't clear anything.  Returns the slugs of the items that were verified and
+    are cleared, in the order of :data:`ITEMS`; an item that was not verified is not
+    reported.
     """
     cleared: list[str] = []
     for item in ITEMS:

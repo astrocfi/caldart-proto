@@ -284,8 +284,8 @@ states the same rules as correlated subqueries on the user queryset:
    a started term that is active, expired, or suspended.  Such a row reads ``none``
    and is what ``?status=none`` filters on.
 ``coverage_end`` / ``coverage_plan``
-   The earliest active term ending on or after today that **no** other active
-   term continues — where "continues" means starting no later than
+   The earliest active term ending on or after today and **not** continued by
+   any other active term — where "continues" means starting no later than
    ``ends_on + 1 day`` and reaching further — and that term's plan name.
    Terms inside the chain always have a continuation, and terms after a gap
    always end later, so the earliest such boundary is exactly where the Python

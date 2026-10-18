@@ -337,7 +337,7 @@ class AccountChange(models.Model):
         related_name="account_changes_made",
     )
     changed_at = models.DateTimeField(default=timezone.now)
-    #: True for a change a management command made, which no account stands behind.
+    #: True when a management command made the change rather than an account.
     by_command = models.BooleanField(default=False)
     kind = models.CharField(max_length=20, choices=AccountChangeKind.choices)
     added = models.JSONField(default=list, blank=True)

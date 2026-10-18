@@ -127,7 +127,7 @@ report's Coverage section with the reason.
 - Verify every P0 and P1 yourself by reading the cited code (for many, delegate to
   verifier subagents with the finding and the instruction to refute it). Drop what does not
   hold; lower the confidence of what cannot be settled from the code.
-- Follow the reviewers' leads that no other reviewer settled.
+- Follow up each reviewer's leads unless another reviewer already settled them.
 - Look for chains: two modest findings that together give an attacker more (an open
   redirect plus a token in the URL, a stored XSS plus a cookie without `HttpOnly`) become one
   finding at the combined priority.

@@ -77,7 +77,7 @@ SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=True)
 SECURE_HSTS_SECONDS = env.int("SECURE_HSTS_SECONDS", default=31536000)
 SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", default=True)
 # Off by default: `preload` tells the world the site consents to the browser
-# preload list, which no deployment should join by inheriting a default.
+# preload list, and a deployment should never join it by inheriting a default.
 SECURE_HSTS_PRELOAD = env.bool("SECURE_HSTS_PRELOAD", default=False)
 
 # Django owns these on proxied responses too; the vhosts set neither.
@@ -201,7 +201,7 @@ DJANGO_VITE = {
 # can grant themselves a membership.  The development flag, PAYMENTS_MOCK_ENABLED,
 # is ignored here: it is on in `.env.example`, and a copied environment file must
 # not be what turns it on.  Demonstrating the flow without payment keys takes this
-# variable, which no other settings module reads.
+# variable, and only this settings module reads it.
 PAYMENTS_MOCK_ENABLED = env.bool("PAYMENTS_MOCK_ENABLED_IN_PRODUCTION", default=False)
 
 # --------------------------------------------------------------------------

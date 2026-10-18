@@ -128,7 +128,7 @@ describe('PaymentDetailPage', () => {
     expect(within(table).getByText("The provider's dashboard")).toBeInTheDocument();
   });
 
-  it('says in one quiet line that nothing has been refunded, and where refunds are listed', async () => {
+  it('says that nothing has been refunded in one quiet line, and where refunds are listed', async () => {
     servePayment();
     renderDetail();
 
