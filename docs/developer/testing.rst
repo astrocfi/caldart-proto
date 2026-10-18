@@ -1493,41 +1493,51 @@ singular noun, an unlisted word ending in a single *s* (*awaits*, *stands*).
 *No* may take up to three nouns before the verb (*no active plan*), and
 *else*, *ever*, and the adverbs (``RELATIVE_FILLERS``) may stand before it.
 A bare plural is passed over when it is a listed verb form, an unlisted *-ed*
-word, a word in ``NOT_BARE_NOUNS`` (an unlisted verb such as *explains*, or
-an adverb such as *sometimes*), an *-ly* adverb, or a word ending in *ss* or
-*us*.  The full one is a noun followed by *that*, *which*, *who*, or *whom*
+word, a word in ``NOT_BARE_NOUNS`` (an unlisted verb such as *decides*, or
+an adverb such as *sometimes*), an *-ly* adverb, a word ending in *ss* or
+*us*, or a word after a subject pronoun (*As it stands*).  The full one is a noun followed by *that*, *which*, *who*, or *whom*
 (or by a preposition and *which* or *whom*), read as the reduced one reads
 its noun, then the negative subject and its verb.  The third is a comma
 followed by *which*, *who*, or *whom*, after any word, and the negative
 subject and its verb (*Operational email,* followed by *which nobody may
 turn off*).  The last is a verb of telling (``TELLING_VERBS``: *tell*,
-*warn*, *show*, *remind*, *assure*, *promise*, *inform*, *notify*), its
-object, and a negative subject without the *that* it needs, as in *tells
-the member that nothing is due*.  The object is a pronoun, or a determiner,
-at most one adjective, and a noun.
+*warn*, *remind*, *assure*, *promise*, *inform*, *notify*; and *explain to*,
+from ``TELLING_TO_VERBS``), a person as its object, and a negative subject
+without the *that* it needs, as in *tells the member that nothing is due*.
+The person is a pronoun from ``PERSON_PRONOUNS``, or a noun from
+``PERSON_NOUNS``, bare or after a determiner and at most one adjective.
+*Show* isn't a verb of telling, since its object is usually a thing, and
+after any verb of telling a thing as the object, or *who* or *which* after
+the object, hangs a relative clause off it (*tells the story* and then
+*nobody knows*), which is reported as one.
 
 These are passed over: *no longer*, *no matter*, and the rest of
 ``NOT_OBJECTS``; a negative right after a comma, a colon, a semicolon, or a
 conjunction, since none of those leaves a noun right before it; a noun slot
 holding a word that opens a clause, a preposition, a form of *be* or *have*,
 a pronoun, or a verb (a past form, or a present form after an adjective, as
-in *the page says* before a negative subject, or a verb of telling before
-*that*); a noun from ``ADVERBIAL_NOUNS`` after any determiner but *a* or
-*an*, which says when, how, or why (*That way nothing is lost*, *The day
-nothing is due*); a noun from ``CONTENT_NOUNS`` before *that*, which states
-the clause's content (*the note that nothing listens on port 25*); a value
-or a quoted label; and a noun phrase led by a preposition that opens the
+in *the page says* before a negative subject); a person after a verb of
+telling, or any noun after *so* or *such*, before *that*; a noun from
+``ADVERBIAL_NOUNS`` after any determiner but *a* or *an*, which says when,
+how, or why, in a phrase that opens a sentence or a clause or follows a
+comma or a preposition (*That way nothing is lost*, *The day nothing is
+due*), while as a verb's object it takes a relative clause like any noun; a
+noun from ``CONTENT_NOUNS`` before *that*, which states the clause's content
+when the clause goes on past its verb (*the note that nothing listens on
+port 25*), while a clause that stops at its verb has left the object out
+and is a hit; a value or a quoted label; and a noun phrase led by a preposition that opens the
 text, a paragraph, a list item, or a comment, or follows a sentence's end,
 an opening quote, a word that opens a clause, a coordinating conjunction
 after a comma, or an opening bracket or a colon when the preposition is
 capitalized, which leads in to a clause of its own (*On any failure nothing
-is written*).  A comma, a dash, or a lower-case bracket or colon before the
+is written*), with a two-word preposition read as one (*Thanks to the
+lock*, from ``COMPOUND_PREPOSITION_HEADS``).  A comma, a dash, or a lower-case bracket or colon before the
 preposition doesn't count, and neither does a conjunction without a comma,
 because the phrase after one as often finishes the clause before it.  A
 clause is reported once, on its first word's line, with the suggestion
 *rewrite as an adjective or 'that doesn't ...'* for a reduced one, *say it
-plainly ('not used by anybody') or in short sentences* for a full one, and
-the same words with *that* added for a verb of telling.
+plainly (an adjective, or 'not <verb>ed by anybody') or in short sentences*
+for a full one, and the same words with *that* added for a verb of telling.
 
 The check doesn't catch everything; these gaps are known, and are reviewed by
 hand:
@@ -1557,8 +1567,10 @@ hand:
 * A bare noun that is also a listed verb form, before *that* or a negative
   subject (*limits* followed by *that nobody recorded*), reads as the verb,
   and a bracket between the noun and *that* hides the noun.
-* A verb of telling whose object is a name, or a noun with two adjectives,
-  isn't read.
+* A content noun whose clause leaves its verb's object out without stopping
+  there (*a note that* and then *nobody reads in time*) is passed over.
+* A verb of telling whose object is a name, a noun with two adjectives, or a
+  person missing from ``PERSON_NOUNS`` isn't read as telling a person.
 
 To keep a line verbatim, such as a third party's error message, end it with a
 ``wording:ignore`` comment, or put a ``wording:ignore-next-line`` comment on

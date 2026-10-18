@@ -448,7 +448,7 @@ def test_a_full_relative_clause_carries_its_suggestion() -> None:
     hit = checker.find_hits(text, "page.rst")[0]
     assert hit.suggestion == (
         "a corporate name that nobody uses -> "  # wording:ignore
-        "say it plainly ('not used by anybody') or in short sentences"
+        "say it plainly (an adjective, or 'not <verb>ed by anybody') or in short sentences"
     )
 
 
@@ -494,19 +494,49 @@ ADVERBIAL_NOUNS = {
     "ensures": "The test ensures nothing is sent.",
     "guarantees": "The lock guarantees nobody is charged twice.",
     "notes": "The page notes nothing is due.",
+    "after-a-preposition": "It stops on the day that nothing is due.",
+    "the-point": "The point nothing changes is the end of the run.",
+    "every-place": "Every place nothing is stored, it says so.",
+    "so-before-that": "It is so slow that nobody waits.",
+    "such-before-that": "It is such a mess that nobody reads it.",
+    "subject-pronoun-before-a-verb": "As it stands nothing is sent.",
+    "two-word-preposition": "Thanks to the lock nothing runs twice.",
 }
 
 
 @pytest.mark.parametrize("text", list(ADVERBIAL_NOUNS.values()), ids=list(ADVERBIAL_NOUNS))
 def test_a_noun_of_when_or_a_verb_before_a_negative_subject_is_not_flagged(text: str) -> None:
-    """A noun that says when, how, or why takes a clause of its own; so does a verb."""
+    """A noun that says when, how, or why takes a clause of its own; so does a verb.
+
+    So does a "that" after "so" or "such", a verb after a subject pronoun, and a
+    two-word preposition that opens the sentence.
+    """
     assert _hit_count(text) == 0
+
+
+ADVERBIAL_OBJECTS = {
+    "the-day": "Refuse the day no statement can have carried yet.",  # wording:ignore
+    "the-reason": "It logs the reason nobody gave.",  # wording:ignore
+    "the-time": "It refuses the time nobody has booked.",  # wording:ignore
+    "content-noun-with-a-gap": "It sends a note that nobody else sees.",  # wording:ignore
+}
+
+
+@pytest.mark.parametrize("text", list(ADVERBIAL_OBJECTS.values()), ids=list(ADVERBIAL_OBJECTS))
+def test_a_noun_of_when_as_a_verbs_object_takes_a_relative_clause(text: str) -> None:
+    """As a verb's object, "the day" or "the reason" takes a relative clause too.
+
+    So does a content noun whose "that" clause stops at its verb, leaving the object out.
+    """
+    assert _hit_count(text) == 1
 
 
 TELLING = {
     "tells-a-noun": "It tells the caller nothing changed.",  # wording:ignore
-    "shows-a-noun": "It shows the leader nobody is on the DART.",  # wording:ignore
+    "tells-a-bare-plural": "It tells members nothing is due.",  # wording:ignore
     "warns-a-noun": "It warns each member no payment was taken.",  # wording:ignore
+    "explain-to": "Explain to the member nothing is due.",  # wording:ignore
+    "explain-to-a-pronoun": "Explain to them nothing is due.",  # wording:ignore
     "tells-a-pronoun": "Tell them nobody can sign in.",  # wording:ignore
     "told-a-pronoun": "It told you nothing was due.",  # wording:ignore
     "reminds-an-adjective": "It reminds the DART leader nobody is on call.",  # wording:ignore
@@ -528,6 +558,47 @@ def test_a_telling_verb_hit_suggests_that() -> None:
     )  # wording:ignore
 
 
+@pytest.mark.parametrize(
+    ("text", "told"),
+    [
+        ("It tells members nothing is due.", "tells members"),  # wording:ignore
+        ("Explain to the member nothing is due.", "Explain to the member"),  # wording:ignore
+        ("Explain to them nothing is due.", "Explain to them"),  # wording:ignore
+    ],
+    ids=["bare-plural", "explain-to", "explain-to-a-pronoun"],
+)
+def test_a_telling_verb_before_a_person_suggests_that(text: str, told: str) -> None:
+    """A plural of people, or "explain to" and a person, takes the same suggestion."""
+    hit = checker.find_hits(text, "x")[0]
+    assert hit.suggestion == f"{told} nothing is -> {told} that nothing is"
+
+
+#: A verb of telling (or "show") whose object is a thing, or a person before "who": the
+#: negative hangs a relative clause off the object, so each is a relative-clause hit.
+TOLD_THINGS = {
+    "shows-the-page": ("It shows the page nobody can see.", "reduced"),  # wording:ignore
+    "shows-the-list": ("It shows the list nobody reads.", "reduced"),  # wording:ignore
+    "tells-the-story": ("It tells the story nobody knows.", "reduced"),  # wording:ignore
+    "shows-the-page-that": ("It shows the page that nobody can see.", "full"),  # wording:ignore
+    "tells-the-story-that": ("It tells the story that nobody knows.", "full"),  # wording:ignore
+    "shows-the-leader-who": ("It shows the leader who nobody checked.", "full"),  # wording:ignore
+    "tells-the-member-who": ("It tells the member who nobody paid.", "full"),  # wording:ignore
+}
+
+#: The end of each kind of relative-clause suggestion.
+REMEDIES = {
+    "reduced": "rewrite as an adjective or 'that doesn't ...'",
+    "full": "say it plainly (an adjective, or 'not <verb>ed by anybody') or in short sentences",
+}
+
+
+@pytest.mark.parametrize(("text", "kind"), list(TOLD_THINGS.values()), ids=list(TOLD_THINGS))
+def test_a_thing_after_a_telling_verb_is_a_relative_clause(text: str, kind: str) -> None:
+    """The object is a thing, or "who" follows it, so the hit asks for a plain rewrite."""
+    hits = checker.find_hits(text, "x")
+    assert [hit.suggestion.endswith(REMEDIES[kind]) for hit in hits] == [True]
+
+
 def test_a_telling_verb_and_a_pronoun_are_one_hit() -> None:
     """The pronoun form is reported once, with the same suggestion."""
     hits = checker.find_hits("Tell them nobody can sign in.", "x")  # wording:ignore
@@ -540,6 +611,8 @@ NOT_TELLING = {
     "with-that": "It tells the caller that nothing changed.",
     "pronoun-with-that": "Tell them that nobody can sign in.",
     "without-an-object": "It shows nobody is on the DART.",
+    "bare-plural-with-that": "It tells members that nothing is due.",
+    "explain-to-with-that": "Explain to the member that nothing is due.",
 }
 
 

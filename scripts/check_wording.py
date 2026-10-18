@@ -81,21 +81,29 @@ active plan"), and the words in ``RELATIVE_FILLERS`` may stand between the negat
 the verb (``else``, ``ever``, and the adverbs).  A plural noun without a determiner, or
 an indefinite pronoun such as ``everything``, may lead the clause too ("Types" followed
 by "nobody may turn off"), unless it is a listed verb form, an unlisted ``-ed`` word, a
-word in ``NOT_BARE_NOUNS`` (an unlisted verb such as ``explains``, or an adverb such as
-``sometimes``), an ``-ly`` adverb, or a word ending in ``ss`` or ``us``.
+word in ``NOT_BARE_NOUNS`` (an unlisted verb such as ``decides``, or an adverb such as
+``sometimes``), an ``-ly`` adverb, a word ending in ``ss`` or ``us``, or a word after a
+subject pronoun ("As it stands" before a negative subject).
 
 A full relative clause is a hit the same way: a noun followed by ``that``, ``which``,
 ``who``, or ``whom`` (or by a preposition and ``which`` or ``whom``), or a comma followed
 by ``which``, ``who``, or ``whom`` after any word, then the negative subject and its
 verb: "a corporate name" followed by "that nobody uses", or "Operational email," followed
 by "which nobody may turn off".  The noun is read as above, after a determiner, or as a
-bare noun without one.  A noun from ``CONTENT_NOUNS`` before ``that`` ("the note that
-nothing listens") states the clause's content and is passed over.
+bare noun without one.  Before ``that`` only, a noun after "so" or "such" ("so slow
+that nobody waits"), a person after a verb of telling, and a noun from ``CONTENT_NOUNS``
+whose clause goes on past its verb ("the note that nothing listens on port 25") are
+passed over; a content noun's clause that stops at its verb has left the verb's object
+out, and is a hit ("a note" followed by "that nobody else sees").  "who", "which", and
+"whom" are never passed over after a verb of telling.
 
-A verb of telling (``TELLING_VERBS``, in any form), its object (a pronoun, or a
-determiner, at most one adjective, and a noun), and a negative subject with its verb is
-a hit too, whose suggestion puts "that" after the object: "tells the caller" followed by
-"nothing changed".
+A verb of telling (``TELLING_VERBS``, in any form, or a verb in ``TELLING_TO_VERBS`` and
+"to": "explain to"), a person as its object (a pronoun from ``PERSON_PRONOUNS``, or a
+noun from ``PERSON_NOUNS`` after a determiner and at most one adjective, or bare), and a
+negative subject with its verb is a hit too, whose suggestion puts "that" after the
+object: "tells the caller" followed by "nothing changed".  "show" isn't a verb of
+telling, and a verb of telling whose object is a thing hangs a relative clause off the
+thing ("tells the story" followed by "nobody knows"), which is reported as one.
 
 These are passed over:
 
@@ -105,24 +113,28 @@ These are passed over:
   a third-person form after an adjective, as in "the page says nothing is hidden", or a
   verb of telling before ``that``;
 * a noun from ``ADVERBIAL_NOUNS`` after any determiner but ``a`` or ``an``, which says
-  when, how, or why: "That way nothing is lost", "The day nothing is due";
+  when, how, or why, in a phrase that opens a sentence or a clause, or follows a comma or
+  a preposition: "That way nothing is lost", "The day nothing is due".  As a verb's
+  object the noun takes a relative clause like any other ("logs the reason" followed by
+  "nobody gave");
 * a negative that is a value or a quoted label: ``None``, an all-caps negative after a
   noun that isn't all caps, or a capitalized negative after a lower-case noun;
 * a noun phrase that follows a preposition, where the preposition opens the text, a
   paragraph, a list item, or a comment, or follows a character that ends a sentence or
-  opens a quote, an opening bracket or a colon when the preposition is capitalized, a
-  word that opens a clause, or a coordinating conjunction after a comma: "On any failure
-  nothing is written" leads in to a clause of its own.  After a comma, a dash, or a
+  opens a quote, an opening bracket or a colon when the preposition is capitalized, a word
+  that opens a clause, or a coordinating conjunction after a comma: "On any failure
+  nothing is written" leads in to a clause of its own, and so does a two-word preposition
+  from ``COMPOUND_PREPOSITION_HEADS`` ("Thanks to the lock").  After a comma, a dash, or a
   bracket, or a conjunction without a comma, the phrase is read as part of the clause
   before it ("blank, for a category ...").
 
 Run without a switch, the check prints every hit as ``path:line: text``, with a suggested
-rewrite below it where the rewrite is simple, then the total and the remedy, and exits
-1.  It exits 0 when it doesn't find a hit.  A relative clause is reported on the line its
+rewrite below it where the rewrite is simple, then the total and the remedy, and exits 1.
+It exits 0 when it doesn't find a hit.  A relative clause is reported on the line its
 determiner (or its noun, or the word before its comma) is on, once, with the suggestion
-"rewrite as an adjective or 'that doesn't ...'", or for a full one "say it plainly ('not
-used by anybody') or in short sentences".  A telling verb's hit is reported on the verb's
-line.
+"rewrite as an adjective or 'that doesn't ...'", or for a full one "say it plainly (an
+adjective, or 'not <verb>ed by anybody') or in short sentences".  A telling verb's hit is
+reported on the verb's line.
 
 Usage::
 
@@ -152,8 +164,10 @@ Known gaps, reviewed by hand:
   lead-in, so "For a type" followed by "nobody may turn off" is passed over; one whose
   noun has two adjectives or a possessive; one whose subject is ``nobody's``; one after a
   bare noun that is also a listed verb form ("limits" followed by "that nobody
-  recorded"), or after a bracket that stands between the noun and ``that``; and a verb
-  of telling whose object is a name or has two adjectives.
+  recorded"), or after a bracket that stands between the noun and ``that``; a content
+  noun whose clause leaves its verb's object out without stopping there ("a note that"
+  followed by "nobody reads in time"); a person missing from ``PERSON_NOUNS``; and a
+  verb of telling whose object is a name or has two adjectives.
 """
 
 import argparse

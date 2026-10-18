@@ -30,14 +30,19 @@ from wording_words import (
     ADVERBIAL_NOUNS,
     BE_FORMS,
     CLAUSE_OPENERS,
+    COMPOUND_PREPOSITION_HEADS,
     CONTENT_NOUNS,
     NOT_BARE_NOUNS,
     NOT_OBJECTS,
     NOT_PAST_TENSE,
     PERFECT_AUXILIARIES,
+    PERSON_NOUNS,
+    PERSON_PRONOUNS,
     PRONOUNS,
     RELATIVE_DETERMINERS,
     RELATIVE_FILLERS,
+    SUBJECT_PRONOUNS,
+    TELLING_TO_VERBS,
     TELLING_VERBS,
 )
 
@@ -95,11 +100,16 @@ _COMMA_CLAUSE = re.compile(
 #: Every form of the verbs of telling, lower case.
 _TELLING_FORMS = frozenset(form for base in TELLING_VERBS for form in FAMILY_OF[base])
 
-# A verb of telling, a pronoun, and a negative: "Tell them" followed by "nobody can".
+#: Every form of the verbs that tell through "to", lower case.
+_TELLING_TO_FORMS = frozenset(form for base in TELLING_TO_VERBS for form in FAMILY_OF[base])
+
+# A verb of telling (or one and "to"), a person's pronoun, and a negative: "Tell them"
+# followed by "nobody can", "explain to them" followed by "nothing is due".
 _TELLING = re.compile(
     WORD_START
-    + rf"(?=(?P<verb>{'|'.join(sorted(_TELLING_FORMS))}){GAP}"
-    + rf"(?P<object>{'|'.join(PRONOUNS)}){GAP}"
+    + rf"(?=(?P<verb>{'|'.join(sorted(_TELLING_FORMS))}"
+    + rf"|(?:{'|'.join(sorted(_TELLING_TO_FORMS))}){GAP}to){GAP}"
+    + rf"(?P<object>{'|'.join(PERSON_PRONOUNS)}){GAP}"
     + _NEGATIVE
     + ")",
     re.IGNORECASE,
@@ -152,7 +162,10 @@ _LIST_ITEM = re.compile(
 _RELATIVE_REMEDY = "rewrite as an adjective or 'that doesn't ...'"
 
 #: The remedy a full relative clause suggests.
-_FULL_REMEDY = "say it plainly ('not used by anybody') or in short sentences"
+_FULL_REMEDY = "say it plainly (an adjective, or 'not <verb>ed by anybody') or in short sentences"
+
+#: The characters that end the clause right after a verb, leaving its object out.
+_CLAUSE_ENDS = frozenset(".,;:!?)")
 
 
 def find_relative_clauses(text: str, path: str) -> list[Hit]:
@@ -207,25 +220,25 @@ def _reduced_clause(text: str, match: re.Match[str]) -> tuple[int, int, str] | N
     (``_is_adverbial``: "That way nothing is lost"); the negative must not be a value
     or a quoted label (``_is_a_value``); the noun phrase must not lead in to a clause
     after a preposition (``_is_a_lead_in``); and a verb must follow the negative subject
-    (``_subject_and_verb``).  After a verb of telling the hit asks for a "that" instead.
+    (``_subject_and_verb``).  When a verb of telling stands before the determiner and
+    the noun names a person, the hit asks for a "that" instead (``_missing_that``).
     """
     noun, negative, adjective = match["noun"], match["negative"], match["adjective"]
-    if not _is_a_noun(noun, adjective) or _is_adverbial(match["determiner"], noun):
-        return None
-    if _is_a_value(noun, negative):
-        return None
     start = match.start("determiner")
-    if _is_a_lead_in(text, start):
+    if not _is_a_noun(noun, adjective) or _is_adverbial(text, start, match["determiner"], noun):
+        return None
+    if _is_a_value(noun, negative) or _is_a_lead_in(text, start):
         return None
     subject = _subject_and_verb(text, match.end("negative"), negative.lower())
     if subject is None:
         return None
     lead = [match["determiner"], *([] if adjective is None else [adjective]), noun]
-    if _follows_telling(text, start):
-        verb = PREVIOUS_WORD.search(text, max(0, start - 80), start)
-        assert verb is not None  # noqa: S101 - _follows_telling found it
-        told = [verb[1], *lead]
-        return _missing_that(verb.start(1), told, [negative, *subject], match.start("negative"))
+    told = _telling_before(text, start)
+    if told is not None and noun.lower() in PERSON_NOUNS:
+        verb_start, verb = told
+        return _missing_that(
+            verb_start, [*verb, *lead], [negative, *subject], match.start("negative")
+        )
     suggestion = f"{' '.join([*lead, negative, *subject])} -> {_RELATIVE_REMEDY}"
     return (start, match.start("negative"), suggestion)
 
@@ -235,19 +248,30 @@ def _bare_clause(text: str, match: re.Match[str]) -> tuple[int, int, str] | None
 
     The plural (or ``everything``, ``anyone``, ``somebody``, ...) must not follow a
     determiner, nor a determiner and one more word (those are read as
-    ``_reduced_clause`` reads them), must read as a bare noun (``_is_a_bare_noun``), and
+    ``_reduced_clause`` reads them), nor a subject pronoun, which makes it a verb ("As
+    it stands nothing is sent"); it must read as a bare noun (``_is_a_bare_noun``) and
     must not lead in to a clause after a preposition; a verb must follow the negative
-    subject.
+    subject.  After a verb of telling, a plural that names people asks for a "that"
+    instead ("tells members that nothing is due").
     """
     noun, negative = match["noun"], match["negative"]
     start = match.start("noun")
     if _determiner_before(text, start) is not None or not _is_a_bare_noun(noun):
+        return None
+    previous = PREVIOUS_WORD.search(text, max(0, start - 80), start)
+    if previous is not None and previous[1].lower() in SUBJECT_PRONOUNS:
         return None
     if _is_a_value(noun, negative) or _is_a_lead_in(text, start):
         return None
     subject = _subject_and_verb(text, match.end("negative"), negative.lower())
     if subject is None:
         return None
+    told = _telling_before(text, start)
+    if told is not None and noun.lower() in PERSON_NOUNS:
+        verb_start, verb = told
+        return _missing_that(
+            verb_start, [*verb, noun], [negative, *subject], match.start("negative")
+        )
     suggestion = f"{' '.join([noun, negative, *subject])} -> {_RELATIVE_REMEDY}"
     return (start, match.start("negative"), suggestion)
 
@@ -258,34 +282,71 @@ def _full_clause(text: str, match: re.Match[str]) -> tuple[int, int, str] | None
     "that", "which", "who", or "whom" follows the noun, or a preposition and "which" or
     "whom" do ("a DART to which" followed by "nobody may be added").  After a
     determiner (and at most one adjective) the noun must read as one (``_is_a_noun``),
-    and without one as a bare noun (``_is_a_bare_noun``).  A noun that states the
-    content of a "that" clause (``CONTENT_NOUNS``: "the note that nothing listens") or
-    says when, how, or why (``_is_adverbial``) is passed over, and so is a verb of
-    telling in the noun's slot or before its determiner ("tells the member that nothing
-    is due"); a verb must follow the negative subject.
+    and without one as a bare noun (``_is_a_bare_noun``); a verb must follow the
+    negative subject.  These are passed over: a noun that says when, how, or why
+    (``_is_adverbial``); and before "that" only, a noun after "so" or "such" ("so slow
+    that nobody waits"), a person after a verb of telling ("tells the member that
+    nothing is due"), and a noun from ``CONTENT_NOUNS`` whose clause goes on past its
+    verb ("the note that nothing listens on port 25"), since a clause that stops at its
+    verb has left the verb's object out ("a note that nobody else sees").
     """
     noun, relative, negative = match["noun"], match["relative"].lower(), match["negative"]
     if not _is_a_relative(match["preposition"], relative):
         return None
     lower = noun.lower()
-    if lower in _TELLING_FORMS or (relative == "that" and lower in CONTENT_NOUNS):
+    if lower in _TELLING_FORMS or lower in _TELLING_TO_FORMS:
         return None
     start = match.start("noun")
     determiner = _determiner_before(text, start)
     if determiner is None:
-        is_noun = _is_a_bare_noun(noun) and lower not in ADVERBIAL_NOUNS
+        is_noun = _is_a_bare_noun(noun) and not _is_adverbial(text, start, "", noun)
     else:
         start, adjective = determiner
         is_noun = _is_a_noun(noun, adjective)
-        is_noun = is_noun and not _is_adverbial(text[start:].split()[0], noun)
-    if not is_noun or _is_a_value(noun, negative) or _follows_telling(text, start):
+        is_noun = is_noun and not _is_adverbial(text, start, text[start:].split()[0], noun)
+    if not is_noun or _is_a_value(noun, negative):
         return None
     subject = _subject_and_verb(text, match.end("negative"), negative.lower())
     if subject is None:
         return None
+    if relative == "that" and _states_a_content(text, start, lower, match, subject):
+        return None
     lead = [word for word in text[start : match.end("relative")].split() if _is_word(word)]
     suggestion = f"{' '.join([*lead, negative, *subject])} -> {_FULL_REMEDY}"
     return (start, match.start("negative"), suggestion)
+
+
+def _states_a_content(
+    text: str, start: int, noun: str, match: re.Match[str], subject: list[str]
+) -> bool:
+    """Whether the "that" clause after the noun phrase at ``start`` is a complete one.
+
+    It is after "so" or "such", after a person that a verb of telling addresses, and
+    after a noun from ``CONTENT_NOUNS`` when the clause doesn't stop right after a verb
+    that would take an object (``subject`` ends with the verb).
+    """
+    previous = PREVIOUS_WORD.search(text, max(0, start - 80), start)
+    if previous is not None and previous[1].lower() in ("so", "such"):
+        return True
+    if _telling_before(text, start) is not None and noun in PERSON_NOUNS:
+        return True
+    if noun not in CONTENT_NOUNS:
+        return False
+    after = _after_words(text, match.end("negative"), len(subject)).lstrip(" \t")
+    stops = after == "" or after[0] in _CLAUSE_ENDS
+    return not stops or subject[-1].lower() in SUBJECT_AUXILIARIES
+
+
+def _after_words(text: str, end: int, count: int) -> str:
+    """The text after the ``count`` words that follow ``end``, up to its line's end."""
+    position = end
+    for _ in range(count):
+        found = _NEXT_HYPHENATED_WORD.match(text, position)
+        if found is None:
+            break
+        position = found.end()
+    line_end = text.find("\n", position)
+    return text[position : len(text) if line_end == -1 else line_end]
 
 
 def _comma_clause(text: str, match: re.Match[str]) -> tuple[int, int, str] | None:
@@ -324,14 +385,18 @@ def _is_a_relative(preposition: str | None, relative: str) -> bool:
 
 
 def _telling_clause(text: str, match: re.Match[str]) -> tuple[int, int, str] | None:
-    """The hit for a verb of telling, a pronoun, and a negative subject without "that"."""
+    """The hit for a verb of telling, a person's pronoun, and a negative subject.
+
+    The verb may be one that tells through "to" ("explain to them"); the clause after
+    the pronoun lacks the "that" it needs.
+    """
     negative = match["negative"]
     if _is_a_value(match["verb"], negative):
         return None
     subject = _subject_and_verb(text, match.end("negative"), negative.lower())
     if subject is None:
         return None
-    told = [match["verb"], match["object"]]
+    told = [*match["verb"].split(), match["object"]]
     clause = [negative, *subject]
     return _missing_that(match.start("verb"), told, clause, match.start("negative"))
 
@@ -348,14 +413,24 @@ def _missing_that(
     return (start, negative, f"{lead} {said} -> {lead} that {said}")
 
 
-def _is_adverbial(determiner: str, noun: str) -> bool:
-    """Whether ``determiner`` and ``noun`` say when, how, or why, as an adverb would.
+def _is_adverbial(text: str, start: int, determiner: str, noun: str) -> bool:
+    """Whether the phrase at ``start`` says when, how, or why, as an adverb would.
 
-    The noun is in ``ADVERBIAL_NOUNS`` and the determiner isn't ``a`` or ``an``: "That
-    way", "Every time", "The day", or "The reason" before a negative subject starts a
-    clause of its own, while "a day" before one hangs a relative clause off the noun.
+    The noun is in ``ADVERBIAL_NOUNS``, the ``determiner`` (blank without one) isn't ``a``
+    or ``an``, and the phrase opens a sentence or a clause, or follows a comma or a
+    preposition: "That way nothing is lost", "Every time nothing is due", "on the day
+    that nothing is due".  As a verb's object the noun takes a relative clause like any
+    other ("logs the reason" followed by "nobody gave").
     """
-    return noun.lower() in ADVERBIAL_NOUNS and determiner.lower() not in ("a", "an")
+    if noun.lower() not in ADVERBIAL_NOUNS or determiner.lower() in ("a", "an"):
+        return False
+    if _opens_a_clause(text, start, capitalized=True):
+        return True
+    previous = PREVIOUS_WORD.search(text, max(0, start - 80), start)
+    if previous is not None and previous[1].lower() in PREPOSITION_FORMS:
+        return True
+    before = _strip_tail(text[max(0, start - 80) : start])
+    return before.endswith(",")
 
 
 def _is_word(token: str) -> bool:
@@ -363,10 +438,23 @@ def _is_word(token: str) -> bool:
     return any(character.isalnum() for character in token)
 
 
-def _follows_telling(text: str, start: int) -> bool:
-    """Whether the word before ``start`` is a verb of telling, with its object after."""
+def _telling_before(text: str, start: int) -> tuple[int, list[str]] | None:
+    """The start and the words of a verb of telling right before ``start``, if any.
+
+    That is a form of a verb in ``TELLING_VERBS`` ("tells"), or "to" after a form of
+    one in ``TELLING_TO_VERBS`` ("explain to").
+    """
     verb = PREVIOUS_WORD.search(text, max(0, start - 80), start)
-    return verb is not None and verb[1].lower() in _TELLING_FORMS
+    if verb is None:
+        return None
+    if verb[1].lower() in _TELLING_FORMS:
+        return (verb.start(1), [verb[1]])
+    if verb[1].lower() != "to":
+        return None
+    head = PREVIOUS_WORD.search(text, max(0, verb.start(1) - 80), verb.start(1))
+    if head is None or head[1].lower() not in _TELLING_TO_FORMS:
+        return None
+    return (head.start(1), [head[1], verb[1]])
 
 
 def _determiner_before(text: str, start: int) -> tuple[int, str | None] | None:
@@ -421,7 +509,7 @@ def _is_a_bare_noun(noun: str) -> bool:
 
     Any form of a listed verb reads as that verb ("says", "check"), and so does an
     unlisted ``-ed`` word; so do the words in ``_NOT_NOUNS`` and ``NOT_BARE_NOUNS``
-    (``explains``, ``except``, ``sometimes``), a word ending in ``-ly`` (an adverb), and
+    (``decides``, ``except``, ``sometimes``), a word ending in ``-ly`` (an adverb), and
     one ending in ``ss`` or ``us``, which isn't a plural.
     """
     lower = noun.lower()
@@ -435,18 +523,31 @@ def _is_a_bare_noun(noun: str) -> bool:
 def _is_a_lead_in(text: str, start: int) -> bool:
     """Whether the noun phrase at ``start`` follows a preposition that opens a clause.
 
-    A preposition opens one at the start of the text, of a paragraph, or of a list item;
-    after a character in ``_CLAUSE_BOUNDARIES`` (a full stop, a semicolon, an opening
-    quote, ...); after an opening bracket or a colon when it is capitalized; after a
-    word in ``CLAUSE_OPENERS``, or a coordinating conjunction that itself follows a
-    comma or a boundary.  A line break and its comment leader, and markup that opens on
-    the preposition, are read past: "On any failure nothing is written" leads in to a
-    clause with a negative subject.
+    The preposition, or the two-word preposition it ends ("Thanks to", from
+    ``COMPOUND_PREPOSITION_HEADS``), must open a clause (``_opens_a_clause``), where a
+    bracket or a colon counts only before a capital: "On any failure nothing is
+    written" and "Thanks to the lock nothing runs twice" lead in to a clause with a
+    negative subject.
     """
     previous = PREVIOUS_WORD.search(text, max(0, start - 80), start)
     if previous is None or previous[1].lower() not in PREPOSITION_FORMS:
         return False
-    position = previous.start(1)
+    head = PREVIOUS_WORD.search(text, max(0, previous.start(1) - 80), previous.start(1))
+    if head is None or head[1].lower() not in COMPOUND_PREPOSITION_HEADS:
+        head = previous
+    return _opens_a_clause(text, head.start(1), capitalized=head[1][0].isupper())
+
+
+def _opens_a_clause(text: str, position: int, *, capitalized: bool) -> bool:
+    """Whether the word at ``position`` opens a sentence or a clause.
+
+    It does at the start of the text, of a paragraph, or of a list item; after a
+    character in ``_CLAUSE_BOUNDARIES`` (a full stop, a semicolon, an opening quote,
+    ...); after an opening bracket or a colon when ``capitalized``; and after a word in
+    ``CLAUSE_OPENERS``, or a coordinating conjunction that itself follows a comma or a
+    boundary.  A line break and its comment leader, and markup that opens on the word,
+    are read past.
+    """
     line_start = text.rfind("\n", 0, position) + 1
     if _LIST_ITEM.fullmatch(text, line_start, position) is not None:
         return True
@@ -454,7 +555,7 @@ def _is_a_lead_in(text: str, start: int) -> bool:
     if before == "" or before[-1] in _CLAUSE_BOUNDARIES:
         return True
     if before[-1] in _CAPITALIZED_BOUNDARIES:
-        return previous[1][0].isupper()
+        return capitalized
     opener = PREVIOUS_WORD.search(before + " ")
     if opener is None or opener[1].lower() not in _OPENER_FORMS:
         return False
