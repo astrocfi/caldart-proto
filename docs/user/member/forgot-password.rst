@@ -4,9 +4,9 @@
 Forgot your password
 ====================
 
-The **Forgot your password?** screen sends you a link to set a new password when you
-cannot remember the one you have. Open it from the link under the **Sign in** button
-(see :doc:`sign-in`).
+The **Forgot your password?** screen emails you a link to set a new password when you
+can't remember yours. Open it from the link under the **Sign in** button (see
+:doc:`sign-in`).
 
 
 What you see
@@ -27,33 +27,33 @@ What you do
 #. Open the email and follow its link. It opens :doc:`reset-password`, where you
    choose the new password.
 
-The screen answers the same way whether or not it knows the address. That is on
-purpose: the form must not tell a stranger who has an account.
+The screen says the same thing whether or not it knows the address. That is on
+purpose, so a stranger can't use the form to find out who has an account.
 
 
 The email
 =========
 
-The message arrives with the subject *CalDART: reset your password*. It holds one
-link. Two things to know about it:
+The message arrives with the subject *CalDART: reset your password*. It has one
+link in it. Two things to know about the link:
 
 * **It works once.** Following it a second time, or after you have already set a
   new password, shows *That password reset link is invalid or has expired. Request
   a new one.*
-* **It expires after three days.** Ask for a fresh one if it has.
+* **It expires after three days.** If it has expired, ask for a fresh one.
 
-Following the link also confirms that the address is yours, so an unverified
-address becomes verified when you set the new password.
+The link also proves that the address is yours. If you hadn't verified your address
+yet, it counts as verified once you set the new password.
 
-A deactivated account is sent the link like any other, and setting the new
-password reactivates it. An account an administrator has closed isn't sent anything,
-though the screen reads the same.
+CalDART sends the link to a deactivated account too, and setting the new password
+reactivates the account. If an administrator has closed the account, CalDART doesn't
+send the email, but the screen says the same thing.
 
 
 Nothing arrived?
 ================
 
-In order of likelihood:
+The most likely reasons come first:
 
 #. It went to your spam or junk folder.
 #. You typed a different address from the one on your account. The **Check your
@@ -69,6 +69,6 @@ try again.
 If something looks wrong
 ========================
 
-A user administrator can send you a reset link from your user record, which is the
-quickest way through when you are not sure which address your account uses. Ask
-the office, using the contact address at the bottom of every public page.
+A user administrator can send you a reset link from your user record. That is the
+quickest way through when you aren't sure which address your account uses. Ask the
+office, using the contact address at the bottom of every public page.
