@@ -10,7 +10,7 @@ CalDART keeps one shared list of airplanes for everybody. When you add an airpla
 here, CalDART links its record on that list to your profile. You don't get a
 private copy. Open the screen from **My aircraft** in the menu, from the **My aircraft** link at
 the top of :doc:`profile`, or from **Add the planes I fly** at the end of :doc:`join`.
-**Back to My profile**, a link at the top right, returns to :doc:`profile`.
+**Back to "My profile"**, a link at the top right, returns to :doc:`profile`.
 
 **My aircraft** is for members with a current membership. A friend of CalDART
 doesn't have **My aircraft** in the menu or any aircraft on their profile, and a new

@@ -100,9 +100,9 @@ test('CalDART management reads a copy as it went and hides the email', async ({ 
   await dialog.getByRole('button', { name: 'Close' }).click();
   await expect(dialog).toHaveCount(0);
 
-  await page.getByRole('button', { name: 'Hide from Email to me' }).click();
+  await page.getByRole('button', { name: 'Hide from "Email to me"' }).click();
   await page.getByRole('button', { name: 'Hide it' }).click();
-  await expect(page.getByRole('button', { name: 'Show in Email to me' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Show in "Email to me"' })).toBeVisible();
 
   await page.context().clearCookies();
   await signIn(page, DEMO.webadmin);

@@ -105,7 +105,7 @@ function MyAircraftList(): JSX.Element {
     <Page
       title="My aircraft"
       lede="The planes you commonly fly."
-      actions={<Link to="/profile">Back to My profile</Link>}
+      actions={<Link to="/profile">Back to &quot;My profile&quot;</Link>}
     >
       <Card title="Your aircraft">
         {policyNote === '' ? null : (

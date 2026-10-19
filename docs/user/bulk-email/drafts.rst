@@ -35,7 +35,7 @@ On a narrow screen, columns drop out one at a time until the rest fit: first **T
 scrolls sideways, a note above it says so, and the subject stays pinned at the left. **New
 email** at the top opens :doc:`compose`. Until there is a draft, the table says *No drafts* and
 has its own **New email** button. If a DART leader's profile doesn't name a DART, they see a
-line telling them to set their DART on My profile, with **Open My profile**, instead of **New
+line telling them to set their DART on My profile, with **Open "My profile"**, instead of **New
 email** (:doc:`dart-leaders`).
 
 If an email came due but wasn't sent, a line above the table names it and gives the reason,

@@ -129,7 +129,7 @@ person presses **Continue**.  The other way round, a
 contribution on a renewal (``PATCH /me/renewal``, ``POST /me/renewal/setup``, or a
 checkout for a plan) while a recurring donation is held, in any state but
 ``canceled``, is refused with ``You already have a recurring donation. Change it
-on the Donate screen.``, keyed by ``contribution_cents``.
+on the "Donate" screen.``, keyed by ``contribution_cents``.
 
 .. _renewals-friend-switch:
 
@@ -152,7 +152,7 @@ has passed), begun with ``begin_mandate`` and made active with ``save_method``.
 The renewal is canceled first, so the one-contribution rule above doesn't have
 anything to refuse.  Keeping it while a recurring donation is already ``active`` or
 ``paused`` is refused on ``keep_contribution`` before anything changes: the member
-changes that donation on the Donate screen instead.
+changes that donation on the "Donate" screen instead.
 Undoing the change (``DELETE /me/kind/friend``) doesn't restore a mandate.  A friend who
 still holds a renewal, which an administrator's change of kind can leave behind, is
 skipped by the scan with the reason ``friend``.
@@ -693,7 +693,7 @@ attempt is locked while it is settled, so two treasurers settle it once.
   emailed ``renewal_failed`` worded for a closed charge: their automatic renewal (or
   recurring donation) couldn't be completed and is paused, so they aren't charged
   automatically; for a renewal, the day the term ends or ended; and the links to
-  renew by hand (or give from the Donate screen) and to turn it back on.  It names
+  renew by hand (or give from the "Donate" screen) and to turn it back on.  It names
   neither the hold nor the provider.  Like the *Record as paid* email it is sent after
   the answer has gone, and outside a request once the transaction commits; a mail
   server that refuses it is logged, the settlement stands, and ``result_emailed_at``

@@ -69,7 +69,7 @@ RENEWAL_CONTRIBUTION_MESSAGE = (
 )
 
 #: The sentence a contribution on a renewal is refused with beside a donation.
-HAS_DONATION_MESSAGE = "You already have a recurring donation. Change it on the Donate screen."
+HAS_DONATION_MESSAGE = 'You already have a recurring donation. Change it on the "Donate" screen.'
 
 
 @pytest.fixture(autouse=True)

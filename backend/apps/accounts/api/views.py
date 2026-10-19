@@ -132,7 +132,7 @@ DONOR_VERIFICATION_REFUSED = "A donor cannot sign in, so no verification message
 #: What the user administrator is told when asking to mail their own account a reset
 #: link: their own password is changed on the Change password page.
 SELF_RESET_REFUSED = (
-    "You cannot send a password reset to your own account. Use Change password instead."
+    'You cannot send a password reset to your own account. Use "Change password" instead.'
 )
 
 #: What the user administrator is told when the account holds a role they lack: a reset

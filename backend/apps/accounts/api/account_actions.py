@@ -35,7 +35,7 @@ DONOR_CREDENTIAL_REFUSED = "A donor cannot sign in, so there isn't a password to
 
 #: Why it refuses the administrator's own account, which has its own page for this.
 SELF_CREDENTIAL_REFUSED = (
-    "You cannot require a new password for your own account. Use Change password instead."
+    'You cannot require a new password for your own account. Use "Change password" instead.'
 )
 
 #: Why it refuses an account holding a role the administrator lacks.

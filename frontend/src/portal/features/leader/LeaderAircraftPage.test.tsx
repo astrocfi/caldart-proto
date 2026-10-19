@@ -412,7 +412,9 @@ describe('LeaderAircraftPage card', () => {
 
     expect(await screen.findByText(/N0000X is not in the register/)).toBeInTheDocument();
     expect(
-      screen.getByText('Ask the pilot to add it on My aircraft, or ask an account administrator.'),
+      screen.getByText(
+        'Ask the pilot to add it on "My aircraft", or ask an account administrator.',
+      ),
     ).toBeInTheDocument();
   });
 

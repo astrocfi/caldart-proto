@@ -610,7 +610,7 @@ describe('UserDetailPage', () => {
       renderDetail();
       await screen.findByRole('heading', { name: 'Priya Raman' });
 
-      expect(screen.getByText('To change your own password, use Change password.')).toBeVisible();
+      expect(screen.getByText('To change your own password, use "Change password".')).toBeVisible();
     });
   });
 

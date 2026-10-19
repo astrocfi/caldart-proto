@@ -56,7 +56,7 @@ draft is made, with the caller as its sender, and answered with **201**.  Either
 way the body is the email, as ``GET /bulk-email/{id}`` answers it, recording the
 DART a DART leader sends to.  No body is taken.  A DART leader whose profile doesn't
 name a DART is **403** *Your profile doesn't name a DART, so you can't send to anybody.
-Set your DART on My profile.*, and no draft is made.
+Set your DART on "My profile".*, and no draft is made.
 
 ``GET /bulk-email/drafts``
 --------------------------
@@ -653,7 +653,7 @@ Who the caller may send to.  **200**:
 send to everyone, with ``dart`` null and ``dart_name`` blank.  For a DART leader
 ``dart`` and ``dart_name`` are the DART on their profile.  ``can_send`` is false for
 a leader whose profile doesn't name a DART, and ``reason`` then says *Your profile doesn't
-name a DART, so you can't send to anybody. Set your DART on My profile.*; it is blank
+name a DART, so you can't send to anybody. Set your DART on "My profile".*; it is blank
 otherwise.  The compose screen shows that sentence in place of the form, and names a
 leader's DART as a fixed value in place of the DART filter; the Drafts and scheduled
 screen shows it too.  ``default_reply_to`` is where replies to the caller's email go

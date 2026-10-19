@@ -3,7 +3,7 @@
  * callout, and when its answers close.
  *
  * A callout's copies each carry three buttons, Available, Available with limits, and
- * Not available, and the answers collect on the Callouts screen. Turning the switch
+ * Not available, and the answers collect on the "Callouts" screen. Turning the switch
  * on makes the email Mission email when the sender may send that kind, and sets the
  * answers to close two days ahead; both can be changed. Every change saves at once,
  * as the type does. Once the email has started sending the choice is shown, not
@@ -22,7 +22,7 @@ import { TIME_CHOICES, scheduledWords, sitePartsOf, timeChoice } from './schedul
 /** What the switch says a callout does. */
 export const CALLOUT_HINT =
   'Each copy carries three buttons, Available, Available with limits, and Not available. ' +
-  'The answers collect on the Callouts screen.';
+  'The answers collect on the "Callouts" screen.';
 
 /** What the time boxes say when the server refuses a time without a reason of its own. */
 const FALLBACK_ERROR = 'The time answers close could not be saved. Try again in a moment.';

@@ -169,7 +169,7 @@ describe('DraftsPage', () => {
     answerSender(NO_DART_SENDER);
     answerDrafts([]);
     renderWithProviders(<DraftsPage />);
-    expect(await screen.findByRole('link', { name: 'Open My profile' })).toHaveAttribute(
+    expect(await screen.findByRole('link', { name: 'Open "My profile"' })).toHaveAttribute(
       'href',
       '/profile',
     );

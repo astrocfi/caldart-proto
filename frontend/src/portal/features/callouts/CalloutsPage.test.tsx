@@ -76,7 +76,7 @@ describe('CalloutsPage', () => {
     answerSender(NO_DART_SENDER);
     renderList([]);
 
-    expect(await screen.findByRole('link', { name: 'Open My profile' })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'Open "My profile"' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'New email' })).toBeNull();
   });
 

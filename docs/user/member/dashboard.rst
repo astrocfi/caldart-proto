@@ -21,7 +21,7 @@ The cards run down the page in this order. Each one appears only when it applies
 you.
 
 If you are a DART leader and your profile doesn't name a DART, a box above the cards
-says *Bulk email needs a DART. Set yours on My profile.* Its **Open My profile**
+says *Bulk email needs a DART. Set yours on "My profile".* Its **Open "My profile"**
 button takes you to where you set the DART (see :doc:`../bulk-email/dart-leaders`).
 
 **Membership**

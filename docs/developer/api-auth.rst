@@ -1017,7 +1017,7 @@ whole flow.
    no link is ever mailed to an address another account holds, so that a session
    cannot be used to find out who has an account.  An account administrator's own
    address is not changed on the member record, which doesn't ask for a password: that is
-   refused against ``email`` with *Change your own address from Change email, which
+   refused against ``email`` with *Change your own address from "Change email", which
    asks for your password.*
    ``POST /auth/email/change`` below asks for the account itself, and
    ``PATCH /admin/members/{user_id}`` for an account administrator
@@ -1478,7 +1478,7 @@ password; and an account holding roles the caller does not hold, under the
 :ref:`account-edit guard <account-edit-guard>`::
 
     400 {"detail": "A donor cannot sign in, so no reset email was sent."}
-    400 {"detail": "You cannot send a password reset to your own account. Use Change password instead."}
+    400 {"detail": "You cannot send a password reset to your own account. Use "Change password" instead."}
     400 {"detail": "You cannot send a password reset to an account that holds administrative roles you do not hold."}
 
 Both the send and the refusal are recorded in the audit log
@@ -1538,7 +1538,7 @@ everything and mails a fresh link.
 Refused, without changing anything, in this order::
 
     400 {"detail": "A donor cannot sign in, so there isn't a password to replace."}
-    400 {"detail": "You cannot require a new password for your own account. Use Change password instead."}
+    400 {"detail": "You cannot require a new password for your own account. Use "Change password" instead."}
     400 {"detail": "You cannot require a new password for an account that holds administrative roles you do not hold."}
 
 A tombstone is a donor, so the first sentence covers it; the last is the

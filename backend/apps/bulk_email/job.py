@@ -123,7 +123,7 @@ NOT_SENT_DART_CHANGED = (
 )
 NOT_SENT_NO_DART = (
     "This email was not sent: your profile doesn't name a DART, so you can't send to anybody. "
-    "Set your DART on My profile and send again."
+    'Set your DART on "My profile" and send again.'
 )
 
 #: The longest reason a recipient row holds.

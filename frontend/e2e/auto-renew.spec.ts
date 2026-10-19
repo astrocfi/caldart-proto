@@ -171,7 +171,7 @@ test('a life member reads their recurring donation, turns it off, and is sent to
   await expect(page.getByText('Recurring donation is off.').first()).toBeVisible();
   await expect(card.getByText('Off', { exact: true })).toBeVisible();
 
-  // A donation is set up on the Donate screen, where the first gift can be taken.
+  // A donation is set up on the "Donate" screen, where the first gift can be taken.
   await card.getByRole('link', { name: 'Set up' }).click();
   await expect(page.getByRole('heading', { name: 'Donate', level: 1 })).toBeVisible();
   await expect(page.getByRole('radio', { name: /Annual/ })).toHaveCount(0);

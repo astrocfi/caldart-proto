@@ -72,7 +72,9 @@ export function BouncesPanel(): JSX.Element {
       job="bounces"
       eyebrow="Email"
       title="Bounces"
-      description="The bounce check runs every hour. It reads the mailbox that undeliverable email comes back to, marks each email another mail server refused for good as Bounced on the Sent emails page, and flags the address on the person&rsquo;s member and user records until it changes, is verified, or a user administrator clears it. Delays and temporary failures are ignored."
+      description={
+        'The bounce check runs every hour. It reads the mailbox that undeliverable email comes back to, marks each email another mail server refused for good as Bounced on the "Sent emails" page, and flags the address on the person’s member and user records until it changes, is verified, or a user administrator clears it. Delays and temporary failures are ignored.'
+      }
       notice={isOff ? <p className="job-panel__notice">{BOUNCES_OFF}</p> : null}
       options={
         <PracticeRunCheckbox

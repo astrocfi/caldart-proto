@@ -17,7 +17,7 @@ import { useBulkSender } from './api';
 import './bulk-email.css';
 
 /** What the Dashboard's notice says: there, nothing else names bulk email. */
-export const DASHBOARD_NO_DART = 'Bulk email needs a DART. Set yours on My profile.';
+export const DASHBOARD_NO_DART = 'Bulk email needs a DART. Set yours on "My profile".';
 
 interface SenderNoticeProps {
   /** Who the signed-in sender may send to, from `GET /bulk-email/sender`. */
@@ -31,7 +31,7 @@ export function SenderNotice({ sender, message }: SenderNoticeProps): JSX.Elemen
   if (sender.can_send) return null;
   return (
     <p className="bulk-email__notice" role="status">
-      {message ?? sender.reason} <Link to="/profile">Open My profile</Link>
+      {message ?? sender.reason} <Link to="/profile">Open &quot;My profile&quot;</Link>
     </p>
   );
 }

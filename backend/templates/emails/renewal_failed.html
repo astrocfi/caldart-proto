@@ -31,8 +31,8 @@
     </p>
     <p style="margin:0 0 14px 0;">
       To renew by hand, open
-      <a href="{{ renew_url }}" style="color:#1F4E79;">Renew</a> in the portal. To
-      turn automatic renewal back on, press Turn on again on your My payments
+      "<a href="{{ renew_url }}" style="color:#1F4E79;">Renew</a>" in the portal. To
+      turn automatic renewal back on, press Turn on again on your "My payments"
       screen.
     </p>
   {% endif %}
@@ -85,4 +85,4 @@
   {% endif %}
 {% endblock %}
 
-{% block cta_label %}{% if closed %}{% if kind == "contribution" %}Open My payments{% else %}Turn automatic renewal back on{% endif %}{% else %}Update your payment method{% endif %}{% endblock %}
+{% block cta_label %}{% if closed %}{% if kind == "contribution" %}Open "My payments"{% else %}Turn automatic renewal back on{% endif %}{% else %}Update your payment method{% endif %}{% endblock %}

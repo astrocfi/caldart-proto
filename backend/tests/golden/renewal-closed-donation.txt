@@ -5,7 +5,7 @@ Hello Robin,
 We couldn't complete your recurring donation of $25.00 each year.
 
 Your recurring donation is paused, so you won't be charged automatically. You can
-give by hand, or set your recurring donation up again, from the Donate screen:
+give by hand, or set your recurring donation up again, from the "Donate" screen:
 http://localhost:8000/portal/donate
 
 Your My payments screen shows where your recurring donation stands:

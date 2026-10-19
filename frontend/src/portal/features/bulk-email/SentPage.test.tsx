@@ -151,6 +151,6 @@ describe('SentPage', () => {
     answerSender(NO_DART_SENDER);
     answerSent([]);
     renderWithProviders(<SentPage />);
-    expect(await screen.findByRole('link', { name: 'Open My profile' })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'Open "My profile"' })).toBeInTheDocument();
   });
 });

@@ -197,7 +197,7 @@ class MyKindFriendView(APIView):
         day (today when that has passed), false lets it stop, and leaving it out is 400
         ``{"keep_contribution": ["This field is required."]}``.  True while a recurring
         donation is already active or paused is 400 ``{"keep_contribution": ["You
-        already have a recurring donation. Change it on the Donate screen."]}``.  A
+        already have a recurring donation. Change it on the "Donate" screen."]}``.  A
         paused renewal's contribution stops with it and doesn't need an answer.
         A lifetime member, a friend, and a donor are each a 400 ``{"detail": ...}``;
         nothing changes on any refusal.  An anonymous caller gets 401.

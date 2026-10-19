@@ -36,7 +36,7 @@ pytestmark = pytest.mark.django_db
 LIST = "/api/v1/admin/users"
 
 SELF_RESET_REFUSED = (
-    "You cannot send a password reset to your own account. Use Change password instead."
+    'You cannot send a password reset to your own account. Use "Change password" instead.'
 )
 RESET_ROLES_REFUSED = (
     "You cannot send a password reset to an account that holds "

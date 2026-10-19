@@ -348,8 +348,7 @@ export const LEADER_SENDER: BulkEmailSender = {
 export const NO_DART_SENDER: BulkEmailSender = {
   is_management: false,
   can_send: false,
-  reason:
-    "Your profile doesn't name a DART, so you can't send to anybody. Set your DART on My profile.",
+  reason: `Your profile doesn't name a DART, so you can't send to anybody. Set your DART on "My profile".`,
   dart: null,
   dart_name: '',
   default_reply_to: 'office@caldart.org',

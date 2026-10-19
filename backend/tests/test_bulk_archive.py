@@ -219,7 +219,7 @@ def test_the_reader_s_own_copy_keeps_their_unsubscribe_link(
 # Hiding
 # --------------------------------------------------------------------------
 def hide(client: APIClient, bulk: BulkEmail, *, hidden: bool = True) -> dict[str, object]:
-    """Press **Hide from Email to me** or **Show in Email to me** on ``bulk``'s page."""
+    """Press **Hide from "Email to me"** or **Show in "Email to me"** on its page."""
     response = client.post(f"/api/v1/bulk-email/{bulk.pk}/hide", {"hidden": hidden}, format="json")
     assert response.status_code == 200
     body: dict[str, object] = response.json()
@@ -255,7 +255,7 @@ def test_hiding_keeps_the_history(management_client: APIClient, ann: User) -> No
 
 
 def test_a_hidden_message_can_be_shown_again(management_client: APIClient, ann: User) -> None:
-    """**Show in Email to me** puts it back in Ann's list."""
+    """**Show in "Email to me"** puts it back in Ann's list."""
     bulk = sent_to(ann)
     hide(management_client, bulk)
     hide(management_client, bulk, hidden=False)

@@ -89,7 +89,7 @@ contribution comes off the renewal; your dues still renew automatically.*
 and the donation does the giving from then on.
 
 If you have a recurring donation and try to add a contribution to your renewal, you
-see *You already have a recurring donation. Change it on the Donate screen.*
+see *You already have a recurring donation. Change it on the "Donate" screen.*
 
 
 Changing or stopping it

@@ -40,7 +40,9 @@ NO_PENDING_CHANGE = {"detail": "You don't have a pending change."}
 ALREADY_FRIEND = {"detail": "You are already a friend of CalDART."}
 KEEP_REQUIRED = {"keep_contribution": ["This field is required."]}
 DONATION_HELD = {
-    "keep_contribution": ["You already have a recurring donation. Change it on the Donate screen."]
+    "keep_contribution": [
+        'You already have a recurring donation. Change it on the "Donate" screen.'
+    ]
 }
 
 #: The contribution the renewal in these tests carries, in cents.
