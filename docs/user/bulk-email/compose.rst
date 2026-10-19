@@ -210,7 +210,7 @@ the number matches. If you type a different number, you see *That number does no
 38, the number of people who will receive it.* The cursor starts in that box, or on
 **Cancel**, so pressing Enter twice never sends the email. Press **Send** or **Schedule it**,
 or **Cancel**. If the recipient list changed in the meantime, the send is refused with the new
-count, such as *The recipient list has changed: it now holds 39 people. Type the new count.*
+count, such as *The recipient list has changed: it now has 39 people. Type the new count.*
 
 
 Once it is sent

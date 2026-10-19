@@ -162,7 +162,7 @@ describe('AircraftRecordPage', () => {
     );
     renderRecord();
 
-    await screen.findByText('No change is recorded for this record.');
+    await screen.findByText('No changes recorded yet.');
     expect(screen.queryByText(/^Last updated/)).toBeNull();
   });
 
@@ -206,7 +206,7 @@ describe('AircraftRecordPage', () => {
     renderRecord();
 
     const history = await historyCard();
-    expect(within(history).getByText('No change is recorded for this record.')).toBeInTheDocument();
+    expect(within(history).getByText('No changes recorded yet.')).toBeInTheDocument();
   });
 
   it('does not call an unanswered history empty', async () => {
@@ -220,9 +220,7 @@ describe('AircraftRecordPage', () => {
     renderRecord();
 
     const history = await historyCard();
-    expect(
-      within(history).queryByText('No change is recorded for this record.'),
-    ).not.toBeInTheDocument();
+    expect(within(history).queryByText('No changes recorded yet.')).not.toBeInTheDocument();
   });
 
   it('says so when the history could not be loaded', async () => {

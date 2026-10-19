@@ -44,10 +44,10 @@ describe('registryImportSummary', () => {
     );
   });
 
-  it('adds the hand-added types the import folded in', () => {
+  it('adds the hand-added types the import merged in', () => {
     const status = makeRegistryStatus({ last: makeRegistryImport({ types_folded: 2 }) });
     expect(registryImportSummary(status)).toBe(
-      'Imported 312 types and 204 registrations on 09/20/2026, folded 2 hand-added types.',
+      'Imported 312 types and 204 registrations on 09/20/2026, merged 2 hand-added types.',
     );
   });
 
@@ -56,7 +56,7 @@ describe('registryImportSummary', () => {
       last: makeRegistryImport({ types_written: 1, registrations_written: 1, types_folded: 1 }),
     });
     expect(registryImportSummary(status)).toBe(
-      'Imported 1 type and 1 registration on 09/20/2026, folded 1 hand-added type.',
+      'Imported 1 type and 1 registration on 09/20/2026, merged 1 hand-added type.',
     );
   });
 

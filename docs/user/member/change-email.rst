@@ -72,7 +72,7 @@ If the screen says something else
   address can't change again. Wait until the date it gives. An account administrator
   can still change it for you.
 
-*Request was throttled. Expected available in ... seconds.*
+*Too many tries. Try again in ... seconds.*
   Too many change requests have come from your network in the last hour. Wait the
   time it gives.
 

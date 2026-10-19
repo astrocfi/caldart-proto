@@ -63,5 +63,5 @@ class Command(BaseCommand):
             f"Imported {run.types_written} types and {run.registrations_written} registrations"
         )
         if run.types_folded > 0:
-            summary += f", folded {run.types_folded} hand-added types"
+            summary += f", merged {run.types_folded} hand-added types"
         self.stdout.write(f"{summary}.")

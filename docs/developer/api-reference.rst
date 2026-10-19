@@ -1923,7 +1923,7 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ✓
      - ✓
-     - one member's whole money history
+     - one member's whole payment history
    * - ``GET /admin/payments/ledger/{user_id}/statements/{year}.pdf``
      - ·
      - ·

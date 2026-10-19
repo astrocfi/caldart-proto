@@ -64,9 +64,10 @@ describe('SentEmailPage', () => {
     expect(screen.getByText('The mail server refused the address.')).toBeInTheDocument();
   });
 
-  it('keeps the error the server recorded beside its words, for whoever runs the server', async () => {
+  it('shows the error in words alone, without the code name the server recorded', async () => {
     renderEmail(FAILED);
-    expect(await screen.findByText('Recorded as SMTPRecipientsRefused')).toBeInTheDocument();
+    await screen.findByText('The mail server refused the address.');
+    expect(screen.queryByText(/SMTPRecipientsRefused/)).not.toBeInTheDocument();
   });
 
   it('goes back to the list with the filters it was opened from', async () => {

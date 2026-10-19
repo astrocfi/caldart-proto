@@ -405,7 +405,7 @@ describe('UserDetailPage', () => {
   ])('reports a mail server that refused the %s message', async (action, button, overrides) => {
     const refused =
       'The mail server did not accept the message. ' +
-      'A system administrator can see the attempt on the Sent emails page.';
+      'A system administrator can see the attempt on the "Sent emails" page.';
     stubDetail({ target: { ...TARGET, ...overrides } });
     server.use(
       http.post(`${API}/admin/users/${TARGET.id}/${action}`, () =>
@@ -431,7 +431,7 @@ describe('UserDetailPage', () => {
 
   describe('Require a new password', () => {
     const DONE =
-      'The old password no longer works and every session is ended. ' +
+      'The old password no longer works, and every one of their sessions has been signed out. ' +
       'A password reset email went to priya@example.org.';
 
     function stubRequire(answer: { detail: string } = { detail: DONE }, status = 200) {
@@ -522,9 +522,9 @@ describe('UserDetailPage', () => {
 
     it('shows in the card that the mail server refused the email', async () => {
       const refused =
-        'The old password no longer works and every session is ended, but the mail server ' +
-        'did not accept the reset email. A system administrator can see the attempt on the ' +
-        'Sent emails page; press Require a new password again once it is fixed.';
+        'The old password no longer works, and every one of their sessions has been signed out, ' +
+        'but the mail server did not accept the reset email. A system administrator can see ' +
+        'the attempt on the "Sent emails" page; press Require a new password again once it is fixed.';
       stubDetail();
       stubRequire({ detail: refused }, 503);
       renderDetail();

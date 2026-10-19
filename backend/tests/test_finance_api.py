@@ -525,7 +525,7 @@ def test_the_ledger_is_for_the_finance_roles_only(
     slug: str,
     allowed: bool,
 ) -> None:
-    """A member's whole money history is finance-only reading."""
+    """A member's whole payment history is finance-only reading."""
     api_client.force_login(all_role_users[slug])
     assert api_client.get(ledger_url(member)).status_code == (200 if allowed else 403)
 

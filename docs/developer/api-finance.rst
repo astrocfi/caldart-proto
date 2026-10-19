@@ -306,7 +306,7 @@ Statuses: **200**; **400** for a parameter the report will not act on;
 ``GET /admin/payments/ledger/{user_id}``
 ========================================
 
-One member's whole money history, in a single call, for the finance area's
+One member's whole payment history, in a single call, for the finance area's
 member screen and for the Payments tab of the member record.
 
 .. code-block:: json

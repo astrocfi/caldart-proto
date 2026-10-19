@@ -159,7 +159,7 @@ FAA aircraft data
 Every night at 4:30 AM, CalDART loads the FAA's aircraft registry. It holds the list of
 aircraft types members pick from, and the registrations listed under the N-number box on
 the aircraft forms. The line under the panel's text says, for example, *Imported 312 types
-and 204 registrations on 09/20/2026*. It may add something like *folded 2 hand-added
+and 204 registrations on 09/20/2026*. It may add something like *merged 2 hand-added
 types*. That means the FAA has registered types an account administrator added by hand,
 and the load merged them into the FAA's entries. A failed load shows *Failed:* and the
 reason. Before the first load, the line says *No import has run yet.* There isn't a

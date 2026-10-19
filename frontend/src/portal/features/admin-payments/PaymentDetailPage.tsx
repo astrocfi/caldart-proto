@@ -87,7 +87,7 @@ function Facts({ payment }: FactsProps): JSX.Element {
         <dd>
           {payment.user_name} <span className="muted">{payment.user_email}</span>
           <span className="payment-facts__links">
-            <Link to={`/admin/payments/members/${payment.user_id}`}>Money history</Link>
+            <Link to={`/admin/payments/members/${payment.user_id}`}>Payment history</Link>
             <MemberRecordLink userId={payment.user_id} isTombstone={payment.user_is_tombstone} />
           </span>
         </dd>

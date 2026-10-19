@@ -71,7 +71,7 @@ mails to ``ADMIN_EMAILS``
 
   .. code-block:: json
 
-     {"detail": "The mail server did not accept the message. A system administrator can see the attempt on the Sent emails page."}
+     {"detail": "The mail server did not accept the message. A system administrator can see the attempt on the \"Sent emails\" page."}
 
 * ``POST /admin/users/{id}/require-new-password`` answers **503** too, but its
   change has committed by then and is recorded: the ``detail`` says the old password
@@ -1524,7 +1524,7 @@ record first.
 
 .. code-block:: json
 
-   {"detail": "The old password no longer works and every session is ended. A password reset email went to marta.reyes@example.org."}
+   {"detail": "The old password no longer works, and every one of their sessions has been signed out. A password reset email went to marta.reyes@example.org."}
 
 The active flag and the reactivation block are left alone.  A deactivated account stays
 deactivated and is mailed the link all the same: confirming it at
@@ -1941,7 +1941,7 @@ registered.  Once ``LOGIN_LOCKOUT_ATTEMPTS`` (10) failures fall within
 ``LOGIN_LOCKOUT_SECONDS`` (900) of the first, every attempt at that account, from
 anywhere and with the right password too, is refused until that window has passed::
 
-    429 {"detail": "Too many failed sign-in attempts for this email address. Try again later. Expected available in 812 seconds."}
+    429 {"detail": "Too many failed sign-in attempts for this email address. Try again in 812 seconds."}
 
 with ``Retry-After`` in whole seconds.  Wrong codes are also counted over a day:
 ``LOGIN_LOCKOUT_CODE_ATTEMPTS`` (30) within ``LOGIN_LOCKOUT_CODE_SECONDS`` (86400)

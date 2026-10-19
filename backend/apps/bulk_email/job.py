@@ -110,8 +110,8 @@ BUSY_MESSAGE = "Another run of the bulk email sender is working; this one didn't
 
 #: Why a due email went back unsent, kept on the email for the Drafts screen.
 NOT_SENT_TYPE = (
-    "This email was not sent: you can no longer send {type} email. Choose another type "
-    "and send again."
+    "This email wasn't sent, because you can't send {type} email anymore. Choose another "
+    "type and send again."
 )
 NOT_SENT_SENDER_DELETED = (
     "This email was not sent: the account that sent it has been deleted. Send it again "

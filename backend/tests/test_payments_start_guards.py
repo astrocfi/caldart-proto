@@ -73,7 +73,7 @@ DONATION_MOCK_COMPLETE = "/api/v1/donations/mock/complete"
 BELOW_MINIMUM = ["A donation must be at least $5.00."]
 
 #: The throttle answer once a budget of one an hour is spent.
-THROTTLED = {"detail": "Request was throttled. Expected available in 3600 seconds."}
+THROTTLED = {"detail": "Too many tries. Try again in 3600 seconds."}
 
 
 @pytest.fixture(autouse=True)

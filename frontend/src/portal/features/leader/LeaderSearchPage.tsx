@@ -68,7 +68,7 @@ function dartLabel(result: LeaderSearchResult): string {
 }
 
 /** The caption of the verification report's downloads, which names the group. */
-const REPORT_CAPTION = 'Everything requiring validation:';
+const REPORT_CAPTION = 'Everything requiring verification:';
 
 /**
  * The verification report, downloaded with its default filter: every person with an

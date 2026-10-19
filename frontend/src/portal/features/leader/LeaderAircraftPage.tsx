@@ -18,6 +18,9 @@ import type { LookupResults } from './LeaderLookup';
 import { useLeaderAircraft } from './api';
 import './leader.css';
 
+/** What the reader does when the server couldn't answer the check. */
+const CHECK_FAILED_NEXT_STEP = 'Try again, and if it fails again, tell a system administrator.';
+
 /** The register's matches for `term`, as the lookup's list of results. */
 function useAircraftMatches(term: string): LookupResults<Aircraft> {
   const search = useAircraftSearch(term);
@@ -102,7 +105,10 @@ function AircraftCheck({ nNumber }: AircraftCheckProps): JSX.Element {
       ) : null}
 
       {query.isError && !notFound ? (
-        <EmptyState title="That check could not be run" description={query.error.message} />
+        <EmptyState
+          title="That check couldn't be run"
+          description={`${query.error.message} ${CHECK_FAILED_NEXT_STEP}`}
+        />
       ) : null}
 
       {query.data ? <AircraftStatusCard aircraft={query.data} /> : null}

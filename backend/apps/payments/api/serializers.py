@@ -1200,7 +1200,7 @@ class LedgerTotalsSerializer(serializers.Serializer[dict[str, int]]):
 
 
 class MemberLedgerSerializer(serializers.Serializer[dict[str, Any]]):
-    """``GET /admin/payments/ledger/{user_id}``: one member's whole money history."""
+    """``GET /admin/payments/ledger/{user_id}``: one member's whole payment history."""
 
     user = LedgerMemberSerializer()
     totals = LedgerTotalsSerializer()

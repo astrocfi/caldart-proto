@@ -49,7 +49,7 @@ export const WEEKDAY_OPTIONS: readonly Option[] = WEEKDAY_NAMES.map((name, day) 
  * address.
  */
 const REPORT_SKIPPED_REASON_LABELS: Record<string, string> = {
-  not_permitted: 'no longer permitted',
+  not_permitted: 'recipient does not have the necessary role',
   no_recipients: 'nobody to send to',
   no_email: 'no address on file',
 };

@@ -61,7 +61,7 @@ The most likely reasons come first:
    addresses you use.
 #. You don't have an account yet. You want :doc:`join`.
 
-*Request was throttled. Expected available in ... seconds.* means too many reset
+*Too many tries. Try again in ... seconds.* means too many reset
 requests have come from your network in the last hour. Wait the time it gives and
 try again.
 

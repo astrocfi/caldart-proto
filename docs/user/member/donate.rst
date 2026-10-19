@@ -100,8 +100,8 @@ On :doc:`payments`, the **Change** button on the **Recurring donation** card ope
 on**. Until you choose an amount, it says *Choose an amount to give.* If the amount
 is under $5, it says *A donation must be at least $5.* Press **Save changes**.
 
-**Turn off** asks *Turn your recurring donation off? Nothing further is charged and
-your saved method is dropped.* **Turn it off** stops it at once, and CalDART emails
+**Turn off** asks *Turn your recurring donation off? Nothing more will be charged,
+and your saved card or PayPal account is removed.* **Turn it off** stops it at once, and CalDART emails
 you *CalDART: your recurring donation is off*.
 
 
@@ -131,7 +131,7 @@ If something looks wrong
 
 If your card is declined, you aren't charged. The card form clears and shows the
 reason above it, so you can try another card or the PayPal tab. Each try counts as a
-separate payment. If the screen says the request was throttled, you have started or
+separate payment. If the screen says *Too many tries*, you have started or
 confirmed many payments within the hour. Wait the time it gives and try again. If
 the screen says **Online payment is not set up yet**, contact CalDART to give by
 check. To give more than $99,999 at once, talk to the treasurer.

@@ -389,7 +389,7 @@ def test_a_batch_that_changed_since_the_count_was_typed_is_refused(
     )
     assert response.json() == {
         "confirm_count": [
-            "The recipient list has changed: it now holds 4 people. Type the new count."
+            "The recipient list has changed: it now has 4 people. Type the new count."
         ]
     }
 

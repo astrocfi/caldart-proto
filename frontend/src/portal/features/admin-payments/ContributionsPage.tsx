@@ -3,7 +3,7 @@
  *
  * One row per member who gave something in the chosen calendar year, largest
  * net giver first, with the statement each of them can be sent.  The name opens the
- * giver's money history and the address writes to them, as on the payment list.  The net
+ * giver's payment history and the address writes to them, as on the payment list.  The net
  * figure is the one an acknowledgment letter quotes, so it is the column the
  * table leads the eye to.
  */

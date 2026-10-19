@@ -51,7 +51,7 @@ describe('ContributionsPage', () => {
     ).toHaveAttribute('href', statementUrl(37, thisYear));
   });
 
-  it("links the giver's name to their money history", async () => {
+  it("links the giver's name to their payment history", async () => {
     server.use(contributionsHandler([MARTA], []));
     renderWithProviders(<ContributionsPage />);
 

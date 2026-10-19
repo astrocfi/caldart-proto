@@ -145,5 +145,5 @@ out of date, nobody has changed the record since the date under **Last updated**
 pilot to correct it from **My aircraft**, or ask an account administrator to correct it on
 the :doc:`aircraft-record`. If a search doesn't find an airplane you know is on file, type
 the whole registration: the airplane may be out of service, or it may be past the first
-eight results. If the card says *That check could not be run*, the server couldn't answer.
-Go **Back to search** and try again, and tell a system administrator if it keeps happening.
+eight results. If the card says *That check couldn't be run*, the server couldn't answer. It
+says what to do next: *Try again, and if it fails again, tell a system administrator.*

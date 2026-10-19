@@ -111,7 +111,7 @@ def record_manual_payment(
 
 def _taken_message(reference: str) -> str:
     """What a treasurer is told when a check number is already in the books."""
-    return f"Another recorded payment already carries the reference '{reference}'."
+    return f"Another recorded payment already has the reference '{reference}'."
 
 
 def _reference_taken(reference: str) -> bool:

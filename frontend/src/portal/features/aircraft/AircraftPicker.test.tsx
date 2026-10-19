@@ -275,7 +275,7 @@ describe('AircraftPicker', () => {
     await search(user, /Search CalDART's aircraft list/i, 'n4321q');
 
     expect(
-      await screen.findByText('If the plane is not in the register yet, add it below.'),
+      await screen.findByText("If the plane isn't on CalDART's list yet, add it below."),
     ).toBeInTheDocument();
   });
 

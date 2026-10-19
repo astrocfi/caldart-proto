@@ -111,11 +111,11 @@ If the screen says something else
   CalDART. Write to them if you think it should be reopened. Like the deactivated
   message, you only see it after you type the right password.
 
-*Request was throttled. Expected available in ... seconds.*
+*Too many tries. Try again in ... seconds.*
   There have been too many sign-in attempts from your network in a short time.
   Wait the number of seconds it gives and try again.
 
-*Too many failed sign-in attempts for this email address. Try again later.*
+*Too many failed sign-in attempts for this email address. Try again in ... seconds.*
   Someone has tried ten wrong passwords or codes for this address in fifteen
   minutes, or thirty wrong codes in one day. The count includes tries from every
   computer. Until the pause is over, nobody can sign in to the account, even with

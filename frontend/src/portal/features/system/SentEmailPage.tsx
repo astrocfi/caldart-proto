@@ -96,13 +96,7 @@ function EmailCard({ entry }: { entry: EmailLogEntry }): JSX.Element {
     ['Status', <StatusDot key="status" tone={status.tone} label={status.label} />],
   ];
   if (entry.error !== '') {
-    facts.push([
-      'Error',
-      <>
-        {sendErrorWords(entry.error)}
-        <span className="sent-email__raw muted">Recorded as {entry.error}</span>
-      </>,
-    ]);
+    facts.push(['Error', sendErrorWords(entry.error)]);
   }
   if (entry.bounced_at !== null) {
     facts.push(['Bounced on', <DateText key="bounced" value={entry.bounced_at} withTime />]);

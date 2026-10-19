@@ -32,7 +32,7 @@ A row of tabs sits at the top of every finance screen:
 * **Donors**, everyone who has given through the public donation page (see
   :doc:`donors`). Only the treasurer has this tab.
 
-When you open one payment, one member's money history, or the form for recording a
+When you open one payment, one member's payment history, or the form for recording a
 check, the tabs stay in place with **Payments** marked, so you can always see where you
 are.
 

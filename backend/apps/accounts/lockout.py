@@ -38,8 +38,8 @@ from apps.accounts.mfa import mail_notice
 from apps.accounts.models import SignInFailureCount, User
 from caldart import audit
 
-#: What a locked-out address is told, ahead of DRF's "Expected available in N seconds."
-LOCKED_OUT = "Too many failed sign-in attempts for this email address. Try again later."
+#: What a locked-out address is told, ahead of *Try again in N seconds.*
+LOCKED_OUT = "Too many failed sign-in attempts for this email address."
 
 #: The counts a subject has, each the prefix of its key.
 SHORT_COUNT = "failures"

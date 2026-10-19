@@ -66,7 +66,7 @@ describe('ComposePage', () => {
   });
 
   it('says why an email came back unsent', async () => {
-    const reason = 'This email was not sent: you can no longer send Mission email.';
+    const reason = "This email wasn't sent, because you can't send Mission email anymore.";
     answerBulkEmail(draftState({ not_sent_reason: reason }));
     renderCompose(draftState({ not_sent_reason: reason }));
     expect(await screen.findByText(reason)).toBeVisible();

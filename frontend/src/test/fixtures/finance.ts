@@ -143,7 +143,7 @@ export function makeContributionMandate(overrides: Partial<RenewalMandate> = {})
   });
 }
 
-/** One member's whole money history, with `overrides` merged over it. */
+/** One member's whole payment history, with `overrides` merged over it. */
 export function makeLedger(overrides: Partial<MemberLedger> = {}): MemberLedger {
   return {
     user: {

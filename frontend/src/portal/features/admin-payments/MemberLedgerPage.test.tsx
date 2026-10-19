@@ -171,7 +171,7 @@ describe('MemberLedgerPage', () => {
     );
     renderLedger();
 
-    expect(await screen.findByText("That ledger didn't load")).toBeInTheDocument();
+    expect(await screen.findByText("This payment history didn't load")).toBeInTheDocument();
   });
 });
 

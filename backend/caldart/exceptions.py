@@ -14,20 +14,34 @@ which is also what the SPA's ``client.ts`` keys "log in again" off.
 A 404 that carries only Django's or DRF's stock sentence ("No User matches the given
 query.", "Not found.") is answered with :data:`NOT_FOUND_MESSAGE`, because the portal
 shows ``detail`` to the person; a 404 a view raised with its own sentence keeps it.
+
+A 429 says *Too many tries. Try again in N seconds.* in place of DRF's stock *Request was
+throttled. Expected available in N seconds.*; a ``Throttled`` raised with a sentence of
+its own keeps that sentence and gains the same *Try again in N seconds.*
 """
 
 from __future__ import annotations
 
+import math
 import re
 from typing import Any
 
 from django.http import Http404
-from rest_framework.exceptions import NotAuthenticated, NotFound, PermissionDenied, ValidationError
+from rest_framework.exceptions import (
+    NotAuthenticated,
+    NotFound,
+    PermissionDenied,
+    Throttled,
+    ValidationError,
+)
 from rest_framework.response import Response
 from rest_framework.views import exception_handler as drf_exception_handler
 
 #: The 404 ``detail`` a person reads in place of Django's or DRF's stock sentence.
 NOT_FOUND_MESSAGE = "That isn't here. It may have been deleted."
+
+#: What a 429 says in place of DRF's stock *Request was throttled.*
+THROTTLED_MESSAGE = "Too many tries."
 
 #: The sentences Django's ``get_object_or_404`` and DRF's ``NotFound`` put in a 404.
 _STOCK_NOT_FOUND = re.compile(r"No .+ matches the given query\.|Not found\.")
@@ -90,4 +104,30 @@ def caldart_exception_handler(exc: Exception, context: dict[str, Any]) -> Respon
         detail = str(response.data.get("detail", ""))
         if detail == "" or _STOCK_NOT_FOUND.fullmatch(detail) is not None:
             response.data = {"detail": NOT_FOUND_MESSAGE}
+    if response is not None and isinstance(exc, Throttled):
+        response.data = {"detail": throttled_message(exc)}
     return response
+
+
+def throttled_message(exc: Throttled) -> str:
+    """What a 429 for ``exc`` says: its sentence, then when to try again.
+
+    The sentence is :data:`THROTTLED_MESSAGE` when ``exc`` carries DRF's stock one, and
+    ``exc``'s own otherwise, with DRF's *Expected available in N seconds.* taken off.  It
+    is followed by *Try again in N seconds.* (*1 second* for one), or by *Try again
+    later.* when ``exc`` doesn't carry a wait.
+    """
+    detail = str(exc.detail)
+    # djangorestframework-stubs leaves out the ``wait`` that ``Throttled.__init__`` sets.
+    wait_seconds: float | None = exc.wait  # type: ignore[attr-defined]
+    if wait_seconds is None:
+        sentence = detail
+        retry = "Try again later."
+    else:
+        wait = math.ceil(wait_seconds)
+        extra = exc.extra_detail_singular if wait == 1 else exc.extra_detail_plural
+        sentence = detail.removesuffix(" " + str(extra).format(wait=wait))
+        retry = f"Try again in {wait} second{'' if wait == 1 else 's'}."
+    if sentence == str(exc.default_detail):
+        sentence = THROTTLED_MESSAGE
+    return f"{sentence} {retry}"

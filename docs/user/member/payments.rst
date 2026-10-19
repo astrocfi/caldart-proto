@@ -182,7 +182,8 @@ statement against your receipts before you file it.
 If something looks wrong
 ========================
 
-If a card says *settings could not be read*, CalDART can't show you whether it will
+If a card says *We couldn't load your automatic renewal settings.* (or *recurring
+donation settings*), CalDART can't show you whether it will
 charge you. Press **Try again**, and contact CalDART if it keeps happening. To
 change the card on file, turn automatic renewal or the recurring donation off and
 set it up again with the new card. CalDART only keeps a card on file for these two.

@@ -147,7 +147,7 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
       {nothingFound && !adding ? (
         <EmptyState
           title="No aircraft matches that"
-          description="If the plane is not in the register yet, add it below."
+          description="If the plane isn't on CalDART's list yet, add it below."
         />
       ) : null}
 

@@ -237,7 +237,7 @@ administrator, or a colleague who holds every two-factor role that account holds
 account while you had the page open. Reload, and reactivate it first. *That account is
 already deactivated.* and *That account is already active.* mean somebody changed it while
 you had the page open; reload the page. *The mail server did not accept the message. A
-system administrator can see the attempt on the Sent Emails page.* can follow **Send
+system administrator can see the attempt on the "Sent emails" page.* can follow **Send
 password reset** or **Resend verification message**. It means the site couldn't hand the
 email to its mail server, so the email wasn't sent. A system administrator sees the attempt
 marked *Failed:* on **Sent emails**, with the reason. Tell whoever runs the server, and

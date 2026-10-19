@@ -60,8 +60,7 @@ the heading. The page shows, one line each:
 - **Sent**: the date and time.
 - **Status**: *Sent*, *Failed*, or *Bounced*, beside its dot.
 - **Error**, for a failed send: the reason in words, such as *The mail server refused the
-  address.* Under it is what the server recorded, such as *Recorded as
-  SMTPRecipientsRefused*, to pass on to whoever runs the server.
+  address.*
 - **Bounced on** and **Bounce report**, for a bounced email: when the bounce came back and
   what the recipient's mail server said.
 - **Attachments**: the names of any attached files.

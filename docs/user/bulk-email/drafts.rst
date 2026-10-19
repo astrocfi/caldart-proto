@@ -39,8 +39,8 @@ line telling them to set their DART on My profile, with **Open My profile**, ins
 email** (:doc:`dart-leaders`).
 
 If an email came due but wasn't sent, a line above the table names it and gives the reason,
-such as *This email was not sent: you can no longer send Mission email. Choose another type
-and send again.* This happens when the person who pressed **Send** has since lost the role
+such as *This email wasn't sent, because you can't send Mission email anymore. Choose
+another type and send again.* This happens when the person who pressed **Send** has since lost the role
 that sends that type of email, or their account was deleted. The email is a draft again, and
 nothing is lost. Open it, choose a type you may send, and send it again. The same line shows
 at the top of its compose screen until you do.

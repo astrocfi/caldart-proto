@@ -135,7 +135,7 @@ account is marked suspended, and it becomes active when the account is reactivat
 Payments
 ========
 
-This tab shows the person's whole money history, the same one the treasurer's screens show:
+This tab shows the person's whole payment history, the same one the treasurer's screens show:
 
 - **Totals** over every year: **Paid**, **Contributed**, **Fees**, and **Refunded**.
 - Their automatic renewal, if they have one, with its state, the saved payment method, what
