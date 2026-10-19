@@ -62,7 +62,7 @@ STILL_SENDING_MESSAGE = "This email is still sending. Retry the failed copies on
 STOPPED_MESSAGE = "This email was stopped. Send the rest first, then retry the failed copies."
 NOTHING_FAILED_MESSAGE = "No copy failed, so nothing is left to retry."
 NOBODY_TO_RETRY_MESSAGE = (
-    "Nobody whose copy failed can be sent one now. Each is marked skipped, with the "
+    "None of the failed copies can be sent again right now. Each is marked skipped, with the "
     "reason on their line."
 )
 

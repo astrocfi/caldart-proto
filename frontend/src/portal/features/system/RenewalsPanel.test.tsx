@@ -85,13 +85,19 @@ async function chargeForReal(): Promise<void> {
 describe('renewalRunSummary', () => {
   it('says what a rehearsal would have done', () => {
     expect(renewalRunSummary(RESULT, true)).toBe(
-      'Would notice 2, warn 0, charge 1, fail 0, pause 0, and skip 3.',
+      'Would send 2 notices, warn 0, charge 1, fail 0, pause 0, and skip 3.',
     );
   });
 
   it('says what a real run did', () => {
     expect(renewalRunSummary(RESULT, false)).toBe(
-      'Noticed 2, warned 0, charged 1, failed 0, paused 0, and skipped 3.',
+      'Sent 2 notices, warned 0, charged 1, failed 0, paused 0, and skipped 3.',
+    );
+  });
+
+  it('says one notice in the singular', () => {
+    expect(renewalRunSummary({ ...RESULT, noticed: 1 }, true)).toBe(
+      'Would send 1 notice, warn 0, charge 1, fail 0, pause 0, and skip 3.',
     );
   });
 });
@@ -117,7 +123,9 @@ describe('RenewalsPanel', () => {
     );
 
     expect(
-      await screen.findByText('Would notice 2, warn 0, charge 1, fail 0, pause 0, and skip 3.'),
+      await screen.findByText(
+        'Would send 2 notices, warn 0, charge 1, fail 0, pause 0, and skip 3.',
+      ),
     ).toBeInTheDocument();
     expect(bodies).toEqual([{ dry_run: true }]);
   });
@@ -171,7 +179,9 @@ describe('RenewalsPanel', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Charge what is due' }));
 
     expect(
-      await screen.findByText('Noticed 2, warned 0, charged 1, failed 0, paused 0, and skipped 3.'),
+      await screen.findByText(
+        'Sent 2 notices, warned 0, charged 1, failed 0, paused 0, and skipped 3.',
+      ),
     ).toBeInTheDocument();
     expect(bodies).toEqual([{ dry_run: false }]);
     expect(screen.getByRole('heading', { name: 'What this run did' })).toBeInTheDocument();
@@ -197,7 +207,7 @@ describe('RenewalsPanel', () => {
 
     expect(
       await screen.findByText(
-        'Noticed 2, warned 0, charged 1, failed 0, paused 0, and skipped 3.',
+        'Sent 2 notices, warned 0, charged 1, failed 0, paused 0, and skipped 3.',
         {},
         { timeout: 5_000 },
       ),

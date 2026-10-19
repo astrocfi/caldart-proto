@@ -8,7 +8,7 @@ A payment's own screen shows everything about one payment: who paid, what for, w
 payment service kept, what has gone back, and the two things you record on it yourself. The
 payment service is the company that took the payment online, such as Stripe or PayPal. This
 screen is also where you refund a payment and send a receipt again. To reach it, click a
-name on the payment list or a receipt number in a member's money history. It also opens
+name on the payment list or a receipt number in a member's payment history. It also opens
 after you record a payment by hand.
 
 What you see
@@ -22,7 +22,7 @@ This payment
 
 The **This payment** card lists the facts:
 
-* **Member**, the member's name and email address, then **Money history**, which opens
+* **Member**, the member's name and email address, then **Payment history**, which opens
   everything they have paid (see :doc:`member-ledger`). An account administrator also
   sees **Member record**, which opens the person's :doc:`../admin/member-record`, even
   for a donor. A payment kept under **Deleted member** and a number doesn't have **Member
@@ -139,7 +139,7 @@ See everything the member has paid
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The link at the bottom of the screen, such as **Everything Ann Able has paid**, opens the
-member's money history (see :doc:`member-ledger`).
+member's payment history (see :doc:`member-ledger`).
 
 If something looks wrong
 ========================

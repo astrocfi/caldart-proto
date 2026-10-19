@@ -394,7 +394,7 @@ describe('AutoRenewalCard', () => {
     mountUnreadable();
 
     expect(
-      await screen.findByText('Your automatic renewal settings could not be read'),
+      await screen.findByText("We couldn't load your automatic renewal settings."),
     ).toBeInTheDocument();
     expect(screen.queryByText('Off')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Turn on' })).not.toBeInTheDocument();

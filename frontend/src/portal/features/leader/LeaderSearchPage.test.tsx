@@ -308,7 +308,7 @@ describe('LeaderSearchPage', () => {
 
   it('says what the verification report holds beside its downloads', () => {
     renderWithProviders(<LeaderSearchPage />, { route: '/leader' });
-    const group = screen.getByRole('group', { name: 'Everything requiring validation:' });
+    const group = screen.getByRole('group', { name: 'Everything requiring verification:' });
     expect(within(group).getAllByRole('link')).toHaveLength(2);
   });
 

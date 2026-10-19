@@ -3,7 +3,7 @@
  * member's standing charge is paused (`mandate_paused`) and whether they are emailed so
  * (`member_emailed`), each on its own, and the treasurer is asked to get in touch with
  * them, by the phone number and the address the answer
- * carries, with a link to the member's money history (and their member record, for an
+ * carries, with a link to the member's payment history (and their member record, for an
  * account administrator).
  */
 import type { JSX } from 'react';
@@ -41,7 +41,7 @@ export function ClosedChargeNotice({
         <ContactWays phone={result.user_phone ?? ''} email={result.user_email ?? ''} />.
       </p>
       <p className="cluster">
-        <Link to={`/admin/payments/members/${result.user_id}`}>{name}&rsquo;s money history</Link>
+        <Link to={`/admin/payments/members/${result.user_id}`}>{name}&rsquo;s payment history</Link>
         <MemberRecordLink userId={result.user_id} />
         <Button variant="quiet" small onClick={handleDismiss}>
           Dismiss

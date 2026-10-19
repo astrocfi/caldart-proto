@@ -134,7 +134,7 @@ so is anybody who has left the leader's DART. If a user administrator has correc
 address since, the fresh copy goes to the corrected one. The copies start going within a
 minute, and the page shows their progress as for any send. The message says *The failed
 copies will be sent again within a minute.* If everybody whose copy failed is skipped this
-way, nothing is sent, and the page says *Nobody whose copy failed can be sent one now.*
+way, nothing is sent, and the page says *None of the failed copies can be sent again right now.*
 
 **Retry failed** can't be pressed when no copy failed, and it says so. On a stopped email, it
 says to send the rest first: press **Send the rest**, and once that has finished, retry the

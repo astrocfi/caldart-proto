@@ -65,7 +65,7 @@ Mistakes the form catches
 * A contribution below zero: *Enter a contribution of $0.00 or more.*
 * A date after today: *The money cannot have arrived in the future.*
 * A reference that another recorded payment already has: *Another recorded payment
-  already carries the reference* followed by the number. This stops the same check being
+  already has the reference* followed by the number. This stops the same check being
   entered twice.
 * No plan and no contribution, or a contribution of zero: *Nothing to charge.*
 * A plan for a life member, who doesn't have anything left to renew: *You are a life

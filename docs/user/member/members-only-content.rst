@@ -53,7 +53,7 @@ next. Its sidebar, **What membership includes**, lists what the pages contain.
   brings you back to the page afterwards, and **Join CalDART**.
 
 **Membership expired**
-  *Your membership lapsed on 1 March 2027, so this page is closed for now. Renewing
+  *Your membership lapsed on 03/01/2027, so this page is closed for now. Renewing
   takes a minute and reopens it immediately.* Buttons: **Renew my membership** (see
   :doc:`renew`) and **Member portal**.
 

@@ -406,7 +406,7 @@ def resume(bulk: BulkEmail, *, actor: User, now: datetime | None = None) -> Bulk
 def confirm_message(receiving: int) -> str:
     """The refusal of a typed count that no longer matches: the batch's count now."""
     people = "1 person" if receiving == 1 else f"{receiving} people"
-    return f"The recipient list has changed: it now holds {people}. Type the new count."
+    return f"The recipient list has changed: it now has {people}. Type the new count."
 
 
 def _check_content(bulk: BulkEmail) -> None:

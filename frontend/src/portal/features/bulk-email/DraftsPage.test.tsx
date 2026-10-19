@@ -84,7 +84,7 @@ describe('DraftsPage', () => {
 
   it('names an email the sender returned unsent, with the reason', async () => {
     const reason =
-      'This email was not sent: you can no longer send Mission email. Choose another type and send again.';
+      "This email wasn't sent, because you can't send Mission email anymore. Choose another type and send again.";
     answerDrafts([makeSummary({ not_sent_reason: reason })]);
     renderWithProviders(<DraftsPage />);
     const notice = await screen.findByRole('list', { name: 'Emails that were not sent' });

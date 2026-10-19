@@ -182,7 +182,7 @@ page loads. See :doc:`../roles`.
 The verification report
 =======================
 
-Above the search box, *Everything requiring validation:* sits beside **Export CSV** and
+Above the search box, *Everything requiring verification:* sits beside **Export CSV** and
 **Export PDF**. These download the CalDART verification report, which lists everything not
 yet verified, in two sections:
 

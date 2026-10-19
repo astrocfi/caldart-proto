@@ -355,11 +355,11 @@ describe('PaymentDetailPage', () => {
     expect(await screen.findByRole('button', { name: 'Refund' })).toHaveClass('button--quiet');
   });
 
-  it('names the link beside the member Money history', async () => {
+  it('names the link beside the member Payment history', async () => {
     servePayment();
     renderDetail();
 
-    expect(await screen.findByRole('link', { name: 'Money history' })).toHaveAttribute(
+    expect(await screen.findByRole('link', { name: 'Payment history' })).toHaveAttribute(
       'href',
       '/admin/payments/members/37',
     );

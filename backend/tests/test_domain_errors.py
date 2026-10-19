@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import pytest
 from django.http import Http404
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotFound, Throttled
 from rest_framework.test import APIClient
 
 from caldart.exceptions import (
@@ -100,6 +100,26 @@ def test_a_404_a_view_worded_itself_keeps_its_words() -> None:
     response = caldart_exception_handler(Http404("No contributions in that year."), {})
     assert response is not None
     assert response.data == {"detail": "No contributions in that year."}
+
+
+@pytest.mark.parametrize(
+    ("exc", "detail"),
+    [
+        (Throttled(wait=42), "Too many tries. Try again in 42 seconds."),
+        (Throttled(wait=0.4), "Too many tries. Try again in 1 second."),
+        (Throttled(), "Too many tries. Try again later."),
+        (
+            Throttled(wait=812, detail="Too many failed sign-in attempts."),
+            "Too many failed sign-in attempts. Try again in 812 seconds.",
+        ),
+    ],
+    ids=["stock", "one-second", "without-a-wait", "own-sentence"],
+)
+def test_a_429_says_when_to_try_again(exc: Throttled, detail: str) -> None:
+    """A 429 says *Too many tries.*, or its own sentence, then when to try again."""
+    response = caldart_exception_handler(exc, {})
+    assert response is not None
+    assert response.data == {"detail": detail}
 
 
 def test_an_unknown_member_id_answers_in_plain_words(account_admin_client: APIClient) -> None:

@@ -214,7 +214,7 @@ describe('RenewalsPage', () => {
     ).toBeInTheDocument();
   });
 
-  it("links each person's name to their money history", async () => {
+  it("links each person's name to their payment history", async () => {
     server.use(...renewalHandlers([ACTIVE], [REFUSED], record()));
     renderWithProviders(<RenewalsPage />);
 

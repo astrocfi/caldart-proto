@@ -493,7 +493,7 @@ reschedules it.  A refusal is **400** keyed by the field:
   DART, *This email belongs to <name>, whose profile doesn't name a DART, so nobody can be
   added.*, naming the sender.
 - ``confirm_count``: *Type the number of people this email goes to.* when it is
-  missing, or *The batch has changed: it now holds 52 people. Type the new
+  missing, or *The batch has changed: it now has 52 people. Type the new
   count.* when it does not match.
 - ``start_at``: *Choose a time in the future.* or *Choose a time within a year.*
 - ``closes_at``: *Answers would close before the email goes out. Choose a later time
@@ -795,7 +795,7 @@ read-only, and **Stop** stops the retry as it stops **Send the rest**.  A refusa
 - *This email is still sending. Retry the failed copies once it has finished.* for
   one ``queued`` or ``sending``;
 - *No copy failed, so nothing is left to retry.*
-- *Nobody whose copy failed can be sent one now. Each is marked skipped, with the reason
+- *None of the failed copies can be sent again right now. Each is marked skipped, with the reason
   on their line.* when every failed copy was skipped; the skips are kept, and nothing is
   queued.
 

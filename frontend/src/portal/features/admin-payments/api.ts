@@ -115,7 +115,7 @@ export function usePaymentDetail(id: number | null): UseQueryResult<PaymentDetai
   });
 }
 
-/** One member's whole money history, or disabled while `userId` is not a number. */
+/** One member's whole payment history, or disabled while `userId` is not a number. */
 export function useMemberLedger(userId: number | null): UseQueryResult<MemberLedger> {
   return useQuery({
     queryKey: [...FINANCE_KEY, 'ledger', userId],

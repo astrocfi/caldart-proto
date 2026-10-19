@@ -59,7 +59,7 @@ def refuse_if_locked_out(email: str) -> None:
     """Raise DRF's ``Throttled`` when ``email`` is locked out, with ``Retry-After``.
 
     The answer is 429 ``{"detail": "Too many failed sign-in attempts for this email
-    address. Try again later. Expected available in <n> seconds."}``.
+    address. Try again in <n> seconds."}``.
     """
     wait = lockout.lockout_wait(email)
     if wait is not None:

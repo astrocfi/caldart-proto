@@ -228,7 +228,7 @@ def test_a_reference_another_recorded_payment_carries_is_refused(
         note="",
         actor=treasurer,
     )
-    with pytest.raises(DomainValidationError, match="already carries the reference '1041'"):
+    with pytest.raises(DomainValidationError, match="already has the reference '1041'"):
         record_manual_payment(
             user=member,
             plan_slug="annual",
@@ -262,7 +262,7 @@ def test_a_reference_taken_after_the_check_is_still_refused(
     # existed, which is what a stubbed check stands in for here.
     monkeypatch.setattr(manual, "_reference_taken", lambda reference: False)
 
-    with pytest.raises(DomainValidationError, match="already carries the reference '1041'"):
+    with pytest.raises(DomainValidationError, match="already has the reference '1041'"):
         record_manual_payment(
             user=member,
             plan_slug="annual",

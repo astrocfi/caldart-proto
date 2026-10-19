@@ -108,8 +108,8 @@ year, and its emails talk about the donation.
 
 #. Leave **Practice run: show what would happen without charging anything** checked the
    first time. Nobody is charged or emailed.
-#. Press **Run now**. The result says, for example, *Would notice 2, warn 0, charge 1, fail
-   0, pause 0, and skip 3.* *Notice* counts the two-week notices, and *warn* the members
+#. Press **Run now**. The result says, for example, *Would send 2 notices, warn 0, charge 1,
+   fail 0, pause 0, and skip 3.* *Notices* counts the two-week notices, and *warn* the members
    whose card runs out first. *Charge* counts the renewals taken, and *fail* the charges the
    payment service declined. *Pause* counts the members whose last try was declined or whose
    membership lapsed too long ago, and *skip* the ones that didn't need anything.
@@ -152,8 +152,8 @@ Early each month, it also sends each DART's roster. The box says **Practice run:
 would happen without sending anything**.
 
 The result says, for example, *Would send 5 emails, skipped 1.* If anything was skipped, a
-line gives the reasons. *no longer permitted* means the recipient has lost the role that
-the report needs, and a real run pauses that emailed report. *nobody to send to* means a
+line gives the reasons. *recipient does not have the necessary role* means the recipient
+has lost the role that the report needs, and a real run pauses that emailed report. *nobody to send to* means a
 DART doesn't have anyone to get its roster. The third reason, *no address on file*, ends it. A
 line such as *Failed 1.* counts a refused send or a report that couldn't be built. It stays
 due for the next run. The table names each email: *Report* or *Roster*, who it goes to,

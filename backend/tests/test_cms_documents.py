@@ -161,6 +161,21 @@ def test_a_lapsed_member_is_offered_renewal(
     assert "/portal/renew" in body_of(client.get(members_document.url)).decode()
 
 
+def test_the_wall_gives_the_lapse_date_as_mm_dd_yyyy(
+    client: Client,
+    site_settings: SiteSettings,
+    members_document: WagtailDocument,
+    member: User,
+    annual_plan: MembershipPlan,
+) -> None:
+    """The renewal wall says when the term lapsed in the portal's MM/DD/YYYY form."""
+    term = expire_membership(member, annual_plan)
+    client.force_login(member)
+
+    page = body_of(client.get(members_document.url)).decode()
+    assert f'lapsed on\n          <span class="mono">{term.ends_on:%m/%d/%Y}</span>' in page
+
+
 def test_a_member_who_never_paid_is_refused(
     client: Client, site_settings: SiteSettings, members_document: WagtailDocument, member: User
 ) -> None:

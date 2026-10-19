@@ -117,7 +117,7 @@ test('a system administrator rehearses the renewal scan', async ({ page }) => {
   ).toBeChecked();
   await panel.getByRole('button', { name: 'Run now: automatic renewal charges' }).click();
 
-  await expect(panel.getByRole('status').filter({ hasText: /^Would notice / })).toBeVisible();
+  await expect(panel.getByRole('status').filter({ hasText: /^Would send / })).toBeVisible();
   await expect(panel.getByRole('heading', { name: 'What this run would do' })).toBeVisible();
 });
 

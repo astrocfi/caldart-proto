@@ -50,9 +50,10 @@ ROLES_REFUSED = {
     )
 }
 MAIL_REFUSED = {
-    "detail": "The old password no longer works and every session is ended, but the mail "
-    "server did not accept the reset email. A system administrator can see the attempt "
-    "on the Sent emails page; press Require a new password again once it is fixed."
+    "detail": "The old password no longer works, and every one of their sessions has been "
+    "signed out, but the mail server did not accept the reset email. A system "
+    'administrator can see the attempt on the "Sent emails" page; press Require a new '
+    "password again once it is fixed."
 }
 
 #: The reset link a message carries, with its two query parameters.
@@ -148,10 +149,11 @@ def test_an_unknown_account_is_404(user_admin_client: APIClient) -> None:
 def test_the_answer_names_the_address_the_link_went_to(
     user_admin_client: APIClient, target: User
 ) -> None:
-    """The 200 says every session is ended and where the reset email went."""
+    """The 200 says every session has been signed out and where the reset email went."""
     response = user_admin_client.post(require_url(target))
     assert response.json() == {
-        "detail": "The old password no longer works and every session is ended. "
+        "detail": "The old password no longer works, and every one of their sessions has been "
+        "signed out. "
         "A password reset email went to target@example.test."
     }
 
@@ -353,7 +355,8 @@ def test_a_blocked_account_is_answered_without_a_mail(
     """A blocked account's password is replaced; the answer says the email didn't go."""
     response = user_admin_client.post(require_url(deactivated(target, blocked=True)))
     assert response.json() == {
-        "detail": "The old password no longer works and every session is ended. "
+        "detail": "The old password no longer works, and every one of their sessions has been "
+        "signed out. "
         "The account is blocked from reactivating, so no reset email was sent."
     }
 

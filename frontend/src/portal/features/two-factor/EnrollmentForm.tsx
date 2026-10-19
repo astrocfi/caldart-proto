@@ -80,7 +80,7 @@ export function EnrollmentForm({
             height={200}
           />
           <p className="muted">
-            Cannot scan it? Type this key into the app instead:{' '}
+            Can't scan it? Type this key into the app instead:{' '}
             <code className="enrollment__secret">{groupedSecret(enrollment.secret)}</code>
           </p>
         </li>

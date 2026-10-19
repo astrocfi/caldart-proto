@@ -118,8 +118,8 @@ export function MandateCard({ scope }: MandateCardProps): JSX.Element {
         // Saying "Off" here would be an unfounded claim about the member's money, so
         // the card says only that it does not know.
         <EmptyState
-          title={`Your ${title.toLowerCase()} settings could not be read`}
-          description={`We cannot tell you whether CalDART charges you for a ${title.toLowerCase()}. Try again, or contact CalDART if it keeps happening.`}
+          title={`We couldn't load your ${title.toLowerCase()} settings.`}
+          description={`We can't tell you whether CalDART charges you for a ${title.toLowerCase()}. Try again, or contact CalDART if it keeps happening.`}
           action={
             <Button variant="secondary" onClick={() => void query.refetch()}>
               Try again
@@ -184,8 +184,8 @@ export function MandateCard({ scope }: MandateCardProps): JSX.Element {
                   >
                     <p>
                       {isDonation
-                        ? 'Turn your recurring donation off? Nothing further is charged and your saved method is dropped.'
-                        : 'Turn automatic renewal off? Nothing further is charged and your saved method is dropped. Your membership still runs to the end of the term you have paid for.'}
+                        ? 'Turn your recurring donation off? Nothing more will be charged, and your saved card or PayPal account is removed.'
+                        : 'Turn automatic renewal off? Nothing more will be charged, and your saved card or PayPal account is removed. Your membership still runs to the end of the term you have paid for.'}
                     </p>
                   </ConfirmButton>
                 </>

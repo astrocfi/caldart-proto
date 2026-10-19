@@ -552,7 +552,7 @@ def test_the_checkout_is_throttled(api_client: APIClient, settings: Settings) ->
 
     assert (response.status_code, response.json()) == (
         429,
-        {"detail": "Request was throttled. Expected available in 3600 seconds."},
+        {"detail": "Too many tries. Try again in 3600 seconds."},
     )
 
 

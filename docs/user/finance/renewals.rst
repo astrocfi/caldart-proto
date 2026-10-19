@@ -59,7 +59,7 @@ The second table, **Recent charges**, has one row per scheduled charge, fifty to
 Each row shows the day it was **Scheduled**, the **Member**, the **Outcome** (**Scheduled**,
 **Charged**, **Failed**, **Skipped**, or **Needs checking**), when it was **Tried**, and the
 **Reason** a charge failed, worded as under a paused renewal's status. The member's name
-opens their money history. The charges still to come are listed first, then the rest by when
+opens their payment history. The charges still to come are listed first, then the rest by when
 they were tried, newest first.
 
 **Needs checking** marks a charge PayPal may have taken without telling the site. Either
@@ -120,7 +120,7 @@ search PayPal's own dashboard for: the charge's invoice id, such as
   automatic renewal couldn't be completed and is paused, when their membership ends or
   ended, and how to renew by hand and turn it back on. A note then appears above **Recent
   charges** asking you to get in touch with them too. It gives their phone number if their
-  record has one, their email address, and links to their money history (and, for an
+  record has one, their email address, and links to their payment history (and, for an
   account administrator, their **Member record**). It stays until you press **Dismiss**. A
   standing charge that was already off is left as it is. The note says whether the charge
   is paused, and whether the member is emailed. A member without an email address isn't

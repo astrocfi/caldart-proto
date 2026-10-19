@@ -26,14 +26,15 @@ import { JobPanel, NothingDue, RunNowButton } from './JobPanel';
 /** The sentence shown after a run, in the past tense or the conditional. */
 export function renewalRunSummary(result: RenewalRunResult, dryRun: boolean): string {
   const { noticed, warned, charged, failed, paused, skipped } = result;
+  const notices = `${noticed} ${noticed === 1 ? 'notice' : 'notices'}`;
   if (dryRun) {
     return (
-      `Would notice ${noticed}, warn ${warned}, charge ${charged}, ` +
+      `Would send ${notices}, warn ${warned}, charge ${charged}, ` +
       `fail ${failed}, pause ${paused}, and skip ${skipped}.`
     );
   }
   return (
-    `Noticed ${noticed}, warned ${warned}, charged ${charged}, ` +
+    `Sent ${notices}, warned ${warned}, charged ${charged}, ` +
     `failed ${failed}, paused ${paused}, and skipped ${skipped}.`
   );
 }

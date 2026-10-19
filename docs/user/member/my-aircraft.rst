@@ -89,8 +89,8 @@ Adding an airplane that is not on CalDART's list
 ================================================
 
 **Add a new aircraft** is at the bottom of the card (*Not on CalDART's list? Add it
-yourself.*), and you don't have to search first. It opens **Add an aircraft to the
-register** where the button was, and puts the cursor in the first box. **Cancel**, or
+yourself.*), and you don't have to search first. It opens **Add an aircraft** where
+the button was, and puts the cursor in the first box. **Cancel**, or
 Escape, closes it. The form has every box the record has, the same ones you see when
 you edit it later:
 

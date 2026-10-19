@@ -62,4 +62,4 @@ If something looks wrong
 If the table says *No contributions that year*, choose another year. Or check on the
 payment list that the gifts were recorded with a contribution amount. A payment that was
 only dues doesn't appear here. If a person's net looks low, click their name to open their
-money history and see which payment was refunded.
+payment history and see which payment was refunded.

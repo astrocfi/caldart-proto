@@ -65,8 +65,9 @@ export function MessagesVisibility({ email }: { email: BulkEmailDetail }): JSX.E
               ]}
             >
               <p>
-                Nobody it went to will see it under Email to me any more, and the link in their copy
-                will no longer open it. Its history here stays as it is, and you can show it again.
+                The people it went to won&apos;t see it under &quot;Email to me&quot;, and the link
+                in their copy won&apos;t open it. Its history here stays as it is, and you can show
+                it again.
               </p>
             </ConfirmButton>
           </div>

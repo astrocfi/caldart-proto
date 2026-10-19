@@ -199,6 +199,22 @@ describe('LeaderAircraftPage search', () => {
 });
 
 describe('LeaderAircraftPage card', () => {
+  it('says what to do next when the check could not be run', async () => {
+    server.use(
+      http.get(`${API}/leader/aircraft`, () =>
+        HttpResponse.json({ detail: 'Something went wrong.' }, { status: 500 }),
+      ),
+    );
+    renderWithProviders(<LeaderAircraftPage />, { route: '/leader/aircraft?aircraft=N172SP' });
+
+    expect(await screen.findByText("That check couldn't be run")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Something went wrong. Try again, and if it fails again, tell a system administrator.',
+      ),
+    ).toBeInTheDocument();
+  });
+
   it('reads the registration from the query string, normalized', async () => {
     const asked: string[] = [];
     server.use(

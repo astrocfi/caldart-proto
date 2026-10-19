@@ -142,7 +142,7 @@ export function AircraftRecordPage(): JSX.Element {
       );
     }
     if (changes.data.length === 0) {
-      return <p className="muted">No change is recorded for this record.</p>;
+      return <p className="muted">No changes recorded yet.</p>;
     }
     return (
       <ul className="record-history">

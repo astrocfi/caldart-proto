@@ -95,8 +95,8 @@ Dana Fiske · updated carrier, insurance expiry*, or *created* for the change th
 airplane. A change without an account behind it, such as the demo data, shows *the seed*.
 The words match the form, so *insurance expiry* is the **Insurance expires** box.
 
-If the record doesn't have any recorded changes, the card says *No change is recorded for
-this record.* The next save starts the list. If the history can't be fetched, the card says
+If the record doesn't have any recorded changes, the card says *No changes recorded
+yet.* The next save starts the list. If the history can't be fetched, the card says
 *That record's history didn't load. Try again in a moment.*
 
 

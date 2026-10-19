@@ -146,18 +146,20 @@ RESET_ROLES_REFUSED = (
 #: asked to send, so they know it did not go and where to see the attempt.
 MAIL_REFUSED = (
     "The mail server did not accept the message. "
-    "A system administrator can see the attempt on the Sent emails page."
+    'A system administrator can see the attempt on the "Sent emails" page.'
 )
 
 #: What **Require a new password** has done once it goes through, before what was mailed.
-CREDENTIAL_RESET_DONE = "The old password no longer works and every session is ended."
+CREDENTIAL_RESET_DONE = (
+    "The old password no longer works, and every one of their sessions has been signed out."
+)
 
 #: What **Require a new password** answers when the mail server refuses the reset email:
 #: the password is shut out regardless, and pressing it again mails a fresh link.
 CREDENTIAL_MAIL_REFUSED = (
-    "The old password no longer works and every session is ended, but the mail server "
-    "did not accept the reset email. "
-    "A system administrator can see the attempt on the Sent emails page; "
+    "The old password no longer works, and every one of their sessions has been signed "
+    "out, but the mail server did not accept the reset email. "
+    'A system administrator can see the attempt on the "Sent emails" page; '
     "press Require a new password again once it is fixed."
 )
 

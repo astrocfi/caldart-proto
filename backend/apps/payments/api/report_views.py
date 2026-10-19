@@ -303,7 +303,7 @@ class AdminPaymentRecordView(APIView):
 
 
 class AdminMemberLedgerView(APIView):
-    """``GET /admin/payments/ledger/{user_id}`` -- one member's money history."""
+    """``GET /admin/payments/ledger/{user_id}`` -- one member's payment history."""
 
     permission_classes = [IsAuthenticated, IsFinance]
 

@@ -69,5 +69,5 @@ If something looks wrong
 If no message arrives, look in your spam or junk folder first, then press **Resend
 verification message**. If the address itself is wrong, correct it on
 :doc:`change-email`, and a fresh message goes to the corrected address. You can
-resend only a few times an hour. After that the screen says *Request was throttled.
-Expected available in ... seconds.* Wait that long and try again.
+resend only a few times an hour. After that the screen says *Too many tries. Try
+again in ... seconds.* Wait that long and try again.

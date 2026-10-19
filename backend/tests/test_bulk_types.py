@@ -438,8 +438,8 @@ def test_a_sender_who_lost_the_role_has_the_email_returned_to_draft(
     bulk.refresh_from_db()
     assert (bulk.status, bulk.start_at, len(mail.outbox)) == (BulkEmailStatus.DRAFT, None, 0)
     assert bulk.not_sent_reason == (
-        "This email was not sent: you can no longer send Mission Calls email. Choose "
-        "another type and send again."
+        "This email wasn't sent, because you can't send Mission Calls email anymore. "
+        "Choose another type and send again."
     )
     assert audit_messages(audit_log, logging.WARNING) == [
         f"action=bulk_email.refused actor=command target={bulk.pk} reason=type_not_sendable"

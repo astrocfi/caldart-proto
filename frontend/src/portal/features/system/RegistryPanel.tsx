@@ -28,7 +28,7 @@ function counted(count: number, noun: string): string {
 /**
  * The panel's status line: *Running since 5:33 AM* while an import runs, then
  * what the last import wrote and on which day (and the hand-added types it
- * folded into the FAA's, when any), or *Failed:* and its error.
+ * merged into the FAA's, when any), or *Failed:* and its error.
  */
 export function registryImportSummary({ running, last }: RegistryStatus): string {
   if (last === null) return 'No import has run yet.';
@@ -41,7 +41,7 @@ export function registryImportSummary({ running, last }: RegistryStatus): string
     `${counted(last.registrations_written, 'registration')} on ` +
     formatDate(last.finished_at);
   if (last.types_folded === 0) return `${written}.`;
-  return `${written}, folded ${counted(last.types_folded, 'hand-added type')}.`;
+  return `${written}, merged ${counted(last.types_folded, 'hand-added type')}.`;
 }
 
 /** Runs the FAA registry import on demand and follows it to its end. */

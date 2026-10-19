@@ -38,7 +38,7 @@ On :doc:`profile`, the **Two-factor sign-in** card says *Two-factor sign-in is o
 Press **Turn on**, type your **Current password**, and press **Show the QR code**.
 
 1. The card shows a QR code. In your authenticator app, add an account and scan it.
-   If you can't scan it, find the key under *Cannot scan it? Type this key into the
+   If you can't scan it, find the key under *Can't scan it? Type this key into the
    app instead*, and type it into the app by hand.
 2. The app shows a six-digit code for CalDART. Type it into the **Code** box and press
    **Turn on two-factor sign-in**. The message *Two-factor sign-in is on.* appears.

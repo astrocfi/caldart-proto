@@ -126,7 +126,7 @@ describe('SendCard', () => {
       http.post(`${API}/bulk-email/7/send`, () =>
         HttpResponse.json(
           {
-            confirm_count: ['The batch has changed: it now holds 53 people. Type the new count.'],
+            confirm_count: ['The batch has changed: it now has 53 people. Type the new count.'],
           },
           { status: 400 },
         ),
@@ -135,7 +135,7 @@ describe('SendCard', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Send to 52 people' }));
     await userEvent.type(await screen.findByRole('textbox', { name: 'Type 52 to confirm' }), '52');
     await userEvent.click(screen.getByRole('button', { name: 'Send' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('it now holds 53 people');
+    expect(await screen.findByRole('alert')).toHaveTextContent('it now has 53 people');
   });
 
   it('schedules for a chosen date and time, in twelve-hour words', async () => {

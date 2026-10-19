@@ -31,7 +31,7 @@
       {% elif wall_state == "expired" %}
         <p class="lede">
           Your membership lapsed{% if membership.expires_on %} on
-          <span class="mono">{{ membership.expires_on|date:"j F Y" }}</span>{% endif %}, so this
+          <span class="mono">{{ membership.expires_on|date:"m/d/Y" }}</span>{% endif %}, so this
           page is closed for now. Renewing takes a minute and reopens it immediately.
         </p>
         <p class="cluster">

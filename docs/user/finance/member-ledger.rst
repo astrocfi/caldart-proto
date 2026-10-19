@@ -1,10 +1,10 @@
 :roles: treasurer, account_admin
 
-========================
-A member's money history
-========================
+==========================
+A member's payment history
+==========================
 
-A member's money history brings together everything one person has paid, given, and been
+A member's payment history brings together everything one person has paid, given, and been
 refunded. It also shows their automatic renewal or recurring donation, and the contribution
 statements they can be sent. It answers a question about one member's money without a
 search of the payment list. To reach it, click the member's name on a payment's own screen.
@@ -82,7 +82,7 @@ To turn a member's automatic renewal or recurring donation off for them, use the
 If something looks wrong
 ========================
 
-If the screen says *That ledger didn't load*, the member may have been removed, or the link
+If the screen says *This payment history didn't load*, the member may have been removed, or the link
 may be out of date. Find the member again from one of their payments. If a renewal shows
 **Paused after failed charges**, the **Last failed charge** line says why. The member can
 put a new card on file from their own **My payments** screen.

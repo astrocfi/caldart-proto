@@ -104,10 +104,10 @@ describe('ClosedChargeNotice', () => {
     );
   });
 
-  it("links the member's money history", () => {
+  it("links the member's payment history", () => {
     renderNotice(CLOSED);
 
-    expect(screen.getByRole('link', { name: 'Ben Ortiz’s money history' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Ben Ortiz’s payment history' })).toHaveAttribute(
       'href',
       '/admin/payments/members/35',
     );

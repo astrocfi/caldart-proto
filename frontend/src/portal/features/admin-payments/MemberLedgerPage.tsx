@@ -1,5 +1,5 @@
 /**
- * `/admin/payments/members/:userId` — one member's whole money history.
+ * `/admin/payments/members/:userId` — one member's whole payment history.
  *
  * Everything a question about one member's money needs in one screen: what
  * they have paid over the years, every payment with what came back out of it,
@@ -228,7 +228,7 @@ export function MemberLedgerPage(): JSX.Element {
       <Page title="Member ledger">
         <FinanceTabs current="/admin/payments/list" />
         <EmptyState
-          title="That ledger didn't load"
+          title="This payment history didn't load"
           description="The member may have been removed, or you may not have permission to see them."
         />
       </Page>
@@ -240,7 +240,7 @@ export function MemberLedgerPage(): JSX.Element {
   return (
     <Page
       title={ledger.user.name}
-      tabTitle={`${ledger.user.name} · Money history`}
+      tabTitle={`${ledger.user.name} · Payment history`}
       lede={ledger.user.email}
       actions={
         <>
