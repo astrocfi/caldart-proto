@@ -1,5 +1,5 @@
 /**
- * Somebody gives on a schedule from the Donate screen: monthly with the first
+ * Somebody gives on a schedule from the "Donate" screen: monthly with the first
  * gift taken now, or quarterly with the first charge on a later day, so nothing is
  * taken today.  Either way the My payments screen then shows the Recurring donation
  * card with its cadence and its next charge.
@@ -56,7 +56,7 @@ function donationCard(page: Page) {
     .filter({ has: page.getByRole('heading', { name: 'Recurring donation' }) });
 }
 
-/** Choose the Participating tier on the Donate screen and make it recurring. */
+/** Choose the Participating tier on the "Donate" screen and make it recurring. */
 async function chooseRecurringGift(page: Page): Promise<void> {
   await page.goto('portal/donate');
   await expect(page.getByRole('heading', { name: 'Donate', level: 1 })).toBeVisible();

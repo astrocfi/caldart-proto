@@ -27,7 +27,7 @@ const REQUIRE_HINT =
   'emails a link to choose a new password.';
 
 /** What your own record's card says in place of the two actions. */
-const SELF_NOTE = 'To change your own password, use Change password.';
+const SELF_NOTE = 'To change your own password, use "Change password".';
 
 /**
  * Where the link goes, in the confirmation, by where the account stands: a blocked

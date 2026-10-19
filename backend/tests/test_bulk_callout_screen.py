@@ -109,7 +109,7 @@ def callout(management: User, ann: User, bea: User, cy: User) -> BulkEmail:
 
 
 def url(bulk: BulkEmail, action: str = "") -> str:
-    """The address of ``bulk`` on the Callouts screen, or of one of its actions."""
+    """The address of ``bulk`` on the "Callouts" screen, or of one of its actions."""
     return f"{API}/{bulk.pk}" + (f"/{action}" if action else "")
 
 

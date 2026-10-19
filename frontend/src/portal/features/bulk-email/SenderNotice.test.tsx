@@ -18,7 +18,7 @@ describe('SenderNotice', () => {
 
   it('links to My profile, where the DART is set', () => {
     renderWithProviders(<SenderNotice sender={NO_DART_SENDER} />);
-    expect(screen.getByRole('link', { name: 'Open My profile' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Open "My profile"' })).toHaveAttribute(
       'href',
       '/profile',
     );
@@ -40,7 +40,7 @@ describe('OwnSenderNotice', () => {
 
   it('tells a DART leader without a DART, wherever it is shown', async () => {
     renderFor(['member', 'dart_leader']);
-    expect(await screen.findByRole('link', { name: 'Open My profile' })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'Open "My profile"' })).toBeInTheDocument();
   });
 
   it("doesn't show anything to a DART leader who has a DART", async () => {

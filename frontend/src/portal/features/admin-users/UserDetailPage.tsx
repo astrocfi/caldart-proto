@@ -130,7 +130,7 @@ export function UserDetailPage(): JSX.Element {
         <EmptyState
           title="That account didn't load"
           description="It may have been deleted. Go back to the list and search again."
-          action={<Link to="/admin/users">Back to Roles and status</Link>}
+          action={<Link to="/admin/users">Back to &quot;Roles and status&quot;</Link>}
         />
       </Page>
     );
@@ -161,7 +161,7 @@ export function UserDetailPage(): JSX.Element {
       title={displayName(user)}
       tabTitle={`${displayName(user)} · User record`}
       lede={user.email}
-      actions={<Link to="/admin/users">Back to Roles and status</Link>}
+      actions={<Link to="/admin/users">Back to &quot;Roles and status&quot;</Link>}
     >
       <Card title="Membership">
         <div className="cluster">

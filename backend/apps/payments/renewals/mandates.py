@@ -68,7 +68,7 @@ YEARLY_ONLY_MESSAGE = "Automatic renewal is charged once a year."
 
 #: What a member holding a recurring donation is told when they ask for a
 #: contribution on their renewal as well: a contribution lives in one place.
-HAS_DONATION_MESSAGE = "You already have a recurring donation. Change it on the Donate screen."
+HAS_DONATION_MESSAGE = 'You already have a recurring donation. Change it on the "Donate" screen.'
 
 #: The field the refusal above is keyed by.
 CONTRIBUTION_FIELD = "contribution_cents"
@@ -152,7 +152,7 @@ def refuse_renewal_contribution(user: User, contribution_cents: int) -> None:
     """Refuse a contribution on a renewal while ``user`` holds a recurring donation.
 
     A contribution lives in one place: a member who already gives on a schedule
-    changes that gift on the Donate screen rather than adding a second one to their
+    changes that gift on the "Donate" screen rather than adding a second one to their
     renewal.  A canceled donation doesn't give anything or stand in anyone's way, and a
     renewal of the dues alone is always fine.  Raises ``DomainValidationError`` keyed
     by :data:`CONTRIBUTION_FIELD` carrying :data:`HAS_DONATION_MESSAGE`.
@@ -494,7 +494,7 @@ KEEP_CONTRIBUTION_REQUIRED = "This field is required."
 #: What a member is told when they ask to keep their renewal's contribution while a
 #: recurring donation of theirs is already active or paused.
 KEEP_CONTRIBUTION_DONATION_HELD = (
-    "You already have a recurring donation. Change it on the Donate screen."
+    'You already have a recurring donation. Change it on the "Donate" screen.'
 )
 
 #: The same refusal, told to the administrator making somebody else a friend.

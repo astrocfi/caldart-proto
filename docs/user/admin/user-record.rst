@@ -57,7 +57,7 @@ status** beside it. Six cards follow.
 **Password**
    **Send password reset** and **Require a new password**, which a donor's record leaves
    out; :doc:`user-password` covers both. On your own record, the card says only *To change
-   your own password, use Change password.*
+   your own password, use "Change password".*
 
 **History**
    Every change to the account's roles, status, and address, newest first, one to a line:

@@ -246,7 +246,7 @@ function RenewalSummary({ mandate, expiresOn }: RenewalSummaryProps): JSX.Elemen
         <PausedReason mandate={mandate} authority={authority} />
         <p>
           Nothing about your current membership has changed. Save another method to start it up
-          again, or renew by hand from the Renew screen.
+          again, or renew by hand from the &quot;Renew&quot; screen.
         </p>
       </div>
     );
@@ -316,7 +316,7 @@ function DonationSummary({ mandate }: { mandate: RenewalMandate | null }): JSX.E
         <StatusDot tone="none" label="Off" />
         <p>
           You turned your recurring donation off on <DateText value={mandate.canceled_at} />.
-          Nothing further is taken. You can give at any time from the Donate screen.
+          Nothing further is taken. You can give at any time from the &quot;Donate&quot; screen.
         </p>
       </div>
     );
@@ -327,7 +327,7 @@ function DonationSummary({ mandate }: { mandate: RenewalMandate | null }): JSX.E
       <div className="stack">
         <StatusDot tone="expired" label="Stopped" />
         <PausedReason mandate={mandate} authority="Your recurring donation" />
-        <p>Set it up again with another method from the Donate screen.</p>
+        <p>Set it up again with another method from the &quot;Donate&quot; screen.</p>
       </div>
     );
   }

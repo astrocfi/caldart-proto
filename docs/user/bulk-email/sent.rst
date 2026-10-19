@@ -67,7 +67,7 @@ Grace Holloway on 10/03/2026 at 5:34 PM.* It has three cards:
   the subject and the message as the chip you wrote it with, such as *First name, or friend*,
   because each person's copy had their own details filled in. Under the message, a line says
   whether the people it went to can read it again under **Email to me**, with **Hide from
-  Email to me** or **Show in Email to me** (`Email to me`_).
+  Email to me** or **Show in "Email to me"** (`Email to me`_).
 - **Who received it**: the delivery report, described next.
 
 
@@ -150,10 +150,10 @@ every copy ends with a *View this email in your browser* link to it there. Each 
 only their own copy.
 
 To take an email off everybody's **Email to me**, for example a call for volunteers that has
-been filled, press **Hide from Email to me** under the message, then **Hide it**. The line
+been filled, press **Hide from "Email to me"** under the message, then **Hide it**. The line
 under the message then says the email is hidden. The people it went to don't see it under
 **Email to me** any more, and the link in their copy doesn't open it. Nothing else changes:
-this page, its counts, and its results stay as they are. **Show in Email to me** puts it back
+this page, its counts, and its results stay as they are. **Show in "Email to me"** puts it back
 at once. Only CalDART management sees these buttons. Each copy also appears in the log of sent
 emails as *Bulk email*.
 

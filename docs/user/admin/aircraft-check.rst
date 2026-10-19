@@ -130,7 +130,7 @@ When the airplane is missing
 ============================
 
 If a link names a registration the register has never seen, the card says the airplane *is
-not in the register*, with *Ask the pilot to add it on My aircraft, or ask an account
+not in the register*, with *Ask the pilot to add it on "My aircraft", or ask an account
 administrator.* **Back to search** above it takes you back. A pilot adds an airplane from
 **My aircraft** on their own portal, and an account administrator can add it from the
 **Aircraft** screen.

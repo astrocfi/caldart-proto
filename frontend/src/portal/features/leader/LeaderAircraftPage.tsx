@@ -100,7 +100,7 @@ function AircraftCheck({ nNumber }: AircraftCheckProps): JSX.Element {
       {notFound ? (
         <EmptyState
           title={`${nNumber} is not in the register`}
-          description="Ask the pilot to add it on My aircraft, or ask an account administrator."
+          description={'Ask the pilot to add it on "My aircraft", or ask an account administrator.'}
         />
       ) : null}
 

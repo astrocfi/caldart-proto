@@ -467,7 +467,7 @@ Statuses:
 * **400** — ``{"keep_contribution": ["This field is required."]}`` when the active
   renewal takes a contribution and the body does not say.
 * **400** — ``{"keep_contribution": ["You already have a recurring donation. Change
-  it on the Donate screen."]}`` for ``keep_contribution: true`` while the caller's
+  it on the "Donate" screen."]}`` for ``keep_contribution: true`` while the caller's
   recurring donation is ``active`` or ``paused``.
 * **400** — ``{"detail": "A lifetime member stays a member."}`` for a current
   life member, ``{"detail": "You are already a friend of CalDART."}`` for a friend

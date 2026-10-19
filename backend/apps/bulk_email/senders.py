@@ -29,7 +29,8 @@ from apps.members.models import MemberProfile
 
 #: Why a DART leader whose profile doesn't name a DART cannot send.
 NO_DART_MESSAGE = (
-    "Your profile doesn't name a DART, so you can't send to anybody. Set your DART on My profile."
+    "Your profile doesn't name a DART, so you can't send to anybody. "
+    'Set your DART on "My profile".'
 )
 
 #: The refusal of an add that names a DART other than the email's own.

@@ -32,7 +32,7 @@ export function MemberEmailPreferences({ member }: { member: MemberDetail }): JS
     <Card title="Email preferences">
       <p className="muted">
         The types of bulk email {member.name} receives. A change here is saved at once and recorded
-        as yours; they can change it back on their own Email preferences screen.
+        as yours; they can change it back on their own &quot;Email preferences&quot; screen.
       </p>
       <EmailPreferenceSwitches
         preferences={preferences}

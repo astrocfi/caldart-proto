@@ -187,7 +187,7 @@ def touch_profile(profile: MemberProfile) -> None:
 # --------------------------------------------------------------------------
 #: What an administrator is told who edits their own address on their member record.
 OWN_ADDRESS_ON_RECORD_REFUSED = (
-    "Change your own address from Change email, which asks for your password."
+    'Change your own address from "Change email", which asks for your password.'
 )
 
 

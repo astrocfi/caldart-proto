@@ -8,10 +8,10 @@ Automatic renewal is paused, so you won't be charged automatically.
 Your membership runs until <ENDS>.
 We will send you the ordinary renewal reminders.
 
-To renew by hand, open Renew in the portal:
+To renew by hand, open "Renew" in the portal:
 http://localhost:8000/portal/renew
 
-To turn automatic renewal back on, press Turn on again on your My payments screen:
+To turn automatic renewal back on, press Turn on again on your "My payments" screen:
 http://localhost:8000/portal/payments
 
 --

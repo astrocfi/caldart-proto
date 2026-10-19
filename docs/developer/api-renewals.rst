@@ -227,7 +227,7 @@ Statuses: **200**; **400** naming ``contribution_cents`` for an amount outside
 what a checkout would accept, for a donation under the minimum, and for a
 contribution on a renewal while the
 caller holds a recurring donation (``You already have a recurring donation.
-Change it on the Donate screen.``), naming ``next_charge_on`` for a day that has
+Change it on the "Donate" screen.``), naming ``next_charge_on`` for a day that has
 already gone by, naming ``plan`` for the slug of an unknown or inactive plan, naming
 ``cadence`` for a renewal on any cadence but ``yearly``, and naming
 ``auto_renew`` when a life member names a plan, when a donation doesn't give

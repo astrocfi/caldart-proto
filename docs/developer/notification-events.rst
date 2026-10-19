@@ -278,7 +278,7 @@ Callouts
 ``callout_answer`` is for CalDART management and DART leaders.  Its email reads *Ann
 Able answered Available with limits to a mission callout*, with the lines
 ``Callout`` (the subject with the sender's own values filled in), ``Answer``, ``Note`` (or ``None``), and
-``DART``, the person's, and links the callout's page on the Callouts screen.  A
+``DART``, the person's, and links the callout's page on the "Callouts" screen.  A
 subscription bound to a DART leader's account is sent it only for a callout that
 leader may open, one they sent or one that went to their own DART (the payload's
 ``audience``, ``bulk_email.callouts.can_see``); CalDART management hears of every one.

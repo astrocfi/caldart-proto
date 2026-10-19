@@ -179,7 +179,9 @@ export function EmailTypesPage(): JSX.Element {
   return (
     <Page
       title="Email types"
-      lede="The types of bulk email CalDART sends. Each one says who may send it and whether members may turn it off on their Email preferences."
+      lede={
+        'The types of bulk email CalDART sends. Each one says who may send it and whether members may turn it off on their "Email preferences" screen.'
+      }
       actions={
         openForm === null ? (
           <Button ref={addRef} onClick={handleAdd}>

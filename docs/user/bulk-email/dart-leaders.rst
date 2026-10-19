@@ -20,10 +20,10 @@ Your DART is the one named on your own profile, on **My profile**
 change the DART on your profile later, the emails you write from then on go to that DART.
 
 If your profile doesn't name a DART, **Compose** shows *Your profile doesn't name a DART, so
-you can't send to anybody. Set your DART on My profile.* instead of the email, in a box with
-a link, **Open My profile**. The same box appears at the top of **Drafts and scheduled**,
+you can't send to anybody. Set your DART on "My profile".* instead of the email, in a box with
+a link, **Open "My profile"**. The same box appears at the top of **Drafts and scheduled**,
 **Sent**, and **Callouts**. Your **Dashboard** has it too, worded *Bulk email needs a DART.
-Set yours on My profile.* None of them offers **New email** until your DART is set. Choose
+Set yours on "My profile".* None of them offers **New email** until your DART is set. Choose
 your DART on your profile and press **Compose** again. An email you started earlier shows a
 line instead of the filters. The line says the email belongs to you and your profile doesn't
 name a DART, so nobody can be added. CalDART management sees the same line if they open it.
@@ -66,7 +66,7 @@ If something looks wrong
 ========================
 
 An email you scheduled may go back to your drafts with *This email was not sent: your
-profile doesn't name a DART, so you can't send to anybody. Set your DART on My profile and
+profile doesn't name a DART, so you can't send to anybody. Set your DART on "My profile" and
 send again.* That means your profile lost its DART before the email started. Set your DART
 on **My profile**, open the email from **Drafts and scheduled**, check the recipient list,
 and send it again. If somebody you expected is missing from the recipient list, check their

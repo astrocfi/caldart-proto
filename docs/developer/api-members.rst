@@ -611,7 +611,7 @@ case-insensitively — does not change the address: it asks for the change
 the change, and the member's address, when verified, a notice with a link that undoes
 it.  Until the link is followed the member signs in as before.  An administrator's
 own record does not change its address here, where no password is asked for: that is a
-**400** ``{"email": ["Change your own address from Change email, which asks for your
+**400** ``{"email": ["Change your own address from "Change email", which asks for your
 password."]}``.  A donor's address,
 which isn't used to sign in, changes at once, and nothing is mailed.  A refused message
 leaves the request standing and the answer unchanged

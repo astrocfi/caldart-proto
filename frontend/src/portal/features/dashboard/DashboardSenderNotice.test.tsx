@@ -37,9 +37,9 @@ describe('<DashboardPage/> for a DART leader without a DART', () => {
     renderWithProviders(<DashboardPage />, { route: '/' });
 
     expect(
-      await screen.findByText(/^Bulk email needs a DART\. Set yours on My profile\./),
+      await screen.findByText(/^Bulk email needs a DART\. Set yours on "My profile"\./),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Open My profile' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Open "My profile"' })).toHaveAttribute(
       'href',
       '/profile',
     );

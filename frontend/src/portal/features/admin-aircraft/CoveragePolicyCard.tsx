@@ -157,7 +157,7 @@ function CoveragePolicyForm({ initial, onDone: handleDone }: CoveragePolicyFormP
       </Field>
       <Field
         label="Note to members"
-        hint="Shown above the list on every member's My aircraft page."
+        hint={'Shown above the list on every member\'s "My aircraft" page.'}
         error={errors.note}
       >
         {(field) => (

@@ -562,7 +562,7 @@ def _callout_answer(payload: Mapping[str, object]) -> Built:
 
     The payload names the ``user`` who answered, their ``answer`` in words, their
     ``note``, the callout's ``subject``, and its ``callout_id``, plain values the bulk
-    email app raises.  The email links the callout's page on the Callouts screen.
+    email app raises.  The email links the callout's page on the "Callouts" screen.
     """
     user = _required(payload, "user", User)
     answer = _required(payload, "answer", str)
