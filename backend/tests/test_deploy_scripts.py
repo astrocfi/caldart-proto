@@ -1371,6 +1371,60 @@ def test_the_vhost_serves_the_uploads_from_the_deploy_root(
     assert fragment in _render_vhost(root, vhost, "yes", "certbot")
 
 
+def _stdin_refusing_install(tmp_path: Path) -> Path:
+    """A directory holding an ``install`` that refuses ``/dev/stdin`` as its source.
+
+    It stands in for the uutils ``install`` Ubuntu 26.04 ships, which can't copy
+    ``/dev/stdin`` over an existing file, and passes every other call to the real one.
+    """
+    real = shutil.which("install")
+    assert real is not None
+    shims = tmp_path / "stdin-refusing"
+    shims.mkdir()
+    shim = shims / "install"
+    shim.write_text(
+        "#!/bin/sh\n"
+        'for arg in "$@"; do\n'
+        '    if [ "$arg" = /dev/stdin ]; then\n'
+        '        echo "install: No such file or directory" >&2\n'
+        "        exit 1\n"
+        "    fi\n"
+        "done\n"
+        f'exec {real} "$@"\n'
+    )
+    shim.chmod(0o755)
+    return shims
+
+
+def test_write_file_replaces_a_file_without_install_reading_standard_input(
+    root: Path, tmp_path: Path
+) -> None:
+    """``write_file`` replaces an existing file with its input, at the mode it names."""
+    dest = tmp_path / "written"
+    dest.write_text("old\n")
+    shims = _stdin_refusing_install(tmp_path)
+    result = _source_lib(
+        root, f'PATH="{shims}:$PATH"; printf \'new\\n\' | write_file "{dest}" 0640'
+    )
+    assert result.returncode == 0, result.stderr
+    assert dest.read_text() == "new\n"
+    assert stat.S_IMODE(dest.stat().st_mode) == 0o640
+
+
+def test_render_file_replaces_a_file_without_install_reading_standard_input(
+    root: Path, tmp_path: Path
+) -> None:
+    """``render_file`` replaces an existing file with the rendered source."""
+    source = tmp_path / "source.conf"
+    source.write_text("proxy 127.0.0.1:8001\n")
+    dest = tmp_path / "rendered.conf"
+    dest.write_text("old\n")
+    shims = _stdin_refusing_install(tmp_path)
+    result = _source_lib(root, f'PATH="{shims}:$PATH"; render_file "{source}" "{dest}"')
+    assert result.returncode == 0, result.stderr
+    assert dest.read_text() == "proxy 127.0.0.1:8001\n"
+
+
 def _render_at_srv_x(root: Path, source: str) -> str:
     """What ``render_file`` writes from ``source`` for the deploy root ``/srv/x``."""
     dest = root / "rendered"

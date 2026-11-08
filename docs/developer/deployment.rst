@@ -1167,7 +1167,7 @@ syntax before reloading::
       -e "s#__CALDART_CHECKOUT__#$CHECKOUT#g" -e "s#127.0.0.1:8001#127.0.0.1:$PORT#g" \
       -e "s/caldart\.example\.org/$HOST/g" \
       deploy/apache/caldart.conf \
-      | sudo install -m 0644 /dev/stdin /etc/apache2/sites-available/caldart.conf
+      | sudo tee /etc/apache2/sites-available/caldart.conf >/dev/null
   sudo a2ensite caldart
   sudo apachectl configtest
   sudo systemctl reload-or-restart apache2
@@ -1267,7 +1267,7 @@ both files are there::
       -e "s#__CALDART_CHECKOUT__#$CHECKOUT#g" -e "s#127.0.0.1:8001#127.0.0.1:$PORT#g" \
       -e "s/caldart\.example\.org/$HOST/g" \
       deploy/nginx/caldart.conf \
-      | sudo install -m 0644 /dev/stdin /etc/nginx/sites-available/caldart
+      | sudo tee /etc/nginx/sites-available/caldart >/dev/null
   sudo ln -sfn /etc/nginx/sites-available/caldart /etc/nginx/sites-enabled/caldart
   sudo nginx -t
   sudo systemctl reload-or-restart nginx

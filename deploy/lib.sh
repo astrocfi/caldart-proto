@@ -274,17 +274,32 @@ run_stdin() {
 # Write standard input to $1 with mode $2, owned by $3:$4 when both are given.
 write_file() {
     local dest=$1 mode=$2 owner=${3:-} group=${4:-}
-    local command=(install -m "$mode")
+    local options=(-m "$mode")
     if [[ -n "$owner" ]]; then
-        command+=(-o "$owner" -g "$group")
+        options+=(-o "$owner" -g "$group")
     fi
-    command+=(/dev/stdin "$dest")
     if is_dry_run; then
         cat >/dev/null
-        printf '+ %s\n' "$(quote_command "${command[@]}")"
+        printf '+ %s\n' "$(quote_command install "${options[@]}" /dev/stdin "$dest")"
         return 0
     fi
-    "${command[@]}"
+    install_stdin "${options[@]}" "$dest"
+}
+
+# Install standard input as the file the last argument names, with the install
+# options before it.  The input goes through a private temporary file because the
+# uutils install that Ubuntu 26.04 ships fails to copy /dev/stdin over an existing
+# file.  The temporary file is removed whether or not the install succeeds.
+install_stdin() {
+    local dest=${!#}
+    local temp status=0
+    temp=$(mktemp)
+    cat >"$temp" || status=$?
+    if ((status == 0)); then
+        install "${@:1:$#-1}" "$temp" "$dest" || status=$?
+    fi
+    rm -f -- "$temp"
+    return "$status"
 }
 
 # Stop unless running as root; a dry run doesn't change anything or need root.
@@ -551,7 +566,7 @@ render_file() {
             "$(quote_command install -m 0644 /dev/stdin "$dest")"
         return 0
     fi
-    "${sed_command[@]}" | install -m 0644 /dev/stdin "$dest"
+    "${sed_command[@]}" | install_stdin -m 0644 "$dest"
 }
 
 # Copy the vhost $1 to $2 for hostname $3, with $4 (yes or no) deciding the www.
