@@ -8,7 +8,7 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { RenewalEnvelope, RenewalMandate } from '@/portal/api/types';
 import { makeContributionMandate, makeMandate, makePaymentsConfig } from '@test/fixtures/payments';
@@ -16,6 +16,18 @@ import { API, LIFETIME_MEMBERSHIP, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import { RecurringDonationCard } from './RecurringDonationCard';
+
+/** Before the fixtures' next charge date, which the form would move up to today once it passed. */
+const NOW = new Date('2026-10-20T12:00:00Z');
+
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(NOW);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 /** Serve `GET /me/donation` with `mandate` and render the card at `route`. */
 function mount(mandate: RenewalMandate | null, { route = '/payments' }: { route?: string } = {}) {
