@@ -474,10 +474,11 @@ The code steps act only on the pending sign-in:
 
       {"secret": "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP",
        "otpauth_uri": "otpauth://totp/CalDART:marta.reyes%40example.org?secret=...&issuer=CalDART",
-       "qr_svg": "<svg ...>...</svg>"}
+       "qr_svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" ...>...</svg>"}
 
    ``qr_svg`` is the QR code of ``otpauth_uri``, drawn on the server by ``segno``
-   as an SVG document; ``secret`` is for typing in by hand.  Calling again replaces
+   as a standalone SVG document that declares the SVG namespace, so the portal can
+   show it as an image from a ``data:`` URL; ``secret`` is for typing in by hand.  Calling again replaces
    only the secret this session holds: each browser confirms only the secret
    it was shown, so a second sign-in at this step cannot spoil the first one's.  An
    account that already has a confirmed device is never offered this: a password

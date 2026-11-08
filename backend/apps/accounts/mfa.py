@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import base64
 import hmac
+import io
 import secrets
 import time
 from dataclasses import dataclass
@@ -115,8 +116,9 @@ class Enrollment:
     """What the person needs to add the account to an authenticator app.
 
     ``secret`` is the base32 shared secret for typing in by hand, ``otpauth_uri`` the
-    ``otpauth://`` address the QR code carries, and ``qr_svg`` that QR code drawn as an
-    SVG document.
+    ``otpauth://`` address the QR code carries, and ``qr_svg`` that QR code drawn as a
+    standalone SVG document that declares the SVG namespace, so it can be shown as an
+    image.
     """
 
     secret: str
@@ -212,8 +214,13 @@ def start_enrollment(session: SessionBase, user: User) -> Enrollment:
         "started": int(time.time()),
     }
     uri = totp_generator(secret).provisioning_uri(name=user.email, issuer_name=org_name())
-    svg = segno.make_qr(uri, error="m").svg_inline(scale=4, border=2)
-    return Enrollment(secret=secret, otpauth_uri=uri, qr_svg=svg)
+    # A standalone document, not ``svg_inline``: the portal shows it as an image from a
+    # ``data:`` URL, and a browser draws an SVG image only when it declares its namespace.
+    buffer = io.BytesIO()
+    segno.make_qr(uri, error="m").save(
+        buffer, kind="svg", scale=4, border=2, xmldecl=False, nl=False
+    )
+    return Enrollment(secret=secret, otpauth_uri=uri, qr_svg=buffer.getvalue().decode())
 
 
 def _enrolling_secret(session: SessionBase, user: User) -> str | None:

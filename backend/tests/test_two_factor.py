@@ -108,9 +108,16 @@ def test_starting_enrollment_names_the_issuer_and_the_account(
     )
 
 
-def test_starting_enrollment_draws_the_qr_code_as_svg(person: User, session: SessionStore) -> None:
-    """The QR code is an inline SVG element the portal can show as an image."""
-    assert mfa.start_enrollment(session, person).qr_svg.startswith("<svg")
+def test_starting_enrollment_draws_the_qr_code_as_a_standalone_svg_document(
+    person: User, session: SessionStore
+) -> None:
+    """The QR code is an SVG document that declares the SVG namespace.
+
+    The portal shows it as an image from a ``data:`` URL, and a browser draws an SVG
+    image only when its root element declares the namespace.
+    """
+    svg = mfa.start_enrollment(session, person).qr_svg
+    assert svg.startswith('<svg xmlns="http://www.w3.org/2000/svg" ')
 
 
 def test_starting_enrollment_again_replaces_the_secret(person: User, session: SessionStore) -> None:
