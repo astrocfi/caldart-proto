@@ -149,6 +149,7 @@ def test_list_returns_the_user_payload(
         "email_bounced_at",
         "email_bounce_detail",
         "reactivation_blocked",
+        "verifier_until",
         "two_factor_enabled",
         "can_reset_two_factor",
         "phone",
