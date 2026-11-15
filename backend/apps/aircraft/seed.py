@@ -196,11 +196,6 @@ def run(ctx: dict[str, Any], stdout: TextIOBase | None = None) -> dict[str, Any]
                 "insurance_policy_number": (faker.numerify("AV-########") if expiration else ""),
                 "insurance_liability_per_occurrence_cents": per_occurrence if expiration else 0,
                 "insurance_liability_per_person_cents": per_person if expiration else 0,
-                "insurance_hull_cents": (
-                    rng.choice([80_000, 145_000, 260_000, 410_000]) * 100
-                    if expiration and rng.random() < 0.8
-                    else None
-                ),
                 "insurance_expiration": expiration,
                 "notes": "",
                 "is_active": True,

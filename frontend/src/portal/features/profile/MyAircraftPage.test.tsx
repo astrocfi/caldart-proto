@@ -36,7 +36,6 @@ const PICKED: Aircraft = {
   insurance_policy_number: '',
   insurance_liability_per_occurrence_cents: 0,
   insurance_liability_per_person_cents: 0,
-  insurance_hull_cents: null,
   insurance_is_current: false,
   insurance_expiration: null,
   insurance_summary: 'No insurance on file',

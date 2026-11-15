@@ -41,7 +41,6 @@ const API_FIELDS: readonly string[] = [
 const MONEY_LABELS: Record<keyof typeof MONEY_FIELDS, string> = {
   liability_per_occurrence: 'Liability per occurrence',
   liability_per_person: 'Liability per person',
-  hull: 'Hull',
 };
 
 export interface InsuranceVerificationPanelProps {

@@ -2996,10 +2996,6 @@ than copying it, so an insurance renewal entered once is right for everybody.
      - ``PositiveBigIntegerField``
      - not null; default ``0``
      - liability limit per person, in cents
-   * - ``insurance_hull_cents``
-     - ``PositiveBigIntegerField``
-     - null; default ``NULL``
-     - hull value, in cents
    * - ``insurance_expiration``
      - ``DateField``
      - null; default ``NULL``

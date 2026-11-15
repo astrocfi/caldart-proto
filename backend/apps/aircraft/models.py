@@ -287,7 +287,6 @@ class Aircraft(TimestampedModel):
     insurance_policy_number = models.CharField(max_length=60, blank=True)
     insurance_liability_per_occurrence_cents = models.PositiveBigIntegerField(default=0)
     insurance_liability_per_person_cents = models.PositiveBigIntegerField(default=0)
-    insurance_hull_cents = models.PositiveBigIntegerField(null=True, blank=True)
     insurance_expiration = models.DateField(null=True, blank=True)
     #: When the insurance was verified and by whom (see ``apps.aircraft.verification``).
     #: Both are ``NULL`` while it is unverified; a write that changes an insurance field

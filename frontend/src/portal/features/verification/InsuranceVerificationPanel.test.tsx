@@ -117,7 +117,11 @@ describe('InsuranceVerificationPanel', () => {
     server.use(
       http.put(`${API}/leader/aircraft/1/verification`, () =>
         HttpResponse.json(
-          { insurance_hull_cents: ['Ensure this value is greater than or equal to 0.'] },
+          {
+            insurance_liability_per_person_cents: [
+              'Ensure this value is greater than or equal to 0.',
+            ],
+          },
           { status: 400 },
         ),
       ),
@@ -129,6 +133,6 @@ describe('InsuranceVerificationPanel', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Ensure this value is greater than or equal to 0.',
     );
-    expect(screen.getByLabelText('Hull')).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByLabelText('Liability per person')).toHaveAttribute('aria-invalid', 'true');
   });
 });

@@ -377,12 +377,6 @@ class AircraftSerializer(serializers.ModelSerializer[Aircraft]):
     insurance_liability_per_person_cents = serializers.IntegerField(
         min_value=0, required=False, error_messages={"min_value": NEGATIVE_MONEY_MESSAGE}
     )
-    insurance_hull_cents = serializers.IntegerField(
-        min_value=0,
-        required=False,
-        allow_null=True,
-        error_messages={"min_value": NEGATIVE_MONEY_MESSAGE},
-    )
     insurance_is_current = serializers.BooleanField(read_only=True)
     insurance_summary = serializers.CharField(read_only=True)
     insurance_verification = serializers.SerializerMethodField()
@@ -409,7 +403,6 @@ class AircraftSerializer(serializers.ModelSerializer[Aircraft]):
             "insurance_policy_number",
             "insurance_liability_per_occurrence_cents",
             "insurance_liability_per_person_cents",
-            "insurance_hull_cents",
             "insurance_expiration",
             "insurance_is_current",
             "insurance_summary",

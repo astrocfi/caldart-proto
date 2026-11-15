@@ -72,7 +72,6 @@ AIRCRAFT_DEFAULTS = (
     "owner_name",
     "insurance_carrier",
     "liability_per_occurrence",
-    "hull",
     "insurance_expiration",
     "covered",
 )
@@ -311,8 +310,8 @@ def test_the_aircraft_pdf_prints_the_chosen_columns(
     account_admin_client: APIClient, register: RegisterDict, pdf_text: PdfText
 ) -> None:
     """The register PDF's header row is the labels of the columns asked for."""
-    body = account_admin_client.get(AIRCRAFT_PDF_URL, {"columns": "n_number,hull"}).content
-    assert pdf_text(body)[0][2:4] == ["N-number", "Hull"]
+    body = account_admin_client.get(AIRCRAFT_PDF_URL, {"columns": "n_number,covered"}).content
+    assert pdf_text(body)[0][2:4] == ["N-number", "Covered"]
 
 
 # --------------------------------------------------------------------------

@@ -165,7 +165,6 @@ describe('aircraftPayload', () => {
       year: '2008',
       liability_per_occurrence: '1,000,000',
       liability_per_person: '100000',
-      hull: '',
       insurance_expiration: '2027-03-01',
     });
 
@@ -175,7 +174,6 @@ describe('aircraftPayload', () => {
       year: 2008,
       insurance_liability_per_occurrence_cents: 100_000_000,
       insurance_liability_per_person_cents: 10_000_000,
-      insurance_hull_cents: null,
       insurance_expiration: '2027-03-01',
     });
   });

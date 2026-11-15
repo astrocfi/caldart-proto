@@ -309,7 +309,6 @@ def test_a_make_and_model_in_the_body_are_not_written(api_client: APIClient, mem
     [
         "insurance_liability_per_occurrence_cents",
         "insurance_liability_per_person_cents",
-        "insurance_hull_cents",
     ],
 )
 def test_money_fields_must_not_be_negative(api_client: APIClient, member: User, field: str) -> None:

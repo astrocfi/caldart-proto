@@ -388,7 +388,6 @@ export interface InsuranceVerificationPayload {
   insurance_policy_number?: string;
   insurance_liability_per_occurrence_cents?: number;
   insurance_liability_per_person_cents?: number;
-  insurance_hull_cents?: number | null;
   insurance_expiration?: IsoDate | null;
   verified: boolean;
 }
@@ -966,7 +965,6 @@ export interface Aircraft extends Omit<AircraftSummary, 'insurance_verified'> {
   insurance_policy_number: string;
   insurance_liability_per_occurrence_cents: number;
   insurance_liability_per_person_cents: number;
-  insurance_hull_cents: number | null;
   insurance_verification: Verification;
   notes: string;
   created_by: number | null;

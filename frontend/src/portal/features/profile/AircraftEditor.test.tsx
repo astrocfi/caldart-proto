@@ -30,7 +30,6 @@ function makeDetail(overrides: Partial<AircraftDetail> = {}): AircraftDetail {
     insurance_policy_number: 'AV-1',
     insurance_liability_per_occurrence_cents: 100_000_000,
     insurance_liability_per_person_cents: 10_000_000,
-    insurance_hull_cents: null,
     insurance_is_current: true,
     insurance_expiration: '2027-03-01',
     insurance_summary: '$1,000,000 / $100,000 · exp 2027-03-01',

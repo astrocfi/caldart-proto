@@ -34,7 +34,6 @@ INSURANCE_FIELDS: tuple[str, ...] = (
     "insurance_policy_number",
     "insurance_liability_per_occurrence_cents",
     "insurance_liability_per_person_cents",
-    "insurance_hull_cents",
     "insurance_expiration",
 )
 

@@ -114,7 +114,6 @@ The register, open to anyone who may use aircraft (:ref:`who may use aircraft <a
          "insurance_policy_number": "AV-00012345",
          "insurance_liability_per_occurrence_cents": 100000000,
          "insurance_liability_per_person_cents": 10000000,
-         "insurance_hull_cents": 14500000,
          "insurance_expiration": "2027-03-01",
          "insurance_is_current": true,
          "insurance_summary": "$1,000,000 / $100,000 · exp 2027-03-01",
@@ -300,7 +299,6 @@ verifying role (``verifier``, ``dart_leader``, ``user_admin``, or
      "insurance_policy_number": "AV-00012345",
      "insurance_liability_per_occurrence_cents": 100000000,
      "insurance_liability_per_person_cents": 10000000,
-     "insurance_hull_cents": 14500000,
      "insurance_expiration": "2027-03-01",
      "insurance_is_current": true,
      "insurance_summary": "$1,000,000 / $100,000 · exp 2027-03-01",
@@ -1002,10 +1000,9 @@ Writes an aircraft's insurance fields and whether its insurance is verified.
 
    {"insurance_expiration": "2028-03-01", "verified": true}
 
-The six insurance fields — ``insurance_carrier``, ``insurance_policy_number``,
+The five insurance fields — ``insurance_carrier``, ``insurance_policy_number``,
 ``insurance_liability_per_occurrence_cents``,
-``insurance_liability_per_person_cents``, ``insurance_hull_cents``, and
-``insurance_expiration`` — are each optional and validated as ``POST /aircraft``
+``insurance_liability_per_person_cents``, and ``insurance_expiration`` — are each optional and validated as ``POST /aircraft``
 validates them (integer cents, ``>= 0``); a given value is written and an
 omitted one is left alone.  Any other register field in the body is ignored.
 ``verified`` is required.  The write goes through
@@ -1026,7 +1023,7 @@ Statuses:
 
 * **200** — the record, in the ``GET /aircraft/{id}`` shape with ``pilots``.
 * **400** — ``verified`` missing, or a field the register's validation refuses,
-  such as ``{"insurance_hull_cents": ["Enter an amount of $0 or more."]}``.
+  such as ``{"insurance_liability_per_person_cents": ["Enter an amount of $0 or more."]}``.
   Nothing is written.
 * **404** — no aircraft has that id.
 

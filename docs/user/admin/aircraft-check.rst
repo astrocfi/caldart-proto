@@ -75,7 +75,7 @@ airplane out of service, and the make, model, year, and seats. Then come five ro
    to verify, so the row doesn't show a mark.
 
 **Liability**
-   The limits per occurrence and per person, and the hull value.
+   The limits per occurrence and per person.
 
 **Owner**
    The owner's name, whether they are an individual, an FBO, or a flying club, and how to
@@ -110,7 +110,7 @@ Verifying the insurance
 A verifier, a DART leader, a user administrator, an account administrator, and a system
 administrator see **Verify** under the N-number. Press it to open the **Verification**
 panel. It shows the policy's **Carrier**, **Policy number**, **Liability per occurrence**,
-**Liability per person**, **Hull**, and **Insurance expires**, with the amounts in US
+**Liability per person**, and **Insurance expires**, with the amounts in US
 dollars. Correct anything that differs from the policy documents, check **Insurance
 verified**, and press **Save verification**. The toast says *Verification saved*, and the
 card shows the new verdict.

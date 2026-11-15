@@ -29,7 +29,6 @@ Slug               Label                Fields it covers                        
                                         ``insurance_policy_number``,
                                         ``insurance_liability_per_occurrence_cents``,
                                         ``insurance_liability_per_person_cents``,
-                                        ``insurance_hull_cents``,
                                         ``insurance_expiration``
 =================  ===================  ===================================================  ===================
 

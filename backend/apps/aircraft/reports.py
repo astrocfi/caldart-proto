@@ -129,7 +129,6 @@ AIRCRAFT_REPORT_COLUMNS: tuple[ReportColumn[RegisterRow], ...] = (
         lambda row: _money(row, "insurance_liability_per_person_cents"),
         width=3.0,
     ),
-    ReportColumn("hull", "Hull", True, lambda row: _money(row, "insurance_hull_cents"), width=2.0),
     ReportColumn("insurance_expiration", "Expires", True, _expires, width=2.1),
     ReportColumn(
         "covered",

@@ -699,7 +699,6 @@ owner_type               Owner type              no      Individual, flying club
 insurance_carrier        Carrier                 yes     Insurer on the policy
 liability_per_occurrence Liability / occurrence  yes     Liability limit per occurrence
 liability_per_person     Liability / person      no      Liability limit per person
-hull                     Hull                    yes     Hull value insured
 insurance_expiration     Expires                 yes     Date the cover runs out; in a
                                                          PDF, a ✓ while it runs and a
                                                          ✗ once it has lapsed

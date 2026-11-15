@@ -34,7 +34,6 @@ EXPECTED_HEADER = [
     "Owner",
     "Carrier",
     "Liability / occurrence",
-    "Hull",
     "Expires",
     "Covered",
 ]
@@ -43,8 +42,8 @@ EXPECTED_HEADER = [
 ALL_COLUMNS = {"columns": ",".join(column.key for column in AIRCRAFT_REPORT_COLUMNS)}
 
 #: Index of the first data row on a rendered page: the title, the subtitle and
-#: the nine default column headings come first, each on one line.
-PDF_FIRST_ROW = 11
+#: the eight default column headings come first, each on one line.
+PDF_FIRST_ROW = 10
 
 #: The footer draws two more strings after the last row of the page.
 PDF_FOOTER = -2
@@ -104,15 +103,14 @@ def test_csv_content(api_client: APIClient, account_admin: User, register: Regis
         "Flying club",
         "Avemco",
     ]
-    assert current[8:11] == ["1000000.00", "100000.00", "145000.00"]
+    assert current[8:10] == ["1000000.00", "100000.00"]
     expiration = register["current"].insurance_expiration
     assert expiration is not None
-    assert current[11] == expiration.isoformat()
-    assert current[12] == "Yes"
+    assert current[10] == expiration.isoformat()
+    assert current[11] == "Yes"
 
     missing = by_number["N44BE"]
     assert missing[10] == ""
-    assert missing[11] == ""
 
 
 def test_csv_covered_says_whether_the_coverage_policy_covers_each_aircraft(
@@ -123,7 +121,7 @@ def test_csv_covered_says_whether_the_coverage_policy_covers_each_aircraft(
     AircraftFactory(n_number="N407HL", category=AircraftCategory.HELICOPTER)
     api_client.force_login(account_admin)
     rows = read_csv(api_client.get(CSV_URL))
-    covered = {row[0]: row[8] for row in rows[1:]}
+    covered = {row[0]: row[7] for row in rows[1:]}
     assert covered == {
         "N172SP": "Yes",
         "N9021K": "Yes",
@@ -144,7 +142,7 @@ def test_csv_pilots_column_lists_attached_members(
 
     api_client.force_login(account_admin)
     rows = read_csv(api_client.get(CSV_URL, ALL_COLUMNS))
-    pilots = {row[0]: row[13] for row in rows[1:]}
+    pilots = {row[0]: row[12] for row in rows[1:]}
     assert set(pilots["N172SP"].split("; ")) == {"Marta Reyes", "Owen Delgado"}
     assert pilots["N33MM"] == ""
 
@@ -224,7 +222,6 @@ def test_pdf_is_filtered_like_the_list(
         "Owen Delgado",
         "Avemco",
         "$1,000,000",
-        "$200,000",
         f"{expires_on.isoformat()} ",
         drawn_mark(PDF_MARK_NO),
         "Yes",
@@ -240,7 +237,7 @@ def test_pdf_marks_a_current_expiry_with_a_check(
     expires_on = register["current"].insurance_expiration
     assert expires_on is not None
     cells = page[PDF_FIRST_ROW:PDF_FOOTER]
-    assert cells[7:9] == [f"{expires_on.isoformat()} ", drawn_mark(PDF_MARK_YES)]
+    assert cells[6:8] == [f"{expires_on.isoformat()} ", drawn_mark(PDF_MARK_YES)]
 
 
 def test_the_csv_carries_the_expiry_without_a_mark(register: RegisterDict) -> None:
@@ -292,8 +289,8 @@ def test_pdf_says_when_it_was_run_without_filters(
 
 
 def money_cells(aircraft: Aircraft, fmt: ReportFormat) -> list[str]:
-    """The three insured amounts of ``aircraft``, as format ``fmt`` prints them."""
-    keys = {"liability_per_occurrence", "liability_per_person", "hull"}
+    """The two insured amounts of ``aircraft``, as format ``fmt`` prints them."""
+    keys = {"liability_per_occurrence", "liability_per_person"}
     row = RegisterRow(aircraft=aircraft, covered=True)
     return [
         cell_text(column.value(row), fmt)
@@ -307,7 +304,6 @@ def test_money_is_formatted_for_a_reader_in_the_pdf_rows(register: RegisterDict)
     assert money_cells(register["current"], "pdf") == [
         "$1,000,000",
         "$100,000",
-        "$145,000",
     ]
 
 
@@ -316,14 +312,13 @@ def test_money_is_a_plain_number_a_spreadsheet_sums_in_the_csv(register: Registe
     assert money_cells(register["current"], "csv") == [
         "1000000.00",
         "100000.00",
-        "145000.00",
     ]
 
 
 def test_odd_cent_amounts_keep_their_cents(register: RegisterDict) -> None:
     """A reader's money format keeps non-round cent amounts precise."""
-    register["current"].insurance_hull_cents = 12_345
-    assert money_cells(register["current"], "pdf")[2] == "$123.45"
+    register["current"].insurance_liability_per_person_cents = 12_345
+    assert money_cells(register["current"], "pdf")[1] == "$123.45"
 
 
 def test_the_export_subtitle_covers_every_filter_the_list_applies() -> None:

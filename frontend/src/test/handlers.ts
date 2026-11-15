@@ -822,7 +822,6 @@ export function makeVerifiedAircraft(overrides: Partial<AircraftDetail> = {}): A
     insurance_policy_number: 'AV-00012345',
     insurance_liability_per_occurrence_cents: 100_000_000,
     insurance_liability_per_person_cents: 10_000_000,
-    insurance_hull_cents: 14_500_000,
     notes: '',
     created_by: null,
     is_active: true,

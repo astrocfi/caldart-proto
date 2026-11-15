@@ -36,7 +36,6 @@ function makeAircraft(overrides: Partial<Aircraft> = {}): Aircraft {
     insurance_policy_number: 'AV-00012345',
     insurance_liability_per_occurrence_cents: 100_000_000,
     insurance_liability_per_person_cents: 10_000_000,
-    insurance_hull_cents: 14_500_000,
     notes: '',
     created_by: null,
     is_active: true,
@@ -49,7 +48,7 @@ const COLUMNS: ReportColumn[] = [
   { key: 'n_number', label: 'N-number', default: true },
   { key: 'make', label: 'Make', default: true },
   { key: 'owner_type', label: 'Owner type', default: false },
-  { key: 'hull', label: 'Hull', default: false },
+  { key: 'liability_per_person', label: 'Liability / person', default: false },
   { key: 'insurance_expiration', label: 'Expires', default: true },
   { key: 'pilots', label: 'Pilots', default: false },
 ];
@@ -203,9 +202,9 @@ describe('AircraftRegisterPage', () => {
     renderWithProviders(<AircraftRegisterPage />, { route: '/admin/aircraft' });
     await screen.findByRole('link', { name: 'N172SP' });
     await user.click(screen.getByRole('button', { name: 'Columns' }));
-    await user.click(screen.getByRole('checkbox', { name: 'Hull' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Liability / person' }));
 
-    expect(screen.getByRole('cell', { name: '$145,000' })).toHaveClass('numeric');
+    expect(screen.getByRole('cell', { name: '$100,000' })).toHaveClass('numeric');
   });
 
   it('leaves the insurance figures blank for an airplane without a policy on file', async () => {
@@ -214,14 +213,14 @@ describe('AircraftRegisterPage', () => {
       insurance_carrier: '',
       insurance_expiration: null,
       insurance_is_current: false,
-      insurance_hull_cents: 0,
+      insurance_liability_per_person_cents: 0,
     });
     server.use(columnsReturn(), listReturns([uninsured], []));
 
     renderWithProviders(<AircraftRegisterPage />, { route: '/admin/aircraft' });
     const link = await screen.findByRole('link', { name: 'N172SP' });
     await user.click(screen.getByRole('button', { name: 'Columns' }));
-    await user.click(screen.getByRole('checkbox', { name: 'Hull' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Liability / person' }));
 
     const row = link.closest('tr') as HTMLElement;
     expect(within(row).queryByText(/\$0|—/)).toBeNull();

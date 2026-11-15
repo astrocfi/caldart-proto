@@ -145,12 +145,6 @@ const CELLS: Record<string, ReportCell<Aircraft>> = {
     dropOrder: OPTIONAL,
     render: (row) => <PolicyMoney row={row} cents={row.insurance_liability_per_person_cents} />,
   },
-  hull: {
-    numeric: true,
-    width: '7.5rem',
-    dropOrder: 4,
-    render: (row) => <PolicyMoney row={row} cents={row.insurance_hull_cents} />,
-  },
   insurance_expiration: {
     ordering: 'insurance_expiration',
     width: '12rem',
@@ -179,7 +173,6 @@ const FALLBACK_COLUMNS: ReportColumn[] = [
   { key: 'owner_name', label: 'Owner', default: true },
   { key: 'insurance_carrier', label: 'Carrier', default: true },
   { key: 'liability_per_occurrence', label: 'Liability / occurrence', default: true },
-  { key: 'hull', label: 'Hull', default: true },
   { key: 'insurance_expiration', label: 'Expires', default: true },
   { key: 'covered', label: 'Covered', default: true },
 ];

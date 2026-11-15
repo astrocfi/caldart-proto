@@ -90,7 +90,7 @@ SEEDED_DONOR_GIFTS = sum(DONOR_GIFT_COUNTS)
 #: The payments ``seed_demo`` creates from its fixed random seed: one per term,
 #: plus the ones recorded by hand, the demo friend's gift and the donors' gifts, all
 #: succeeded.
-SEEDED_PAYMENTS = 59 + MANUAL_PAYMENT_COUNT + SEEDED_FRIEND_GIFTS + SEEDED_DONOR_GIFTS
+SEEDED_PAYMENTS = 64 + MANUAL_PAYMENT_COUNT + SEEDED_FRIEND_GIFTS + SEEDED_DONOR_GIFTS
 
 #: How many of them the seed refunds: two in full and four contributions, which
 #: leaves the first two ``refunded`` and the other four ``partially_refunded``.
@@ -344,7 +344,7 @@ def test_seed_demo_payments_are_mixed_and_span_two_years() -> None:
     _seed()
     with_contribution = Payment.objects.filter(contribution_cents__gt=0).count()
     assert with_contribution == (
-        23 + MANUAL_PAYMENT_COUNT + SEEDED_FRIEND_GIFTS + SEEDED_DONOR_GIFTS
+        22 + MANUAL_PAYMENT_COUNT + SEEDED_FRIEND_GIFTS + SEEDED_DONOR_GIFTS
     )
     months = Payment.objects.dates("created_at", "month")
     oldest, newest = min(months), max(months)

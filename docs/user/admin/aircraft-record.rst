@@ -71,7 +71,7 @@ is empty, the line doesn't appear. The form has four parts.
 
 **Insurance**
    **Carrier**, **Policy number**, **Liability per occurrence**, **Liability per person**,
-   **Hull**, and **Insurance expires**. Amounts are in US dollars, and the commas appear
+   and **Insurance expires**. Amounts are in US dollars, and the commas appear
    when you leave the box, so 1000000 becomes 1,000,000. None of the amounts can be
    negative.
 

@@ -48,9 +48,10 @@ The table shows the same columns as the register you download, and **Columns** c
 **Owner**
    The owner's name.
 
-**Carrier**, **Liability / occurrence**, and **Hull**
-   The insurance carrier, and the policy's limits in dollars, right-aligned. If an airplane
-   doesn't have a policy on file, meaning a carrier or an expiry date, all three are blank.
+**Carrier** and **Liability / occurrence**
+   The insurance carrier, and the policy's limit per occurrence in dollars, right-aligned.
+   If an airplane doesn't have a policy on file, meaning a carrier or an expiry date, both
+   are blank.
 
 **Expires**
    A colored dot and the state of the insurance, with its date: *Insured to 04/29/2027*
@@ -188,9 +189,9 @@ Downloading the register
 ========================
 
 **Export CSV** and **Export PDF** download exactly the airplanes your filters have picked,
-in the table's order. Set the filters first, then download. Both have nine columns unless
+in the table's order. Set the filters first, then download. Both have eight columns unless
 you choose others: **N-number**, **Make**, **Model**, **Owner**, **Carrier**, **Liability /
-occurrence**, **Hull**, **Expires**, and **Covered**. The CSV gives money as plain dollars
+occurrence**, **Expires**, and **Covered**. The CSV gives money as plain dollars
 for a spreadsheet. The PDF is a table on landscape letter paper, with the filters printed
 under the title. It prints a check mark (✓) after each expiry date still in force and an X
 (✗) after each one that has lapsed, so a printed copy makes sense without color. The CSV

@@ -28,7 +28,6 @@ const FIELD_LABELS: Record<string, string> = {
   insurance_policy_number: 'policy number',
   insurance_liability_per_occurrence_cents: 'liability per occurrence',
   insurance_liability_per_person_cents: 'liability per person',
-  insurance_hull_cents: 'hull',
   insurance_expiration: 'insurance expiry',
   notes: 'notes',
   is_active: 'in service',

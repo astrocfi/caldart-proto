@@ -340,10 +340,12 @@ def test_a_negative_insurance_amount_is_refused(
     """The money fields are validated as the register validates them."""
     response = leader_client.put(
         aircraft_verification_url(aircraft),
-        {"insurance_hull_cents": -1, "verified": True},
+        {"insurance_liability_per_person_cents": -1, "verified": True},
         format="json",
     )
-    assert response.json() == {"insurance_hull_cents": ["Enter an amount of $0 or more."]}
+    assert response.json() == {
+        "insurance_liability_per_person_cents": ["Enter an amount of $0 or more."]
+    }
 
 
 def test_the_insurance_verified_flag_is_required(

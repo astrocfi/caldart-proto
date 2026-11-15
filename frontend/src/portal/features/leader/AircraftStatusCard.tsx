@@ -224,12 +224,6 @@ export function AircraftStatusCard({ aircraft, today }: AircraftStatusCardProps)
               <Money cents={aircraft.insurance_liability_per_occurrence_cents} whole /> per
               occurrence · <Money cents={aircraft.insurance_liability_per_person_cents} whole /> per
               person
-              {aircraft.insurance_hull_cents !== null ? (
-                <>
-                  {' · hull '}
-                  <Money cents={aircraft.insurance_hull_cents} whole />
-                </>
-              ) : null}
             </span>
           </dd>
         </div>
