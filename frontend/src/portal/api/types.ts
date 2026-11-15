@@ -255,6 +255,8 @@ export interface AdminUser extends User {
   /** That report's status code and diagnostic, or `''`. */
   email_bounce_detail: string;
   reactivation_blocked: boolean;
+  /** The last day a verifier grant works; null without an end, or for a non-verifier. */
+  verifier_until: IsoDate | null;
   /** True while the account has a confirmed authenticator device. */
   two_factor_enabled: boolean;
   /** True when the caller may reset it: not their own, and a system administrator's only by one. */
@@ -324,6 +326,8 @@ export interface AdminUserDetail extends AdminUser {
  */
 export interface AdminUserPatch {
   roles?: RoleSlug[];
+  /** Saved only while the account ends up a verifier; today or later. */
+  verifier_until?: IsoDate | null;
 }
 
 /** `POST /admin/users/{id}/send-password-reset` and `/require-new-password`. */
@@ -395,6 +399,8 @@ export interface InsuranceVerificationPayload {
 /** `PUT /leader/members/{user_id}/verifier`: whether the member holds the role. */
 export interface VerifierGrantPayload {
   verifier: boolean;
+  /** The grant's last day, today or later; null or left out for a grant without an end. */
+  until?: IsoDate | null;
 }
 
 /** One named volunteer who runs a DART, and how to reach them. */
@@ -846,7 +852,7 @@ export interface AircraftCoverage {
 export interface AircraftCoveragePolicy {
   excluded_categories: AircraftCategory[];
   excluded_airworthiness: Airworthiness[];
-  /** The least liability an aircraft's own policy must carry, in cents; 0 for none. */
+  /** The least liability an aircraft's own policy must carry, in cents; 0 doesn't set one. */
   min_liability_per_occurrence_cents: number;
   min_liability_per_person_cents: number;
   note: string;
@@ -1687,6 +1693,8 @@ export interface LeaderStatus {
   photo_id: LeaderPhotoId;
   is_dart_leader: boolean;
   is_verifier: boolean;
+  /** The last day a verifier grant works; null without an end, or for a non-verifier. */
+  verifier_until: IsoDate | null;
   aircraft: AircraftSummary[];
   go_no_go: LeaderGoNoGo;
 }

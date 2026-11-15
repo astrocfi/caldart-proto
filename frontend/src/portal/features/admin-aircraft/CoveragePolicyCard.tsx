@@ -121,7 +121,7 @@ interface CoveragePolicyFormProps {
   onDone: () => void;
 }
 
-/** The two minimums as typed, in dollars; a blank box is no minimum. */
+/** The two minimums as typed, in dollars; a blank box saves as 0, without a minimum. */
 interface MinimumsDraft {
   perOccurrence: string;
   perPerson: string;
@@ -193,7 +193,7 @@ function CoveragePolicyForm({ initial, onDone: handleDone }: CoveragePolicyFormP
       </Field>
       <Field
         label="Minimum liability per occurrence"
-        hint="In US dollars. An airplane whose policy carries less isn't covered. Leave it blank for no minimum."
+        hint="In US dollars. An airplane whose policy carries less isn't covered. Leave it blank to drop the minimum."
         error={errors.min_liability_per_occurrence_cents}
       >
         {(field) => (
@@ -211,7 +211,7 @@ function CoveragePolicyForm({ initial, onDone: handleDone }: CoveragePolicyFormP
       </Field>
       <Field
         label="Minimum liability per person"
-        hint="In US dollars. Leave it blank for no minimum."
+        hint="In US dollars. Leave it blank to drop the minimum."
         error={errors.min_liability_per_person_cents}
       >
         {(field) => (

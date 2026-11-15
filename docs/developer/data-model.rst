@@ -1611,6 +1611,10 @@ and ``PermissionsMixin`` classes it builds on.
      - ``BooleanField``
      - not null; default ``False``
      - true for a demo account ``seed_demo`` writes; while ``DEMO_ACCOUNTS_SKIP_TWO_FACTOR`` is on, such an account signs in without two-factor whatever its roles (:ref:`configuration-demo-two-factor`); only the seed sets it, and ``create_admin`` taking the account back, a new password (changed or set from a reset link), and a completed change of address clear it; no endpoint or admin form writes it
+   * - ``verifier_until``
+     - ``DateField``
+     - null; default ``NULL``
+     - the last day a verifier grant works, for a verifier granted for an exercise or a deployment; ``NULL`` for a grant without an end and for an account that isn't a verifier.  After that day ``roles`` leaves ``verifier`` out, so the role stops working on the next request, a signed-in session included; the group stays until the next role write drops it, and ``role_holder_q`` leaves the account out of a role filter meanwhile.  Written by ``accounts.services.update_account`` (``set_verifier`` included) only while the account ends up a verifier, and cleared when the role is taken away
    * - ``groups``
      - ``ManyToManyField`` to ``auth.Group``
      - not null; empty by default
@@ -3470,12 +3474,12 @@ excludes helicopters.
      - ``PositiveBigIntegerField``
      - not null; default ``100000000``
      - the least liability per occurrence an aircraft's own policy must carry, in
-       cents ($1,000,000 by default); ``0`` sets no minimum
+       cents ($1,000,000 by default); ``0`` doesn't set a minimum
    * - ``min_liability_per_person_cents``
      - ``PositiveBigIntegerField``
      - not null; default ``10000000``
-     - the least liability per person, in cents ($100,000 by default); ``0`` sets no
-       minimum
+     - the least liability per person, in cents ($100,000 by default); ``0`` doesn't
+       set a minimum
    * - ``note``
      - ``TextField``
      - not null; default ``""``

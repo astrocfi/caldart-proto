@@ -175,6 +175,14 @@ changes their own roles. It asks first and explains what the change means. **Can
 already chosen, so a stray Enter doesn't change anything. Press **Yes, make a verifier**
 (or **Yes, remove as verifier**) to change the role, and a toast confirms it. **Cancel**,
 or Escape, leaves the role as it was.
+
+When you make somebody a verifier for an exercise or a deployment, give the last day in
+**Until**, today or later, so you don't have to remember to take the role away. The role
+works through that day and stops after it, even for somebody already signed in. The toast
+says *Marta Reyes is a verifier until 03/31/2027.*, and the line under the name reads
+*Verifier until 03/31/2027* while the role lasts. Leave **Until** blank for a verifier who
+keeps the role until somebody removes it. After the last day the card offers **Make a
+verifier** again.
 A verifier sees **Member check** and **Aircraft check** in their menu the next time the
 page loads. See :doc:`../roles`.
 

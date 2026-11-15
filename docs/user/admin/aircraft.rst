@@ -109,7 +109,7 @@ it. The card has four lines:
 To change it, press **Edit policy**. In the two drop-downs, check the categories and the
 airworthiness categories to leave out (**Clear** in either one unchecks them all). Type
 the **Minimum liability per occurrence** and **Minimum liability per person** in US
-dollars, or leave one blank for no minimum. Write the note, and press **Save changes**. *Coverage policy saved.* appears. **Cancel** puts the
+dollars, or leave one blank so that it doesn't require a minimum. Write the note, and press **Save changes**. *Coverage policy saved.* appears. **Cancel** puts the
 card back as it was. The note can be up to 1,000 characters.
 
 The policy takes effect at once. The aircraft check shows an airplane the policy leaves out

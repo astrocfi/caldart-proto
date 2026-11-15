@@ -823,6 +823,7 @@ The pre-flight status card for one member.
      },
      "is_dart_leader": false,
      "is_verifier": false,
+     "verifier_until": null,
      "aircraft": [
        {
          "id": 7,
@@ -862,7 +863,9 @@ booleans, and the portal renders it as the GO / NO-GO band.  ``photo_id``
 carries only the kind of document (``not_provided``, ``drivers_license``,
 ``passport``, ``state_id``, ``military_id``, or ``other``); nothing else about
 it is recorded.  ``is_dart_leader`` and ``is_verifier`` say whether the member
-holds the DART leader role and the verifier role.  Each airplane's ``insurance_verified`` says whether its insurance is
+holds the DART leader role and the verifier role, and ``verifier_until`` is the last
+day a verifier grant works (``null`` for one without an end, and for anybody who
+isn't a verifier, a grant past its last day included).  Each airplane's ``insurance_verified`` says whether its insurance is
 verified.  Insurance is
 reported per airplane and never folded into ``go_no_go``, because a member
 may be current in one airplane and not another.
@@ -950,13 +953,24 @@ or a ``system_admin`` — not a ``verifier`` or an ``account_admin``.
 
 .. code-block:: json
 
-   {"verifier": true}
+   {"verifier": true, "until": "2027-03-31"}
+
+``until`` is the last day the role works, for a grant made for an exercise or a
+deployment: omitted or ``null`` for a grant without an end, and ignored when
+``verifier`` is false.  It may be today or later.  After that day ``User.roles``
+leaves ``verifier`` out, so the role stops working on the next request, a session
+already signed in included, and the member check reads the person as not a verifier.
+Granting the role again to a verifier writes the new last day alone, so a grant is
+extended, or made permanent with ``until`` left out; taking the role away clears it.
 
 ``accounts.services.set_verifier`` rebuilds the member's role list with
 ``verifier`` added or removed and writes it through
 ``accounts.services.update_account``, so the change is audited as
 ``account.roles`` and raised as ``roles_changed``, the member's other roles are
-kept, and a list that leaves the roles as they are doesn't write anything.
+kept, and a list that leaves the roles as they are doesn't write anything.  A new
+last day is audited on the ``account.roles`` line as ``verifier_until=<date>``, or
+``verifier_until=none`` for a grant without an end; a new last day alone is an
+``account.update`` naming ``fields=verifier_until``.
 ``update_account``'s role rules apply (:doc:`api-auth`): nobody changes their own
 roles, and a role-less Django superuser's role list is a system administrator's to
 write, since rebuilding it would take the superuser flag away.  ``verifier`` is not a guarded role, so the target's
@@ -965,8 +979,10 @@ can grant the role from ``PATCH /admin/users/{id}`` too.
 
 Statuses:
 
-* **200** — the status card, whose ``is_verifier`` reads the result.
-* **400** — ``verifier`` missing or not a boolean; or, from a caller who is not a
+* **200** — the status card, whose ``is_verifier`` and ``verifier_until`` read the
+  result.
+* **400** — ``verifier`` missing or not a boolean; ``until`` not a date, or a day
+  before today: ``{"verifier_until": ["Choose today or a later day."]}``; or, from a caller who is not a
   system administrator, a target that is a superuser without the ``system_admin``
   role group: ``{"roles": ["Only a system administrator can grant or take away the System
   administrator role."]}``.
@@ -1070,7 +1086,7 @@ Replaces the policy; ``system_admin`` (or a Django superuser) only.  The body
 carries all five fields.  Each list takes values of its choice set (the
 categories and airworthiness classifications above) and is stored in the
 order of that set, without repeats; each minimum is whole cents of ``0`` or more,
-``0`` meaning no minimum; ``note`` is plain text of at most 1,000
+and ``0`` doesn't set one; ``note`` is plain text of at most 1,000
 characters, stripped, and may be blank.  The caller is recorded as the
 policy's ``updated_by``.  Every aircraft's ``coverage`` follows the new policy at
 once.

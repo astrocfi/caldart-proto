@@ -33,7 +33,7 @@ from rest_framework import filters as drf_filters
 from rest_framework.request import Request
 from rest_framework.views import APIView
 
-from apps.accounts.models import AccountKind, User
+from apps.accounts.models import AccountKind, User, role_holder_q
 from apps.accounts.roles import ROLE_SLUGS
 from apps.members.models import (
     CALIFORNIA_COUNTIES,
@@ -324,11 +324,12 @@ class MemberAdminFilterSet(django_filters.FilterSet):
         """Rows holding that role group, by slug; a blank value keeps every row.
 
         The test is the role group the account is actually in, so a superuser
-        who was never added to one is not listed by ``?role=system_admin``.
+        who was never added to one is not listed by ``?role=system_admin``, and a
+        verifier grant past its end doesn't count.
         """
         if not value:
             return queryset
-        return queryset.filter(groups__name=value)
+        return queryset.filter(role_holder_q(value))
 
     def filter_expiring_within(
         self, queryset: QuerySet[MemberRow], name: str, value: float | None

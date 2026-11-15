@@ -91,7 +91,7 @@ def test_reading_the_policy_needs_a_signed_in_caller(api_client: APIClient) -> N
 def test_a_policy_never_written_does_not_exclude_anything(
     api_client: APIClient, member: User
 ) -> None:
-    """Before an administrator writes one, the policy excludes nothing but low liability.
+    """Before an administrator writes one, the policy excludes only low liability.
 
     The minimums start at $1,000,000 per occurrence and $100,000 per person.
     """

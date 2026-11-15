@@ -16,7 +16,8 @@ import { useAuth } from '@/portal/auth/useAuth';
 import { MEMBERSHIP_STATUS_LABELS } from '@/portal/choices';
 import { Button } from '@/portal/components/Button';
 import { ConfirmButton } from '@/portal/components/ConfirmButton';
-import { DateText } from '@/portal/components/DateText';
+import { DateText, formatDate, todayIso } from '@/portal/components/DateText';
+import { Field } from '@/portal/components/Field';
 import { StatusDot } from '@/portal/components/StatusDot';
 import type { StatusTone } from '@/portal/components/StatusDot';
 import { useToast } from '@/portal/components/Toast';
@@ -95,13 +96,18 @@ function MedicalDot({ medical }: { medical: LeaderStatus['medical'] }): JSX.Elem
 
 /**
  * The line under the name, before the phone and email: the DART, named as one, and each
- * operational role the person holds, such as *Monterey DART · DART leader · Verifier*.
+ * operational role the person holds, such as *Monterey DART · DART leader · Verifier*,
+ * with the last day of a verifier grant that ends (*Verifier until 03/31/2027*).
  */
 export function cardMeta(status: LeaderStatus): string {
   const dart = status.dart === null ? 'No DART' : `${status.dart} DART`;
+  const verifier =
+    status.verifier_until === null
+      ? 'Verifier'
+      : `Verifier until ${formatDate(status.verifier_until)}`;
   const roles = [
     status.is_dart_leader ? 'DART leader' : null,
-    status.is_verifier ? 'Verifier' : null,
+    status.is_verifier ? verifier : null,
   ];
   return [dart, ...roles.filter((role) => role !== null)].join(' · ');
 }
@@ -302,28 +308,35 @@ interface VerifierButtonProps {
  * anybody's card but their own: nobody changes their own roles.
  *
  * Either one changes the person's roles, so it asks first, with the focus on Cancel,
- * as a role change on Roles waits for Save changes.
+ * as a role change on Roles waits for Save changes.  Making a verifier offers an
+ * optional last day, for a grant made for an exercise or a deployment.
  */
 function VerifierButton({ userId, status }: VerifierButtonProps): JSX.Element | null {
   const canGrant = useCanGrantVerifier();
   const { user: me } = useAuth();
   const setVerifier = useSetVerifier(userId);
   const toast = useToast();
+  const [until, setUntil] = useState('');
   if (!canGrant || me?.id === userId) return null;
 
   const wanted = !status.is_verifier;
   const label = wanted ? 'Make a verifier' : 'Remove as verifier';
   const handleChoose = async (): Promise<void> => {
     try {
-      await setVerifier.mutateAsync({ verifier: wanted });
+      await setVerifier.mutateAsync({
+        verifier: wanted,
+        ...(wanted && until !== '' ? { until } : {}),
+      });
     } catch (error) {
       toast.show(error instanceof Error ? error.message : 'The role did not change.', 'error');
       throw error;
     }
-    toast.show(
-      wanted ? `${status.name} is a verifier.` : `${status.name} is no longer a verifier.`,
-      'success',
-    );
+    const granted =
+      until === ''
+        ? `${status.name} is a verifier.`
+        : `${status.name} is a verifier until ${formatDate(until)}.`;
+    toast.show(wanted ? granted : `${status.name} is no longer a verifier.`, 'success');
+    setUntil('');
   };
 
   return (
@@ -339,6 +352,23 @@ function VerifierButton({ userId, status }: VerifierButtonProps): JSX.Element | 
           ? `${status.name} will be able to check and verify the certificate, medical, photo ID, and aircraft insurance of every member.`
           : `${status.name} will no longer be able to verify anyone's documents.`}
       </p>
+      {wanted ? (
+        <Field
+          label="Until"
+          hint="The last day the role works, for an exercise or a deployment. Leave it blank to keep it until somebody removes it."
+        >
+          {(field) => (
+            <input
+              {...field}
+              type="date"
+              className="num"
+              min={todayIso()}
+              value={until}
+              onChange={(event) => setUntil(event.target.value)}
+            />
+          )}
+        </Field>
+      ) : null}
     </ConfirmButton>
   );
 }

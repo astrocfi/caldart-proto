@@ -19,6 +19,7 @@ link ``apps.accounts.email_change`` mails to the new address.
 from __future__ import annotations
 
 import hashlib
+from datetime import date
 from typing import TypedDict
 
 from django.conf import settings
@@ -123,12 +124,15 @@ class AuditFields(TypedDict, total=False):
     """The extra fields an account audit line carries.  Every key is optional.
 
     ``fields`` names the account columns a save really altered; ``added`` and
-    ``removed`` the role slugs a role write really moved.
+    ``removed`` the role slugs a role write really moved; ``verifier_until`` the end of a
+    verifier grant the write set or moved, as ``YYYY-MM-DD``, or ``none`` for a grant
+    without an end (or a role taken away).
     """
 
     fields: list[str]
     added: list[str]
     removed: list[str]
+    verifier_until: str
 
 
 class AccountChanges(TypedDict, total=False):
@@ -136,7 +140,9 @@ class AccountChanges(TypedDict, total=False):
 
     ``roles`` is the complete list the account should end up holding, in any
     order; ``kind`` the kind of person the account should belong to; the names are
-    account columns, written as given.  ``email`` is the address an administrator's
+    account columns, written as given.  ``verifier_until`` is the last day a verifier
+    grant works, ``None`` for a grant without an end, and is written only while the
+    account ends up a verifier.  ``email`` is the address an administrator's
     edit asks for: :func:`update_account` ignores it, and the member record hands it to
     ``apps.accounts.email_change.request_email_change``.
     """
@@ -146,6 +152,11 @@ class AccountChanges(TypedDict, total=False):
     last_name: str
     roles: list[str]
     kind: AccountKind
+    verifier_until: date | None
+
+
+#: Why a verifier grant can't end before it starts.
+VERIFIER_UNTIL_PAST = "Choose today or a later day."
 
 
 # --------------------------------------------------------------------------
@@ -307,7 +318,10 @@ def update_account(actor: User | str, target: User, changes: AccountChanges) -> 
         audit.refuse(audit.ACCOUNT_KIND, actor=actor, target=target, reason=audit.REASON_DONOR_KIND)
         raise DomainValidationError("kind", DONOR_KIND_REFUSED)
 
+    until = _verifier_until(target, changes, roles)
     records = _change_records(target, fields, roles)
+    if until != target.verifier_until:
+        _record_verifier_until(records, until)
     written = [field for field in ACCOUNT_FIELDS if field in fields]
     for field in written:
         setattr(target, field, fields[field])
@@ -315,6 +329,9 @@ def update_account(actor: User | str, target: User, changes: AccountChanges) -> 
         target.set_roles(roles)
         sync_django_flags(target)
         written += ["is_superuser", "is_staff"]
+    if until != target.verifier_until:
+        target.verifier_until = until
+        written.append("verifier_until")
     target.save(update_fields=[*written, "updated_at"])
     if kind is not None and kind != target.kind and set_kind(target, kind, actor=actor):
         became = "became_friend" if kind == AccountKind.FRIEND else "became_member"
@@ -335,8 +352,13 @@ def update_account(actor: User | str, target: User, changes: AccountChanges) -> 
 
 
 @transaction.atomic
-def set_verifier(actor: User, target: User, *, wanted: bool) -> User:
+def set_verifier(actor: User, target: User, *, wanted: bool, until: date | None = None) -> User:
     """Give ``target`` the verifier role when ``wanted``, or take it away, and return it.
+
+    ``until`` is the last day a grant works, ``None`` for a grant without an end; it is
+    ignored when the role is taken away, and a day before today is refused with
+    ``DomainValidationError`` against ``verifier_until``.  Granting the role to a
+    verifier writes the new end alone, so a grant can be extended or made permanent.
 
     The target's row is locked and its roles read afresh (:func:`_lock_roles`), so a
     role another request granted meanwhile is kept.  The role list is rebuilt from
@@ -352,7 +374,40 @@ def set_verifier(actor: User, target: User, *, wanted: bool) -> User:
     _lock_roles(target)
     held = [slug for slug in target.roles if slug != VERIFIER]
     roles = [*held, VERIFIER] if wanted else held
-    return update_account(actor, target, {"roles": roles})
+    return update_account(actor, target, {"roles": roles, "verifier_until": until})
+
+
+def _verifier_until(target: User, changes: AccountChanges, roles: list[str] | None) -> date | None:
+    """The end of ``target``'s verifier grant once ``changes`` is written.
+
+    ``None`` when the account won't be a verifier.  Otherwise the ``verifier_until``
+    the changes carry, refused with ``DomainValidationError``
+    (:data:`VERIFIER_UNTIL_PAST`) when it is a day before today, or the stored end when
+    they don't carry one.
+    """
+    final = roles if roles is not None else target.roles
+    if VERIFIER not in final:
+        return None
+    if "verifier_until" not in changes:
+        return target.verifier_until
+    until = changes["verifier_until"]
+    if until is not None and until < timezone.localdate():
+        raise DomainValidationError("verifier_until", VERIFIER_UNTIL_PAST)
+    return until
+
+
+def _record_verifier_until(records: list[tuple[str, AuditFields]], until: date | None) -> None:
+    """Add the new end of a verifier grant to the edit's audit ``records``.
+
+    It joins the ``account.roles`` record when the edit moves roles, and is an
+    ``account.update`` naming ``verifier_until`` otherwise.
+    """
+    stamp = until.isoformat() if until is not None else "none"
+    for action, logged in records:
+        if action == audit.ACCOUNT_ROLES:
+            logged["verifier_until"] = stamp
+            return
+    records.append((audit.ACCOUNT_UPDATE, {"fields": ["verifier_until"], "verifier_until": stamp}))
 
 
 def _lock_roles(target: User) -> None:

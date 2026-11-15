@@ -449,8 +449,8 @@ class AircraftCoveragePolicy(models.Model):
     category or airworthiness is listed is not covered.
     ``min_liability_per_occurrence_cents`` and ``min_liability_per_person_cents`` are
     the least liability an aircraft's own policy must carry, in cents; an aircraft
-    whose recorded policy carries less is not covered either, and ``0`` sets no
-    minimum.  ``note`` is a short plain-text statement of the limitation, published to
+    whose recorded policy carries less is not covered either, and ``0`` doesn't set
+    a minimum.  ``note`` is a short plain-text statement of the limitation, published to
     members on My aircraft.  There is only ever one row, with primary key 1: :meth:`load`
     reads it.
     """

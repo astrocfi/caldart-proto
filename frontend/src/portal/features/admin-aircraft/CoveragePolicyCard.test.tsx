@@ -57,7 +57,7 @@ describe('<CoveragePolicyCard/>', () => {
     expect(minimums.nextElementSibling).toHaveTextContent('None');
   });
 
-  it('saves a changed minimum in cents, and a blank one as no minimum', async () => {
+  it('saves a changed minimum in cents, and a blank one as 0', async () => {
     servePolicy(HELICOPTERS);
     let sent: AircraftCoveragePolicy | null = null;
     server.use(

@@ -442,9 +442,9 @@ class CoveragePolicySerializer(serializers.ModelSerializer[AircraftCoveragePolic
     airworthiness values; each list is answered in the order of its choices, without
     repeats, and a value outside its choices is refused.
     ``min_liability_per_occurrence_cents`` and ``min_liability_per_person_cents`` are
-    whole cents of ``0`` or more, ``0`` meaning no minimum.  ``note`` is a plain-text
-    statement of at most 1,000 characters, stripped of surrounding space, and may be
-    blank.  A ``PUT`` sends all five.
+    whole cents of ``0`` or more, and ``0`` doesn't set a minimum.  ``note`` is a
+    plain-text statement of at most 1,000 characters, stripped of surrounding space, and
+    may be blank.  A ``PUT`` sends all five.
     """
 
     excluded_categories = serializers.ListField(
@@ -677,6 +677,7 @@ class LeaderStatusSerializer(serializers.Serializer[Any]):
     photo_id = LeaderPhotoIdSerializer()
     is_dart_leader = serializers.BooleanField()
     is_verifier = serializers.BooleanField()
+    verifier_until = serializers.DateField(allow_null=True)
     aircraft = AircraftSummarySerializer(many=True)
     go_no_go = LeaderGoNoGoSerializer()
 
@@ -718,6 +719,11 @@ class MemberVerificationSerializer(serializers.Serializer[Any]):
 
 
 class VerifierGrantSerializer(serializers.Serializer[Any]):
-    """``PUT /leader/members/{user_id}/verifier``: whether the member holds the role."""
+    """``PUT /leader/members/{user_id}/verifier``: whether the member holds the role.
+
+    ``until`` is the last day a grant works, omitted or null for a grant without an end,
+    and ignored when ``verifier`` is false.
+    """
 
     verifier = serializers.BooleanField()
+    until = serializers.DateField(required=False, allow_null=True, default=None)

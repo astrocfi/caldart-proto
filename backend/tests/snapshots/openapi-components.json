@@ -245,7 +245,8 @@
       "profile_complete": "boolean",
       "reactivation_blocked": "boolean",
       "roles": "array<ref:RolesEnum>",
-      "two_factor_enabled": "boolean"
+      "two_factor_enabled": "boolean",
+      "verifier_until": "string(date)|null"
     },
     "required": [
       "admin_created",
@@ -303,7 +304,8 @@
       "profile_complete": "boolean",
       "reactivation_blocked": "boolean",
       "roles": "array<ref:RolesEnum>",
-      "two_factor_enabled": "boolean"
+      "two_factor_enabled": "boolean",
+      "verifier_until": "string(date)|null"
     },
     "required": [
       "admin_created",
@@ -2370,7 +2372,8 @@
       "membership": "ref:LeaderMembership",
       "name": "string",
       "phone": "string",
-      "photo_id": "ref:LeaderPhotoId"
+      "photo_id": "ref:LeaderPhotoId",
+      "verifier_until": "string(date)|null"
     },
     "required": [
       "aircraft",
@@ -2384,7 +2387,8 @@
       "membership",
       "name",
       "phone",
-      "photo_id"
+      "photo_id",
+      "verifier_until"
     ]
   },
   "LedgerMember": {
@@ -3152,7 +3156,8 @@
   },
   "PatchedAdminUserDetailRequest": {
     "properties": {
-      "roles": "array<ref:RolesEnum>"
+      "roles": "array<ref:RolesEnum>",
+      "verifier_until": "string(date)|null"
     },
     "required": []
   },
@@ -4792,6 +4797,7 @@
   },
   "VerifierGrantRequest": {
     "properties": {
+      "until": "string(date)|null",
       "verifier": "boolean"
     },
     "required": [
