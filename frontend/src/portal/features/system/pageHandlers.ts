@@ -20,6 +20,7 @@ export const HEALTHY = {
   version: '0.1.0',
   debug: false,
   scheduled_jobs: [],
+  ein_set: true,
 };
 
 /** The mail delivery payload the pages' tests answer with: one line, good. */

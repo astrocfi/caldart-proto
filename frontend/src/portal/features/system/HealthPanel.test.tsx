@@ -25,6 +25,7 @@ function health(overrides: Partial<Health> = {}): Health {
     version: '0.1.0',
     debug: false,
     scheduled_jobs: [],
+    ein_set: true,
     ...overrides,
   };
 }
@@ -82,6 +83,10 @@ describe('healthChecks', () => {
     expect(verdictFor('debug', health({ debug: true }))).toBe('bad');
   });
 
+  it('warns when the site settings lack the EIN that receipts print', () => {
+    expect(verdictFor('ein_set', health({ ein_set: false }))).toBe('warn');
+  });
+
   /** The value and the note `key` reads in, for `payload`. */
   function wordsFor(key: string, payload: Health): [string, string | undefined] {
     const check = healthChecks(payload, NOW).find((row) => row.key === key)!;
@@ -98,6 +103,9 @@ describe('healthChecks', () => {
     ['disk_free_mb', health({ disk_free_mb: 512 }), '512 MB'],
     ['debug', health(), 'Off'],
     ['debug', health({ debug: true }), 'On'],
+    ['ein_set', health(), 'Entered'],
+    ['ein_set', health({ ein_set: false }), 'Missing'],
+    ['ein_set', health({ ein_set: null }), 'Unknown'],
   ])('reads %s in plain words: %#', (key, payload, value) => {
     expect(wordsFor(key, payload)[0]).toBe(value);
   });
@@ -245,11 +253,12 @@ describe('HealthPanel', () => {
       'Disk free',
       'Last backup',
       'Scheduled jobs',
+      'EIN on receipts',
       'Version',
       'Debug mode',
     ])
       expect(screen.getByText(label)).toBeInTheDocument();
-    expect(screen.getAllByText('Good')).toHaveLength(7);
+    expect(screen.getAllByText('Good')).toHaveLength(8);
     expect(screen.getByText('0.1.0')).toBeInTheDocument();
   });
 

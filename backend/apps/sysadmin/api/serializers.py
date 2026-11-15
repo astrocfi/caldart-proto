@@ -104,3 +104,4 @@ class HealthSerializer(serializers.Serializer[dict[str, Any]]):
     version = serializers.CharField()
     debug = serializers.BooleanField()
     scheduled_jobs = JobStatusSerializer(many=True, allow_null=True)
+    ein_set = serializers.BooleanField(allow_null=True)

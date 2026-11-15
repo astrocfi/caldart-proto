@@ -1879,6 +1879,8 @@ export interface Health {
   debug: boolean;
   /** Each scheduled job's state, as `GET /system/jobs` answers it; null while unreadable. */
   scheduled_jobs: JobStatus[] | null;
+  /** Whether Site settings hold the EIN receipts print; null while the database is down. */
+  ein_set: boolean | null;
 }
 
 /**

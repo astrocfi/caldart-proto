@@ -143,7 +143,7 @@ CalDART emails a receipt the moment a payment clears, whether you paid by card,
 through PayPal, or by a check somebody at CalDART entered for you. The subject is
 *CalDART: your receipt for $45.00*, with your own amount, and the receipt is attached
 as a PDF. It shows CalDART's name, address, and EIN, a receipt number, the date,
-what you paid for, and the total. A receipt for a contribution also includes the
+what you paid for, and the total. The email names the EIN too. A receipt for a contribution also includes the
 sentence *No goods or services were provided in exchange for this contribution.*
 Dues are listed as dues, because a membership is something you received.
 
@@ -164,8 +164,8 @@ Contribution statements
 =======================
 
 A statement puts a calendar year of contributions on one page: the date, receipt
-number, and amount of each, anything refunded, and the year's total, with the
-wording your tax preparer needs. It is the paper you file with a tax return.
+number, and amount of each, anything refunded, and the year's total, with CalDART's
+EIN and the wording your tax preparer needs. It is the paper you file with a tax return.
 
 Each January, CalDART emails a statement to every member, friend, and donor who gave
 in the year before. The subject is *CalDART: your 2026 contribution statement*, and

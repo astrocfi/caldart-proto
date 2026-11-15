@@ -41,8 +41,8 @@ The statement
 
 Each giver's statement is the same PDF a member downloads from Payments at any
 time (:doc:`/user/member/payments`): a line per settled contribution, netted against
-whatever of it was refunded, and the year's total.  The email names the total,
-carries the "no goods or services were provided in exchange for these
+whatever of it was refunded, and the year's total.  The email names the total and
+the EIN from Site settings (as the receipt email does), carries the "no goods or services were provided in exchange for these
 contributions" sentence a 501(c)(3) receipt requires, and, for a member or a
 friend only, a link to Payments — a donor cannot sign in, so the email links
 nowhere.  The subject is ``<org>: your <year> contribution statement``, and

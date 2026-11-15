@@ -186,6 +186,7 @@ def send_receipt(payment: Payment) -> bool:
     org = org_details()
     context: dict[str, object] = {
         "org_name": org.name,
+        "ein": org.ein,
         "contact_email": org.contact_email,
         "first_name": payment.user.first_name or payment.user.display_name,
         "receipt_number": payment.receipt_number,

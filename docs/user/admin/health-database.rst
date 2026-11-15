@@ -22,7 +22,7 @@ The page has four panels, top to bottom: **Health**, **Mail delivery**, **Backup
 Health
 ======
 
-There are seven checks, each with a value and a status: **Good**, **Warning**, or
+There are eight checks, each with a value and a status: **Good**, **Warning**, or
 **Problem**. When a check needs attention, it says under its value what is wrong and who to
 ask. **Refresh** runs them again.
 
@@ -49,6 +49,9 @@ ask. **Refresh** runs them again.
   charges* by itself; the next run does. A late job usually means the server has stopped
   starting it, so tell the person who installed the site. *Unknown* means the site couldn't
   read its record of the runs.
+- **EIN on receipts**: *Entered* when Site settings hold CalDART's EIN, which every receipt
+  and contribution statement prints. *Missing* is a warning: receipts are going out
+  without it. Ask a website administrator to enter it (:doc:`../website/settings-and-themes`).
 - **Version**: which release is running. Quote it when you report a problem.
 - **Debug mode**: should say *Off*. If a live site says *On*, ask the person who installed
   the site to turn it off at once. Debug mode shows internal details to anyone who causes

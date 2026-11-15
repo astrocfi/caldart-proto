@@ -19,5 +19,6 @@ Your payments, receipts and annual contribution statements are here:
 {% endif %}
 --
 {{ org_name }} is a volunteer disaster air transportation network.
-{% if contact_email %}Questions? Write to {{ contact_email }}.
+{% if ein %}EIN {{ ein }}
+{% endif %}{% if contact_email %}Questions? Write to {{ contact_email }}.
 {% endif %}You are receiving this because a payment was made on your account.

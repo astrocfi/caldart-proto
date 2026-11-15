@@ -139,6 +139,7 @@ def test_health_payload(api_client: APIClient, system_admin: User, backup_dir: P
         "version",
         "debug",
         "scheduled_jobs",
+        "ein_set",
     }
     assert body["db"] == "ok"
     assert body["pending_migrations"] == 0

@@ -137,6 +137,7 @@ def _statement_context(user: User, year: int, total_cents: int) -> dict[str, obj
     org = org_details()
     return {
         "org_name": org.name,
+        "ein": org.ein,
         "contact_email": org.contact_email,
         "first_name": user.first_name or user.display_name,
         "year": year,

@@ -22,7 +22,9 @@ changes.
   changes it here.
 * **Tagline**, shown under the logo, and used as a page's description for search engines
   when the page doesn't have one of its own.
-* **EIN**, shown in the footer and on the contact page.
+* **EIN**, shown in the footer and on the contact page, and printed on every receipt and
+  contribution statement, both the PDF and the email. While it is blank, they go out
+  without it, and the system administrator's health page warns about it.
 
 **Contact**
 
