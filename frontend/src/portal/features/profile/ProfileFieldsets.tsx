@@ -65,6 +65,12 @@ type CodedKey = 'pilot_certificate_type' | 'medical_type' | 'photo_id_type';
 /** Under each airport box: the format, with an example. */
 const AIRPORT_HINT = 'Leave off the leading K: PAO, not KPAO';
 
+/** Home airport is easily mistaken for the DART's airport, so its hint says what it is. */
+const HOME_AIRPORT_HINT = {
+  self: `Where your aircraft is based, or where you usually fly from. It doesn't have to be your DART's airport. ${AIRPORT_HINT}`,
+  administrator: `Where their aircraft is based, or where they usually fly from. It doesn't have to be their DART's airport. ${AIRPORT_HINT}`,
+} as const;
+
 const PHONE_HINT = '10 digits, such as 415-555-0100';
 
 const ADDRESS_HINT = 'Start typing the whole address, city included, then pick it from the list';
@@ -458,7 +464,7 @@ export function ProfileFieldsets({
           {text('home_airport_identifier', {
             label: 'Home airport',
             size: 4,
-            hint: AIRPORT_HINT,
+            hint: HOME_AIRPORT_HINT[audience],
             mask: maskAirportIdentifier,
           })}
           {text('secondary_airport_identifier', {

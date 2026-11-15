@@ -82,6 +82,8 @@ volunteers at one airport; *Not decided yet* if you haven't chosen), **Air Care
 Alliance number**, **Pilot certificate**, **Certificate number**, **Medical**,
 **Medical expires**, and **Photo ID**.
 
+* **Home airport** is where your aircraft is based, or where you usually fly from. It
+  doesn't have to be your DART's airport, and its hint says so.
 * **Home airport** and **Secondary airport** each take three letters or digits,
   and turn them into capitals as you type. If you type the four-letter form, such as
   KSQL, the K drops off when you type the fourth letter, leaving SQL. You can leave

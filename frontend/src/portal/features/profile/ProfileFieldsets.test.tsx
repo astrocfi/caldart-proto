@@ -323,15 +323,28 @@ describe('<ProfileFieldsets/>', () => {
     expect(onChange).toHaveBeenCalledWith({ ...EMPTY_PROFILE_FORM, vol_newsletter: true });
   });
 
-  it.each(['Home airport', 'Secondary airport'])(
-    'asks for the %s without its leading K',
-    (label) => {
-      renderFieldsets();
-      expect(screen.getByLabelText(label)).toHaveAccessibleDescription(
-        'Leave off the leading K: PAO, not KPAO',
-      );
-    },
-  );
+  it('asks for the secondary airport without its leading K', () => {
+    renderFieldsets();
+    expect(screen.getByLabelText('Secondary airport')).toHaveAccessibleDescription(
+      'Leave off the leading K: PAO, not KPAO',
+    );
+  });
+
+  it("explains that the member's home airport needn't be their DART's", () => {
+    renderFieldsets();
+    expect(screen.getByLabelText('Home airport')).toHaveAccessibleDescription(
+      "Where your aircraft is based, or where you usually fly from. It doesn't have to be " +
+        "your DART's airport. Leave off the leading K: PAO, not KPAO",
+    );
+  });
+
+  it("explains the home airport in the third person on somebody else's record", () => {
+    renderFieldsets({ audience: 'administrator' });
+    expect(screen.getByLabelText('Home airport')).toHaveAccessibleDescription(
+      "Where their aircraft is based, or where they usually fly from. It doesn't have to be " +
+        "their DART's airport. Leave off the leading K: PAO, not KPAO",
+    );
+  });
 
   it('upper-cases the secondary airport identifier as it is typed', async () => {
     const user = userEvent.setup();
