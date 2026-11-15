@@ -64,7 +64,7 @@ What it does
 - **Membership.**  Two plans — Annual at $45 for 365 days and Life at $650 —
   bought online and activated the instant the payment clears.
 - **Profiles.**  Contact details, DART affiliation, pilot certificate,
-  medical, flight review, hours, and volunteer interests.
+  medical, and volunteer interests.
 - **Aircraft.**  One shared register of airframes with insurance carriers
   , limits, and expiry dates, which members attach to their own profiles.
 - **The leader check.**  One screen that answers "may this person fly this

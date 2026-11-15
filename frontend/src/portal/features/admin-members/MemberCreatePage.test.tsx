@@ -76,10 +76,9 @@ describe('MemberCreatePage', () => {
     expect(profile.pilot_certificate_type).toBe('private');
     expect(profile.ratings).toEqual(['instrument']);
     expect(profile.notes).toBe('Met at the airshow.');
-    // Blank date and number fields are sent as null, not as empty strings, and
+    // A blank date is sent as null, not as empty strings, and
     // the DART writes as `dart_id` exactly as it does from /me/profile.
     expect(profile.medical_expiration).toBeNull();
-    expect(profile.total_hours).toBeNull();
     expect(profile.dart_id).toBeNull();
   });
 
@@ -283,7 +282,7 @@ describe('MemberCreatePage', () => {
     expect(screen.getByRole('link', { name: 'Cancel' })).toHaveAttribute('href', '/admin/members');
   });
 
-  it.each(['Home airport', 'Secondary airport', 'Medical expires', 'Last flight review'])(
+  it.each(['Home airport', 'Secondary airport', 'Medical expires'])(
     'labels %s exactly as the member form does',
     (label) => {
       server.use(...createHandlers());

@@ -511,13 +511,6 @@ export function ProfileFieldsets({
             status: mark('medical'),
           })}
           {coded('photo_id_type', 'Photo ID', PHOTO_ID_TYPES, mark('photo_id'))}
-          {text('flight_review_date', { label: 'Last flight review', type: 'date' })}
-          {text('total_hours', {
-            label: 'Total hours',
-            inputMode: 'numeric',
-            size: 6,
-            mask: (raw) => maskDigits(raw, 5),
-          })}
           <Field label="Aircraft" error={errors.flies_rented_aircraft}>
             {() => (
               <label className="checkbox">

@@ -2368,14 +2368,6 @@ administrators see.  Deleting the account deletes the profile.
      - ``DateField``
      - null; default ``NULL``
      - required by the serializer when a medical is held; BasicMed and class medicals both use it
-   * - ``flight_review_date``
-     - ``DateField``
-     - null; default ``NULL``
-     - the last flight review
-   * - ``total_hours``
-     - ``PositiveIntegerField``
-     - null; default ``NULL``
-     - logged hours, at most ``MAX_TOTAL_HOURS`` (99,999)
    * - ``photo_id_type``
      - ``CharField(16)``, choices :ref:`PhotoIdType <choices-photo-id-type>`
      - not null; default ``"not_provided"``

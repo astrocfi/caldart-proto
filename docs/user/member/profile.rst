@@ -80,7 +80,7 @@ Aviation
 rule), **DART** (your main Disaster Airlift Response Team, a local group of
 volunteers at one airport; *Not decided yet* if you haven't chosen), **Air Care
 Alliance number**, **Pilot certificate**, **Certificate number**, **Medical**,
-**Medical expires**, **Photo ID**, **Last flight review**, and **Total hours**.
+**Medical expires**, and **Photo ID**.
 
 * **Home airport** and **Secondary airport** each take three letters or digits,
   and turn them into capitals as you type. If you type the four-letter form, such as
@@ -146,7 +146,6 @@ and a line beside the button says how many fields to check:
   with K keeps it, so KLS stays KLS.
 * *Enter the 7 digits of the pilot certificate number.* for a certificate number
   shorter than seven digits.
-* *Enter your total hours as a whole number.*
 * *Enter a US amateur radio callsign, such as W6ABC.* for a callsign from outside
   the US.
 

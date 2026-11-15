@@ -247,7 +247,6 @@ def test_put_updates_every_writable_section(
             "ratings": ["instrument", "amel"],
             "medical_type": "second",
             "medical_expiration": "2030-01-31",
-            "total_hours": 1200,
             "vol_ground_team": True,
             "vol_newsletter": True,
         },
@@ -264,7 +263,6 @@ def test_put_updates_every_writable_section(
 
     profile.refresh_from_db()
     assert profile.phone == "650-555-0101"
-    assert profile.total_hours == 1200
 
 
 def test_put_saves_a_profile_without_a_phone_number(
@@ -294,7 +292,6 @@ def test_put_clears_fields_left_out_of_the_body(
     assert profile.pilot_certificate_type == "none"
     assert profile.ratings == []
     assert profile.dart is None
-    assert profile.total_hours is None
     assert profile.vol_ground_team is False
     assert profile.state == "CA"  # back to the model default
     assert profile.photo_id_type == PhotoIdType.NOT_PROVIDED

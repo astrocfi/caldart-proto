@@ -38,8 +38,6 @@ const AVIATION_LABELS = [
   'Medical',
   'Medical expires',
   'Photo ID',
-  'Last flight review',
-  'Total hours',
 ];
 
 const RATING_LABELS = [

@@ -75,8 +75,6 @@ const PROFILE: AdminProfile = {
   medical_type: 'third',
   medical_expiration: '2027-01-31',
   medical_is_current: true,
-  flight_review_date: '2026-02-01',
-  total_hours: 750,
   aircraft: [
     {
       id: 9,

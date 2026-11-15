@@ -616,8 +616,6 @@ export interface Profile {
   medical_type: MedicalType;
   medical_expiration: IsoDate | null;
   medical_is_current: boolean;
-  flight_review_date: IsoDate | null;
-  total_hours: number | null;
   photo_id_type: PhotoIdType;
   /** Read-only: only the member check's verification endpoint verifies an item. */
   verification: ProfileVerification;

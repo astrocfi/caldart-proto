@@ -274,7 +274,6 @@ class MemberProfileFactory(ModelFactory[MemberProfile]):
     medical_type = MedicalType.THIRD
     medical_expiration = factory.LazyFunction(lambda: timezone.localdate() + timedelta(days=365))
     photo_id_type = PhotoIdType.DRIVERS_LICENSE
-    total_hours = 750
 
 
 class MembershipPlanFactory(ModelFactory[MembershipPlan]):

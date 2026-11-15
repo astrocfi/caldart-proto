@@ -120,8 +120,6 @@ export function makeProfile(overrides: Partial<Profile> = {}): Profile {
     medical_type: 'third',
     medical_expiration: '2029-05-31',
     medical_is_current: true,
-    flight_review_date: null,
-    total_hours: 750,
     photo_id_type: 'passport',
     verification: {
       certificate: { verified: false, verified_by: null, verified_at: null },

@@ -197,10 +197,6 @@ CALIFORNIA_COUNTIES: tuple[str, ...] = (
     "Yuba",
 )
 
-#: The most hours a logbook entry may claim.  A larger number is a typo: the
-#: highest civil totals on record are under 60,000.
-MAX_TOTAL_HOURS = 99_999
-
 #: A US amateur radio callsign: a prefix of ``K``, ``N``, or ``W`` alone, one of them
 #: followed by a letter, or ``A`` followed by ``A`` to ``L``; then one digit; then a
 #: suffix of one to three letters.
@@ -298,8 +294,6 @@ class MemberProfile(TimestampedModel):
         max_length=16, choices=MedicalType.choices, default=MedicalType.NONE
     )
     medical_expiration = models.DateField(null=True, blank=True)
-    flight_review_date = models.DateField(null=True, blank=True)
-    total_hours = models.PositiveIntegerField(null=True, blank=True)
     photo_id_type = models.CharField(
         "photo ID", max_length=16, choices=PhotoIdType.choices, default=PhotoIdType.NOT_PROVIDED
     )

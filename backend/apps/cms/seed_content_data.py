@@ -946,7 +946,7 @@ MEMBERS_ONLY = PageSpec(
         ),
         heading("Keep your record current"),
         rich(
-            "<p>Check your medical and flight review dates in the portal, and \u2014 if you "
+            "<p>Check your medical expiry in the portal, and \u2014 if you "
             "own the aircraft you fly \u2014 your insurance expiry. A DART leader checks "
             "these before dispatching you, and a lapsed date is the most common reason a "
             "willing member sits out a mission.</p>"

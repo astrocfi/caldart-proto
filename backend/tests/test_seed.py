@@ -90,7 +90,7 @@ SEEDED_DONOR_GIFTS = sum(DONOR_GIFT_COUNTS)
 #: The payments ``seed_demo`` creates from its fixed random seed: one per term,
 #: plus the ones recorded by hand, the demo friend's gift and the donors' gifts, all
 #: succeeded.
-SEEDED_PAYMENTS = 65 + MANUAL_PAYMENT_COUNT + SEEDED_FRIEND_GIFTS + SEEDED_DONOR_GIFTS
+SEEDED_PAYMENTS = 59 + MANUAL_PAYMENT_COUNT + SEEDED_FRIEND_GIFTS + SEEDED_DONOR_GIFTS
 
 #: How many of them the seed refunds: two in full and four contributions, which
 #: leaves the first two ``refunded`` and the other four ``partially_refunded``.
@@ -153,11 +153,11 @@ def test_every_seeded_town_comes_from_the_town_generator() -> None:
     assert found == expected
 
 
-def test_fifteen_seeded_pilots_have_a_secondary_airport() -> None:
-    """Fifteen of the fifty seeded members and friends, about one in three, have one."""
+def test_seventeen_seeded_pilots_have_a_secondary_airport() -> None:
+    """Seventeen of the fifty seeded members and friends, about one in three, have one."""
     _seed()
     profiles = MemberProfile.objects.exclude(secondary_airport_identifier="")
-    assert profiles.count() == 15
+    assert profiles.count() == 17
 
 
 def test_a_seeded_secondary_airport_is_never_the_home_airport() -> None:
@@ -242,8 +242,8 @@ def test_seed_demo_covers_every_membership_status() -> None:
     """The seed produces users in every membership status, including a lifetime member."""
     _seed()
     counts = Counter(membership_status(u)["status"] for u in User.objects.all())
-    assert counts[MembershipState.CURRENT] == 33
-    assert counts[MembershipState.EXPIRED] == 6
+    assert counts[MembershipState.CURRENT] == 30
+    assert counts[MembershipState.EXPIRED] == 9
     assert counts[MembershipState.DONOR] == SEEDED_DONORS
     assert counts[MembershipState.FRIEND] == SEEDED_EFFECTIVE_FRIENDS
     assert counts[MembershipState.NONE] == SEEDED_AWAITING_FIRST_TERM
@@ -262,11 +262,11 @@ def test_seed_demo_has_expiring_and_mixed_medicals() -> None:
         for u in User.objects.all()
         if (e := membership_status(u)["expires_on"]) and today <= e <= soon
     ]
-    assert len(expiring) == 7
+    assert len(expiring) == 6
 
     profiles = MemberProfile.objects.exclude(medical_type="none")
-    assert sum(1 for p in profiles if not p.medical_is_current) == 13
-    assert sum(1 for p in profiles if p.medical_is_current) == 35
+    assert sum(1 for p in profiles if not p.medical_is_current) == 14
+    assert sum(1 for p in profiles if p.medical_is_current) == 27
     assert {p.pilot_certificate_type for p in MemberProfile.objects.all()} == {
         "none",
         "student",
@@ -344,7 +344,7 @@ def test_seed_demo_payments_are_mixed_and_span_two_years() -> None:
     _seed()
     with_contribution = Payment.objects.filter(contribution_cents__gt=0).count()
     assert with_contribution == (
-        27 + MANUAL_PAYMENT_COUNT + SEEDED_FRIEND_GIFTS + SEEDED_DONOR_GIFTS
+        23 + MANUAL_PAYMENT_COUNT + SEEDED_FRIEND_GIFTS + SEEDED_DONOR_GIFTS
     )
     months = Payment.objects.dates("created_at", "month")
     oldest, newest = min(months), max(months)
