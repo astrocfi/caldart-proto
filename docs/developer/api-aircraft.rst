@@ -1023,8 +1023,11 @@ Statuses:
 
 * **200** — the record, in the ``GET /aircraft/{id}`` shape with ``pilots``.
 * **400** — ``verified`` missing, or a field the register's validation refuses,
-  such as ``{"insurance_liability_per_person_cents": ["Enter an amount of $0 or more."]}``.
-  Nothing is written.
+  such as ``{"insurance_liability_per_person_cents": ["Enter an amount of $0 or more."]}``,
+  or ``verified`` true for liability that, as it would be saved, is under the coverage
+  policy's minimum (:ref:`api-coverage-policy`), with a message under each short field,
+  such as ``{"insurance_liability_per_person_cents": ["Under CalDART's minimum of
+  $100,000 per person."]}``.  Nothing is written.
 * **404** — no aircraft has that id.
 
 
@@ -1044,11 +1047,17 @@ anyone who may use aircraft; My aircraft reads its ``note``.
    {
      "excluded_categories": ["helicopter"],
      "excluded_airworthiness": [],
+     "min_liability_per_occurrence_cents": 100000000,
+     "min_liability_per_person_cents": 10000000,
      "note": "Helicopters are not covered; talk to your DART leader before offering one."
    }
 
-Before a system administrator has written one, the policy doesn't exclude
-anything and its note is blank.
+``min_liability_per_occurrence_cents`` and ``min_liability_per_person_cents`` are
+the least liability an aircraft's own policy must carry; a recorded policy carrying
+less makes the aircraft's ``coverage`` excluded (:doc:`data-model` gives the rule),
+and the aircraft check refuses to verify it.  Before a system administrator has
+written one, the policy doesn't exclude any category or airworthiness, its minimums
+are $1,000,000 per occurrence and $100,000 per person, and its note is blank.
 
 Statuses:
 
@@ -1058,9 +1067,10 @@ Statuses:
 ---------------------------------
 
 Replaces the policy; ``system_admin`` (or a Django superuser) only.  The body
-carries all three fields.  Each list takes values of its choice set (the
+carries all five fields.  Each list takes values of its choice set (the
 categories and airworthiness classifications above) and is stored in the
-order of that set, without repeats; ``note`` is plain text of at most 1,000
+order of that set, without repeats; each minimum is whole cents of ``0`` or more,
+``0`` meaning no minimum; ``note`` is plain text of at most 1,000
 characters, stripped, and may be blank.  The caller is recorded as the
 policy's ``updated_by``.  Every aircraft's ``coverage`` follows the new policy at
 once.
@@ -1070,7 +1080,8 @@ Statuses:
 * **200** — the stored policy, in the ``GET`` shape.
 * **400** — a list value outside its choices, such as
   ``{"excluded_categories": {"0": ["\"spaceship\" is not a valid choice."]}}``,
-  or a note over 1,000 characters.  Nothing is written.
+  a negative minimum (``{"min_liability_per_person_cents": ["Enter an amount of $0
+  or more."]}``), or a note over 1,000 characters.  Nothing is written.
 * **403** — the caller is not a system administrator, an account administrator
   included.
 

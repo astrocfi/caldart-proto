@@ -3466,6 +3466,16 @@ excludes helicopters.
      - not null; default ``[]``
      - the :ref:`Airworthiness <choices-airworthiness>` values the policy does not
        cover, in choice order
+   * - ``min_liability_per_occurrence_cents``
+     - ``PositiveBigIntegerField``
+     - not null; default ``100000000``
+     - the least liability per occurrence an aircraft's own policy must carry, in
+       cents ($1,000,000 by default); ``0`` sets no minimum
+   * - ``min_liability_per_person_cents``
+     - ``PositiveBigIntegerField``
+     - not null; default ``10000000``
+     - the least liability per person, in cents ($100,000 by default); ``0`` sets no
+       minimum
    * - ``note``
      - ``TextField``
      - not null; default ``""``
@@ -3490,8 +3500,13 @@ aircraft whose ``category`` is in ``excluded_categories`` or whose
 when both match, as *Not covered: helicopters are excluded by CalDART's policy*,
 with the organization's name from the site settings.  A blank value is never
 listed, so an aircraft whose category and airworthiness are both blank is never
-excluded; one without a category that its airworthiness does not exclude reads
-*Category not recorded*.
+excluded by them.  Next, an aircraft with a policy on file (an
+``insurance_expiration``) whose ``insurance_liability_per_occurrence_cents`` or
+``insurance_liability_per_person_cents`` is under its minimum is excluded, as *Not
+covered: liability is under CalDART's minimum of $1,000,000 per occurrence*, naming
+each minimum it misses.  An aircraft without a policy on file isn't judged on its
+liability.  Otherwise one without a category reads *Category not recorded*.  The rule
+is computed on every read, so a changed minimum applies to every aircraft at once.
 
 payments
 ========

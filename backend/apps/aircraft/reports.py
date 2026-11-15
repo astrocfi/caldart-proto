@@ -170,7 +170,7 @@ def aircraft_report_query(params: Params) -> ReportQuery[RegisterRow]:
 def _judged(aircraft: Iterable[Aircraft], rule: CoverageRule) -> Iterator[RegisterRow]:
     """One :class:`RegisterRow` per aircraft, lazily, judged by ``rule``."""
     for plane in aircraft:
-        coverage = rule.judge(category=plane.category, airworthiness=plane.airworthiness)
+        coverage = rule.judge(plane)
         yield RegisterRow(aircraft=plane, covered=not coverage.excluded)
 
 

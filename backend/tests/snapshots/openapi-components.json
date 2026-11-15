@@ -1441,11 +1441,15 @@
     "properties": {
       "excluded_airworthiness": "array<ref:AirworthinessEnum>",
       "excluded_categories": "array<ref:AircraftCategoryEnum>",
+      "min_liability_per_occurrence_cents": "integer",
+      "min_liability_per_person_cents": "integer",
       "note": "string"
     },
     "required": [
       "excluded_airworthiness",
       "excluded_categories",
+      "min_liability_per_occurrence_cents",
+      "min_liability_per_person_cents",
       "note"
     ]
   },
@@ -1453,11 +1457,15 @@
     "properties": {
       "excluded_airworthiness": "array<ref:AirworthinessEnum>",
       "excluded_categories": "array<ref:AircraftCategoryEnum>",
+      "min_liability_per_occurrence_cents": "integer",
+      "min_liability_per_person_cents": "integer",
       "note": "string"
     },
     "required": [
       "excluded_airworthiness",
       "excluded_categories",
+      "min_liability_per_occurrence_cents",
+      "min_liability_per_person_cents",
       "note"
     ]
   },

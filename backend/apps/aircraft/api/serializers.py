@@ -138,7 +138,7 @@ def coverage_payload(
     if not isinstance(rule, CoverageRule):
         rule = current_rule()
         setattr(root, COVERAGE_RULE_ATTRIBUTE, rule)
-    judged = rule.judge(category=aircraft.category, airworthiness=aircraft.airworthiness)
+    judged = rule.judge(aircraft)
     return {"excluded": judged.excluded, "reason": judged.reason}
 
 
@@ -440,9 +440,11 @@ class CoveragePolicySerializer(serializers.ModelSerializer[AircraftCoveragePolic
 
     ``excluded_categories`` lists aircraft category values and ``excluded_airworthiness``
     airworthiness values; each list is answered in the order of its choices, without
-    repeats, and a value outside its choices is refused.  ``note`` is a plain-text
+    repeats, and a value outside its choices is refused.
+    ``min_liability_per_occurrence_cents`` and ``min_liability_per_person_cents`` are
+    whole cents of ``0`` or more, ``0`` meaning no minimum.  ``note`` is a plain-text
     statement of at most 1,000 characters, stripped of surrounding space, and may be
-    blank.  A ``PUT`` sends all three.
+    blank.  A ``PUT`` sends all five.
     """
 
     excluded_categories = serializers.ListField(
@@ -451,11 +453,23 @@ class CoveragePolicySerializer(serializers.ModelSerializer[AircraftCoveragePolic
     excluded_airworthiness = serializers.ListField(
         child=serializers.ChoiceField(choices=Airworthiness.choices), allow_empty=True
     )
+    min_liability_per_occurrence_cents = serializers.IntegerField(
+        min_value=0, error_messages={"min_value": NEGATIVE_MONEY_MESSAGE}
+    )
+    min_liability_per_person_cents = serializers.IntegerField(
+        min_value=0, error_messages={"min_value": NEGATIVE_MONEY_MESSAGE}
+    )
     note = serializers.CharField(max_length=COVERAGE_NOTE_MAX_LENGTH, allow_blank=True)
 
     class Meta:
         model = AircraftCoveragePolicy
-        fields = ["excluded_categories", "excluded_airworthiness", "note"]
+        fields = [
+            "excluded_categories",
+            "excluded_airworthiness",
+            "min_liability_per_occurrence_cents",
+            "min_liability_per_person_cents",
+            "note",
+        ]
 
     def validate_excluded_categories(self, value: list[str]) -> list[str]:
         """The categories in ``value``, in choice order and without repeats."""
@@ -469,10 +483,15 @@ class CoveragePolicySerializer(serializers.ModelSerializer[AircraftCoveragePolic
 class InsuranceVerificationSerializer(AircraftSerializer):
     """``PUT /leader/aircraft/{id}/verification``: the insurance fields and the verdict.
 
-    The six insurance fields are optional and validated as the register validates them
+    The five insurance fields are optional and validated as the register validates them
     (money in integer cents, ``>= 0``); one given is written, one omitted is left as it
     is.  ``verified`` is required: whether the insurance ends verified.  No other
     register field is accepted.
+
+    Insurance whose liability, as it would be saved, is under the coverage policy's
+    minimum can't be verified: ``verified`` true is refused with a message under each
+    liability field that falls short, such as ``Under CalDART's minimum of $1,000,000
+    per occurrence.``  ``verified`` false saves whatever the amounts are.
     """
 
     verified = serializers.BooleanField()
@@ -480,6 +499,31 @@ class InsuranceVerificationSerializer(AircraftSerializer):
     class Meta(AircraftSerializer.Meta):
         fields = [*INSURANCE_FIELDS, "verified"]
         read_only_fields: list[str] = []
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        """Refuse to verify liability under the coverage policy's minimum."""
+        attrs = super().validate(attrs)
+        if not attrs["verified"] or self.instance is None:
+            return attrs
+        rule = current_rule()
+        missed = rule.shortfall(
+            per_occurrence_cents=attrs.get(
+                "insurance_liability_per_occurrence_cents",
+                self.instance.insurance_liability_per_occurrence_cents,
+            ),
+            per_person_cents=attrs.get(
+                "insurance_liability_per_person_cents",
+                self.instance.insurance_liability_per_person_cents,
+            ),
+        )
+        if missed:
+            raise serializers.ValidationError(
+                {
+                    field: [f"Under {rule.organization}'s minimum of {minimum}."]
+                    for field, minimum in missed.items()
+                }
+            )
+        return attrs
 
 
 class LeaderGoNoGoSerializer(serializers.Serializer[Any]):

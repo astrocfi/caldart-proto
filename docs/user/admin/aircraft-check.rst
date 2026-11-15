@@ -45,9 +45,10 @@ leader.
 The band across the top gives one of four verdicts:
 
 - **NOT COVERED**, with the reason, such as *helicopters are excluded by CalDART's
-  policy*. The coverage policy, which a system administrator keeps on the
-  :doc:`aircraft`, leaves out the airplane's category or its airworthiness
-  category. This is a no-go, whatever its insurance.
+  policy* or *liability is under CalDART's minimum of $1,000,000 per occurrence*. The
+  coverage policy, which a system administrator keeps on the :doc:`aircraft`, leaves out
+  the airplane's category or its airworthiness category, or its policy carries less
+  liability than CalDART requires. This is a no-go, whatever else its insurance says.
 
 - **INSURED**, with *Coverage is current* or *Coverage expires soon*. The policy is current
   and somebody has verified it. This is a go.
@@ -114,6 +115,12 @@ panel. It shows the policy's **Carrier**, **Policy number**, **Liability per occ
 dollars. Correct anything that differs from the policy documents, check **Insurance
 verified**, and press **Save verification**. The toast says *Verification saved*, and the
 card shows the new verdict.
+
+You can't verify insurance whose liability is under the coverage policy's minimum. Saving
+with the box checked shows *Under CalDART's minimum of $1,000,000 per occurrence.* (or
+*$100,000 per person*) under the amount that falls short, and doesn't save anything. If
+the documents show a higher amount, correct it and save again. If they don't, uncheck the
+box and save, so the record shows what the policy carries.
 
 Changing a field unchecks the box, so check it again once you have checked the new value.
 Unchecking the box clears the verification. If the expiry date is blank, there isn't a

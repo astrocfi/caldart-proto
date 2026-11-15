@@ -176,7 +176,7 @@ def run(ctx: dict[str, Any], stdout: TextIOBase | None = None) -> dict[str, Any]
         else:
             owner_name = f"{faker.city()} Aviation Services"
 
-        per_occurrence = rng.choice([500_000, 1_000_000, 1_000_000, 2_000_000]) * 100
+        per_occurrence = rng.choice([1_000_000, 1_000_000, 1_000_000, 2_000_000]) * 100
         per_person = rng.choice([100_000, 100_000, 200_000]) * 100
 
         aircraft, _ = Aircraft.objects.update_or_create(

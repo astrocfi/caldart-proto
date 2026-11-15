@@ -126,8 +126,8 @@ and expiry date. The status gives the same answer as the :doc:`aircraft-check`:
 - **No insurance on file**: nobody has recorded a policy for this airplane.
 
 If CalDART's coverage policy leaves out an airplane, such as a helicopter while helicopters
-are excluded, the card shows **Not covered**, beside a red dot, where the insurance status
-would be. The reason follows its expiry date, such as *Not covered: helicopters are
+are excluded, or one whose policy carries less liability than CalDART requires, the card
+shows **Not covered**, beside a red dot, where the insurance status would be. The reason follows its expiry date, such as *Not covered: helicopters are
 excluded by CalDART's policy*. For an airplane without a recorded category, the card shows
 *Category not recorded* there instead.
 

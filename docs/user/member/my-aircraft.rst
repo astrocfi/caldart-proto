@@ -48,7 +48,9 @@ any airplane with unverified insurance as a no-go.
 
 If the coverage policy leaves an airplane out, it shows **Not covered** beside a red
 dot, and the reason comes after the limits, such as *Not covered: helicopters are
-excluded by CalDART's policy*.
+excluded by CalDART's policy*. An airplane whose policy carries less liability than
+CalDART requires is left out the same way, such as *Not covered: liability is under
+CalDART's minimum of $1,000,000 per occurrence*.
 
 If you haven't added any airplanes, the card says **No aircraft yet**.
 

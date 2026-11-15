@@ -12,6 +12,8 @@ import { CoveragePolicyCard } from './CoveragePolicyCard';
 const HELICOPTERS: AircraftCoveragePolicy = {
   excluded_categories: ['helicopter'],
   excluded_airworthiness: [],
+  min_liability_per_occurrence_cents: 100_000_000,
+  min_liability_per_person_cents: 10_000_000,
   note: 'Helicopters are not covered.',
 };
 
@@ -29,6 +31,57 @@ describe('<CoveragePolicyCard/>', () => {
     const excluded = await screen.findByText('Excluded categories');
     expect(excluded.nextElementSibling).toHaveTextContent('Helicopter');
     expect(screen.getByText('Helicopters are not covered.')).toBeInTheDocument();
+  });
+
+  it('reads out the liability minimums', async () => {
+    servePolicy(HELICOPTERS);
+
+    renderWithProviders(<CoveragePolicyCard />);
+
+    const minimums = await screen.findByText('Minimum liability');
+    expect(minimums.nextElementSibling).toHaveTextContent(
+      '$1,000,000 per occurrence, $100,000 per person',
+    );
+  });
+
+  it('reads minimums of $0 as None', async () => {
+    servePolicy({
+      ...HELICOPTERS,
+      min_liability_per_occurrence_cents: 0,
+      min_liability_per_person_cents: 0,
+    });
+
+    renderWithProviders(<CoveragePolicyCard />);
+
+    const minimums = await screen.findByText('Minimum liability');
+    expect(minimums.nextElementSibling).toHaveTextContent('None');
+  });
+
+  it('saves a changed minimum in cents, and a blank one as no minimum', async () => {
+    servePolicy(HELICOPTERS);
+    let sent: AircraftCoveragePolicy | null = null;
+    server.use(
+      http.put(`${API}/aircraft/coverage-policy`, async ({ request }) => {
+        const body = (await request.json()) as AircraftCoveragePolicy;
+        sent = body;
+        return HttpResponse.json(body);
+      }),
+    );
+    const user = userEvent.setup();
+
+    renderWithProviders(<CoveragePolicyCard />);
+    await user.click(await screen.findByRole('button', { name: 'Edit policy' }));
+    const perOccurrence = screen.getByRole('textbox', { name: /Minimum liability per occurrence/ });
+    await user.clear(perOccurrence);
+    await user.type(perOccurrence, '2000000');
+    await user.clear(screen.getByRole('textbox', { name: /Minimum liability per person/ }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    await screen.findByRole('button', { name: 'Edit policy' });
+    expect(sent).toMatchObject({
+      min_liability_per_occurrence_cents: 200_000_000,
+      min_liability_per_person_cents: 0,
+    });
   });
 
   it('reads an empty list as None', async () => {
@@ -69,6 +122,8 @@ describe('<CoveragePolicyCard/>', () => {
     expect(sent).toEqual({
       excluded_categories: ['helicopter'],
       excluded_airworthiness: ['experimental'],
+      min_liability_per_occurrence_cents: 100_000_000,
+      min_liability_per_person_cents: 10_000_000,
       note: 'Rotorcraft and homebuilts are not covered.',
     });
   });

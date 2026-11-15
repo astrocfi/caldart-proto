@@ -435,18 +435,34 @@ class AircraftChange(models.Model):
         return f"{self.aircraft.n_number} {self.kind}"
 
 
+#: The liability CalDART requires of an aircraft's insurance until a system
+#: administrator sets other minimums: $1,000,000 per occurrence, $100,000 per person.
+DEFAULT_MIN_LIABILITY_PER_OCCURRENCE_CENTS = 100_000_000
+DEFAULT_MIN_LIABILITY_PER_PERSON_CENTS = 10_000_000
+
+
 class AircraftCoveragePolicy(models.Model):
     """The one record of which aircraft CalDART's insurance policy does not cover.
 
     ``excluded_categories`` holds ``AircraftCategory`` values and
     ``excluded_airworthiness`` ``Airworthiness`` values; an aircraft whose recorded
-    category or airworthiness is listed is not covered.  ``note`` is a short plain-text
-    statement of the limitation, published to members on My aircraft.  There is only
-    ever one row, with primary key 1: :meth:`load` reads it.
+    category or airworthiness is listed is not covered.
+    ``min_liability_per_occurrence_cents`` and ``min_liability_per_person_cents`` are
+    the least liability an aircraft's own policy must carry, in cents; an aircraft
+    whose recorded policy carries less is not covered either, and ``0`` sets no
+    minimum.  ``note`` is a short plain-text statement of the limitation, published to
+    members on My aircraft.  There is only ever one row, with primary key 1: :meth:`load`
+    reads it.
     """
 
     excluded_categories = models.JSONField(default=list, blank=True)
     excluded_airworthiness = models.JSONField(default=list, blank=True)
+    min_liability_per_occurrence_cents = models.PositiveBigIntegerField(
+        default=DEFAULT_MIN_LIABILITY_PER_OCCURRENCE_CENTS
+    )
+    min_liability_per_person_cents = models.PositiveBigIntegerField(
+        default=DEFAULT_MIN_LIABILITY_PER_PERSON_CENTS
+    )
     note = models.TextField(blank=True)
     updated_at = models.DateTimeField(auto_now=True)
     updated_by = models.ForeignKey(

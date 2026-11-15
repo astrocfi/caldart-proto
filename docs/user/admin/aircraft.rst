@@ -90,7 +90,7 @@ Coverage policy
 The **Coverage policy** card, above the table, says which airplanes CalDART's insurance
 doesn't cover, so a DART leader isn't surprised on the ramp. Only a system administrator
 sees the card and changes the policy. An account administrator sees the register without
-it. The card has three lines:
+it. The card has four lines:
 
 **Excluded categories**
    The aircraft categories the policy leaves out, such as **Helicopter**, or *None*.
@@ -98,13 +98,18 @@ it. The card has three lines:
 **Excluded airworthiness**
    The airworthiness categories it leaves out, such as **Experimental**, or *None*.
 
+**Minimum liability**
+   The least liability an airplane's own policy must carry, such as *$1,000,000 per
+   occurrence, $100,000 per person*, or *None*. Those two amounts are where it starts.
+
 **Note to members**
    A short statement of the limitation in your own words, or *None*. Every member sees it
    above the list on **My aircraft**.
 
 To change it, press **Edit policy**. In the two drop-downs, check the categories and the
-airworthiness categories to leave out (**Clear** in either one unchecks them all). Write
-the note, and press **Save changes**. *Coverage policy saved.* appears. **Cancel** puts the
+airworthiness categories to leave out (**Clear** in either one unchecks them all). Type
+the **Minimum liability per occurrence** and **Minimum liability per person** in US
+dollars, or leave one blank for no minimum. Write the note, and press **Save changes**. *Coverage policy saved.* appears. **Cancel** puts the
 card back as it was. The note can be up to 1,000 characters.
 
 The policy takes effect at once. The aircraft check shows an airplane the policy leaves out
@@ -114,6 +119,13 @@ pilot's card, and **My aircraft** marks it for its pilot. If an airplane doesn't
 recorded **Category**, the policy never leaves it out by category, whatever its
 airworthiness says. Instead, the aircraft check says *Category not recorded*, so record the
 category on the :doc:`aircraft-record`.
+
+An airplane whose recorded policy carries less liability than a minimum is left out too,
+with the reason *liability is under CalDART's minimum of $1,000,000 per occurrence*,
+naming each minimum it misses. Nobody can verify that insurance until the amounts meet the
+minimums. A changed minimum applies to every airplane at once. An airplane without an
+insurance expiry date doesn't have a policy on file, so the aircraft check reads *No
+policy on file* for it.
 
 
 Filtering

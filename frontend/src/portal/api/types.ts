@@ -846,6 +846,9 @@ export interface AircraftCoverage {
 export interface AircraftCoveragePolicy {
   excluded_categories: AircraftCategory[];
   excluded_airworthiness: Airworthiness[];
+  /** The least liability an aircraft's own policy must carry, in cents; 0 for none. */
+  min_liability_per_occurrence_cents: number;
+  min_liability_per_person_cents: number;
   note: string;
 }
 
