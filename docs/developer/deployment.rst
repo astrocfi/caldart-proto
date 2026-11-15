@@ -2039,8 +2039,12 @@ record acted on, or ``-``.  The actions:
 ================================= ===============================================
 Action                            Fields beyond actor and target
 ================================= ===============================================
-``account.update``                ``fields`` -- the account columns changed
-``account.roles``                 ``added``, ``removed`` -- role slugs
+``account.update``                ``fields`` -- the account columns changed; with
+                                  ``verifier_until`` when a verifier grant's last
+                                  day alone moved
+``account.roles``                 ``added``, ``removed`` -- role slugs; with
+                                  ``verifier_until`` (a date, or ``none``) when the
+                                  write set or moved a verifier grant's last day
 ``account.activate``              ``self_service`` -- on the owner's own
                                   reactivation
 ``account.deactivate``            ``self_service`` -- on the owner's own
@@ -2158,6 +2162,8 @@ Action                            Fields beyond actor and target
                                   callout's sender)
 ``callout.close``                 -- (the target is the ``BulkEmail``); one line
                                   per **Close now**
+``callout.move_close``            -- (the target is the ``BulkEmail``); one line
+                                  per **Change closing time**
 ``email_type.create``             -- (the target is the ``EmailType``)
 ``email_type.update``             --
 ``email_type.delete``             --

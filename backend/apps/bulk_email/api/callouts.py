@@ -30,7 +30,7 @@ from apps.bulk_email.api.serializers import sender_name
 from apps.bulk_email.callouts import CalloutCounts, CalloutRow, Reminder
 from apps.bulk_email.models import BulkEmail, CalloutAnswerKind
 from apps.members.api.actors import acting_user
-from caldart.exceptions import DomainError
+from caldart.exceptions import DomainError, DomainValidationError
 from caldart.reports import CSV_MEDIA_TYPE, download_responses, report_response
 
 #: The answer to a refusal that comes from the callout's state.
@@ -262,6 +262,45 @@ class CalloutRemindView(APIView):
         bulk = callout_for(request, pk)
         try:
             callouts.remind(bulk, actor=acting_user(request))
+        except DomainError as error:
+            return refused(error)
+        return _detail(request, pk)
+
+
+class CalloutCloseTimeSerializer(serializers.Serializer[Any]):
+    """``POST /bulk-email/callouts/{id}/closes-at``: when answers should close now.
+
+    ``closes_at`` is a date and time; one without an offset is read in the site's time
+    zone, as the compose screen sends it.
+    """
+
+    closes_at = serializers.DateTimeField()
+
+
+class CalloutCloseTimeView(APIView):
+    """``POST /bulk-email/callouts/{id}/closes-at`` -- change when answers close."""
+
+    permission_classes = BULK_EMAIL_PERMISSIONS
+
+    @extend_schema(
+        request=CalloutCloseTimeSerializer,
+        responses={200: CalloutDetailSerializer, 409: CONFLICT},
+    )
+    def post(self, request: Request, pk: int) -> Response:
+        """200 with the callout and its new close time.
+
+        400 keyed ``closes_at`` for a missing time or one that isn't in the future; 409
+        for a callout that hasn't been sent, or was closed with **Close now**.
+        """
+        bulk = callout_for(request, pk)
+        payload = CalloutCloseTimeSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        try:
+            callouts.move_close(
+                bulk, actor=acting_user(request), closes_at=payload.validated_data["closes_at"]
+            )
+        except DomainValidationError:
+            raise
         except DomainError as error:
             return refused(error)
         return _detail(request, pk)

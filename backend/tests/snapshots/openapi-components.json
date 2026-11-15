@@ -1197,6 +1197,14 @@
       "unavailable"
     ]
   },
+  "CalloutCloseTimeRequest": {
+    "properties": {
+      "closes_at": "string(date-time)"
+    },
+    "required": [
+      "closes_at"
+    ]
+  },
   "CalloutCounts": {
     "properties": {
       "available": "integer",
