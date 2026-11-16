@@ -76,7 +76,7 @@ it. Saving a changed pilot certificate, medical, or photo ID clears its verifica
 address takes effect once its owner follows the link sent to it (see
 :doc:`../member/change-email`). To change your own address, use **Change email**.
 
-The **Amateur radio** fieldset, under the emergency contact, holds the **Amateur radio
+The **Amateur radio** fieldset, after the ratings, holds the **Amateur radio
 callsign**. It is optional, a US callsign such as W6ABC, and it turns to capitals as you
 type. Anything else is refused with *Enter a US amateur radio callsign, such as W6ABC.* A
 first or last name typed all in capitals or all in lower case is saved in title case, so

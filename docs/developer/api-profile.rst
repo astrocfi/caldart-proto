@@ -109,11 +109,7 @@ row first if the account doesn't have one.
        }
      ],
      "vol_ground_team": false,
-     "vol_exercise_training": false,
-     "vol_member_support": false,
-     "vol_fundraising": false,
-     "vol_social_media": false,
-     "vol_newsletter": false
+     "vol_exercise_training": false
    }
 
 Read-only fields

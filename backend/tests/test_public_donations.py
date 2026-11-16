@@ -631,12 +631,12 @@ def test_completing_a_gift_keeps_an_optional_field_the_giver_left_blank(
     api_client: APIClient, give: Callable[..., dict[str, Any]]
 ) -> None:
     """A returning donor who skips the optional section keeps what they told us before."""
-    complete(api_client, give(city="Petaluma", vol_newsletter=True))
+    complete(api_client, give(city="Petaluma", vol_ground_team=True))
 
-    complete(api_client, give(email=DONOR_EMAIL.upper(), city="", vol_newsletter=False))
+    complete(api_client, give(email=DONOR_EMAIL.upper(), city="", vol_ground_team=False))
 
     profile = MemberProfile.objects.get(user__email=DONOR_EMAIL)
-    assert (profile.city, profile.vol_newsletter) == ("Petaluma", True)
+    assert (profile.city, profile.vol_ground_team) == ("Petaluma", True)
 
 
 def start_without_phone(api_client: APIClient, **overrides: Any) -> dict[str, Any]:

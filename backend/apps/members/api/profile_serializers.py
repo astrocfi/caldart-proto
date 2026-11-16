@@ -269,10 +269,6 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
             "vol_mission_pilot",
             "vol_ground_team",
             "vol_exercise_training",
-            "vol_member_support",
-            "vol_fundraising",
-            "vol_social_media",
-            "vol_newsletter",
         ]
 
     @extend_schema_field(AircraftSummarySerializer(many=True))

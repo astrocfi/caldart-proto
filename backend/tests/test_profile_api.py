@@ -248,7 +248,7 @@ def test_put_updates_every_writable_section(
             "medical_type": "second",
             "medical_expiration": "2030-01-31",
             "vol_ground_team": True,
-            "vol_newsletter": True,
+            "vol_exercise_training": True,
         },
         format="json",
     )
@@ -259,7 +259,7 @@ def test_put_updates_every_writable_section(
     assert data["dart"] == {"id": dart.id, "name": dart.name}
     assert data["ratings"] == ["instrument", "amel"]
     assert data["vol_ground_team"] is True
-    assert data["vol_fundraising"] is False
+    assert data["vol_mission_pilot"] is False
 
     profile.refresh_from_db()
     assert profile.phone == "650-555-0101"

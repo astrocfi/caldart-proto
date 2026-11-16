@@ -73,10 +73,6 @@ export interface ProfileFormValues {
   vol_mission_pilot: boolean;
   vol_ground_team: boolean;
   vol_exercise_training: boolean;
-  vol_member_support: boolean;
-  vol_fundraising: boolean;
-  vol_social_media: boolean;
-  vol_newsletter: boolean;
 }
 
 export type ProfileFormErrors = Partial<Record<keyof ProfileFormValues, string>>;
@@ -112,10 +108,6 @@ export const EMPTY_PROFILE_FORM: ProfileFormValues = {
   vol_mission_pilot: false,
   vol_ground_team: false,
   vol_exercise_training: false,
-  vol_member_support: false,
-  vol_fundraising: false,
-  vol_social_media: false,
-  vol_newsletter: false,
 };
 
 /**
@@ -158,10 +150,6 @@ export function profileToForm(profile: ProfileSource): ProfileFormValues {
     vol_mission_pilot: profile.vol_mission_pilot,
     vol_ground_team: profile.vol_ground_team,
     vol_exercise_training: profile.vol_exercise_training,
-    vol_member_support: profile.vol_member_support,
-    vol_fundraising: profile.vol_fundraising,
-    vol_social_media: profile.vol_social_media,
-    vol_newsletter: profile.vol_newsletter,
   };
 }
 
@@ -199,10 +187,6 @@ export function formToPatch(values: ProfileFormValues): Omit<ProfilePatch, Profi
     vol_mission_pilot: values.vol_mission_pilot,
     vol_ground_team: values.vol_ground_team,
     vol_exercise_training: values.vol_exercise_training,
-    vol_member_support: values.vol_member_support,
-    vol_fundraising: values.vol_fundraising,
-    vol_social_media: values.vol_social_media,
-    vol_newsletter: values.vol_newsletter,
   };
 }
 

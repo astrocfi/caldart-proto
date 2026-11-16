@@ -1,5 +1,5 @@
 /**
- * The four profile fieldsets — Contact, Amateur radio, Aviation (with Ratings) and
+ * The four profile fieldsets — Contact, Aviation (with Ratings), Amateur radio, and
  * Volunteer interests — as one controlled component.
  *
  * `/profile`, join step 2, "New member" and the Profile tab of a member record
@@ -446,19 +446,6 @@ export function ProfileFieldsets({
       </fieldset>
 
       <fieldset>
-        <legend>Amateur radio</legend>
-        <div className="form-grid">
-          {text('ham_callsign', {
-            label: 'Amateur radio callsign',
-            className: 'num',
-            size: 7,
-            hint: 'Optional. A US callsign, such as W6ABC',
-            mask: maskCallsign,
-          })}
-        </div>
-      </fieldset>
-
-      <fieldset>
         <legend>Aviation</legend>
         <div className="form-grid">
           {text('home_airport_identifier', {
@@ -555,6 +542,19 @@ export function ProfileFieldsets({
             </div>
           ))}
         </fieldset>
+      </fieldset>
+
+      <fieldset>
+        <legend>Amateur radio</legend>
+        <div className="form-grid">
+          {text('ham_callsign', {
+            label: 'Amateur radio callsign',
+            className: 'num',
+            size: 7,
+            hint: 'Optional. A US callsign, such as W6ABC',
+            mask: maskCallsign,
+          })}
+        </div>
       </fieldset>
 
       <fieldset>

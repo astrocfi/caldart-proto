@@ -424,14 +424,14 @@ donor, then starts a pending contribution with the provider.
 
    {"first_name": "Rosa", "last_name": "Delgado", "email": "rosa@example.org",
     "phone": "707-555-0142", "contribution_cents": 10000, "provider": "stripe",
-    "city": "Petaluma", "county": "Sonoma", "dart_id": 3, "vol_fundraising": true}
+    "city": "Petaluma", "county": "Sonoma", "dart_id": 3, "vol_ground_team": true}
 
 ``first_name``, ``last_name``, and ``email`` are required.  ``phone`` and the rest
 are optional profile fields, each written onto the donor's profile under its own
 name, and under the profile's own rules (see :doc:`api-profile`): ``address_line1``,
 ``address_line2``, ``city``, ``state``, ``postal_code``, ``county``,
 ``home_airport_identifier``, ``dart_id``, ``air_care_alliance_number``,
-``pilot_certificate_type``, and the seven ``vol_*`` volunteer interests.  A pilot
+``pilot_certificate_type``, and the three ``vol_*`` volunteer interests.  A pilot
 certificate doesn't need a number here.  ``address_line1``, ``address_line2``, and
 ``city`` land on the profile in title case, the same as a member's own.
 ``contribution_cents`` runs from ``donation_minimum_cents`` to

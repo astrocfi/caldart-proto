@@ -346,10 +346,6 @@ def _profile_defaults(
         "vol_mission_pilot": is_pilot and rng.random() < 0.5,
         "vol_ground_team": rng.random() < 0.45,
         "vol_exercise_training": rng.random() < 0.5,
-        "vol_member_support": rng.random() < 0.3,
-        "vol_fundraising": rng.random() < 0.2,
-        "vol_social_media": rng.random() < 0.18,
-        "vol_newsletter": rng.random() < 0.25,
         "how_heard": rng.choice(HOW_HEARD),
     }
 

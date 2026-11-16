@@ -630,10 +630,6 @@ export interface Profile {
   vol_mission_pilot: boolean;
   vol_ground_team: boolean;
   vol_exercise_training: boolean;
-  vol_member_support: boolean;
-  vol_fundraising: boolean;
-  vol_social_media: boolean;
-  vol_newsletter: boolean;
 }
 
 /** The account's names, which `/me/profile` carries and the member record keeps apart. */
@@ -1260,10 +1256,6 @@ export interface DonationCheckoutRequest {
   vol_mission_pilot?: boolean;
   vol_ground_team?: boolean;
   vol_exercise_training?: boolean;
-  vol_member_support?: boolean;
-  vol_fundraising?: boolean;
-  vol_social_media?: boolean;
-  vol_newsletter?: boolean;
 }
 
 /** The 201 of `POST /donations/checkout`: the portal checkout's answer, plus the token. */

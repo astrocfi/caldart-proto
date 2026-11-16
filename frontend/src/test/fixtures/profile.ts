@@ -131,10 +131,6 @@ export function makeProfile(overrides: Partial<Profile> = {}): Profile {
     vol_mission_pilot: false,
     vol_ground_team: false,
     vol_exercise_training: false,
-    vol_member_support: false,
-    vol_fundraising: false,
-    vol_social_media: false,
-    vol_newsletter: false,
     ...overrides,
   };
 }

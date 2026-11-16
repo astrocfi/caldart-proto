@@ -308,10 +308,6 @@ class MemberProfile(TimestampedModel):
     vol_mission_pilot = models.BooleanField("mission pilot", default=False)
     vol_ground_team = models.BooleanField("ground support", default=False)
     vol_exercise_training = models.BooleanField("exercises and training", default=False)
-    vol_member_support = models.BooleanField("member support", default=False)
-    vol_fundraising = models.BooleanField("fundraising", default=False)
-    vol_social_media = models.BooleanField("social media", default=False)
-    vol_newsletter = models.BooleanField("newsletter", default=False)
 
     # -- verification -----------------------------------------------------
     #: Each verified item (see ``apps.members.verification``) carries when it was

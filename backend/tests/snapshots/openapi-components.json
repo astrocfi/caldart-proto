@@ -165,12 +165,8 @@
       "state": "ref:StateEnum",
       "verification": "ref:ProfileVerification",
       "vol_exercise_training": "boolean",
-      "vol_fundraising": "boolean",
       "vol_ground_team": "boolean",
-      "vol_member_support": "boolean",
-      "vol_mission_pilot": "boolean",
-      "vol_newsletter": "boolean",
-      "vol_social_media": "boolean"
+      "vol_mission_pilot": "boolean"
     },
     "required": [
       "aircraft",
@@ -210,12 +206,8 @@
       "secondary_airport_identifier": "string",
       "state": "ref:StateEnum",
       "vol_exercise_training": "boolean",
-      "vol_fundraising": "boolean",
       "vol_ground_team": "boolean",
-      "vol_member_support": "boolean",
-      "vol_mission_pilot": "boolean",
-      "vol_newsletter": "boolean",
-      "vol_social_media": "boolean"
+      "vol_mission_pilot": "boolean"
     },
     "required": []
   },
@@ -1610,12 +1602,8 @@
       "provider": "ref:PaymentProviderEnum",
       "state": "unknown",
       "vol_exercise_training": "boolean",
-      "vol_fundraising": "boolean",
       "vol_ground_team": "boolean",
-      "vol_member_support": "boolean",
-      "vol_mission_pilot": "boolean",
-      "vol_newsletter": "boolean",
-      "vol_social_media": "boolean"
+      "vol_mission_pilot": "boolean"
     },
     "required": [
       "contribution_cents",
@@ -3153,12 +3141,8 @@
       "secondary_airport_identifier": "string",
       "state": "ref:StateEnum",
       "vol_exercise_training": "boolean",
-      "vol_fundraising": "boolean",
       "vol_ground_team": "boolean",
-      "vol_member_support": "boolean",
-      "vol_mission_pilot": "boolean",
-      "vol_newsletter": "boolean",
-      "vol_social_media": "boolean"
+      "vol_mission_pilot": "boolean"
     },
     "required": []
   },
@@ -3275,12 +3259,8 @@
       "secondary_airport_identifier": "string",
       "state": "ref:StateEnum",
       "vol_exercise_training": "boolean",
-      "vol_fundraising": "boolean",
       "vol_ground_team": "boolean",
-      "vol_member_support": "boolean",
-      "vol_mission_pilot": "boolean",
-      "vol_newsletter": "boolean",
-      "vol_social_media": "boolean"
+      "vol_mission_pilot": "boolean"
     },
     "required": []
   },
@@ -3597,12 +3577,8 @@
       "state": "ref:StateEnum",
       "verification": "ref:ProfileVerification",
       "vol_exercise_training": "boolean",
-      "vol_fundraising": "boolean",
       "vol_ground_team": "boolean",
-      "vol_member_support": "boolean",
-      "vol_mission_pilot": "boolean",
-      "vol_newsletter": "boolean",
-      "vol_social_media": "boolean"
+      "vol_mission_pilot": "boolean"
     },
     "required": [
       "aircraft",
@@ -3643,12 +3619,8 @@
       "secondary_airport_identifier": "string",
       "state": "ref:StateEnum",
       "vol_exercise_training": "boolean",
-      "vol_fundraising": "boolean",
       "vol_ground_team": "boolean",
-      "vol_member_support": "boolean",
-      "vol_mission_pilot": "boolean",
-      "vol_newsletter": "boolean",
-      "vol_social_media": "boolean"
+      "vol_mission_pilot": "boolean"
     },
     "required": [
       "state"

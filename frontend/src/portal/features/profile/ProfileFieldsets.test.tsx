@@ -52,15 +52,7 @@ const RATING_LABELS = [
   'MEI',
 ];
 
-const VOLUNTEER_LABELS = [
-  'Mission pilot',
-  'Ground support',
-  'Exercises and training',
-  'Member support',
-  'Fundraising',
-  'Social media',
-  'Newsletter',
-];
+const VOLUNTEER_LABELS = ['Mission pilot', 'Ground support', 'Exercises and training'];
 
 /** A profile holding a certificate, a medical, and a photo ID, each with something to verify. */
 const HELD_ITEMS: ProfileFormValues = {
@@ -109,12 +101,18 @@ describe('<ProfileFieldsets/>', () => {
     },
   );
 
-  it('puts the callsign in its own fieldset right after Contact', () => {
+  it('puts the callsign in its own fieldset right after the ratings', () => {
     renderFieldsets();
     const legends = screen
       .getAllByRole('group')
       .map((group) => group.querySelector(':scope > legend')?.textContent);
-    expect(legends.slice(0, 3)).toEqual(['Contact', 'Amateur radio', 'Aviation']);
+    expect(legends.slice(0, 5)).toEqual([
+      'Contact',
+      'Aviation',
+      'Ratings',
+      'Amateur radio',
+      'Volunteer interests',
+    ]);
   });
 
   it('labels the callsign field inside the Amateur radio fieldset', () => {
@@ -314,13 +312,19 @@ describe('<ProfileFieldsets/>', () => {
     expect(onChange).toHaveBeenCalledWith({ ...EMPTY_PROFILE_FORM, ratings: ['cfi'] });
   });
 
+  it('asks only about the three volunteer interests', () => {
+    renderFieldsets();
+    const group = screen.getByRole('group', { name: 'Volunteer interests' });
+    expect(within(group).getAllByRole('checkbox')).toHaveLength(3);
+  });
+
   it('reports a checked volunteer interest through onChange', async () => {
     const user = userEvent.setup();
     const onChange = renderFieldsets();
 
-    await user.click(screen.getByLabelText('Newsletter (volunteer interest)'));
+    await user.click(screen.getByLabelText('Exercises and training (volunteer interest)'));
 
-    expect(onChange).toHaveBeenCalledWith({ ...EMPTY_PROFILE_FORM, vol_newsletter: true });
+    expect(onChange).toHaveBeenCalledWith({ ...EMPTY_PROFILE_FORM, vol_exercise_training: true });
   });
 
   it('asks for the secondary airport without its leading K', () => {
