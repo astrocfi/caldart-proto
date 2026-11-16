@@ -143,9 +143,9 @@ CalDART emails a receipt the moment a payment clears, whether you paid by card,
 through PayPal, or by a check somebody at CalDART entered for you. The subject is
 *CalDART: your receipt for $45.00*, with your own amount, and the receipt is attached
 as a PDF. It shows CalDART's name, address, and EIN, a receipt number, the date,
-what you paid for, and the total. The email names the EIN too. A receipt for a contribution also includes the
-sentence *No goods or services were provided in exchange for this contribution.*
-Dues are listed as dues, because a membership is something you received.
+what you paid for, and the total. The email names the EIN too. Dues and contributions
+are both tax deductible, so every receipt includes the sentence *No goods or services
+were provided in exchange for this payment.*
 
 You can download any receipt again from the **Receipt** link on its row.
 
@@ -163,20 +163,20 @@ usually within a few business days.
 Contribution statements
 =======================
 
-A statement puts a calendar year of contributions on one page: the date, receipt
-number, and amount of each, anything refunded, and the year's total, with CalDART's
-EIN and the wording your tax preparer needs. It is the paper you file with a tax return.
+A statement puts a calendar year of your dues and contributions on one page, since
+both are tax deductible: the date, receipt number, what each payment was for (such as
+*Annual dues and contribution*), its amount, anything refunded, and the year's total,
+with CalDART's EIN and the wording your tax preparer needs. It is the paper you file
+with a tax return.
 
-Each January, CalDART emails a statement to every member, friend, and donor who gave
-in the year before. The subject is *CalDART: your 2026 contribution statement*, and
+Each January, CalDART emails a statement to every member, friend, and donor who paid
+dues or gave in the year before. The subject is *CalDART: your 2026 contribution statement*, and
 the statement is attached as a PDF. The buttons here download the same statement at
 any time.
 
-If you paid dues in a year but didn't give anything, that year doesn't have a
-statement, because dues aren't a gift. If you don't have any statements, the card
-says **No statements yet**. A refund comes off the contribution first, even when the
-payment also covered dues. So if you had a refund in a year, check that year's
-statement against your receipts before you file it.
+If you don't have any statements, the card says **No statements yet**. A refund
+comes off the payment it was made against, so if you had a refund in a year, that
+payment's line shows it and the total is net of it.
 
 
 If something looks wrong

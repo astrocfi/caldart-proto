@@ -6,10 +6,9 @@ gather the facts it already has and hand them over without an import cycle.
 
 Both documents are upright US letter in the CalDART house palette, which lives
 in :mod:`caldart.reports` alongside the CSV and table-PDF exports.  A receipt
-acknowledges one payment; a statement gathers a calendar year of contributions
-for a member's tax return.  Membership dues are printed as dues: only a
-contribution carries the 501(c)(3) wording, because only a contribution is a
-gift.
+acknowledges one payment; a statement gathers a calendar year of payments for a
+member's tax return.  Membership dues and contributions are both tax deductible, so
+both carry the 501(c)(3) wording and both are on the statement.
 """
 
 from __future__ import annotations
@@ -54,12 +53,12 @@ from caldart.reports import (
 #: The printable width of an upright US-letter page inside one-inch margins.
 CONTENT_WIDTH = letter[0] - 4 * MARGIN
 
-#: What a receipt says under a contribution, and what makes it usable as a
-#: donor's substantiation.
-CONTRIBUTION_NOTICE = "No goods or services were provided in exchange for this contribution."
+#: What a receipt says under its dues and its contribution, and what makes it usable
+#: as substantiation for a deduction.
+CONTRIBUTION_NOTICE = "No goods or services were provided in exchange for this payment."
 
 #: The same, for a statement covering a year of them.
-CONTRIBUTIONS_NOTICE = "No goods or services were provided in exchange for these contributions."
+CONTRIBUTIONS_NOTICE = "No goods or services were provided in exchange for these payments."
 
 #: What a statement says above the public-page gifts made with the member's address.
 PUBLIC_GIFTS_NOTICE = (
@@ -118,8 +117,8 @@ class ReceiptLine:
 
     ``label`` names it ("Annual membership", "Contribution"), ``detail`` says
     more where there is more to say (a term's dates), and ``amount_cents`` is
-    what that part of the payment came to.  ``deductible`` marks a line as a
-    gift rather than value received, which is what brings the 501(c)(3)
+    what that part of the payment came to.  ``deductible`` marks a line as tax
+    deductible, dues and contributions alike, which is what brings the 501(c)(3)
     sentence onto the page.
     """
 
@@ -155,16 +154,17 @@ class ReceiptData:
 
     @property
     def has_contribution(self) -> bool:
-        """Whether any line is a gift, and so whether the receipt claims a deduction."""
+        """Whether any line is deductible, so that the receipt claims a deduction."""
         return any(line.deductible for line in self.lines)
 
 
 @dataclass(frozen=True)
 class StatementLine:
-    """One contribution in a year's statement.
+    """One payment in a year's statement: dues, a contribution, or both.
 
-    ``amount_cents`` is what was given and ``refunded_cents`` what came back,
-    so a contribution refunded in part still appears, honestly netted.  ``given_as``
+    ``description`` says what it was for, such as ``Annual membership dues and
+    contribution``.  ``amount_cents`` is what was paid and ``refunded_cents`` what came
+    back, so a payment refunded in part still appears, honestly netted.  ``given_as``
     is the name a gift was made out to when it is not the account holder's own, such
     as one given in another person's name on the public donation page, or ``""``.
     """
@@ -174,6 +174,7 @@ class StatementLine:
     amount_cents: int
     refunded_cents: int = 0
     given_as: str = ""
+    description: str = ""
 
     @property
     def net_cents(self) -> int:
@@ -183,7 +184,7 @@ class StatementLine:
 
 @dataclass(frozen=True)
 class StatementData:
-    """A member's contributions for one calendar year.
+    """A member's tax-deductible payments for one calendar year: dues and contributions.
 
     ``contributions`` are in the order they are printed, which is the order
     they were paid.  A year without any renders a page whose total is zero rather
@@ -201,7 +202,7 @@ class StatementData:
 
     @property
     def total_cents(self) -> int:
-        """The year's giving, net of every refund, in cents."""
+        """The year's dues and contributions, net of every refund, in cents."""
         return sum(line.net_cents for line in self.contributions)
 
 
@@ -210,9 +211,8 @@ def build_receipt_pdf(buffer: IO[bytes], receipt: ReceiptData) -> None:
 
     One upright US-letter page: the organization's letterhead, the receipt
     number and date, who paid, a line per thing the payment bought with its
-    amount in dollars, the total, and how the money arrived.  A receipt
-    carrying a contribution also prints :data:`CONTRIBUTION_NOTICE`; one that
-    is dues alone does not, because dues are value received.
+    amount in dollars, the total, and how the money arrived.  A receipt with a
+    deductible line, dues or a contribution, also prints :data:`CONTRIBUTION_NOTICE`.
     """
     story = _letterhead(receipt.org)
     story.append(Paragraph(escape_markup(f"Receipt {receipt.receipt_number}"), TITLE_STYLE))
@@ -262,16 +262,16 @@ def build_statement_pdf(buffer: IO[bytes], statement: StatementData) -> None:
     """Render a member's annual contribution statement into ``buffer``.
 
     One upright US-letter page: the letterhead, the year, the member, a row per
-    contribution with its date, receipt number, amount, refund and net, the
-    year's total net of refunds, and :data:`CONTRIBUTIONS_NOTICE`.  Membership
-    dues are not on it; a statement covers gifts alone.
+    payment with its date, receipt number, what it was for, amount, refund and net, the
+    year's total net of refunds, and :data:`CONTRIBUTIONS_NOTICE`.  Membership dues are
+    on it as well as contributions, since both are tax deductible.
     """
     story = _letterhead(statement.org)
     story.append(
         Paragraph(escape_markup(f"Contribution statement for {statement.year}"), TITLE_STYLE)
     )
     story.append(Spacer(1, 12))
-    story.append(Paragraph("Contributions from", HEADING_STYLE))
+    story.append(Paragraph("Received from", HEADING_STYLE))
     story.append(Paragraph(escape_markup(statement.member_name), TEXT_STYLE))
     story.append(Paragraph(escape_markup(statement.member_email), TEXT_STYLE))
     story.append(Spacer(1, 14))
@@ -280,7 +280,8 @@ def build_statement_pdf(buffer: IO[bytes], statement: StatementData) -> None:
         [
             Paragraph("Date", HEADER_CELL_STYLE),
             Paragraph("Receipt", HEADER_CELL_STYLE),
-            Paragraph("Contribution", AMOUNT_HEADER_STYLE),
+            Paragraph("For", HEADER_CELL_STYLE),
+            Paragraph("Amount", AMOUNT_HEADER_STYLE),
             Paragraph("Refunded", AMOUNT_HEADER_STYLE),
             Paragraph("Net", AMOUNT_HEADER_STYLE),
         ]
@@ -289,6 +290,7 @@ def build_statement_pdf(buffer: IO[bytes], statement: StatementData) -> None:
         [
             Paragraph(line.paid_on.isoformat(), CELL_STYLE),
             Paragraph(_receipt_cell(line), CELL_STYLE),
+            Paragraph(escape_markup(line.description), CELL_STYLE),
             Paragraph(money_label(line.amount_cents), AMOUNT_STYLE),
             Paragraph(money_label(line.refunded_cents), AMOUNT_STYLE),
             Paragraph(money_label(line.net_cents), AMOUNT_STYLE),
@@ -301,10 +303,11 @@ def build_statement_pdf(buffer: IO[bytes], statement: StatementData) -> None:
             Paragraph("", CELL_STYLE),
             Paragraph("", CELL_STYLE),
             Paragraph("", CELL_STYLE),
+            Paragraph("", CELL_STYLE),
             Paragraph(money_label(statement.total_cents), TOTAL_STYLE),
         ]
     )
-    story.append(_money_table(rows, widths=[1.2, 1.7, 1.4, 1.3, 1.4]))
+    story.append(_money_table(rows, widths=[1.0, 1.4, 1.9, 1.0, 0.9, 1.0]))
     if statement.public_gifts:
         story.extend(_public_gifts(statement.public_gifts))
 

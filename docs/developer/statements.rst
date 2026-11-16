@@ -2,8 +2,9 @@
 Statements
 ==========
 
-Once a year, CalDART sends every account that gave a contribution a statement
-of what it gave, for the giver's tax return.  As with the renewal scan
+Once a year, CalDART sends every account that paid dues or gave a contribution a
+statement of what it paid, for its tax return: dues and contributions are both tax
+deductible.  As with the renewal scan
 (:doc:`renewals`) and the report sender (:doc:`scheduled-reports`), it doesn't
 need a queue or a worker: one management command, run yearly by a systemd
 timer, sends whatever a calendar year owes, and a rerun for a year already sent
@@ -19,12 +20,11 @@ Who is sent one
 
 Every account that is **active**, whatever its :ref:`kind <account-kinds>` —
 a member, a friend, or a donor — and that made at least one **settled**
-contribution in the calendar year: a payment carrying a contribution whose
+payment in the calendar year, dues or a contribution: a payment of more than $0 whose
 ledger date (:doc:`reports`) falls in that year, and whose status is
 ``succeeded``, ``partially_refunded`` or ``refunded``.  A deactivated account
-is never written to, however much it gave while active; a pure membership
-payment, which doesn't carry a contribution, doesn't earn a statement.  Neither does
-a year that nets to zero: a giver whose every contribution that year was refunded in
+is never written to, however much it paid while active.  A year that nets to zero
+doesn't earn a statement: an account whose every payment that year was refunded in
 full is left out of the run, live or practice, and isn't counted anywhere, so nobody
 is sent a $0.00 statement.
 
@@ -40,10 +40,13 @@ The statement
 =============
 
 Each giver's statement is the same PDF a member downloads from Payments at any
-time (:doc:`/user/member/payments`): a line per settled contribution, netted against
-whatever of it was refunded, and the year's total.  The email names the total and
-the EIN from Site settings (as the receipt email does), carries the "no goods or services were provided in exchange for these
-contributions" sentence a 501(c)(3) receipt requires, and, for a member or a
+time (:doc:`/user/member/payments`): a line per settled payment, saying what it was
+for (``apps.payments.receipts.statement_description``: *Annual dues*, *Annual dues and
+contribution*, or *Contribution*), netted against whatever of it was refunded
+(``refunded_cents``, capped at the payment's amount), and the year's total.  The email
+names the total and the EIN from Site settings (as the receipt email does), carries
+the "no goods or services were provided in exchange for these payments" sentence a
+501(c)(3) receipt requires, and, for a member or a
 friend only, a link to Payments — a donor cannot sign in, so the email links
 nowhere.  The subject is ``<org>: your <year> contribution statement``, and
 the send is recorded in the email log under the purpose

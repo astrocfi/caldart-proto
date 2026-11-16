@@ -161,8 +161,9 @@ or choose to be a friend instead.
    its plans on this site, so ask the office. Under the plans, **Join as a friend
    instead (no dues)** turns the step into a friend's **Donate to CalDART**,
    described below.
-#. **Add a contribution.** CalDART is a 501(c)(3), so a contribution on top of your
-   dues is tax deductible and pays for training, fuel, and equipment. Choose a tier
+#. **Add a contribution.** CalDART is a 501(c)(3), so your dues and a contribution on
+   top of them are tax deductible, and a contribution pays for training, fuel, and
+   equipment. Choose a tier
    (Participating $20, Bronze $100, Silver $300, Gold $1,000, Diamond $3,000, or
    Platinum $10,000), choose **Other amount** and type your own amount in whole
    dollars, or choose **No thank you**. **Total today** adds it up as you go.

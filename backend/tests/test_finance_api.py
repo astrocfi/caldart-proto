@@ -309,10 +309,10 @@ def test_the_ledger_names_the_years_a_statement_can_be_downloaded_for(
     assert treasurer_client.get(ledger_url(member)).json()["statement_years"] == [2026]
 
 
-def test_a_year_with_dues_but_without_giving_does_not_earn_a_statement(
+def test_a_year_of_dues_alone_earns_a_statement(
     treasurer_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """A membership payment is not a deductible gift, so it doesn't buy a statement."""
+    """Dues are tax deductible, so a year of dues alone has a statement."""
     PaymentFactory(
         user=member,
         plan=annual_plan,
@@ -321,7 +321,7 @@ def test_a_year_with_dues_but_without_giving_does_not_earn_a_statement(
         completed_at=at_noon(2025, 5, 4),
         created_at=at_noon(2025, 5, 4),
     )
-    assert treasurer_client.get(ledger_url(member)).json()["statement_years"] == []
+    assert treasurer_client.get(ledger_url(member)).json()["statement_years"] == [2025]
 
 
 def test_the_ledger_carries_the_members_renewal_mandate(

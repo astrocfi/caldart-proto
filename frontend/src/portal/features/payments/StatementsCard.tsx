@@ -1,8 +1,7 @@
 /**
- * One download button per calendar year the member contributed in.
+ * One download button per calendar year the member paid dues or contributed in.
  *
- * A year in which only dues were paid doesn't have a statement: dues are not a gift,
- * so the 501(c)(3) wording doesn't have anything to cover.
+ * Dues and contributions are both tax deductible, so both are on the statement.
  */
 import type { JSX } from 'react';
 
@@ -30,12 +29,12 @@ export function StatementsCard(): JSX.Element {
       ) : years.length === 0 ? (
         <EmptyState
           title="No statements yet"
-          description="A statement covers a calendar year you contributed in. Dues on their own are not a contribution, so a year of dues alone doesn't have one."
+          description="A statement covers a calendar year you paid dues or gave a contribution in."
         />
       ) : (
         <>
           <p>
-            Each statement lists every contribution that settled in the year, less anything
+            Each statement lists your dues and contributions that settled in the year, less anything
             refunded, with the year&rsquo;s total and the wording your tax preparer needs.
           </p>
           <ul className="payments__statements" role="list">

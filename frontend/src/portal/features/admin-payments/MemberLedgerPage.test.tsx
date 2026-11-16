@@ -111,7 +111,7 @@ describe('MemberLedgerPage', () => {
     });
     renderLedger();
 
-    expect(await screen.findByText('This person has not given anything yet.')).toBeInTheDocument();
+    expect(await screen.findByText('This person has not paid anything yet.')).toBeInTheDocument();
     expect(screen.queryByText('This member renews by hand.')).not.toBeInTheDocument();
   });
 
@@ -151,13 +151,11 @@ describe('MemberLedgerPage', () => {
     ).toHaveAttribute('href', '/api/v1/admin/payments/ledger/37/statements/2026.pdf');
   });
 
-  it("says so when the member hasn't given anything", async () => {
+  it("says so when the member hasn't paid anything", async () => {
     serveLedger(makeLedger({ statement_years: [] }));
     renderLedger();
 
-    expect(
-      await screen.findByText('This member has not given anything beyond their dues.'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('This member has not paid anything yet.')).toBeInTheDocument();
   });
 
   it('explains a ledger it could not load', async () => {

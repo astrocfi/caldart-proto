@@ -63,8 +63,8 @@ export interface ContributionChooserProps {
 
 /** What the chooser says over a contribution added to dues. */
 const DUES_HINT =
-  'CalDART is a 501(c)(3); a contribution on top of your dues is tax deductible and pays for ' +
-  'training, fuel, and equipment.';
+  'CalDART is a 501(c)(3); your dues and a contribution on top of them are tax deductible, ' +
+  'and a contribution pays for training, fuel, and equipment.';
 
 /** What the chooser says over a donation, where there aren't any dues to add it to. */
 export const DONATION_HINT = 'Gifts to CalDART, a 501(c)(3), are tax deductible.';

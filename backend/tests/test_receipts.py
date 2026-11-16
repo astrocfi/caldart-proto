@@ -226,13 +226,13 @@ def test_the_receipt_pdf_carries_the_501c3_sentence_for_a_contribution(
     assert CONTRIBUTION_NOTICE in drawn(receipts.render_receipt_pdf(payment), pdf_text)
 
 
-def test_the_receipt_pdf_omits_the_501c3_sentence_for_dues_alone(
+def test_the_receipt_pdf_carries_the_501c3_sentence_for_dues_alone(
     member: User, annual_plan: MembershipPlan, pdf_text: PdfText
 ) -> None:
-    """Dues are value received, not a gift, so no deduction is claimed for them."""
+    """Dues are tax deductible too, so a receipt for dues alone claims the deduction."""
     payment = succeeded_payment(member, annual_plan)
 
-    assert CONTRIBUTION_NOTICE not in drawn(receipts.render_receipt_pdf(payment), pdf_text)
+    assert CONTRIBUTION_NOTICE in drawn(receipts.render_receipt_pdf(payment), pdf_text)
 
 
 def test_the_receipt_pdf_names_how_a_check_arrived(
@@ -255,13 +255,42 @@ def test_the_receipt_pdf_names_how_a_check_arrived(
 # --------------------------------------------------------------------------
 # The statement
 # --------------------------------------------------------------------------
-def test_a_year_without_a_contribution_does_not_offer_a_statement(
-    member: User, annual_plan: MembershipPlan
-) -> None:
-    """Dues alone are not a gift, so they do not earn a statement."""
+def test_a_year_of_dues_alone_offers_a_statement(member: User, annual_plan: MembershipPlan) -> None:
+    """Dues are tax deductible, so a year of dues alone has a statement."""
     succeeded_payment(member, annual_plan)
 
+    assert receipts.statement_years(member) == [timezone.localdate().year]
+
+
+def test_a_member_who_paid_nothing_is_not_offered_a_statement(member: User) -> None:
+    """Without a settled payment there isn't a year to state."""
     assert receipts.statement_years(member) == []
+
+
+@pytest.mark.parametrize(
+    ("contribution_cents", "with_plan", "expected"),
+    [
+        (0, True, "Annual dues"),
+        (5_000, True, "Annual dues and contribution"),
+        (5_000, False, "Contribution"),
+    ],
+    ids=["dues", "dues-and-gift", "gift"],
+)
+def test_each_statement_line_says_what_the_payment_was_for(
+    member: User,
+    annual_plan: MembershipPlan,
+    contribution_cents: int,
+    with_plan: bool,
+    expected: str,
+) -> None:
+    """A line names the dues, the contribution, or both."""
+    succeeded_payment(
+        member, annual_plan if with_plan else None, contribution_cents=contribution_cents
+    )
+
+    statement = receipts.statement_data(member, timezone.localdate().year)
+
+    assert statement.contributions[0].description == expected
 
 
 def test_statement_years_are_newest_first(member: User, annual_plan: MembershipPlan) -> None:
@@ -280,7 +309,7 @@ def test_statement_years_are_newest_first(member: User, annual_plan: MembershipP
 def test_the_statement_totals_the_year_it_covers(
     member: User, annual_plan: MembershipPlan, pdf_text: PdfText
 ) -> None:
-    """Two gifts in one year add up on the page, and another year's stays out."""
+    """Two payments in one year, dues and gifts, add up; another year's stays out."""
     for amount, year in ((5_000, 2026), (2_500, 2026), (9_900, 2025)):
         succeeded_payment(
             member,
@@ -289,7 +318,7 @@ def test_the_statement_totals_the_year_it_covers(
             completed_at=timezone.make_aware(dt.datetime(year, 6, 1, 12, 0)),
         )
 
-    assert "$75.00" in drawn(receipts.render_statement_pdf(member, 2026), pdf_text)
+    assert "$165.00" in drawn(receipts.render_statement_pdf(member, 2026), pdf_text)
 
 
 def test_the_statement_carries_the_501c3_sentence(
@@ -303,28 +332,24 @@ def test_the_statement_carries_the_501c3_sentence(
     assert CONTRIBUTIONS_NOTICE in drawn(receipts.render_statement_pdf(member, year), pdf_text)
 
 
-def test_a_refund_against_the_contribution_nets_the_statement(
-    member: User, annual_plan: MembershipPlan
-) -> None:
-    """A gift given back is not a gift the member may deduct."""
+def test_a_refund_nets_the_statement(member: User, annual_plan: MembershipPlan) -> None:
+    """Money given back is not money the member may deduct."""
     payment = succeeded_payment(member, annual_plan, contribution_cents=10_000)
     RefundFactory(payment=payment, amount_cents=2_500)
 
     statement = receipts.statement_data(member, timezone.localdate().year)
 
-    assert statement.total_cents == 7_500
+    assert statement.total_cents == 12_000
 
 
-def test_a_refund_larger_than_the_gift_does_not_net_any_further(
-    member: User, annual_plan: MembershipPlan
-) -> None:
-    """Once the whole gift is back, refunding the dues as well doesn't take any more."""
+def test_a_whole_refund_leaves_nothing_to_deduct(member: User, annual_plan: MembershipPlan) -> None:
+    """A payment refunded in full, dues and gift, nets to zero on the statement."""
     payment = succeeded_payment(member, annual_plan, contribution_cents=10_000)
     RefundFactory(payment=payment, amount_cents=payment.amount_cents)
 
     statement = receipts.statement_data(member, timezone.localdate().year)
 
-    assert statement.contributions[0].refunded_cents == 10_000
+    assert statement.contributions[0].net_cents == 0
 
 
 # --------------------------------------------------------------------------
