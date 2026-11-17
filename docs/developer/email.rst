@@ -167,11 +167,12 @@ this machine rather than a relay's:
   relay's credentials in ``main.cf``, so the SPF and DKIM that already cover
   the relay cover this mail too.
 
-Check the path end to end with Django's own command::
+``deploy/README.rst``, *Setting up postfix*, gives the commands for both on a
+fresh server.  Check the path end to end with Django's own command::
 
   sudo deploy/manage.sh sendtestemail you@example.org
 
-and read ``journalctl -u postfix`` (or ``/var/log/mail.log``) for the
+and read ``journalctl -t postfix/smtp`` (or ``/var/log/mail.log``) for the
 message's ``status=sent``, then its ``Authentication-Results`` as
 `What the domain needs`_ describes.
 

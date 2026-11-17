@@ -804,23 +804,149 @@ Mail
 
 With ``--email-url`` the site hands every message to the relay.  With
 ``--email local`` it hands them to the postfix on this machine, which the
-installer does not install or configure.  Postfix accepts mail from
-localhost in its default configuration; then either the domain's SPF record
-names this machine (and DKIM signing is set up in postfix if the domain's
-DMARC expects it), or postfix forwards everything to the organization's relay
-(``relayhost`` and the relay's credentials in ``main.cf``).  Either way, point
-the mail domain's SPF, DKIM, and DMARC records at whatever sends the mail
-before relying on it.
+installer does not install or configure: `Setting up postfix`_ below does that.
 
-Send a test message through the configured path::
+Which to pick:
+
+- **A mail provider with SMTP** (Google Workspace, Microsoft 365, Amazon SES,
+  Mailgun, Postmark, and the like): ``--email-url`` with the provider's SMTP
+  server and credentials.  It is the simplest path, and the provider's SPF and
+  DKIM already cover the mail.
+- **The same provider, through postfix**: ``--email local`` with postfix set up
+  as a relay to the provider (`Postfix that relays through a provider`_).
+  Postfix keeps a queue and retries for days when the provider is briefly
+  unreachable, where a send straight to the provider fails at once.
+- **Postfix delivering the mail itself**: ``--email local`` with postfix
+  sending straight to each recipient's mail server (`Postfix that delivers
+  directly`_).  It needs outbound port 25, a reverse DNS name, and DKIM
+  signing on this server, and mail from a new server's address is more likely
+  to land in spam.  Pick it only when you already run mail this way.
+
+Whichever you pick, publish the mail domain's SPF, DKIM, and DMARC records for
+whatever sends the mail before relying on it (``docs/developer/deployment.rst``,
+*Mail DNS records*).  Then send a test message through the configured path::
 
   sudo /opt/caldart/caldart/deploy/manage.sh sendtestemail you@example.org
 
-and read ``journalctl -u postfix`` (or the relay's logs) for its delivery.
-``docs/developer/email.rst`` covers the DNS records and the email log.
+With postfix, ``sudo journalctl -t postfix/smtp -n 20`` shows its delivery: a
+line with ``status=sent`` means the receiving server accepted it.  With a relay,
+the provider's logs do.  ``docs/developer/email.rst`` covers the DNS records and
+the email log.
 
-A postfix that also delivers the bounce mailbox (its domain is one this
-postfix receives for) must accept plus addresses, since every message goes out
+Setting up postfix
+~~~~~~~~~~~~~~~~~~
+
+Both setups below send only: postfix listens on this machine's loopback address
+for the site, and doesn't accept mail from the internet.  They are written for
+the hostname ``caldart.example.org`` and the mail domain ``example.org``; put
+your own in their place.
+
+Install postfix.  When the installer asks, pick **Internet Site**, and give the
+site's hostname as the mail name::
+
+  sudo apt-get install -y postfix libsasl2-modules
+
+Then make it listen on loopback only, and name the machine::
+
+  sudo postconf -e \
+      'myhostname = caldart.example.org' \
+      'myorigin = $myhostname' \
+      'inet_interfaces = loopback-only' \
+      'mydestination = localhost'
+  sudo systemctl restart postfix
+
+Postfix that relays through a provider
+''''''''''''''''''''''''''''''''''''''
+
+Point postfix at the provider's SMTP server on port 587, with TLS required::
+
+  sudo postconf -e \
+      'relayhost = [smtp.example.org]:587' \
+      'smtp_sasl_auth_enable = yes' \
+      'smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd' \
+      'smtp_sasl_security_options = noanonymous' \
+      'smtp_tls_security_level = encrypt' \
+      'smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt'
+
+Store the credentials in a file only root can read, and build its lookup
+table::
+
+  sudo install -m 0600 /dev/null /etc/postfix/sasl_passwd
+  echo '[smtp.example.org]:587 caldart@example.org:app-password' \
+      | sudo tee /etc/postfix/sasl_passwd >/dev/null
+  sudo postmap /etc/postfix/sasl_passwd
+  sudo systemctl restart postfix
+
+The first field must match ``relayhost`` exactly, brackets and port included.  A
+provider that offers only port 465 (TLS from the first byte) also needs
+``smtp_tls_wrappermode = yes``, with ``:465`` in both places.  Google Workspace
+and Microsoft 365 want an app password, or an SMTP relay set up in their admin
+console, in place of the account's own password.  Publish the SPF and DKIM
+records your provider gives you.
+
+Postfix that delivers directly
+''''''''''''''''''''''''''''''
+
+Check three things first:
+
+- **Outbound port 25.**  Many cloud providers, Vultr among them, block it on new
+  accounts until you ask them to lift the block.  This prints ``open`` when the
+  port is reachable::
+
+    /seti/newnav/capped-run.sh timeout 5 bash -c '</dev/tcp/gmail-smtp-in.l.google.com/25' && echo open
+
+- **Reverse DNS.**  In the provider's control panel, set the server address's
+  reverse DNS (PTR) name to ``caldart.example.org``, the same name
+  ``myhostname`` gives.  Most receiving servers distrust mail from an address
+  without one.
+- **SPF.**  The domain's SPF record names this server, such as ``v=spf1
+  ip4:203.0.113.10 ~all``.  A domain that already has an SPF record (for its
+  staff mail, say) gets ``ip4:203.0.113.10`` added to that record: a domain has
+  exactly one.
+
+Then set up DKIM signing with OpenDKIM.  Make a key under the selector
+``caldart``::
+
+  sudo apt-get install -y opendkim opendkim-tools
+  sudo install -d -o opendkim -g opendkim -m 0750 /etc/opendkim/keys/example.org
+  sudo opendkim-genkey -b 2048 -d example.org -s caldart -D /etc/opendkim/keys/example.org
+  sudo chown opendkim:opendkim /etc/opendkim/keys/example.org/*
+
+Tell OpenDKIM to sign for the domain with it, listening where postfix can reach
+it::
+
+  printf '%s\n' 'Domain example.org' 'Selector caldart' \
+      'KeyFile /etc/opendkim/keys/example.org/caldart.private' \
+      | sudo tee -a /etc/opendkim.conf >/dev/null
+  sudo sed -i 's|^Socket\s.*|Socket inet:8891@localhost|' /etc/opendkim.conf
+  sudo opendkim -n -x /etc/opendkim.conf && sudo systemctl restart opendkim
+
+and postfix to pass each message through it::
+
+  sudo postconf -e \
+      'smtpd_milters = inet:localhost:8891' \
+      'non_smtpd_milters = $smtpd_milters' \
+      'milter_default_action = accept'
+  sudo systemctl restart postfix
+
+Publish the public key as a ``TXT`` record named ``caldart._domainkey`` on the
+domain.  Its value is the quoted text inside the parentheses of::
+
+  sudo cat /etc/opendkim/keys/example.org/caldart.txt
+
+joined into one string that starts ``v=DKIM1;``.  Then set ``DKIM_SELECTOR=caldart``
+in ``/etc/caldart/caldart.env`` (``sudoedit``, then ``sudo systemctl restart
+caldart-web``), so the Mail delivery card on the Health and database page checks
+that record.  Add a DMARC record too, as *Mail DNS records* describes.
+
+Postfix and the bounce mailbox
+''''''''''''''''''''''''''''''
+
+Neither setup receives mail, so neither can hold the bounce mailbox.  Use a
+mailbox at a mail provider for ``--bounce-address`` and ``--bounce-imap-url``.
+
+A postfix you run that also receives the bounce mailbox (its domain is one
+this postfix receives for) must accept plus addresses, since every message goes out
 from ``bounces+<id>.<signature>@`` the bounce domain::
 
   sudo postconf -e 'recipient_delimiter = +'
