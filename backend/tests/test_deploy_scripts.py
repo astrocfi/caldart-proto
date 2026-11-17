@@ -2401,17 +2401,6 @@ def test_a_prefix_creates_the_site_root_with_a_front_page(
     assert commands[folder + 1] == "install -m 0644 /dev/stdin /var/www/caldart.test/index.html"
 
 
-@pytest.mark.parametrize("word", ["/caldart", "CalDART", "href"])
-def test_the_front_page_keeps_the_prefix_hidden(root: Path, word: str) -> None:
-    """The site root's front page is blank, so a crawler can't find CalDART from it."""
-    result = _source_lib(
-        root,
-        f'source "{DEPLOY_DIR}/steps/web-server.sh"; CALDART_HOSTNAME=caldart.test; '
-        "CALDART_URL_PREFIX=/caldart; site_root_page",
-    )
-    assert word not in result.stdout
-
-
 def test_an_existing_site_root_is_left_alone(root: Path, tmp_path: Path) -> None:
     """Once the folder exists, its pages are the operator's and stay as they are."""
     site = tmp_path / "www" / "caldart.test"

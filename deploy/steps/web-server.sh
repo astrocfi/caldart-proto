@@ -311,31 +311,16 @@ site_root() {
     printf '%s/%s\n' "$SITE_ROOT_PARENT" "$CALDART_HOSTNAME"
 }
 
-# The front page of a new site root: a blank page.  It leaves out any link to
-# CalDART, so a crawler that reads the root doesn't find the prefix.
-site_root_page() {
-    cat <<PAGE
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<title>$CALDART_HOSTNAME</title>
-</head>
-<body>
-</body>
-</html>
-PAGE
-}
-
-# Create the site root with its front page the first time.  Once the folder is
-# there its contents are the operator's, and later runs leave them as they are.
+# Create the site root the first time, with an empty index.html, so the root of
+# the host leaves out any link to CalDART.  Once the folder is there its contents
+# are the operator's, and later runs leave them as they are.
 make_site_root() {
     local dir
     dir="$(site_root)"
     [[ -d "$dir" ]] && return 0
     log "Creating $dir for the pages at the root of $CALDART_HOSTNAME"
     run install -d -m 0755 "$dir"
-    site_root_page | write_file "$dir/index.html" 0644
+    write_file "$dir/index.html" 0644 </dev/null
 }
 
 # Write the snippet that serves CalDART under its prefix, for CalDART's own vhost

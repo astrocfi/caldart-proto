@@ -503,8 +503,8 @@ of your own::
 CalDART keeps its own vhost and Let's Encrypt certificate.  Its port-443 host
 serves ``https://robert-french.org/`` from the folder
 ``/var/www/robert-french.org``, and includes the snippet that serves CalDART
-under ``/caldart/``.  The installer creates the folder the first time, with a
-blank ``index.html``.  It doesn't link to ``/caldart/``, so a crawler that
+under ``/caldart/``.  The installer creates the folder the first time, with an
+empty ``index.html``.  It doesn't link to ``/caldart/``, so a crawler that
 reads the root doesn't find CalDART.  From then on the folder is yours:
 replace that page, add others, and later runs and upgrades leave them as they
 are.  The portal is at ``/caldart/portal/``, and every link in an email carries

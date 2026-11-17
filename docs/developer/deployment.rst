@@ -1423,7 +1423,7 @@ includes the snippet of :ref:`deploy-prefix`.  ``render_vhost`` keeps the
 section that matches the recorded prefix and deletes the other, with both
 sections' marker lines.  Before it writes the vhost, the step:
 
-- creates ``/var/www/HOST`` with a blank ``index.html``, when the folder
+- creates ``/var/www/HOST`` with an empty ``index.html``, when the folder
   doesn't exist yet (the page leaves out any link to ``PREFIX/``, so a crawler
   that reads the root doesn't find CalDART); once it exists, its contents are the
   operator's, and later runs leave them alone;
