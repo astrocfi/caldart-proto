@@ -169,6 +169,9 @@ port 8001.  Add an option only when your situation calls for it:
      - ``--no-www``
    * - A trial server without a public hostname
      - ``--tls self-signed`` (browsers warn about the certificate)
+   * - CalDART under a path, such as ``https://HOST/caldart/``, with your own
+       pages at the root
+     - ``--url-prefix /caldart`` (`A site under a path of its own host`_)
    * - Another website already runs on this server
      - ``--tls existing``, usually with ``--url-prefix`` and ``--attach-to``
        (`A sub-path behind an existing Apache site, with local postfix`_), and
@@ -378,7 +381,10 @@ These are every option ``install.sh`` accepts (``sudo
    without the production rate limits.  For a trial run of certbot itself.
 ``--url-prefix PREFIX``
    Serve the site under a path of the host, such as ``/caldart-proto``, so
-   the site is ``https://HOST/caldart-proto/``.  One leading and one trailing
+   the site is ``https://HOST/caldart-proto/``.  With ``certbot`` or
+   ``self-signed``, CalDART's own vhost serves the root of the host from the
+   folder ``/var/www/HOST`` (`A site under a path of its own host`_); with
+   ``existing``, the existing site keeps the root.  One leading and one trailing
    slash are optional; each segment is letters, digits, ``.``, ``_``, ``~``, or
    ``-``.  Default: the root of the host (``/`` names it too).  Once the
    environment file exists this must match its ``URL_PREFIX``.
@@ -480,6 +486,46 @@ organization's relay::
 The site is at ``https://caldart.example.org/``, the portal at
 ``/portal/``, the Wagtail admin at ``/admin/``, and the user guide at
 ``/docs/``.  Add ``--web-server nginx`` for nginx instead of Apache.
+
+A site under a path of its own host
+-----------------------------------
+
+``robert-french.org`` points at the server, CalDART goes at
+``https://robert-french.org/caldart/``, and the root of the host serves pages
+of your own::
+
+  curl -fsSL https://raw.githubusercontent.com/astrocfi/caldart-proto/main/deploy/bootstrap.sh \
+      | sudo bash -s -- --hostname robert-french.org \
+          --url-prefix /caldart \
+          --email-url 'smtp+tls://user:password@smtp.example.org:587' \
+          --admin-email you@example.org
+
+CalDART keeps its own vhost and Let's Encrypt certificate.  Its port-443 host
+serves ``https://robert-french.org/`` from the folder
+``/var/www/robert-french.org``, and includes the snippet that serves CalDART
+under ``/caldart/``.  The installer creates the folder the first time, with an
+``index.html`` that links to ``/caldart/``.  From then on the folder is yours:
+replace that page, add others, and later runs and upgrades leave them as they
+are.  The portal is at ``/caldart/portal/``, and every link in an email carries
+the path.
+
+**Moving an installed site under a path.**  A site already installed at the
+root of the host moves in two steps.  First, point its settings at the path:
+in ``/etc/caldart/caldart.env`` (``sudoedit``), set::
+
+  URL_PREFIX=/caldart
+  SITE_URL=https://robert-french.org/caldart
+
+Then run the installer with the path::
+
+  sudo /opt/caldart/caldart/deploy/install.sh --url-prefix /caldart
+
+It creates the folder, rewrites the vhost, restarts the site, and checks it
+under ``/caldart/``.  The install record keeps the path, so later runs don't
+need the flag.  Links to the old addresses, such as a password-reset link sent
+before the move, stop working.  To move back to the root, empty ``URL_PREFIX``,
+take the path off ``SITE_URL``, and run ``install.sh --url-prefix /``; the
+folder stays, unused, until you remove it.
 
 A sub-path behind an existing Apache site, with local postfix
 --------------------------------------------------------------
@@ -718,7 +764,12 @@ With ``certbot`` or ``self-signed``:
 Each holds a port-80 host, which answers Let's Encrypt's challenges and
 redirects everything else to HTTPS, and a port-443 host, which terminates TLS,
 serves ``/media/`` off disk from ``/opt/caldart/media``, and proxies the rest
-to gunicorn.  While a
+to gunicorn.  With ``--url-prefix``, the port-443 host serves the root of the
+host from ``/var/www/HOST`` instead, and includes the snippet that serves
+CalDART and its uploads under the prefix: Apache's in
+``/etc/apache2/conf-available/caldart.conf``, nginx's in
+``/etc/nginx/snippets/caldart.conf`` (`A site under a path of its own host`_).
+While a
 certbot certificate does not exist yet, a bootstrap host (``caldart-acme``)
 answers the challenge alone; it is removed once the certificate is there.
 When ``ufw`` is active, the installer first allows ports 80 and 443 through it.

@@ -66,6 +66,8 @@ readonly APACHE_SNIPPET_MODULES=(proxy proxy_http headers expires)
 readonly NGINX_SNIPPET=/etc/nginx/snippets/caldart.conf
 readonly NGINX_UPSTREAM=/etc/nginx/conf.d/caldart-upstream.conf
 readonly NGINX_INCLUDE='include snippets/caldart.conf;'
+# The folder whose HOST directory the root of the host serves under a URL prefix.
+readonly SITE_ROOT_PARENT=/var/www
 # The suffix of the copy of an attached vhost from before the first insertion.
 readonly ATTACH_BACKUP_SUFFIX=.caldart.bak
 
@@ -275,15 +277,24 @@ install_vhost() {
     local dest
     log "Installing the $CALDART_WEB_SERVER vhost for $CALDART_HOSTNAME"
     remove_bootstrap_host
+    if [[ -n "$CALDART_URL_PREFIX" ]]; then
+        make_site_root
+        install_prefix_snippet
+    fi
     if [[ "$CALDART_WEB_SERVER" == apache ]]; then
         dest="$APACHE_SITES/caldart.conf"
         run a2enmod "${APACHE_MODULES[@]}"
         render_vhost "$CHECKOUT/deploy/apache/caldart.conf" "$dest" \
-            "$CALDART_HOSTNAME" "$CALDART_WWW" "$CALDART_TLS"
+            "$CALDART_HOSTNAME" "$CALDART_WWW" "$CALDART_TLS" "$CALDART_URL_PREFIX"
     else
+        # The vhost defines the upstream itself; the copy the existing TLS mode
+        # leaves in conf.d would define it twice, which nginx refuses.
+        if [[ -e "$NGINX_UPSTREAM" ]]; then
+            run rm -f "$NGINX_UPSTREAM"
+        fi
         dest="$NGINX_SITES/caldart"
         render_vhost "$CHECKOUT/deploy/nginx/caldart.conf" "$dest" \
-            "$CALDART_HOSTNAME" "$CALDART_WWW" "$CALDART_TLS"
+            "$CALDART_HOSTNAME" "$CALDART_WWW" "$CALDART_TLS" "$CALDART_URL_PREFIX"
         if nginx_needs_http2_on_listen; then
             run sed -i -e '/^ *http2 *on;/d' \
                 -e 's/listen\( *\)443 ssl;/listen\1443 ssl http2;/' \
@@ -293,6 +304,49 @@ install_vhost() {
     fi
     enable_site caldart
     reload_web_server
+}
+
+# The folder the root of the host serves when CalDART is under a URL prefix.
+site_root() {
+    printf '%s/%s\n' "$SITE_ROOT_PARENT" "$CALDART_HOSTNAME"
+}
+
+# The front page of a new site root: a link to CalDART under its prefix.
+site_root_page() {
+    cat <<PAGE
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>$CALDART_HOSTNAME</title>
+</head>
+<body>
+<p><a href="$CALDART_URL_PREFIX/">CalDART</a></p>
+</body>
+</html>
+PAGE
+}
+
+# Create the site root with its front page the first time.  Once the folder is
+# there its contents are the operator's, and later runs leave them as they are.
+make_site_root() {
+    local dir
+    dir="$(site_root)"
+    [[ -d "$dir" ]] && return 0
+    log "Creating $dir for the pages at the root of $CALDART_HOSTNAME"
+    run install -d -m 0755 "$dir"
+    site_root_page | write_file "$dir/index.html" 0644
+}
+
+# Write the snippet that serves CalDART under its prefix, for CalDART's own vhost
+# to include.  The nginx vhost defines the upstream the snippet proxies to.
+install_prefix_snippet() {
+    if [[ "$CALDART_WEB_SERVER" == apache ]]; then
+        render_snippet "$CHECKOUT/deploy/apache/caldart-attach.conf" "$APACHE_SNIPPET"
+    else
+        run install -d "$(dirname "$NGINX_SNIPPET")"
+        render_snippet "$CHECKOUT/deploy/nginx/caldart-attach.conf" "$NGINX_SNIPPET"
+    fi
 }
 
 # The line that includes the snippet, for the web server in use.

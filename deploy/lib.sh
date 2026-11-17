@@ -577,11 +577,21 @@ render_file() {
 }
 
 # Copy the vhost $1 to $2 for hostname $3, with $4 (yes or no) deciding the www.
-# alias and $5 (certbot or self-signed) where the certificate lives.
+# alias, $5 (certbot or self-signed) where the certificate lives, and $6, the URL
+# prefix, which of its two sections it keeps: "whole-host" when $6 is empty,
+# "under-prefix" otherwise.  The other section and both sections' marker lines go.
 render_vhost() {
-    local source=$1 dest=$2 hostname=$3 www=$4 tls=$5
+    local source=$1 dest=$2 hostname=$3 www=$4 tls=$5 prefix=${6:-}
     local shipped="${SHIPPED_HOSTNAME//./\\.}"
-    local args=()
+    local kept=whole-host dropped=under-prefix
+    if [[ -n "$prefix" ]]; then
+        kept=under-prefix
+        dropped=whole-host
+    fi
+    local args=(
+        -e "/^ *# BEGIN ${dropped}\$/,/^ *# END ${dropped}\$/d"
+        -e "/^ *# \\(BEGIN\\|END\\) ${kept}\$/d"
+    )
     if [[ "$tls" == self-signed ]]; then
         args+=(-e "s#${LETSENCRYPT_DIR}/live/${shipped}/#${TLS_DIR}/#g")
     fi

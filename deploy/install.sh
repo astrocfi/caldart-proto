@@ -36,7 +36,8 @@
 #                              certbot needs one or the other
 #   --url-prefix PREFIX        serve the site under this path, such as /caldart-proto
 #                              (default: the root of HOST, which / also names); must match
-#                              URL_PREFIX once the environment file exists
+#                              URL_PREFIX once the environment file exists.  With certbot
+#                              or self-signed, the root of HOST serves /var/www/HOST
 #   --attach-to FILE           with --tls existing, the existing site's vhost file to
 #                              include CalDART's snippet in (default: print the line to add)
 #   --certbot-staging          use Let's Encrypt's staging directory

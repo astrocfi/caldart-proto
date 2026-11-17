@@ -116,7 +116,9 @@ The flags:
      - the ``--admin-email`` address; ``--tls certbot`` needs one or the other
    * - ``--url-prefix PREFIX``
      - serve the site under this path, such as ``/caldart-proto``; ``/`` names
-       the root of the host (:ref:`deploy-prefix`)
+       the root of the host.  With ``certbot`` or ``self-signed`` the root of
+       the host serves ``/var/www/HOST`` (:ref:`deploy-own-prefix`); with
+       ``existing`` it stays the existing site's (:ref:`deploy-prefix`)
      - the root of the host
    * - ``--attach-to FILE``
      - with ``--tls existing``, the existing site's vhost file to include
@@ -1189,6 +1191,8 @@ syntax before reloading::
   sed -e "s#/opt/caldart/caldart#__CALDART_CHECKOUT__#g" -e "s#/opt/caldart#$ROOT#g" \
       -e "s#__CALDART_CHECKOUT__#$CHECKOUT#g" -e "s#127.0.0.1:8001#127.0.0.1:$PORT#g" \
       -e "s/caldart\.example\.org/$HOST/g" \
+      -e '/^ *# BEGIN under-prefix$/,/^ *# END under-prefix$/d' \
+      -e '/^ *# \(BEGIN\|END\) whole-host$/d' \
       deploy/apache/caldart.conf \
       | sudo tee /etc/apache2/sites-available/caldart.conf >/dev/null
   sudo a2ensite caldart
@@ -1201,8 +1205,11 @@ while the deploy root is written, so a checkout whose own path contains
 ``/opt/caldart`` is not rewritten twice.  The dry run of the
 step prints the command with the real values.  ``reload-or-restart`` rather
 than ``reload``, because it also starts a web server that is stopped, where a
-plain reload fails.  Under ``--no-www`` a third
-expression drops the ``ServerAlias`` line.
+plain reload fails.  Under ``--no-www`` another
+expression drops the ``ServerAlias`` line.  The last two expressions keep the
+vhost's ``whole-host`` section, which proxies ``/`` to gunicorn, and drop its
+``under-prefix`` section; a site under a URL prefix keeps the other one
+(:ref:`deploy-own-prefix`).
 
 The vhost:
 
@@ -1289,6 +1296,8 @@ both files are there::
   sed -e "s#/opt/caldart/caldart#__CALDART_CHECKOUT__#g" -e "s#/opt/caldart#$ROOT#g" \
       -e "s#__CALDART_CHECKOUT__#$CHECKOUT#g" -e "s#127.0.0.1:8001#127.0.0.1:$PORT#g" \
       -e "s/caldart\.example\.org/$HOST/g" \
+      -e '/^ *# BEGIN under-prefix$/,/^ *# END under-prefix$/d' \
+      -e '/^ *# \(BEGIN\|END\) whole-host$/d' \
       deploy/nginx/caldart.conf \
       | sudo tee /etc/nginx/sites-available/caldart >/dev/null
   sudo ln -sfn /etc/nginx/sites-available/caldart /etc/nginx/sites-enabled/caldart
@@ -1399,6 +1408,42 @@ early.  ``SECURE_HSTS_PRELOAD`` stays off unless you mean to join the
 browser preload list; :doc:`configuration` explains what that commits the site
 to.
 
+
+.. _deploy-own-prefix:
+
+Under a URL prefix, on CalDART's own vhost
+------------------------------------------
+
+With ``--url-prefix`` and ``--tls certbot`` or ``self-signed``, CalDART keeps
+its own vhost and certificate, and the root of the host serves a folder of the
+operator's.  Each shipped vhost holds two sections between marker comments in its
+port-443 host: ``whole-host``, which serves ``/media/`` and proxies ``/`` to
+gunicorn, and ``under-prefix``, which serves ``/var/www/HOST`` at ``/`` and
+includes the snippet of :ref:`deploy-prefix`.  ``render_vhost`` keeps the
+section that matches the recorded prefix and deletes the other, with both
+sections' marker lines.  Before it writes the vhost, the step:
+
+- creates ``/var/www/HOST`` with an ``index.html`` linking to ``PREFIX/``, when
+  the folder doesn't exist yet; once it exists, its contents are the
+  operator's, and later runs leave them alone;
+- writes the snippet, with the prefix and the deploy root written in: Apache's
+  ``deploy/apache/caldart-attach.conf`` to
+  ``/etc/apache2/conf-available/caldart.conf``, and nginx's
+  ``deploy/nginx/caldart-attach.conf`` to ``/etc/nginx/snippets/caldart.conf``.
+
+The nginx vhost defines the ``caldart_app`` upstream the snippet proxies to, so
+the step doesn't write ``/etc/nginx/conf.d/caldart-upstream.conf``, and removes a
+copy an earlier ``--tls existing`` install left there, since nginx refuses an
+upstream defined twice.  The vhost includes the snippet itself, so nothing is
+attached to another file.  The snippet's prefix locations win over the folder:
+in Apache because its ``ProxyPass`` and ``Alias`` name a longer path, and in
+nginx because they are ``^~`` locations.  The check step requests the site
+under the prefix, as it does behind an existing site.
+
+A site installed at the root moves under a prefix once ``URL_PREFIX`` and the
+path of ``SITE_URL`` in the environment file name it (the install leaves an
+existing environment file alone, and refuses a ``--url-prefix`` that differs),
+by running ``install.sh --url-prefix PREFIX``.  ``--url-prefix /`` moves it back.
 
 .. _deploy-prefix:
 

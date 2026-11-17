@@ -274,13 +274,13 @@ def _configure(root: Path, etc: Path, *args: str, **extra: str) -> subprocess.Co
     )
 
 
-def _render_vhost(root: Path, vhost: str, www: str, tls: str) -> str:
+def _render_vhost(root: Path, vhost: str, www: str, tls: str, prefix: str = "") -> str:
     """What ``render_vhost`` writes for ``caldart.test`` under the root ``/srv/x``."""
     dest = root / "rendered"
     source = DEPLOY_DIR / vhost
     _source_lib(
         root,
-        f'{SRV_X_LAYOUT} render_vhost "{source}" "{dest}" caldart.test {www} {tls}',
+        f'{SRV_X_LAYOUT} render_vhost "{source}" "{dest}" caldart.test {www} {tls} "{prefix}"',
     )
     return dest.read_text()
 
@@ -1516,6 +1516,64 @@ def test_render_vhost_points_self_signed_at_the_local_certificate(vhost: str, ro
     assert "/etc/letsencrypt/live/" not in _render_vhost(root, vhost, "yes", "self-signed")
 
 
+@pytest.mark.parametrize("prefix", ["", "/caldart"], ids=["whole-host", "under-prefix"])
+@pytest.mark.parametrize("vhost", VHOSTS)
+def test_render_vhost_drops_every_section_marker(vhost: str, prefix: str, root: Path) -> None:
+    """Neither section's ``BEGIN`` or ``END`` line is left in a rendered vhost."""
+    rendered = _render_vhost(root, vhost, "yes", "certbot", prefix)
+    assert [line for line in rendered.splitlines() if "# BEGIN" in line or "# END" in line] == []
+
+
+#: A line only the whole-host section of each vhost has: the proxy for ``/``.
+WHOLE_HOST_LINES: Final = {
+    "apache/caldart.conf": "    ProxyPass        / http://127.0.0.1:8001/ retry=0 timeout=60",
+    "nginx/caldart.conf": "        proxy_pass http://caldart_app;",
+}
+
+#: The lines only the under-prefix section of each vhost has: the folder and the include.
+UNDER_PREFIX_LINES: Final = {
+    "apache/caldart.conf": (
+        "    DocumentRoot /var/www/caldart.test",
+        "    Include conf-available/caldart.conf",
+    ),
+    "nginx/caldart.conf": (
+        "    root  /var/www/caldart.test;",
+        "    include snippets/caldart.conf;",
+    ),
+}
+
+
+@pytest.mark.parametrize("vhost", VHOSTS)
+def test_a_vhost_without_a_prefix_proxies_the_whole_host(vhost: str, root: Path) -> None:
+    """At the root of the host, the vhost proxies ``/`` to gunicorn."""
+    assert WHOLE_HOST_LINES[vhost] in _render_vhost(root, vhost, "yes", "certbot").splitlines()
+
+
+@pytest.mark.parametrize("vhost", VHOSTS)
+def test_a_vhost_without_a_prefix_leaves_out_the_site_root(vhost: str, root: Path) -> None:
+    """At the root of the host, the vhost serves neither the folder nor the snippet."""
+    lines = _render_vhost(root, vhost, "yes", "certbot").splitlines()
+    assert [line for line in UNDER_PREFIX_LINES[vhost] if line in lines] == []
+
+
+@pytest.mark.parametrize("vhost", VHOSTS)
+def test_a_vhost_under_a_prefix_serves_the_site_root_and_includes_the_snippet(
+    vhost: str, root: Path
+) -> None:
+    """Under a prefix, the folder serves the root, and the snippet serves CalDART."""
+    lines = _render_vhost(root, vhost, "yes", "certbot", "/caldart").splitlines()
+    assert [line for line in UNDER_PREFIX_LINES[vhost] if line in lines] == list(
+        UNDER_PREFIX_LINES[vhost]
+    )
+
+
+@pytest.mark.parametrize("vhost", VHOSTS)
+def test_a_vhost_under_a_prefix_leaves_out_the_whole_host_proxy(vhost: str, root: Path) -> None:
+    """Under a prefix, ``/`` isn't proxied to gunicorn, so the folder answers it."""
+    lines = _render_vhost(root, vhost, "yes", "certbot", "/caldart").splitlines()
+    assert WHOLE_HOST_LINES[vhost] not in lines
+
+
 def test_the_backup_unit_prunes_by_the_retention_variable() -> None:
     """``caldart-backup.service`` prunes by ``BACKUP_RETENTION_DAYS``, not a literal."""
     unit = (DEPLOY_DIR / "systemd" / "caldart-backup.service").read_text()
@@ -2293,6 +2351,82 @@ def test_a_failure_under_run_names_the_command(root: Path) -> None:
     """A command that ``run`` started and that failed is named, not read as ``"$@"``."""
     result = _source_lib(root, 'log "Testing"; run false')
     assert _errors(result) == ["error: Testing failed: false exited with status 1"]
+
+
+#: The first-install flags for a site under ``PREFIX`` with its own certbot vhost.
+OWN_PREFIX_INSTALL: Final = (*FIRST_INSTALL, "--url-prefix", "/caldart")
+
+
+@pytest.mark.parametrize("web_server", ["apache", "nginx"])
+def test_a_prefix_writes_the_snippet_for_the_own_vhost(
+    web_server: str, root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """Under a prefix, the snippet is written before the vhost that includes it."""
+    result = _install_dry_run(
+        root, etc, tmp_path, "--web-server", web_server, flags=OWN_PREFIX_INSTALL
+    )
+    commands = _commands(result)
+    snippet = _position(commands, f"install -m 0644 /dev/stdin {SNIPPETS[web_server][1]}")
+    vhost = _position(commands, "caldart.conf | install -m 0644 /dev/stdin /etc/")
+    assert snippet < vhost
+
+
+@pytest.mark.parametrize("web_server", ["apache", "nginx"])
+def test_a_prefix_on_the_own_vhost_isnt_attached_anywhere(
+    web_server: str, root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """CalDART's own vhost includes the snippet, so no other file is edited."""
+    result = _install_dry_run(
+        root, etc, tmp_path, "--web-server", web_server, flags=OWN_PREFIX_INSTALL
+    )
+    assert [command for command in _commands(result) if command.startswith("sed -i")] == []
+
+
+def test_a_prefix_on_nginx_leaves_out_the_upstream_file(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """The own nginx vhost defines the upstream, so the conf.d copy isn't written."""
+    result = _install_dry_run(
+        root, etc, tmp_path, "--web-server", "nginx", flags=OWN_PREFIX_INSTALL
+    )
+    assert "caldart-upstream.conf" not in result.stdout
+
+
+def test_a_prefix_creates_the_site_root_with_a_front_page(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """The first run under a prefix makes ``/var/www/HOST`` and its ``index.html``."""
+    commands = _commands(_install_dry_run(root, etc, tmp_path, flags=OWN_PREFIX_INSTALL))
+    folder = commands.index("install -d -m 0755 /var/www/caldart.test")
+    assert commands[folder + 1] == "install -m 0644 /dev/stdin /var/www/caldart.test/index.html"
+
+
+def test_the_front_page_links_to_the_prefix(root: Path) -> None:
+    """The site root's front page links to CalDART under its prefix."""
+    result = _source_lib(
+        root,
+        f'source "{DEPLOY_DIR}/steps/web-server.sh"; CALDART_HOSTNAME=caldart.test; '
+        "CALDART_URL_PREFIX=/caldart; site_root_page",
+    )
+    assert '<p><a href="/caldart/">CalDART</a></p>' in result.stdout.splitlines()
+
+
+def test_an_existing_site_root_is_left_alone(root: Path, tmp_path: Path) -> None:
+    """Once the folder exists, its pages are the operator's and stay as they are."""
+    site = tmp_path / "www" / "caldart.test"
+    site.mkdir(parents=True)
+    result = _source_lib(
+        root,
+        f'source "{DEPLOY_DIR}/steps/web-server.sh"; enable_dry_run; '
+        f'site_root() {{ printf "%s\\n" "{site}"; }}; make_site_root',
+    )
+    assert _commands(result) == []
+
+
+def test_without_a_prefix_the_site_root_isnt_made(root: Path, etc: Path, tmp_path: Path) -> None:
+    """At the root of the host, the install doesn't make a folder in ``/var/www``."""
+    commands = _commands(_install_dry_run(root, etc, tmp_path))
+    assert [command for command in commands if "/var/www/caldart.test" in command] == []
 
 
 def test_existing_still_installs_the_web_server(root: Path, etc: Path, tmp_path: Path) -> None:
