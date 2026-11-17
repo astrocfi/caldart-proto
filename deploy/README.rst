@@ -100,7 +100,9 @@ You need:
   well, since the certificate covers both names; give ``--no-www`` otherwise.
   A self-signed install (``--tls self-signed``) doesn't need public DNS.
 - **Ports 80 and 443 open** to the internet.  Let's Encrypt checks port 80
-  before it issues a certificate, and certbot renews through it.  Behind an
+  before it issues a certificate, and certbot renews through it.  When ``ufw``
+  is active on the server, the installer allows both ports through it.  A
+  firewall in your hosting provider's control panel is yours to open.  Behind an
   existing site (``--tls existing``) the site's own web server already holds
   them.
 - **Outbound HTTPS**, to the distribution's archive, NodeSource, PyPI, npm,
@@ -708,6 +710,7 @@ serves ``/media/`` off disk from ``/opt/caldart/media``, and proxies the rest
 to gunicorn.  While a
 certbot certificate does not exist yet, a bootstrap host (``caldart-acme``)
 answers the challenge alone; it is removed once the certificate is there.
+When ``ufw`` is active, the installer first allows ports 80 and 443 through it.
 The certificate is in ``/etc/letsencrypt/live/HOST/`` with certbot, or
 ``/etc/caldart/tls/`` when self-signed.  With certbot the installer also adds
 ``/etc/letsencrypt/renewal-hooks/deploy/reload-web-server``, which reloads the
@@ -1342,6 +1345,18 @@ The scripts refuse with an ``error:`` line on standard error.  A usage error
 (exit status 2) is printed before anything changes; the others stop the run
 where they happen.  Every step is idempotent, so the fix is always: do what
 the message says, then run the same command again.
+
+``error: Let's Encrypt didn't issue the certificate. ...``
+   certbot prints why above the line.  *Timeout during connect (likely firewall
+   problem)* means Let's Encrypt couldn't reach port 80 on the server.  Check
+   ``sudo ufw status`` (the installer opens 80 and 443 when ufw is active, so
+   look for a rule that denies them), then the firewall in your hosting
+   provider's control panel, which must allow TCP 80 and 443 in.  ``curl -I
+   http://HOST/`` from another machine should answer.  A DNS problem shows up as
+   *NXDOMAIN* or an IP address other than the server's: fix the ``A`` record
+   and wait for it to spread.  Then run ``sudo
+   /opt/caldart/caldart/deploy/install.sh`` again; the record supplies the
+   flags.
 
 ``error: port 5432 is already in use on this machine; run install.sh --db-port PORT to put CalDART's Postgres on another port``
    Something, most often another Postgres, already listens on the port.  Run

@@ -175,6 +175,7 @@ def _machine_path(
     container: bool = False,
     service_home: str | None = None,
     active: tuple[str, ...] = (),
+    firewall: bool = False,
 ) -> str:
     """A ``PATH`` whose command shims describe a machine, ahead of the real ones.
 
@@ -182,7 +183,8 @@ def _machine_path(
     ``docker container inspect`` finds the CalDART database container only when
     ``container`` is true, the ``caldart`` user exists, with ``service_home`` as its
     home directory, only when ``service_home`` is given, and ``systemctl is-active``
-    reports exactly the units in ``active`` as active, so no test depends on what
+    reports exactly the units in ``active`` as active, ``ufw status`` reports the
+    firewall active only when ``firewall`` is true, so no test depends on what
     the machine running it has.  The shims sit ahead of the real commands, and hand
     any other question to them.
     """
@@ -218,6 +220,8 @@ def _machine_path(
         "done\n"
     )
     (shims / "docker").write_text(f"#!/bin/sh\nexit {0 if container else 1}\n")
+    ufw_state = "active" if firewall else "inactive"
+    (shims / "ufw").write_text(f'#!/bin/sh\n[ "$1" = status ] && echo "Status: {ufw_state}"\n')
     for shim in shims.iterdir():
         shim.chmod(0o755)
     return f"{shims}:{os.environ['PATH']}"
@@ -232,13 +236,14 @@ def _install_dry_run(
     container: bool = False,
     service_home: str | None = None,
     active: tuple[str, ...] = (),
+    firewall: bool = False,
     flags: tuple[str, ...] = FIRST_INSTALL,
 ) -> subprocess.CompletedProcess[str]:
     """The dry run of a first ``install.sh`` on Ubuntu, plus the ``extra`` flags.
 
-    ``listening``, ``container``, ``service_home``, and ``active`` describe the
-    machine (see ``_machine_path``), and ``flags`` replaces the first-install flags
-    the ``extra`` ones follow.
+    ``listening``, ``container``, ``service_home``, ``active``, and ``firewall``
+    describe the machine (see ``_machine_path``), and ``flags`` replaces the
+    first-install flags the ``extra`` ones follow.
     """
     env = _env(
         etc,
@@ -249,6 +254,7 @@ def _install_dry_run(
             container=container,
             service_home=service_home,
             active=active,
+            firewall=firewall,
         ),
     )
     return _run(_checkout(root) / "deploy" / "install.sh", "--dry-run", *flags, *extra, env=env)
@@ -2260,6 +2266,33 @@ def test_existing_never_runs_certbot(root: Path, etc: Path, tmp_path: Path) -> N
     """``--tls existing`` doesn't install a certbot package or run a certbot command."""
     commands = _commands(_install_dry_run(root, etc, tmp_path, flags=EXISTING_INSTALL))
     assert [command for command in commands if "certbot" in command] == []
+
+
+def test_an_active_ufw_allows_the_web_ports_before_the_certificate(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """With ufw filtering, ports 80 and 443 are allowed before certbot needs port 80."""
+    commands = _commands(_install_dry_run(root, etc, tmp_path, firewall=True))
+    certbot = _position(commands, "certbot certonly")
+    assert commands.index("ufw allow 80/tcp") < commands.index("ufw allow 443/tcp") < certbot
+
+
+def test_an_inactive_ufw_is_left_alone(root: Path, etc: Path, tmp_path: Path) -> None:
+    """Without ufw filtering, the install doesn't add any firewall rule."""
+    commands = _commands(_install_dry_run(root, etc, tmp_path))
+    assert [command for command in commands if command.startswith("ufw ")] == []
+
+
+def test_existing_leaves_ufw_to_the_existing_site(root: Path, etc: Path, tmp_path: Path) -> None:
+    """Behind an existing site, the ports are already that site's business."""
+    result = _install_dry_run(root, etc, tmp_path, firewall=True, flags=EXISTING_INSTALL)
+    assert [command for command in _commands(result) if command.startswith("ufw ")] == []
+
+
+def test_a_failure_under_run_names_the_command(root: Path) -> None:
+    """A command that ``run`` started and that failed is named, not read as ``"$@"``."""
+    result = _source_lib(root, 'log "Testing"; run false')
+    assert _errors(result) == ["error: Testing failed: false exited with status 1"]
 
 
 def test_existing_still_installs_the_web_server(root: Path, etc: Path, tmp_path: Path) -> None:

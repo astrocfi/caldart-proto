@@ -1122,6 +1122,16 @@ its ``https://`` form in ``CSRF_TRUSTED_ORIGINS`` (step 5).  Its DNS ``A`` (and
 ``AAAA``) records must already point at this server, and ports 80 and 443 must
 be open, or the certificate step fails.
 
+Before the certificate, with ``certbot`` or ``self-signed``, the step allows
+ports 80 and 443 through ``ufw`` when ``ufw status`` reports it active (``ufw
+allow 80/tcp`` and ``ufw allow 443/tcp``, which don't change anything when the ports
+are already allowed), since some cloud images ship ``ufw`` with only SSH
+allowed.  A firewall in the hosting provider's control panel is outside the
+machine, so the step can't open it.  When ``certbot certonly`` fails, the step
+stops with an error that points at port 80 and both firewalls, since a timeout
+there is the usual cause.  With ``--tls existing`` the ports belong to the
+existing site, and the step leaves ``ufw`` alone.
+
 Apache
 ------
 

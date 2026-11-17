@@ -6,6 +6,7 @@
 # one's configuration is never touched), in the only order that works, since
 # neither server loads a vhost naming a certificate file that does not exist:
 #
+#   0. when ufw is active, rules allowing ports 80 and 443;
 #   1. with certbot, and until the certificate exists, a bootstrap port-80 host
 #      that serves only /.well-known/acme-challenge/ from /var/www/certbot;
 #   2. the certificate: certbot certonly --webroot, or with self-signed TLS an
@@ -169,6 +170,23 @@ enable_site() {
     fi
 }
 
+# True when ufw is installed and filtering.  Reading its status needs root, so a
+# dry run as another user reads it as inactive.
+ufw_is_active() {
+    command -v ufw >/dev/null 2>&1 || return 1
+    ufw status 2>/dev/null | grep -q '^Status: active'
+}
+
+# Open ports 80 and 443 when ufw filters this machine, as some cloud images ship
+# it with only SSH allowed: Let's Encrypt reaches the site over port 80, and
+# visitors over 443.  Allowing a port that is already allowed doesn't change anything.
+open_firewall() {
+    ufw_is_active || return 0
+    log "Allowing ports 80 and 443 through ufw"
+    run ufw allow 80/tcp
+    run ufw allow 443/tcp
+}
+
 write_bootstrap_host() {
     log "Serving the ACME challenge over plain HTTP"
     run install -d "$CERTBOT_WEBROOT"
@@ -199,7 +217,11 @@ request_certificate() {
     log "Requesting the certificate from Let's Encrypt"
     args+=(--non-interactive --agree-tos -m "$CALDART_CERTBOT_EMAIL")
     [[ "$CALDART_CERTBOT_STAGING" != yes ]] || args+=(--staging)
-    run certbot certonly --webroot -w "$CERTBOT_WEBROOT" "${args[@]}"
+    run certbot certonly --webroot -w "$CERTBOT_WEBROOT" "${args[@]}" ||
+        die "Let's Encrypt didn't issue the certificate.  When certbot reports a" \
+            "timeout or a connection problem, port 80 on this server isn't reachable" \
+            "from the internet: check 'ufw status' and your hosting provider's" \
+            "firewall, then run install.sh again."
 }
 
 make_self_signed_certificate() {
@@ -451,6 +473,7 @@ web_server_step() {
         return 0
     fi
 
+    open_firewall
     local certificate
     certificate="$(certificate_path)"
     if [[ "$CALDART_TLS" == certbot ]]; then

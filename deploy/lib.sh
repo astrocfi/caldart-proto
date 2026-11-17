@@ -137,6 +137,9 @@ readonly HOSTNAME_PATTERN='^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]
 
 # The stage the last log line announced, which a failing command is reported in.
 CURRENT_STAGE=""
+# The command run() last started, shell-quoted: under run(), BASH_COMMAND reads
+# only "$@", so a failure there is reported with this instead.
+RUNNING_COMMAND=""
 
 # Print one stage line on stdout.
 log() {
@@ -151,6 +154,9 @@ log() {
 report_failure() {
     local status=$1 command=$2
     [[ -n "$CURRENT_STAGE" ]] || return 0
+    if [[ "$command" == '"$@"' && -n "$RUNNING_COMMAND" ]]; then
+        command=$RUNNING_COMMAND
+    fi
     ((BASH_SUBSHELL == 0)) || return 0
     printf 'error: %s failed: %s exited with status %s\n' \
         "$CURRENT_STAGE" "$command" "$status" >&2
@@ -255,6 +261,7 @@ run() {
         printf '+ %s\n' "$(quote_command "$@")"
         return 0
     fi
+    RUNNING_COMMAND="$(quote_command "$@")"
     "$@"
 }
 
