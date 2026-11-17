@@ -311,7 +311,8 @@ site_root() {
     printf '%s/%s\n' "$SITE_ROOT_PARENT" "$CALDART_HOSTNAME"
 }
 
-# The front page of a new site root: a link to CalDART under its prefix.
+# The front page of a new site root: a blank page.  It leaves out any link to
+# CalDART, so a crawler that reads the root doesn't find the prefix.
 site_root_page() {
     cat <<PAGE
 <!doctype html>
@@ -321,7 +322,6 @@ site_root_page() {
 <title>$CALDART_HOSTNAME</title>
 </head>
 <body>
-<p><a href="$CALDART_URL_PREFIX/">CalDART</a></p>
 </body>
 </html>
 PAGE

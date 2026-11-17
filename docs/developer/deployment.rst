@@ -1423,8 +1423,9 @@ includes the snippet of :ref:`deploy-prefix`.  ``render_vhost`` keeps the
 section that matches the recorded prefix and deletes the other, with both
 sections' marker lines.  Before it writes the vhost, the step:
 
-- creates ``/var/www/HOST`` with an ``index.html`` linking to ``PREFIX/``, when
-  the folder doesn't exist yet; once it exists, its contents are the
+- creates ``/var/www/HOST`` with a blank ``index.html``, when the folder
+  doesn't exist yet (the page leaves out any link to ``PREFIX/``, so a crawler
+  that reads the root doesn't find CalDART); once it exists, its contents are the
   operator's, and later runs leave them alone;
 - writes the snippet, with the prefix and the deploy root written in: Apache's
   ``deploy/apache/caldart-attach.conf`` to
