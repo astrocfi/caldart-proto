@@ -194,8 +194,8 @@ export function LedgerBody({ ledger }: { ledger: MemberLedger }): JSX.Element {
         {ledger.statement_years.length === 0 ? (
           <p className="muted">
             {hasNoMembership
-              ? 'This person has not given anything yet.'
-              : 'This member has not given anything beyond their dues.'}
+              ? 'This person has not paid anything yet.'
+              : 'This member has not paid anything yet.'}
           </p>
         ) : (
           <div className="cluster">

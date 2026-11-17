@@ -38,8 +38,6 @@ const AVIATION_LABELS = [
   'Medical',
   'Medical expires',
   'Photo ID',
-  'Last flight review',
-  'Total hours',
 ];
 
 const RATING_LABELS = [
@@ -54,15 +52,7 @@ const RATING_LABELS = [
   'MEI',
 ];
 
-const VOLUNTEER_LABELS = [
-  'Mission pilot',
-  'Ground support',
-  'Exercises and training',
-  'Member support',
-  'Fundraising',
-  'Social media',
-  'Newsletter',
-];
+const VOLUNTEER_LABELS = ['Mission pilot', 'Ground support', 'Exercises and training'];
 
 /** A profile holding a certificate, a medical, and a photo ID, each with something to verify. */
 const HELD_ITEMS: ProfileFormValues = {
@@ -111,12 +101,18 @@ describe('<ProfileFieldsets/>', () => {
     },
   );
 
-  it('puts the callsign in its own fieldset right after Contact', () => {
+  it('puts the callsign in its own fieldset right after the ratings', () => {
     renderFieldsets();
     const legends = screen
       .getAllByRole('group')
       .map((group) => group.querySelector(':scope > legend')?.textContent);
-    expect(legends.slice(0, 3)).toEqual(['Contact', 'Amateur radio', 'Aviation']);
+    expect(legends.slice(0, 5)).toEqual([
+      'Contact',
+      'Aviation',
+      'Ratings',
+      'Amateur radio',
+      'Volunteer interests',
+    ]);
   });
 
   it('labels the callsign field inside the Amateur radio fieldset', () => {
@@ -316,24 +312,43 @@ describe('<ProfileFieldsets/>', () => {
     expect(onChange).toHaveBeenCalledWith({ ...EMPTY_PROFILE_FORM, ratings: ['cfi'] });
   });
 
+  it('asks only about the three volunteer interests', () => {
+    renderFieldsets();
+    const group = screen.getByRole('group', { name: 'Volunteer interests' });
+    expect(within(group).getAllByRole('checkbox')).toHaveLength(3);
+  });
+
   it('reports a checked volunteer interest through onChange', async () => {
     const user = userEvent.setup();
     const onChange = renderFieldsets();
 
-    await user.click(screen.getByLabelText('Newsletter (volunteer interest)'));
+    await user.click(screen.getByLabelText('Exercises and training (volunteer interest)'));
 
-    expect(onChange).toHaveBeenCalledWith({ ...EMPTY_PROFILE_FORM, vol_newsletter: true });
+    expect(onChange).toHaveBeenCalledWith({ ...EMPTY_PROFILE_FORM, vol_exercise_training: true });
   });
 
-  it.each(['Home airport', 'Secondary airport'])(
-    'asks for the %s without its leading K',
-    (label) => {
-      renderFieldsets();
-      expect(screen.getByLabelText(label)).toHaveAccessibleDescription(
-        'Leave off the leading K: PAO, not KPAO',
-      );
-    },
-  );
+  it('asks for the secondary airport without its leading K', () => {
+    renderFieldsets();
+    expect(screen.getByLabelText('Secondary airport')).toHaveAccessibleDescription(
+      'Leave off the leading K: PAO, not KPAO',
+    );
+  });
+
+  it("explains that the member's home airport needn't be their DART's", () => {
+    renderFieldsets();
+    expect(screen.getByLabelText('Home airport')).toHaveAccessibleDescription(
+      "Where your aircraft is based, or where you usually fly from. It doesn't have to be " +
+        "your DART's airport. Leave off the leading K: PAO, not KPAO",
+    );
+  });
+
+  it("explains the home airport in the third person on somebody else's record", () => {
+    renderFieldsets({ audience: 'administrator' });
+    expect(screen.getByLabelText('Home airport')).toHaveAccessibleDescription(
+      "Where their aircraft is based, or where they usually fly from. It doesn't have to be " +
+        "their DART's airport. Leave off the leading K: PAO, not KPAO",
+    );
+  });
 
   it('upper-cases the secondary airport identifier as it is typed', async () => {
     const user = userEvent.setup();

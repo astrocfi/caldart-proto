@@ -94,7 +94,6 @@ describe('AircraftRecordPage', () => {
       expect(patched).toMatchObject({
         insurance_carrier: 'USAIG',
         insurance_liability_per_occurrence_cents: 100_000_000,
-        insurance_hull_cents: 14_500_000,
       }),
     );
     expect(await screen.findByText(/N172SP saved/)).toBeInTheDocument();

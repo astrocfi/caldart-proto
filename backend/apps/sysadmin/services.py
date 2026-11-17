@@ -28,6 +28,7 @@ from apps.aircraft.models import Registration
 from apps.sysadmin.jobs import JobStatus, job_statuses
 from apps.sysadmin.models import JobRun
 from caldart import audit
+from caldart.org import org_details
 
 if TYPE_CHECKING:
     from _typeshed import SupportsRead, SupportsWrite
@@ -436,6 +437,8 @@ def health() -> dict[str, Any]:
     up first, and the one that has to have room for the next ``pg_dump``.
     ``scheduled_jobs`` is :func:`readable_job_statuses`, read only while the database
     answers, and ``None`` when it does not or the record of runs can't be read.
+    ``ein_set`` says whether the site settings hold the EIN that every receipt and
+    contribution statement prints, and is ``None`` while the database doesn't answer.
     """
     try:
         with connection.cursor() as cursor:
@@ -456,6 +459,7 @@ def health() -> dict[str, Any]:
         "version": app_version(),
         "debug": settings.DEBUG,
         "scheduled_jobs": readable_job_statuses() if db_status == "ok" else None,
+        "ein_set": bool(org_details().ein) if db_status == "ok" else None,
     }
 
 

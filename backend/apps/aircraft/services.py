@@ -253,7 +253,9 @@ def leader_status(user: UserModel) -> dict[str, Any]:
     a member is a no-go, not just that they are.  ``verified`` among them is true when
     the pilot certificate, the medical, and the photo ID are all verified; each of the
     three carries its own ``verification``.  ``is_dart_leader`` and ``is_verifier`` say
-    whether the member holds the DART leader role and the verifier role.  An account
+    whether the member holds the DART leader role and the verifier role, and
+    ``verifier_until`` is the last day a verifier grant works (``None`` for one without
+    an end, and for anybody who isn't a verifier).  An account
     without a profile doesn't have anything verified, and its photo ID reads
     ``not_provided``.
     """
@@ -290,6 +292,7 @@ def leader_status(user: UserModel) -> dict[str, Any]:
         },
         "is_dart_leader": DART_LEADER in user.roles,
         "is_verifier": VERIFIER in user.roles,
+        "verifier_until": user.verifier_until if VERIFIER in user.roles else None,
         "aircraft": list(profile.aircraft.select_related("type")) if profile is not None else [],
         "go_no_go": _go_no_go(status["status"], profile),
     }

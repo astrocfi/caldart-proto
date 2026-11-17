@@ -76,10 +76,10 @@ def receipt_lines(payment: Payment) -> list[ReceiptLine]:
     """One line per thing ``payment`` bought, dues first.
 
     The membership line names the plan and, when the payment activated a term,
-    that term's dates.  The contribution line is marked deductible, which is
-    what brings the 501(c)(3) sentence onto the page.  A payment with neither a
-    plan nor a contribution -- which checkout refuses to create -- yields an
-    empty list, and its receipt totals zero.
+    that term's dates.  Both lines are marked deductible, since dues and contributions
+    are both tax deductible, which is what brings the 501(c)(3) sentence onto the
+    page.  A payment with neither a plan nor a contribution -- which checkout refuses
+    to create -- yields an empty list, and its receipt totals zero.
     """
     lines: list[ReceiptLine] = []
     if payment.plan is not None:
@@ -88,6 +88,7 @@ def receipt_lines(payment: Payment) -> list[ReceiptLine]:
                 label=payment.plan.name,
                 detail=term_detail(payment),
                 amount_cents=payment.plan_amount_cents,
+                deductible=True,
             )
         )
     if payment.contribution_cents > 0:
@@ -186,6 +187,7 @@ def send_receipt(payment: Payment) -> bool:
     org = org_details()
     context: dict[str, object] = {
         "org_name": org.name,
+        "ein": org.ein,
         "contact_email": org.contact_email,
         "first_name": payment.user.first_name or payment.user.display_name,
         "receipt_number": payment.receipt_number,
@@ -221,19 +223,21 @@ def send_receipt(payment: Payment) -> bool:
     return True
 
 
-def contribution_payments(user: User, year: int) -> list[Payment]:
-    """``user``'s settled contributions in ``year``, oldest first.
+def statement_payments(user: User, year: int) -> list[Payment]:
+    """``user``'s settled payments in ``year``, oldest first: dues, gifts, or both.
 
-    A payment counts when it carried a contribution and its money settled, and
+    A payment counts when it came to more than nothing and its money settled, and
     it falls in the year its ledger date falls in -- the day a check was
-    received, or the day the provider settled.
+    received, or the day the provider settled.  Dues count as well as contributions,
+    because both are tax deductible.
     """
     rows = (
         Payment.objects.filter(
             user=user,
             status__in=SETTLED_STATUSES,
-            contribution_cents__gt=0,
+            amount_cents__gt=0,
         )
+        .select_related("plan")
         .prefetch_related("refunds")
         .order_by("created_at", "id")
     )
@@ -245,43 +249,55 @@ def statement_years(user: User) -> list[int]:
     """The calendar years ``user`` may download a contribution statement for.
 
     Newest first, and a year appears only when the member made at least one
-    settled contribution in it.  An empty list means there isn't a year to state.
+    settled payment in it, dues or a contribution.  An empty list means there isn't a
+    year to state.
     """
-    rows = Payment.objects.filter(
-        user=user, status__in=SETTLED_STATUSES, contribution_cents__gt=0
-    ).only("provider", "received_on", "completed_at")
+    rows = Payment.objects.filter(user=user, status__in=SETTLED_STATUSES, amount_cents__gt=0).only(
+        "provider", "received_on", "completed_at"
+    )
     years = {payment.paid_on.year for payment in rows if payment.paid_on is not None}
     return sorted(years, reverse=True)
 
 
-def refunded_contribution_cents(payment: Payment) -> int:
-    """How much of ``payment``'s contribution came back, in cents.
+def refunded_cents(payment: Payment) -> int:
+    """How much of ``payment`` came back, in cents, never more than it came to.
 
-    A refund is applied to the contribution first: a member asking for part of
-    a payment back is asking for the gift back, not for the membership they are
-    still using.  The result never exceeds the contribution itself, so a refund
-    that reaches into the dues as well stops there.
+    Dues and contributions are both on the statement, so a refund comes off the whole
+    payment, whichever part it was meant for.
     """
     refunded = sum(
         refund.amount_cents
         for refund in payment.refunds.all()
         if refund.status == RefundStatus.SUCCEEDED
     )
-    return min(payment.contribution_cents, refunded)
+    return min(payment.amount_cents, refunded)
+
+
+def statement_description(payment: Payment) -> str:
+    """What ``payment`` was for, as a statement line says it.
+
+    ``Annual membership dues``, ``Annual membership dues and contribution``, or
+    ``Contribution``, naming the plan the payment bought.
+    """
+    if payment.plan is None:
+        return CONTRIBUTION_LABEL
+    dues = f"{payment.plan.name} dues"
+    return f"{dues} and contribution" if payment.contribution_cents > 0 else dues
 
 
 def statement_data(user: User, year: int) -> StatementData:
-    """``user``'s contributions in ``year``, gathered for the statement PDF.
+    """``user``'s dues and contributions in ``year``, gathered for the statement PDF.
 
-    One line per settled contribution, in the order they were paid, each netted
-    against whatever of it was refunded.  A gift made on the public donation page with
-    a member's or a friend's address is not counted as theirs: it is listed apart, in
+    One line per settled payment, in the order they were paid, each saying what it was
+    for and netted against whatever of it was refunded.  A gift made on the public
+    donation page with a member's or a friend's address is not counted as theirs: it is
+    listed apart, in
     ``public_gifts``, with the name it was made out to as ``given_as`` when that is not
     the account's own, and left out of the total.  A year the member didn't give
     anything in yields a statement whose total is zero, and still a statement;
     :func:`statement_years` is what says which years are worth offering.
     """
-    payments = contribution_payments(user, year)
+    payments = statement_payments(user, year)
     lines = [
         _statement_line(payment, user, year)
         for payment in payments
@@ -307,9 +323,10 @@ def _statement_line(payment: Payment, user: User, year: int) -> StatementLine:
     return StatementLine(
         paid_on=payment.paid_on or date(year, 1, 1),
         receipt_number=payment.receipt_number,
-        amount_cents=payment.contribution_cents,
-        refunded_cents=refunded_contribution_cents(payment),
+        amount_cents=payment.amount_cents,
+        refunded_cents=refunded_cents(payment),
         given_as=_given_as(payment, user),
+        description=statement_description(payment),
     )
 
 

@@ -255,6 +255,8 @@ export interface AdminUser extends User {
   /** That report's status code and diagnostic, or `''`. */
   email_bounce_detail: string;
   reactivation_blocked: boolean;
+  /** The last day a verifier grant works; null without an end, or for a non-verifier. */
+  verifier_until: IsoDate | null;
   /** True while the account has a confirmed authenticator device. */
   two_factor_enabled: boolean;
   /** True when the caller may reset it: not their own, and a system administrator's only by one. */
@@ -324,6 +326,8 @@ export interface AdminUserDetail extends AdminUser {
  */
 export interface AdminUserPatch {
   roles?: RoleSlug[];
+  /** Saved only while the account ends up a verifier; today or later. */
+  verifier_until?: IsoDate | null;
 }
 
 /** `POST /admin/users/{id}/send-password-reset` and `/require-new-password`. */
@@ -388,7 +392,6 @@ export interface InsuranceVerificationPayload {
   insurance_policy_number?: string;
   insurance_liability_per_occurrence_cents?: number;
   insurance_liability_per_person_cents?: number;
-  insurance_hull_cents?: number | null;
   insurance_expiration?: IsoDate | null;
   verified: boolean;
 }
@@ -396,6 +399,8 @@ export interface InsuranceVerificationPayload {
 /** `PUT /leader/members/{user_id}/verifier`: whether the member holds the role. */
 export interface VerifierGrantPayload {
   verifier: boolean;
+  /** The grant's last day, today or later; null or left out for a grant without an end. */
+  until?: IsoDate | null;
 }
 
 /** One named volunteer who runs a DART, and how to reach them. */
@@ -616,8 +621,6 @@ export interface Profile {
   medical_type: MedicalType;
   medical_expiration: IsoDate | null;
   medical_is_current: boolean;
-  flight_review_date: IsoDate | null;
-  total_hours: number | null;
   photo_id_type: PhotoIdType;
   /** Read-only: only the member check's verification endpoint verifies an item. */
   verification: ProfileVerification;
@@ -627,10 +630,6 @@ export interface Profile {
   vol_mission_pilot: boolean;
   vol_ground_team: boolean;
   vol_exercise_training: boolean;
-  vol_member_support: boolean;
-  vol_fundraising: boolean;
-  vol_social_media: boolean;
-  vol_newsletter: boolean;
 }
 
 /** The account's names, which `/me/profile` carries and the member record keeps apart. */
@@ -849,6 +848,9 @@ export interface AircraftCoverage {
 export interface AircraftCoveragePolicy {
   excluded_categories: AircraftCategory[];
   excluded_airworthiness: Airworthiness[];
+  /** The least liability an aircraft's own policy must carry, in cents; 0 doesn't set one. */
+  min_liability_per_occurrence_cents: number;
+  min_liability_per_person_cents: number;
   note: string;
 }
 
@@ -968,7 +970,6 @@ export interface Aircraft extends Omit<AircraftSummary, 'insurance_verified'> {
   insurance_policy_number: string;
   insurance_liability_per_occurrence_cents: number;
   insurance_liability_per_person_cents: number;
-  insurance_hull_cents: number | null;
   insurance_verification: Verification;
   notes: string;
   created_by: number | null;
@@ -1255,10 +1256,6 @@ export interface DonationCheckoutRequest {
   vol_mission_pilot?: boolean;
   vol_ground_team?: boolean;
   vol_exercise_training?: boolean;
-  vol_member_support?: boolean;
-  vol_fundraising?: boolean;
-  vol_social_media?: boolean;
-  vol_newsletter?: boolean;
 }
 
 /** The 201 of `POST /donations/checkout`: the portal checkout's answer, plus the token. */
@@ -1688,6 +1685,8 @@ export interface LeaderStatus {
   photo_id: LeaderPhotoId;
   is_dart_leader: boolean;
   is_verifier: boolean;
+  /** The last day a verifier grant works; null without an end, or for a non-verifier. */
+  verifier_until: IsoDate | null;
   aircraft: AircraftSummary[];
   go_no_go: LeaderGoNoGo;
 }
@@ -1881,6 +1880,8 @@ export interface Health {
   debug: boolean;
   /** Each scheduled job's state, as `GET /system/jobs` answers it; null while unreadable. */
   scheduled_jobs: JobStatus[] | null;
+  /** Whether Site settings hold the EIN receipts print; null while the database is down. */
+  ein_set: boolean | null;
 }
 
 /**

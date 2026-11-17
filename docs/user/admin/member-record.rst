@@ -76,7 +76,7 @@ it. Saving a changed pilot certificate, medical, or photo ID clears its verifica
 address takes effect once its owner follows the link sent to it (see
 :doc:`../member/change-email`). To change your own address, use **Change email**.
 
-The **Amateur radio** fieldset, under the emergency contact, holds the **Amateur radio
+The **Amateur radio** fieldset, after the ratings, holds the **Amateur radio
 callsign**. It is optional, a US callsign such as W6ABC, and it turns to capitals as you
 type. Anything else is refused with *Enter a US amateur radio callsign, such as W6ABC.* A
 first or last name typed all in capitals or all in lower case is saved in title case, so
@@ -143,9 +143,9 @@ This tab shows the person's whole payment history, the same one the treasurer's 
   a member's card says *This member renews by hand.*, and anybody else's doesn't appear.
 - **Payments**: every payment's date, receipt number (which opens it), what it was for (such
   as **Annual and contribution**), total, refund, method, and status.
-- **Contribution statements**: a button for each year the person gave beyond their dues,
-  such as **Download 2025 statement**. Otherwise it says *This member has not given
-  anything beyond their dues.*, or *This person has not given anything yet.* if no dues.
+- **Contribution statements**: a button for each year the person paid dues or gave, such
+  as **Download 2025 statement**. Otherwise it says *This member has not paid anything
+  yet.*, or *This person has not paid anything yet.* without a term.
 
 A term you grant by hand doesn't have a payment behind it, so it doesn't appear here. For
 the organization's figures, use **Accounting** under **Finance** in the menu.

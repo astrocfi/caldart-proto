@@ -1263,6 +1263,8 @@ while the account has a confirmed authenticator device (:ref:`api-two-factor`),
 read from an ``Exists`` annotation so the page doesn't cost a query per row, and
 ``can_reset_two_factor`` is true when the caller may reset it
 (:ref:`api-reset-two-factor`), which the user record reads to gray its button out.
+``verifier_until`` is the last day a verifier grant works, or ``null`` for a grant
+without an end and for an account that isn't a verifier.
 ``phone``, ``dart`` (the DART's
 name), ``city``, ``county``, and ``home_airport`` (the home airport's identifier) are
 read from the profile for the columns the Roles list can show; each is
@@ -1284,7 +1286,8 @@ read from the profile for the columns the Roles list can show; each is
         "friend_on": null,
         "email_verified_at": "2026-09-01T10:14:02.100522-07:00",
         "email_bounced_at": null, "email_bounce_detail": "",
-        "reactivation_blocked": false, "two_factor_enabled": false,
+        "reactivation_blocked": false, "verifier_until": null,
+        "two_factor_enabled": false,
         "phone": "415-555-0100",
         "dart": "Palo Alto", "city": "Palo Alto", "county": "Santa Clara",
         "home_airport": "PAO"}
@@ -1297,6 +1300,7 @@ Parameter          Effect
 ``search``         Case-insensitive match on first name, last name and email.
                    Terms are ANDed, so ``Ada Lovelace`` matches one person.
 ``role``           One role slug.  An unknown slug is a 400, not an empty page.
+                   A verifier grant past its last day doesn't count.
 ``is_active``      ``true`` / ``false``.
 ``kind``           ``member``, ``friend``, or ``donor``, as stored.  An
                    unknown kind is a 400.  This list is where a donor's
@@ -1337,7 +1341,12 @@ Statuses: **200**; **401** when anonymous; **403** without ``user_admin``;
 ``PATCH /admin/users/{id}``
 ---------------------------
 
-Accepts ``roles`` alone, and returns the updated payload.  The user record changes
+Accepts ``roles`` and ``verifier_until``, and returns the updated payload.
+``verifier_until`` is the last day a verifier grant works, ``null`` for a grant
+without an end; it is saved only while the account ends up a verifier, cleared when
+the role is taken away, and a day before today is a **400** ``{"verifier_until":
+["Choose today or a later day."]}``.  It works as ``until`` does on
+``PUT /leader/members/{user_id}/verifier`` (:doc:`api-aircraft`).  The user record changes
 roles only: the names and the address are changed through
 ``PATCH /admin/members/{user_id}`` (:doc:`api-members`) or by the person.  A body
 carrying ``first_name``, ``last_name``, or ``email``, even with the value the account

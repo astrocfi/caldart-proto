@@ -127,7 +127,6 @@ def test_insurance_covers_the_six_insurance_fields() -> None:
         "insurance_policy_number",
         "insurance_liability_per_occurrence_cents",
         "insurance_liability_per_person_cents",
-        "insurance_hull_cents",
         "insurance_expiration",
     )
 

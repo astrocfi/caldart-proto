@@ -47,6 +47,7 @@ import { hasAnyRole } from '@/portal/nav';
 import type { FilterField, FilterValues } from '@/portal/reports/types';
 import { answersCsvUrl, useCallout, useCalloutAction } from './api';
 import './callouts.css';
+import { CloseTimeEditor } from './CloseTimeEditor';
 import { ANSWER_LABELS, answerLabel, answerTone } from './labels';
 
 /** What the screen says once the reminders are queued. */
@@ -119,6 +120,7 @@ export function CalloutDetailPage(): JSX.Element {
           )}
           <AnswerCounts callout={shown} />
           <CalloutActions callout={shown} />
+          {shown.closed_at === null ? <CloseTimeEditor callout={shown} /> : null}
           <Answers rows={shown.recipients} />
           <div className="cluster">
             <a className="button button--quiet" href={answersCsvUrl(shown.id)} download>

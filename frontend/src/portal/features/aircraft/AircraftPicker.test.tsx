@@ -47,7 +47,6 @@ function makeAircraft(overrides: Partial<Aircraft> = {}): Aircraft {
     insurance_policy_number: 'AV-00012345',
     insurance_liability_per_occurrence_cents: 100_000_000,
     insurance_liability_per_person_cents: 10_000_000,
-    insurance_hull_cents: 14_500_000,
     notes: '',
     created_by: null,
     is_active: true,
@@ -480,7 +479,6 @@ describe('AircraftPicker', () => {
       'Policy number',
       'Liability per occurrence',
       'Liability per person',
-      'Hull',
       'Insurance expires',
     ];
     expect(labels.filter((label) => screen.queryByLabelText(label) === null)).toEqual([]);

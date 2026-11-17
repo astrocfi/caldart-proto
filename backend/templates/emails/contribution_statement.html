@@ -69,6 +69,7 @@ system sans for IBM Plex Sans, since webfonts do not load in most mail clients.
                 <hr style="border:0; border-top:1px solid #CCD6E1; margin:0 0 16px 0;" />
                 <p style="margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; font-size:13px; line-height:1.6; color:#55606D;">
                   {{ org_name }} is a volunteer disaster air transportation network.
+                  {% if ein %}EIN {{ ein }}.{% endif %}
                   {% if contact_email %}Questions? Write to <a href="mailto:{{ contact_email }}" style="color:#1F4E79;">{{ contact_email }}</a>.{% endif %}
                 </p>
                 <p style="margin:8px 0 0 0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; font-size:13px; line-height:1.6; color:#55606D;">

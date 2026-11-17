@@ -1,7 +1,7 @@
 /**
  * The client for the Callouts screens, under `/api/v1/bulk-email/callouts`: every
- * mission callout, one callout's answers, **Remind non-responders**, and **Close
- * now**. A callout that still takes answers is read again every half minute, so the
+ * mission callout, one callout's answers, **Remind non-responders**, **Close now**, and
+ * **Change closing time**. A callout that still takes answers is read again every half minute, so the
  * answers arriving show without a reload.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -55,6 +55,22 @@ export function useCalloutAction(
       void queryClient.invalidateQueries({ queryKey: CALLOUTS_KEY, exact: true });
       // A reminder queues the email again, which the Sent screens show.
       void queryClient.invalidateQueries({ queryKey: BULK_EMAIL_KEY });
+    },
+  });
+}
+
+/**
+ * **Change closing time** on callout `id`: `POST .../closes-at` with the new time, as
+ * `YYYY-MM-DDTHH:MM` in the site's time zone.
+ */
+export function useMoveCloseTime(id: number): UseMutationResult<CalloutDetail, unknown, string> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (closesAt: string) =>
+      api.post<CalloutDetail>(`/bulk-email/callouts/${id}/closes-at`, { closes_at: closesAt }),
+    onSuccess: (saved) => {
+      queryClient.setQueryData(calloutKey(id), saved);
+      void queryClient.invalidateQueries({ queryKey: CALLOUTS_KEY, exact: true });
     },
   });
 }

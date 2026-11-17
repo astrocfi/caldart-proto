@@ -18,7 +18,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
-import type { AdminUser, AdminUserDetail, RoleSlug } from '@/portal/api/types';
+import type { AdminUser, AdminUserDetail, AdminUserPatch, RoleSlug } from '@/portal/api/types';
 import { pendingEmailStatus } from '@/portal/auth/pendingEmail';
 import { useAuth, useRoles } from '@/portal/auth/useAuth';
 import { ACCOUNT_KIND_LABELS, roleLabel } from '@/portal/choices';
@@ -26,8 +26,10 @@ import { BouncedDot } from '@/portal/components/BouncedDot';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { ConfirmButton } from '@/portal/components/ConfirmButton';
+import { formatDate, todayIso } from '@/portal/components/DateText';
 import { EmailVerifiedText } from '@/portal/components/EmailVerifiedText';
 import { EmptyState } from '@/portal/components/EmptyState';
+import { Field } from '@/portal/components/Field';
 import { MemberRecordLink } from '@/portal/components/MemberRecordLink';
 import { MembershipSummary } from '@/portal/features/admin-members/MembershipSummary';
 import type { MembershipFacts } from '@/portal/features/admin-members/MembershipSummary';
@@ -50,10 +52,30 @@ import { useAdminUser, useClearBounce, useSendEmailVerification, useUpdateAdminU
 
 interface FormState {
   roles: RoleSlug[];
+  /** The verifier grant's last day as the date box holds it, `''` without an end. */
+  verifier_until: string;
 }
 
 function formFor(user: AdminUser): FormState {
-  return { roles: user.roles };
+  return { roles: user.roles, verifier_until: user.verifier_until ?? '' };
+}
+
+/**
+ * The patch a save sends: the roles, and the verifier's last day while the role is
+ * checked (null for a grant without an end).  Without the role the server clears it.
+ */
+function patchFor(form: FormState): AdminUserPatch {
+  if (!form.roles.includes('verifier')) return { roles: form.roles };
+  return {
+    roles: form.roles,
+    verifier_until: form.verifier_until === '' ? null : form.verifier_until,
+  };
+}
+
+/** A role's name, with the last day of a verifier grant that ends. */
+function roleWithEnd(slug: RoleSlug, verifierUntil: string | null): string {
+  if (slug !== 'verifier' || verifierUntil === null) return roleLabel(slug);
+  return `${roleLabel(slug)} until ${formatDate(verifierUntil)}`;
 }
 
 /** Why the System administrator box is grayed out for anybody who is not one. */
@@ -106,6 +128,7 @@ export function UserDetailPage(): JSX.Element {
   // The server's complaint about a field goes once the field is edited.
   const serverErrors = useFreshErrors(update.error, form ?? {}, {
     roles: fieldError(update.error, 'roles'),
+    verifier_until: fieldError(update.error, 'verifier_until'),
   });
 
   // Seed the form once the account has loaded, and again after a save so the
@@ -224,14 +247,14 @@ export function UserDetailPage(): JSX.Element {
         )}
 
         {isSelf ? (
-          <OwnRoles roles={user.roles} />
+          <OwnRoles roles={user.roles} verifierUntil={user.verifier_until} />
         ) : (
           <form
             ref={formRef}
             noValidate
             onSubmit={(event) => {
               event.preventDefault();
-              update.mutate(form, {
+              update.mutate(patchFor(form), {
                 onSuccess: () => toast.show('Account saved.', 'success'),
               });
             }}
@@ -260,6 +283,18 @@ export function UserDetailPage(): JSX.Element {
                         {role.description}
                         {isLocked ? ` ${lockedReason(role.slug)}` : null}
                       </p>
+                      {role.slug === 'verifier' && form.roles.includes('verifier') ? (
+                        <VerifierUntilField
+                          value={form.verifier_until}
+                          error={serverErrors.verifier_until ?? undefined}
+                          disabled={isLocked}
+                          onChange={(next) =>
+                            setForm((current) =>
+                              current === null ? current : { ...current, verifier_until: next },
+                            )
+                          }
+                        />
+                      ) : null}
                     </li>
                   );
                 })}
@@ -271,7 +306,7 @@ export function UserDetailPage(): JSX.Element {
               ) : null}
             </fieldset>
 
-            <FormAlert error={update.error} handled={['roles']} />
+            <FormAlert error={update.error} handled={['roles', 'verifier_until']} />
 
             <div className="cluster">
               <Button type="submit" disabled={update.isPending}>
@@ -305,14 +340,54 @@ export function UserDetailPage(): JSX.Element {
   );
 }
 
+interface VerifierUntilFieldProps {
+  value: string;
+  error: string | undefined;
+  disabled: boolean;
+  onChange: (next: string) => void;
+}
+
+/** The verifier grant's last day, under the Verifier box while it is checked. */
+function VerifierUntilField({
+  value,
+  error,
+  disabled,
+  onChange: handleChange,
+}: VerifierUntilFieldProps): JSX.Element {
+  return (
+    <Field
+      label="Verifier until"
+      hint="The last day the role works, for an exercise or a deployment. Leave it blank to keep it until somebody removes it."
+      error={error}
+    >
+      {(field) => (
+        <input
+          {...field}
+          type="date"
+          className="num"
+          min={todayIso()}
+          value={value}
+          disabled={disabled}
+          onChange={(event) => handleChange(event.target.value)}
+        />
+      )}
+    </Field>
+  );
+}
+
+interface OwnRolesProps {
+  roles: RoleSlug[];
+  verifierUntil: string | null;
+}
+
 /** Your own roles, listed without boxes: nobody changes their own. */
-function OwnRoles({ roles }: { roles: RoleSlug[] }): JSX.Element {
+function OwnRoles({ roles, verifierUntil }: OwnRolesProps): JSX.Element {
   return (
     <div className="stack">
       <h3 id="own-roles">Your roles</h3>
       <ul aria-labelledby="own-roles">
         {roles.map((slug) => (
-          <li key={slug}>{roleLabel(slug)}</li>
+          <li key={slug}>{roleWithEnd(slug, verifierUntil)}</li>
         ))}
       </ul>
       <p className="muted">{OWN_ROLES}</p>

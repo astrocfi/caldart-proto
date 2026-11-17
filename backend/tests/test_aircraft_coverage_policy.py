@@ -7,16 +7,23 @@ and My aircraft pages describe what each reader sees.
 
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Any
 
 import pytest
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.aircraft.coverage import CATEGORY_NOT_RECORDED, current_rule
-from apps.aircraft.models import AircraftCoveragePolicy
+from apps.aircraft.models import (
+    DEFAULT_MIN_LIABILITY_PER_OCCURRENCE_CENTS,
+    DEFAULT_MIN_LIABILITY_PER_PERSON_CENTS,
+    Aircraft,
+    AircraftCoveragePolicy,
+)
 from apps.aircraft.seed import COVERAGE_NOTE, seed_coverage_policy
 from tests.conftest import role_matrix
 from tests.factories import (
@@ -51,6 +58,8 @@ def _body(**overrides: Any) -> dict[str, Any]:
     body: dict[str, Any] = {
         "excluded_categories": ["helicopter"],
         "excluded_airworthiness": [],
+        "min_liability_per_occurrence_cents": DEFAULT_MIN_LIABILITY_PER_OCCURRENCE_CENTS,
+        "min_liability_per_person_cents": DEFAULT_MIN_LIABILITY_PER_PERSON_CENTS,
         "note": "Helicopters are not covered.",
     }
     body.update(overrides)
@@ -82,11 +91,16 @@ def test_reading_the_policy_needs_a_signed_in_caller(api_client: APIClient) -> N
 def test_a_policy_never_written_does_not_exclude_anything(
     api_client: APIClient, member: User
 ) -> None:
-    """Before an administrator writes one, the policy is empty."""
+    """Before an administrator writes one, the policy excludes only low liability.
+
+    The minimums start at $1,000,000 per occurrence and $100,000 per person.
+    """
     api_client.force_login(member)
     assert api_client.get(POLICY_URL).json() == {
         "excluded_categories": [],
         "excluded_airworthiness": [],
+        "min_liability_per_occurrence_cents": 100_000_000,
+        "min_liability_per_person_cents": 10_000_000,
         "note": "",
     }
 
@@ -118,6 +132,8 @@ def test_a_written_policy_is_stored_and_answered(system_admin_client: APIClient)
         _body(
             excluded_categories=["gyroplane", "helicopter"],
             excluded_airworthiness=["light_sport", "experimental", "experimental"],
+            min_liability_per_occurrence_cents=200_000_000,
+            min_liability_per_person_cents=0,
             note="  Rotorcraft and homebuilts are not covered.  ",
         ),
         format="json",
@@ -125,6 +141,8 @@ def test_a_written_policy_is_stored_and_answered(system_admin_client: APIClient)
     assert response.json() == {
         "excluded_categories": ["helicopter", "gyroplane"],
         "excluded_airworthiness": ["experimental", "light_sport"],
+        "min_liability_per_occurrence_cents": 200_000_000,
+        "min_liability_per_person_cents": 0,
         "note": "Rotorcraft and homebuilts are not covered.",
     }
 
@@ -148,6 +166,15 @@ def test_an_unknown_value_in_a_list_is_refused(system_admin_client: APIClient, f
     """A value outside the choice list is a 400 naming the list."""
     response = system_admin_client.put(POLICY_URL, _body(**{field: ["spaceship"]}), format="json")
     assert (response.status_code, list(response.json())) == (400, [field])
+
+
+@pytest.mark.parametrize(
+    "field", ["min_liability_per_occurrence_cents", "min_liability_per_person_cents"]
+)
+def test_a_negative_minimum_is_refused(system_admin_client: APIClient, field: str) -> None:
+    """A minimum is $0 or more: a negative one is a 400 naming it."""
+    response = system_admin_client.put(POLICY_URL, _body(**{field: -1}), format="json")
+    assert response.json() == {field: ["Enter an amount of $0 or more."]}
 
 
 def test_a_note_longer_than_the_limit_is_refused(system_admin_client: APIClient) -> None:
@@ -212,7 +239,7 @@ def test_the_rule_judges_an_aircraft(
 ) -> None:
     """Either listed value excludes; a missing category is said rather than judged."""
     _exclude(**policy)
-    found = current_rule().judge(category=category, airworthiness=airworthiness)
+    found = current_rule().judge(Aircraft(category=category, airworthiness=airworthiness))
     assert (found.excluded, found.reason) == expected
 
 
@@ -220,8 +247,146 @@ def test_the_reason_names_the_organization_from_the_site_settings() -> None:
     """The organization in the reason is the one the site settings name."""
     make_site_settings(org_name="Example DART Network")
     _exclude(categories=["balloon"])
-    reason = current_rule().judge(category="balloon", airworthiness="").reason
+    reason = current_rule().judge(Aircraft(category="balloon")).reason
     assert reason == "Not covered: balloons are excluded by Example DART Network's policy"
+
+
+# -- the liability minimums ---------------------------------------------------
+
+
+def _insured(per_occurrence: int, per_person: int, **fields: Any) -> Aircraft:
+    """An unsaved airplane with a policy on file carrying these limits, in cents."""
+    return Aircraft(
+        category="airplane",
+        insurance_liability_per_occurrence_cents=per_occurrence,
+        insurance_liability_per_person_cents=per_person,
+        insurance_expiration=timezone.localdate() + timedelta(days=90),
+        **fields,
+    )
+
+
+@pytest.mark.parametrize(
+    ("per_occurrence", "per_person", "expected"),
+    [
+        (100_000_000, 10_000_000, (False, "")),
+        (200_000_000, 20_000_000, (False, "")),
+        (
+            50_000_000,
+            10_000_000,
+            (
+                True,
+                "Not covered: liability is under CalDART's minimum of $1,000,000 per occurrence",
+            ),
+        ),
+        (
+            100_000_000,
+            5_000_000,
+            (True, "Not covered: liability is under CalDART's minimum of $100,000 per person"),
+        ),
+        (
+            0,
+            0,
+            (
+                True,
+                "Not covered: liability is under CalDART's minimum of $1,000,000 per "
+                "occurrence and $100,000 per person",
+            ),
+        ),
+    ],
+    ids=["exactly-the-minimums", "above", "occurrence-short", "person-short", "both-short"],
+)
+def test_a_recorded_policy_under_a_minimum_is_not_covered(
+    per_occurrence: int, per_person: int, expected: tuple[bool, str]
+) -> None:
+    """The default minimums exclude a policy carrying less, naming each minimum missed."""
+    found = current_rule().judge(_insured(per_occurrence, per_person))
+    assert (found.excluded, found.reason) == expected
+
+
+def test_an_aircraft_without_a_policy_on_file_is_not_judged_on_its_liability() -> None:
+    """Without an insurance expiry there isn't a policy to fall short of the minimums."""
+    found = current_rule().judge(Aircraft(category="airplane"))
+    assert (found.excluded, found.reason) == (False, "")
+
+
+def test_a_minimum_of_zero_sets_no_minimum() -> None:
+    """A policy whose minimums are both $0 accepts any liability."""
+    policy = AircraftCoveragePolicy.load()
+    policy.min_liability_per_occurrence_cents = 0
+    policy.min_liability_per_person_cents = 0
+    policy.save()
+    assert current_rule().judge(_insured(0, 0)).excluded is False
+
+
+def test_a_changed_minimum_applies_to_every_aircraft_at_once(admin_client: APIClient) -> None:
+    """Raising a minimum excludes an aircraft already on the register at once."""
+    aircraft = AircraftFactory(
+        insurance_liability_per_occurrence_cents=100_000_000,
+        insurance_expiration=timezone.localdate() + timedelta(days=90),
+    )
+    policy = AircraftCoveragePolicy.load()
+    policy.min_liability_per_occurrence_cents = 200_000_000
+    policy.save()
+    body = admin_client.get(f"/api/v1/aircraft/{aircraft.pk}").json()
+    assert body["coverage"] == {
+        "excluded": True,
+        "reason": "Not covered: liability is under CalDART's minimum of $2,000,000 per occurrence",
+    }
+
+
+def test_an_exclusion_by_category_is_named_before_the_liability() -> None:
+    """An excluded category is the reason, even when the liability falls short too."""
+    _exclude(categories=["helicopter"])
+    aircraft = _insured(0, 0)
+    aircraft.category = "helicopter"
+    assert current_rule().judge(aircraft).reason == HELICOPTERS_EXCLUDED
+
+
+def _verification_url(aircraft: Aircraft) -> str:
+    """The aircraft check's verification endpoint for ``aircraft``."""
+    return f"/api/v1/leader/aircraft/{aircraft.pk}/verification"
+
+
+def test_insurance_under_a_minimum_cannot_be_verified(leader_client: APIClient) -> None:
+    """Verifying a policy under the per-person minimum is refused under that field."""
+    aircraft = AircraftFactory(
+        insurance_liability_per_person_cents=5_000_000,
+        insurance_expiration=timezone.localdate() + timedelta(days=90),
+    )
+    response = leader_client.put(_verification_url(aircraft), {"verified": True}, format="json")
+    assert (response.status_code, response.json()) == (
+        400,
+        {
+            "insurance_liability_per_person_cents": [
+                "Under CalDART's minimum of $100,000 per person."
+            ]
+        },
+    )
+
+
+def test_the_refusal_judges_the_amounts_as_they_would_be_saved(leader_client: APIClient) -> None:
+    """Correcting a short amount in the same save verifies the insurance."""
+    aircraft = AircraftFactory(
+        insurance_liability_per_occurrence_cents=50_000_000,
+        insurance_expiration=timezone.localdate() + timedelta(days=90),
+    )
+    response = leader_client.put(
+        _verification_url(aircraft),
+        {"insurance_liability_per_occurrence_cents": 100_000_000, "verified": True},
+        format="json",
+    )
+    assert response.json()["insurance_verification"]["verified"] is True
+
+
+def test_insurance_under_a_minimum_is_saved_unverified(leader_client: APIClient) -> None:
+    """A save that doesn't verify records a short amount as it is."""
+    aircraft = AircraftFactory(insurance_expiration=timezone.localdate() + timedelta(days=90))
+    response = leader_client.put(
+        _verification_url(aircraft),
+        {"insurance_liability_per_occurrence_cents": 50_000_000, "verified": False},
+        format="json",
+    )
+    assert response.json()["insurance_liability_per_occurrence_cents"] == 50_000_000
 
 
 # -- where it is shown --------------------------------------------------------

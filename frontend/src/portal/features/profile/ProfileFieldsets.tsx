@@ -1,5 +1,5 @@
 /**
- * The four profile fieldsets — Contact, Amateur radio, Aviation (with Ratings) and
+ * The four profile fieldsets — Contact, Aviation (with Ratings), Amateur radio, and
  * Volunteer interests — as one controlled component.
  *
  * `/profile`, join step 2, "New member" and the Profile tab of a member record
@@ -64,6 +64,12 @@ type CodedKey = 'pilot_certificate_type' | 'medical_type' | 'photo_id_type';
 
 /** Under each airport box: the format, with an example. */
 const AIRPORT_HINT = 'Leave off the leading K: PAO, not KPAO';
+
+/** Home airport is easily mistaken for the DART's airport, so its hint says what it is. */
+const HOME_AIRPORT_HINT = {
+  self: `Where your aircraft is based, or where you usually fly from. It doesn't have to be your DART's airport. ${AIRPORT_HINT}`,
+  administrator: `Where their aircraft is based, or where they usually fly from. It doesn't have to be their DART's airport. ${AIRPORT_HINT}`,
+} as const;
 
 const PHONE_HINT = '10 digits, such as 415-555-0100';
 
@@ -440,25 +446,12 @@ export function ProfileFieldsets({
       </fieldset>
 
       <fieldset>
-        <legend>Amateur radio</legend>
-        <div className="form-grid">
-          {text('ham_callsign', {
-            label: 'Amateur radio callsign',
-            className: 'num',
-            size: 7,
-            hint: 'Optional. A US callsign, such as W6ABC',
-            mask: maskCallsign,
-          })}
-        </div>
-      </fieldset>
-
-      <fieldset>
         <legend>Aviation</legend>
         <div className="form-grid">
           {text('home_airport_identifier', {
             label: 'Home airport',
             size: 4,
-            hint: AIRPORT_HINT,
+            hint: HOME_AIRPORT_HINT[audience],
             mask: maskAirportIdentifier,
           })}
           {text('secondary_airport_identifier', {
@@ -511,13 +504,6 @@ export function ProfileFieldsets({
             status: mark('medical'),
           })}
           {coded('photo_id_type', 'Photo ID', PHOTO_ID_TYPES, mark('photo_id'))}
-          {text('flight_review_date', { label: 'Last flight review', type: 'date' })}
-          {text('total_hours', {
-            label: 'Total hours',
-            inputMode: 'numeric',
-            size: 6,
-            mask: (raw) => maskDigits(raw, 5),
-          })}
           <Field label="Aircraft" error={errors.flies_rented_aircraft}>
             {() => (
               <label className="checkbox">
@@ -556,6 +542,19 @@ export function ProfileFieldsets({
             </div>
           ))}
         </fieldset>
+      </fieldset>
+
+      <fieldset>
+        <legend>Amateur radio</legend>
+        <div className="form-grid">
+          {text('ham_callsign', {
+            label: 'Amateur radio callsign',
+            className: 'num',
+            size: 7,
+            hint: 'Optional. A US callsign, such as W6ABC',
+            mask: maskCallsign,
+          })}
+        </div>
       </fieldset>
 
       <fieldset>

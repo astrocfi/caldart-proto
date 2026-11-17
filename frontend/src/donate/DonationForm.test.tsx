@@ -221,7 +221,7 @@ describe('DonationForm', () => {
     await user.click(screen.getByText('Tell us more (optional)'));
     await user.selectOptions(screen.getByLabelText('California county'), 'Marin');
     await user.selectOptions(screen.getByLabelText('DART'), 'Bay Area');
-    await user.click(screen.getByLabelText('Fundraising'));
+    await user.click(screen.getByLabelText('Ground support'));
     await user.click(screen.getByRole('button', { name: 'Continue to payment' }));
 
     await user.click(await screen.findByRole('button', { name: 'Succeed' }));
@@ -230,7 +230,7 @@ describe('DonationForm', () => {
       expect(served.checkouts[0]).toMatchObject({
         county: 'Marin',
         dart_id: 4,
-        vol_fundraising: true,
+        vol_ground_team: true,
       }),
     );
   });

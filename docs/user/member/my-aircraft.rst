@@ -48,7 +48,9 @@ any airplane with unverified insurance as a no-go.
 
 If the coverage policy leaves an airplane out, it shows **Not covered** beside a red
 dot, and the reason comes after the limits, such as *Not covered: helicopters are
-excluded by CalDART's policy*.
+excluded by CalDART's policy*. An airplane whose policy carries less liability than
+CalDART requires is left out the same way, such as *Not covered: liability is under
+CalDART's minimum of $1,000,000 per occurrence*.
 
 If you haven't added any airplanes, the card says **No aircraft yet**.
 
@@ -118,7 +120,7 @@ you edit it later:
   you type the name all in capitals or all in lower case, it is saved in title case,
   like your own name (see :doc:`profile`). An FBO's or a club's name is saved as typed.
 * **Carrier**, **Policy number**, **Liability per occurrence**, **Liability per
-  person**, **Hull**, and **Insurance expires**. Amounts are in US dollars, and
+  person**, and **Insurance expires**. Amounts are in US dollars, and
   the commas fill in as you type. **Insurance expires** is the most important box on
   the form, because a DART leader looks at it.
 
@@ -167,7 +169,7 @@ to **Edit**. For an airplane you added yourself, the form opens with every detai
 it was added: **N-number**, **Year**, **Aircraft type**, **Seats**,
 **Category**, and **Airworthiness**; **Owner type** (Individual, FBO, or Flying club), **Owner name**, and
 **Owner contact**; and **Carrier**, **Policy number**, **Liability per occurrence**,
-**Liability per person**, **Hull**, and **Insurance expires**. Amounts are in US
+**Liability per person**, and **Insurance expires**. Amounts are in US
 dollars, and the commas fill in as you type. A limit that was never recorded shows
 as an empty box. To change the type, type in **Aircraft type** and pick the new one
 from the list. If **Seats** is empty, picking a type fills it in. Typing in

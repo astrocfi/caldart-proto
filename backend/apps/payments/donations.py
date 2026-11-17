@@ -64,10 +64,6 @@ DONOR_PROFILE_FIELDS: tuple[str, ...] = (
     "vol_mission_pilot",
     "vol_ground_team",
     "vol_exercise_training",
-    "vol_member_support",
-    "vol_fundraising",
-    "vol_social_media",
-    "vol_newsletter",
 )
 
 
@@ -95,10 +91,6 @@ class DonorFields(TypedDict, total=False):
     vol_mission_pilot: bool
     vol_ground_team: bool
     vol_exercise_training: bool
-    vol_member_support: bool
-    vol_fundraising: bool
-    vol_social_media: bool
-    vol_newsletter: bool
 
 
 class DonationTokenError(Exception):

@@ -66,11 +66,11 @@ Contribution statements
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 The **Contribution statements** card has a button for every calendar year in which the
-member gave something beyond their dues. Each one downloads that year's statement as a PDF,
-the same document the member can download from their own **My payments** screen. If the
-member never gave beyond their dues, the card says *This member has not given anything
-beyond their dues.* For a friend, or a member who hasn't paid yet, it says *This person has
-not given anything yet.*
+member paid dues or gave a contribution, since both are tax deductible. Each one downloads
+that year's statement as a PDF, the same document the member can download from their own
+**My payments** screen. If the member hasn't paid anything, the card says *This member has
+not paid anything yet.* For a friend, or a member who hasn't paid yet, it says *This person
+has not paid anything yet.*
 
 What you can do
 ===============

@@ -111,6 +111,8 @@ Granting and removing roles
 
 #. Find the account on :doc:`users` and open it.
 #. Under **Roles**, check the roles they should have and uncheck the ones they shouldn't.
+   While **Verifier** is checked, **Verifier until** under it takes the role's last day,
+   for an exercise or a deployment; leave it blank for a grant without an end.
 #. Press **Save changes**.
 #. Ask them to reload the portal, so their menu shows the change.
 

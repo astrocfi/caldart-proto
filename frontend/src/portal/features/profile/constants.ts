@@ -15,8 +15,4 @@ export const VOLUNTEER_INTERESTS = [
   { field: 'vol_mission_pilot', label: 'Mission pilot' },
   { field: 'vol_ground_team', label: 'Ground support' },
   { field: 'vol_exercise_training', label: 'Exercises and training' },
-  { field: 'vol_member_support', label: 'Member support' },
-  { field: 'vol_fundraising', label: 'Fundraising' },
-  { field: 'vol_social_media', label: 'Social media' },
-  { field: 'vol_newsletter', label: 'Newsletter' },
 ] as const;

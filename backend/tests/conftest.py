@@ -599,10 +599,10 @@ def register(db: None, today: date) -> RegisterDict:
     that reads that fixture compares against the same day the register was built on.
 
     ``current`` is N172SP, a Cessna 172S owned by a flying club, insured by Avemco for
-    $1,000,000 per occurrence, $100,000 per person and a $145,000 hull, expiring in 200
-    days.  ``expiring`` is N9021K, a Piper Archer owned by Marta Reyes, whose cover
-    expires in 10 days.  ``expired`` is N33MM, a Mooney M20J owned by Owen Delgado,
-    whose cover expired 5 days ago.  ``missing`` is N44BE, a Beechcraft Bonanza owned by
+    $1,000,000 per occurrence and $100,000 per person, expiring in 200 days.
+    ``expiring`` is N9021K, a Piper Archer owned by Marta Reyes, whose cover expires in
+    10 days.  ``expired`` is N33MM, a Mooney M20J owned by Owen Delgado, whose cover
+    expired 5 days ago.  ``missing`` is N44BE, a Beechcraft Bonanza owned by
     an FBO, without a carrier, amounts, or an expiration on file.  ``expiring`` and
     ``expired`` carry the factory's default carrier and amounts.
     """
@@ -616,7 +616,6 @@ def register(db: None, today: date) -> RegisterDict:
             insurance_carrier="Avemco",
             insurance_liability_per_occurrence_cents=100_000_000,
             insurance_liability_per_person_cents=10_000_000,
-            insurance_hull_cents=14_500_000,
             insurance_expiration=today + timedelta(days=200),
         ),
         "expiring": AircraftFactory(
@@ -644,7 +643,6 @@ def register(db: None, today: date) -> RegisterDict:
             insurance_carrier="",
             insurance_liability_per_occurrence_cents=0,
             insurance_liability_per_person_cents=0,
-            insurance_hull_cents=None,
             insurance_expiration=None,
         ),
     }

@@ -48,9 +48,11 @@ STAMPED_AT = datetime(2026, 1, 15, 17, 0, tzinfo=timezone.get_current_timezone()
 LEADER_SEARCH_QUERIES = 4
 
 #: The queries one page of the register costs, however many rows are verified: the
-#: coverage policy is read once for the page, and the access check reads a plain
-#: member's roles and their current term once (``apps.aircraft.access``).
-AIRCRAFT_LIST_QUERIES = 9
+#: coverage policy is read once for the page, with the site settings that name the
+#: organization in its reasons (two queries, since the default liability minimums
+#: are set), and the access check reads a plain member's roles and their current term
+#: once (``apps.aircraft.access``).
+AIRCRAFT_LIST_QUERIES = 11
 
 
 def member_verification_url(user: User) -> str:
@@ -340,10 +342,12 @@ def test_a_negative_insurance_amount_is_refused(
     """The money fields are validated as the register validates them."""
     response = leader_client.put(
         aircraft_verification_url(aircraft),
-        {"insurance_hull_cents": -1, "verified": True},
+        {"insurance_liability_per_person_cents": -1, "verified": True},
         format="json",
     )
-    assert response.json() == {"insurance_hull_cents": ["Enter an amount of $0 or more."]}
+    assert response.json() == {
+        "insurance_liability_per_person_cents": ["Enter an amount of $0 or more."]
+    }
 
 
 def test_the_insurance_verified_flag_is_required(

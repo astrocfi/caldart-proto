@@ -78,8 +78,6 @@ row first if the account doesn't have one.
      "medical_type": "third",
      "medical_expiration": "2029-05-31",
      "medical_is_current": true,
-     "flight_review_date": null,
-     "total_hours": 750,
      "photo_id_type": "drivers_license",
      "verification": {
        "certificate": {
@@ -111,11 +109,7 @@ row first if the account doesn't have one.
        }
      ],
      "vol_ground_team": false,
-     "vol_exercise_training": false,
-     "vol_member_support": false,
-     "vol_fundraising": false,
-     "vol_social_media": false,
-     "vol_newsletter": false
+     "vol_exercise_training": false
    }
 
 Read-only fields
@@ -201,7 +195,7 @@ A write that moves a field a verified item covers clears that item: a new
 ``pilot_certificate_type`` or ``certificate_number`` clears the certificate, a
 new ``medical_type`` or ``medical_expiration`` the medical, and a new
 ``photo_id_type`` the photo ID.  A field resent at its stored value doesn't clear
-anything, and ratings, the flight review, and hours are not verified at all.  The
+anything, and ratings are not verified at all.  The
 same holds for ``PUT``.  The clearing doesn't raise an event of its own;
 ``profile_changed`` below already names the fields (:doc:`verification`).
 
@@ -278,8 +272,6 @@ Field                        Rule
                              anybody, and are one thing to keep right.
 ``county``                   One of California's fifty-eight, or blank for a member
                              who lives elsewhere.
-``total_hours``              ``0`` to ``99999`` if given.  A larger number is a typo:
-                             the highest civil totals on record are under 60,000.
 ``ratings``                  Each value from ``asel, amel, ases, ames, helicopter,
                              instrument, cfi, cfii, mei``; repeats are dropped and the
                              order is kept.

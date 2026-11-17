@@ -68,17 +68,11 @@ export interface ProfileFormValues {
   medical_expiration: string;
   /** Only the kind of document is recorded, never a number or a date. */
   photo_id_type: PhotoIdType;
-  flight_review_date: string;
-  total_hours: string;
   flies_rented_aircraft: boolean;
   /* volunteer interests */
   vol_mission_pilot: boolean;
   vol_ground_team: boolean;
   vol_exercise_training: boolean;
-  vol_member_support: boolean;
-  vol_fundraising: boolean;
-  vol_social_media: boolean;
-  vol_newsletter: boolean;
 }
 
 export type ProfileFormErrors = Partial<Record<keyof ProfileFormValues, string>>;
@@ -110,16 +104,10 @@ export const EMPTY_PROFILE_FORM: ProfileFormValues = {
   medical_type: 'none',
   medical_expiration: '',
   photo_id_type: 'not_provided',
-  flight_review_date: '',
-  total_hours: '',
   flies_rented_aircraft: false,
   vol_mission_pilot: false,
   vol_ground_team: false,
   vol_exercise_training: false,
-  vol_member_support: false,
-  vol_fundraising: false,
-  vol_social_media: false,
-  vol_newsletter: false,
 };
 
 /**
@@ -158,16 +146,10 @@ export function profileToForm(profile: ProfileSource): ProfileFormValues {
     medical_type: profile.medical_type,
     medical_expiration: profile.medical_expiration ?? '',
     photo_id_type,
-    flight_review_date: profile.flight_review_date ?? '',
-    total_hours: profile.total_hours === null ? '' : String(profile.total_hours),
     flies_rented_aircraft: profile.flies_rented_aircraft,
     vol_mission_pilot: profile.vol_mission_pilot,
     vol_ground_team: profile.vol_ground_team,
     vol_exercise_training: profile.vol_exercise_training,
-    vol_member_support: profile.vol_member_support,
-    vol_fundraising: profile.vol_fundraising,
-    vol_social_media: profile.vol_social_media,
-    vol_newsletter: profile.vol_newsletter,
   };
 }
 
@@ -176,7 +158,6 @@ export function profileToForm(profile: ProfileSource): ProfileFormValues {
  * names, which the member record writes as account fields of its own.
  */
 export function formToPatch(values: ProfileFormValues): Omit<ProfilePatch, ProfileNameKey> {
-  const hours = values.total_hours.trim();
   return {
     phone: normalizePhone(values.phone),
     phone_extension: values.phone_extension.trim(),
@@ -202,16 +183,10 @@ export function formToPatch(values: ProfileFormValues): Omit<ProfilePatch, Profi
     medical_type: values.medical_type,
     medical_expiration: values.medical_expiration || null,
     photo_id_type: values.photo_id_type,
-    flight_review_date: values.flight_review_date || null,
-    total_hours: hours === '' ? null : Number(hours),
     flies_rented_aircraft: values.flies_rented_aircraft,
     vol_mission_pilot: values.vol_mission_pilot,
     vol_ground_team: values.vol_ground_team,
     vol_exercise_training: values.vol_exercise_training,
-    vol_member_support: values.vol_member_support,
-    vol_fundraising: values.vol_fundraising,
-    vol_social_media: values.vol_social_media,
-    vol_newsletter: values.vol_newsletter,
   };
 }
 
@@ -267,9 +242,6 @@ const AIRPORT_RE = /^[A-Z0-9]{3}$/;
 const EXTENSION_MESSAGE = 'An extension is digits only, for example 4021.';
 
 const AIRPORT_MESSAGE = 'Use a three-character identifier like PAO, E16, or KLS.';
-
-/** The most hours a logbook may claim, matching `MAX_TOTAL_HOURS` on the server. */
-export const MAX_TOTAL_HOURS = 99_999;
 
 const PHONE_MESSAGE = 'Use a ten-digit number like 415-555-0100.';
 
@@ -369,13 +341,6 @@ export function validateProfileForm(
   const certificate = values.certificate_number.trim();
   if (certificate && !CERTIFICATE_NUMBER_RE.test(certificate)) {
     errors.certificate_number = CERTIFICATE_NUMBER_MESSAGE;
-  }
-
-  const hours = values.total_hours.trim();
-  if (hours !== '' && !/^\d+$/.test(hours)) {
-    errors.total_hours = 'Enter your total hours as a whole number.';
-  } else if (hours !== '' && Number(hours) > MAX_TOTAL_HOURS) {
-    errors.total_hours = `Enter fewer than ${MAX_TOTAL_HOURS.toLocaleString('en-US')} hours.`;
   }
 
   return errors;

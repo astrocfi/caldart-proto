@@ -73,15 +73,15 @@ User = get_user_model()
 SEEDED_FRIEND_GIFTS = 1
 
 #: The accounts ``seed_demo`` stores as friends: the demo friend, the treasurer, the
-#: verifier, the management account, and the four generated friends.
-SEEDED_STORED_FRIENDS = 8
+#: verifier, the management account, and the five generated friends.
+SEEDED_STORED_FRIENDS = 9
 
 #: The accounts whose membership reads ``friend``: the stored friends.
 SEEDED_EFFECTIVE_FRIENDS = SEEDED_STORED_FRIENDS
 
 #: The generated joiners who chose member and never paid, whose membership reads
 #: ``none`` (*Not yet paid*).
-SEEDED_AWAITING_FIRST_TERM = 4
+SEEDED_AWAITING_FIRST_TERM = 5
 
 #: The donors ``seed_demo`` makes, and the gifts they gave between them.
 SEEDED_DONORS = len(DONOR_GIFT_COUNTS)
@@ -90,7 +90,7 @@ SEEDED_DONOR_GIFTS = sum(DONOR_GIFT_COUNTS)
 #: The payments ``seed_demo`` creates from its fixed random seed: one per term,
 #: plus the ones recorded by hand, the demo friend's gift and the donors' gifts, all
 #: succeeded.
-SEEDED_PAYMENTS = 65 + MANUAL_PAYMENT_COUNT + SEEDED_FRIEND_GIFTS + SEEDED_DONOR_GIFTS
+SEEDED_PAYMENTS = 62 + MANUAL_PAYMENT_COUNT + SEEDED_FRIEND_GIFTS + SEEDED_DONOR_GIFTS
 
 #: How many of them the seed refunds: two in full and four contributions, which
 #: leaves the first two ``refunded`` and the other four ``partially_refunded``.
@@ -101,7 +101,7 @@ SEEDED_PARTIAL_REFUNDS = 4
 #: verifies: seven of every ten member positions are verified (``UNVERIFIED_POSITIONS``
 #: in ``apps.members.seed`` names the other three), and friends and donors never
 #: advance the position count, so this counts every member the seed makes.
-SEEDED_VERIFIED_MEMBERS = 31
+SEEDED_VERIFIED_MEMBERS = 30
 
 #: Of the seeded aircraft register, how many the seed leaves with verified insurance,
 #: by the same seven-in-ten rule.
@@ -153,11 +153,11 @@ def test_every_seeded_town_comes_from_the_town_generator() -> None:
     assert found == expected
 
 
-def test_fifteen_seeded_pilots_have_a_secondary_airport() -> None:
-    """Fifteen of the fifty seeded members and friends, about one in three, have one."""
+def test_eighteen_seeded_pilots_have_a_secondary_airport() -> None:
+    """Eighteen of the fifty seeded members and friends, about one in three, have one."""
     _seed()
     profiles = MemberProfile.objects.exclude(secondary_airport_identifier="")
-    assert profiles.count() == 15
+    assert profiles.count() == 18
 
 
 def test_a_seeded_secondary_airport_is_never_the_home_airport() -> None:
@@ -242,13 +242,13 @@ def test_seed_demo_covers_every_membership_status() -> None:
     """The seed produces users in every membership status, including a lifetime member."""
     _seed()
     counts = Counter(membership_status(u)["status"] for u in User.objects.all())
-    assert counts[MembershipState.CURRENT] == 33
-    assert counts[MembershipState.EXPIRED] == 6
+    assert counts[MembershipState.CURRENT] == 30
+    assert counts[MembershipState.EXPIRED] == 7
     assert counts[MembershipState.DONOR] == SEEDED_DONORS
     assert counts[MembershipState.FRIEND] == SEEDED_EFFECTIVE_FRIENDS
     assert counts[MembershipState.NONE] == SEEDED_AWAITING_FIRST_TERM
     lifetime = [u for u in User.objects.all() if membership_status(u)["is_lifetime"]]
-    assert len(lifetime) == 6
+    assert len(lifetime) == 5
 
 
 def test_seed_demo_has_expiring_and_mixed_medicals() -> None:
@@ -266,7 +266,7 @@ def test_seed_demo_has_expiring_and_mixed_medicals() -> None:
 
     profiles = MemberProfile.objects.exclude(medical_type="none")
     assert sum(1 for p in profiles if not p.medical_is_current) == 13
-    assert sum(1 for p in profiles if p.medical_is_current) == 35
+    assert sum(1 for p in profiles if p.medical_is_current) == 31
     assert {p.pilot_certificate_type for p in MemberProfile.objects.all()} == {
         "none",
         "student",
@@ -344,7 +344,7 @@ def test_seed_demo_payments_are_mixed_and_span_two_years() -> None:
     _seed()
     with_contribution = Payment.objects.filter(contribution_cents__gt=0).count()
     assert with_contribution == (
-        27 + MANUAL_PAYMENT_COUNT + SEEDED_FRIEND_GIFTS + SEEDED_DONOR_GIFTS
+        28 + MANUAL_PAYMENT_COUNT + SEEDED_FRIEND_GIFTS + SEEDED_DONOR_GIFTS
     )
     months = Payment.objects.dates("created_at", "month")
     oldest, newest = min(months), max(months)

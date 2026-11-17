@@ -32,14 +32,14 @@ test('a member signs in, edits their profile and reads members-only content', as
 
   // Edit the profile and see it stick.
   await page.goto('portal/profile');
-  await page.getByRole('textbox', { name: 'Total hours' }).fill('1234');
+  await page.getByRole('textbox', { name: 'Air Care Alliance number' }).fill('1234');
   await page.getByRole('textbox', { name: 'Home airport', exact: true }).fill('SQL');
   await page.getByRole('textbox', { name: 'Secondary airport', exact: true }).fill('KPAO');
   await page.getByRole('button', { name: 'Save changes' }).click();
   await expect(page.getByText('Profile saved.')).toBeVisible();
 
   await page.reload();
-  await expect(page.getByRole('textbox', { name: 'Total hours' })).toHaveValue('1234');
+  await expect(page.getByRole('textbox', { name: 'Air Care Alliance number' })).toHaveValue('1234');
   await expect(page.getByRole('textbox', { name: 'Secondary airport', exact: true })).toHaveValue(
     'PAO',
   );

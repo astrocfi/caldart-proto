@@ -92,6 +92,9 @@ CLOSES_BEFORE_SEND_MESSAGE = (
 
 #: Why an answer, a reminder, or a close is refused.
 CLOSED_MESSAGE = "This callout has closed."
+
+#: Why a callout closed with **Close now** keeps its answers closed.
+CLOSED_BY_HAND_MESSAGE = "This callout was closed with Close now, so its answers stay closed."
 INACTIVE_MESSAGE = "This link no longer works."
 
 #: Why a copy of a callout is not sent once its answers have closed.
@@ -413,6 +416,40 @@ def close(bulk: BulkEmail, *, actor: User, now: datetime | None = None) -> Callo
             locked.sent_at = locked.sent_at if locked.sent_at is not None else moment
             locked.save(update_fields=["skipped_count", "status", "sent_at", "updated_at"])
     audit.record(audit.CALLOUT_CLOSE, actor=actor, target=locked)
+    return callout
+
+
+def move_close(
+    bulk: BulkEmail, *, actor: User, closes_at: datetime, now: datetime | None = None
+) -> Callout:
+    """Change when ``bulk``'s callout stops taking answers, after it has gone out.
+
+    For a deployment that runs longer than planned, or shorter.  ``closes_at`` becomes the
+    callout's close time, and the links already sent keep working until then.  A callout
+    whose close time has already passed takes answers again, so the time can be moved
+    after it ran out; copies a send skipped once the callout had closed stay skipped.
+    The reminders are sent by hand, so there isn't a schedule to move with it.
+
+    Raises ``DomainError`` with :data:`NOT_SENT_MESSAGE` for a callout that has not
+    started sending (its close time is set on the compose screen), and
+    :data:`CLOSED_BY_HAND_MESSAGE` for one closed with **Close now**, which can't be
+    undone; ``DomainValidationError`` keyed ``closes_at`` with
+    :data:`CLOSES_PAST_MESSAGE` for a time that isn't after ``now``.  Nothing changes
+    on a refusal.  One ``callout.move_close`` audit line names ``actor``.
+    """
+    moment = now if now is not None else timezone.now()
+    with transaction.atomic():
+        locked = BulkEmail.objects.select_for_update().get(pk=bulk.pk)
+        callout = Callout.objects.select_for_update().get(bulk_email=locked)
+        if locked.started_at is None:
+            raise DomainError(NOT_SENT_MESSAGE)
+        if callout.closed_at is not None:
+            raise DomainError(CLOSED_BY_HAND_MESSAGE)
+        if closes_at <= moment:
+            raise DomainValidationError("closes_at", CLOSES_PAST_MESSAGE)
+        callout.closes_at = closes_at
+        callout.save(update_fields=["closes_at"])
+    audit.record(audit.CALLOUT_MOVE_CLOSE, actor=actor, target=locked)
     return callout
 
 

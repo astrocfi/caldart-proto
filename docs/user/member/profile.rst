@@ -66,12 +66,6 @@ Contact
   exactly as you typed it. After an apostrophe, a name keeps its capital and a
   possessive stays lower case: **O'Brien Ln** and **King's Rd**.
 
-Amateur radio
-~~~~~~~~~~~~~
-
-**Amateur radio callsign**, under the emergency contact. It is optional. It takes a
-US callsign, such as W6ABC or KD6AB, and capitalizes it as you type.
-
 Aviation
 ~~~~~~~~
 
@@ -80,8 +74,10 @@ Aviation
 rule), **DART** (your main Disaster Airlift Response Team, a local group of
 volunteers at one airport; *Not decided yet* if you haven't chosen), **Air Care
 Alliance number**, **Pilot certificate**, **Certificate number**, **Medical**,
-**Medical expires**, **Photo ID**, **Last flight review**, and **Total hours**.
+**Medical expires**, and **Photo ID**.
 
+* **Home airport** is where your aircraft is based, or where you usually fly from. It
+  doesn't have to be your DART's airport, and its hint says so.
 * **Home airport** and **Secondary airport** each take three letters or digits,
   and turn them into capitals as you type. If you type the four-letter form, such as
   KSQL, the K drops off when you type the fourth letter, leaving SQL. You can leave
@@ -112,12 +108,18 @@ Alliance number**, **Pilot certificate**, **Certificate number**, **Medical**,
   CFII, and MEI on the next. Check **Instrument** if you hold an instrument rating.
   This is the only place the profile records it.
 
+Amateur radio
+~~~~~~~~~~~~~
+
+**Amateur radio callsign**, after the ratings. It is optional. It takes a US callsign,
+such as W6ABC or KD6AB, and capitalizes it as you type.
+
 Volunteer interests
 ~~~~~~~~~~~~~~~~~~~
 
 *CalDART runs on volunteers. Check any you would help with:*
-**Mission pilot**, **Ground support**, **Exercises and training**, **Member
-support**, **Fundraising**, **Social media**, and **Newsletter**.
+**Mission pilot**, **Ground support**, and **Exercises and training**. They say what
+you'd like to help with. Whether you're available for a mission is asked by each callout.
 
 
 Saving your changes
@@ -146,7 +148,6 @@ and a line beside the button says how many fields to check:
   with K keeps it, so KLS stays KLS.
 * *Enter the 7 digits of the pilot certificate number.* for a certificate number
   shorter than seven digits.
-* *Enter your total hours as a whole number.*
 * *Enter a US amateur radio callsign, such as W6ABC.* for a callsign from outside
   the US.
 

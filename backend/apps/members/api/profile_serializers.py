@@ -29,7 +29,6 @@ from apps.members.models import (
     CALIFORNIA_COUNTIES,
     HAM_CALLSIGN_MESSAGE,
     HAM_CALLSIGN_RE,
-    MAX_TOTAL_HOURS,
     RATING_VALUES,
     US_STATE_VALUES,
     MemberProfile,
@@ -222,9 +221,6 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
     # a plain string rather than a pattern or a blank.
     certificate_number = serializers.CharField(max_length=40, required=False, allow_blank=True)
     county = serializers.ChoiceField(choices=CALIFORNIA_COUNTIES, required=False, allow_blank=True)
-    total_hours = serializers.IntegerField(
-        min_value=0, max_value=MAX_TOTAL_HOURS, required=False, allow_null=True
-    )
     ratings = serializers.ListField(
         child=serializers.ChoiceField(choices=RATING_VALUES),
         required=False,
@@ -265,8 +261,6 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
             "medical_type",
             "medical_expiration",
             "medical_is_current",
-            "flight_review_date",
-            "total_hours",
             "photo_id_type",
             "verification",
             "aircraft",
@@ -275,10 +269,6 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
             "vol_mission_pilot",
             "vol_ground_team",
             "vol_exercise_training",
-            "vol_member_support",
-            "vol_fundraising",
-            "vol_social_media",
-            "vol_newsletter",
         ]
 
     @extend_schema_field(AircraftSummarySerializer(many=True))

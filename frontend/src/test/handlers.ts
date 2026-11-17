@@ -103,6 +103,7 @@ export function makeAdminUser(overrides: Partial<AdminUser> = {}): AdminUser {
     email_bounced_at = null,
     email_bounce_detail = '',
     reactivation_blocked = false,
+    verifier_until = null,
     two_factor_enabled = false,
     can_reset_two_factor = true,
     phone = '415-555-0100',
@@ -119,6 +120,7 @@ export function makeAdminUser(overrides: Partial<AdminUser> = {}): AdminUser {
     email_bounced_at,
     email_bounce_detail,
     reactivation_blocked,
+    verifier_until,
     two_factor_enabled,
     can_reset_two_factor,
     phone,
@@ -822,7 +824,6 @@ export function makeVerifiedAircraft(overrides: Partial<AircraftDetail> = {}): A
     insurance_policy_number: 'AV-00012345',
     insurance_liability_per_occurrence_cents: 100_000_000,
     insurance_liability_per_person_cents: 10_000_000,
-    insurance_hull_cents: 14_500_000,
     notes: '',
     created_by: null,
     is_active: true,
@@ -859,6 +860,7 @@ export function makeLeaderStatus(overrides: Partial<LeaderStatus> = {}): LeaderS
     photo_id: { type: 'passport', verification: VERIFIED },
     is_dart_leader: false,
     is_verifier: false,
+    verifier_until: null,
     aircraft: [makeVerifiedAircraftSummary()],
     go_no_go: { membership: true, medical: true, verified: true },
     ...overrides,
@@ -902,7 +904,11 @@ export function verificationHandlers(
     http.put(`${API}/leader/members/:id/verifier`, async ({ params, request }) => {
       const body = (await request.json()) as VerifierGrantPayload;
       calls.verifier.push({ userId: Number(params.id), body });
-      return HttpResponse.json({ ...status, is_verifier: body.verifier });
+      return HttpResponse.json({
+        ...status,
+        is_verifier: body.verifier,
+        verifier_until: body.verifier ? (body.until ?? null) : null,
+      });
     }),
   ];
 }

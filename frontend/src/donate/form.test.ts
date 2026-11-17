@@ -70,21 +70,21 @@ describe('donorBody', () => {
       city: 'Petaluma',
       state: 'CA',
       pilot_certificate_type: 'private',
-      volunteer: { ...EMPTY_DONATION_FORM.volunteer, vol_newsletter: true },
+      volunteer: { ...EMPTY_DONATION_FORM.volunteer, vol_ground_team: true },
     });
 
     expect(body).toMatchObject({
       city: 'Petaluma',
       state: 'CA',
       pilot_certificate_type: 'private',
-      vol_newsletter: true,
+      vol_ground_team: true,
     });
   });
 
   it('leaves out a select left on its default and an unchecked box', () => {
     const body = donorBody(FILLED);
 
-    expect(['pilot_certificate_type', 'vol_newsletter'].some((key) => key in body)).toBe(false);
+    expect(['pilot_certificate_type', 'vol_ground_team'].some((key) => key in body)).toBe(false);
   });
 });
 

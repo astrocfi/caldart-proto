@@ -41,7 +41,7 @@ STATEMENT_KIND = "contribution_statement"
 
 
 def givers_in_year(year: int) -> list[User]:
-    """Every active account with a settled contribution in ``year``, by name.
+    """Every active account with a settled payment in ``year``, dues or a gift, by name.
 
     Any kind of account counts -- a member, a friend, or a donor -- as long as
     it is active; a deactivated account is never written to.  A contribution
@@ -49,7 +49,7 @@ def givers_in_year(year: int) -> list[User]:
     expressed in SQL rather than :mod:`apps.payments.reports`'s ``paid_date``:
     the two agree for almost every payment, but ``paid_date`` falls back to
     ``created_at`` when ``completed_at`` is unset, which would pick a giver
-    :func:`apps.payments.receipts.contribution_payments` and
+    :func:`apps.payments.receipts.statement_payments` and
     :func:`apps.payments.receipts.statement_years` do not agree is one, leaving
     them a statement of $0.00.  Ordered by display name, so a live run and
     its dry-run rehearsal list the same givers in the same order.
@@ -58,7 +58,7 @@ def givers_in_year(year: int) -> list[User]:
     settled_this_year = ~Q(provider=PaymentProvider.MANUAL) & Q(completed_at__year=year)
     user_ids = (
         Payment.objects.filter(
-            status__in=RECEIVED_STATUSES, contribution_cents__gt=0, user__is_active=True
+            status__in=RECEIVED_STATUSES, amount_cents__gt=0, user__is_active=True
         )
         .filter(manual_this_year | settled_this_year)
         .values_list("user_id", flat=True)
@@ -137,6 +137,7 @@ def _statement_context(user: User, year: int, total_cents: int) -> dict[str, obj
     org = org_details()
     return {
         "org_name": org.name,
+        "ein": org.ein,
         "contact_email": org.contact_email,
         "first_name": user.first_name or user.display_name,
         "year": year,

@@ -387,7 +387,10 @@ class AdminUserSerializer(UserSerializer):
     the record's **Clear bounce** action.  ``two_factor_enabled`` is true while the
     account has a confirmed authenticator device; it changes only by its owner and the
     record's **Reset two-factor** action, which ``can_reset_two_factor`` says whether the
-    caller may take.  ``phone``, ``dart`` (the DART's name),
+    caller may take.  ``verifier_until`` is the last day a verifier grant works, null
+    for a grant without an end and for an account that isn't a verifier; it is
+    writable, saved only while the account ends up a verifier, and a day before today
+    is refused 400.  ``phone``, ``dart`` (the DART's name),
     ``city``, ``county``, and ``home_airport`` are read from the profile, for the
     columns the users list can show; blank, and a null DART, without a profile.
     """
@@ -401,6 +404,7 @@ class AdminUserSerializer(UserSerializer):
     )
     email_verified_at = serializers.DateTimeField(read_only=True, allow_null=True)
     email_bounced_at = serializers.DateTimeField(read_only=True, allow_null=True)
+    verifier_until = serializers.DateField(required=False, allow_null=True)
     phone = serializers.SerializerMethodField()
     dart = serializers.SerializerMethodField()
     city = serializers.SerializerMethodField()
@@ -416,6 +420,7 @@ class AdminUserSerializer(UserSerializer):
             "email_bounced_at",
             "email_bounce_detail",
             "reactivation_blocked",
+            "verifier_until",
             "two_factor_enabled",
             "can_reset_two_factor",
             "phone",

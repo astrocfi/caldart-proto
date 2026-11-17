@@ -77,7 +77,9 @@ adds the **Operations** group:
 
 A verifier can't browse the membership list. A DART leader or a user
 administrator grants the role from the member check, and a user administrator can
-also grant it on the **User record** (:doc:`admin/user-record`). Anyone with a portal
+also grant it on the **User record** (:doc:`admin/user-record`). Either one can give
+the role a last day, for an exercise or a deployment; the role stops working after that
+day, and the roles report lists it as *Verifier until* the day. Anyone with a portal
 account can be made a verifier, whatever other roles they hold, a treasurer included.
 You can't make yourself a verifier, but you may verify your own documents.
 

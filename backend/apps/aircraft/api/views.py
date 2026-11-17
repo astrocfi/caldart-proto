@@ -443,13 +443,19 @@ class LeaderMemberVerifierView(APIView):
         """Give the member the verifier role, or take it away, and return the status card.
 
         Answers 404 for anyone the member check never shows, and 400 when ``verifier``
-        is missing or not a boolean.  The role list is written through
+        is missing or not a boolean, or ``until`` is not a date or is a day before today.
+        The role list and the grant's end are written through
         :func:`apps.accounts.services.set_verifier` under the caller.
         """
         target = get_object_or_404(services.checkable_people(), pk=user_id)
         serializer = VerifierGrantSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        set_verifier(acting_user(request), target, wanted=serializer.validated_data["verifier"])
+        set_verifier(
+            acting_user(request),
+            target,
+            wanted=serializer.validated_data["verifier"],
+            until=serializer.validated_data["until"],
+        )
         return _status_card(user_id)
 
 

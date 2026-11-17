@@ -1611,6 +1611,10 @@ and ``PermissionsMixin`` classes it builds on.
      - ``BooleanField``
      - not null; default ``False``
      - true for a demo account ``seed_demo`` writes; while ``DEMO_ACCOUNTS_SKIP_TWO_FACTOR`` is on, such an account signs in without two-factor whatever its roles (:ref:`configuration-demo-two-factor`); only the seed sets it, and ``create_admin`` taking the account back, a new password (changed or set from a reset link), and a completed change of address clear it; no endpoint or admin form writes it
+   * - ``verifier_until``
+     - ``DateField``
+     - null; default ``NULL``
+     - the last day a verifier grant works, for a verifier granted for an exercise or a deployment; ``NULL`` for a grant without an end and for an account that isn't a verifier.  After that day ``roles`` leaves ``verifier`` out, so the role stops working on the next request, a signed-in session included; the group stays until the next role write drops it, and ``role_holder_q`` leaves the account out of a role filter meanwhile.  Written by ``accounts.services.update_account`` (``set_verifier`` included) only while the account ends up a verifier, and cleared when the role is taken away
    * - ``groups``
      - ``ManyToManyField`` to ``auth.Group``
      - not null; empty by default
@@ -2368,14 +2372,6 @@ administrators see.  Deleting the account deletes the profile.
      - ``DateField``
      - null; default ``NULL``
      - required by the serializer when a medical is held; BasicMed and class medicals both use it
-   * - ``flight_review_date``
-     - ``DateField``
-     - null; default ``NULL``
-     - the last flight review
-   * - ``total_hours``
-     - ``PositiveIntegerField``
-     - null; default ``NULL``
-     - logged hours, at most ``MAX_TOTAL_HOURS`` (99,999)
    * - ``photo_id_type``
      - ``CharField(16)``, choices :ref:`PhotoIdType <choices-photo-id-type>`
      - not null; default ``"not_provided"``
@@ -2396,22 +2392,6 @@ administrators see.  Deleting the account deletes the profile.
      - ``BooleanField``
      - not null; default ``False``
      - volunteer interest: exercises and training
-   * - ``vol_member_support``
-     - ``BooleanField``
-     - not null; default ``False``
-     - volunteer interest: member support
-   * - ``vol_fundraising``
-     - ``BooleanField``
-     - not null; default ``False``
-     - volunteer interest: fundraising
-   * - ``vol_social_media``
-     - ``BooleanField``
-     - not null; default ``False``
-     - volunteer interest: social media
-   * - ``vol_newsletter``
-     - ``BooleanField``
-     - not null; default ``False``
-     - volunteer interest: newsletter
    * - ``certificate_verified_at``
      - ``DateTimeField``
      - null; default ``NULL``
@@ -3004,10 +2984,6 @@ than copying it, so an insurance renewal entered once is right for everybody.
      - ``PositiveBigIntegerField``
      - not null; default ``0``
      - liability limit per person, in cents
-   * - ``insurance_hull_cents``
-     - ``PositiveBigIntegerField``
-     - null; default ``NULL``
-     - hull value, in cents
    * - ``insurance_expiration``
      - ``DateField``
      - null; default ``NULL``
@@ -3478,6 +3454,16 @@ excludes helicopters.
      - not null; default ``[]``
      - the :ref:`Airworthiness <choices-airworthiness>` values the policy does not
        cover, in choice order
+   * - ``min_liability_per_occurrence_cents``
+     - ``PositiveBigIntegerField``
+     - not null; default ``100000000``
+     - the least liability per occurrence an aircraft's own policy must carry, in
+       cents ($1,000,000 by default); ``0`` doesn't set a minimum
+   * - ``min_liability_per_person_cents``
+     - ``PositiveBigIntegerField``
+     - not null; default ``10000000``
+     - the least liability per person, in cents ($100,000 by default); ``0`` doesn't
+       set a minimum
    * - ``note``
      - ``TextField``
      - not null; default ``""``
@@ -3502,8 +3488,13 @@ aircraft whose ``category`` is in ``excluded_categories`` or whose
 when both match, as *Not covered: helicopters are excluded by CalDART's policy*,
 with the organization's name from the site settings.  A blank value is never
 listed, so an aircraft whose category and airworthiness are both blank is never
-excluded; one without a category that its airworthiness does not exclude reads
-*Category not recorded*.
+excluded by them.  Next, an aircraft with a policy on file (an
+``insurance_expiration``) whose ``insurance_liability_per_occurrence_cents`` or
+``insurance_liability_per_person_cents`` is under its minimum is excluded, as *Not
+covered: liability is under CalDART's minimum of $1,000,000 per occurrence*, naming
+each minimum it misses.  An aircraft without a policy on file isn't judged on its
+liability.  Otherwise one without a category reads *Category not recorded*.  The rule
+is computed on every read, so a changed minimum applies to every aircraft at once.
 
 payments
 ========

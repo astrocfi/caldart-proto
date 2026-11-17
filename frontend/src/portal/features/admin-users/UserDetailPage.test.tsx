@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { QueryClient } from '@tanstack/react-query';
 import { HttpResponse, http } from 'msw';
@@ -14,6 +14,7 @@ import { UserDetailPage } from './UserDetailPage';
 
 const ROLES = [
   { slug: 'member', description: 'Own profile, own payments and membership.' },
+  { slug: 'verifier', description: 'Verify certificates, medicals, photo IDs, and insurance.' },
   { slug: 'dart_leader', description: 'Look up any member before a flight.' },
   { slug: 'treasurer', description: 'Every payment, fee, and refund.' },
   { slug: 'system_admin', description: 'Everything, plus backups and health.' },
@@ -163,6 +164,29 @@ describe('UserDetailPage', () => {
 
     await waitFor(() => expect(patched).toHaveLength(1));
     expect(patched[0]).toEqual({ roles: ['member'] });
+  });
+
+  it('sends the verifier role with its last day', async () => {
+    const patched = stubDetail();
+    renderDetail();
+    await screen.findByRole('heading', { name: 'Priya Raman' });
+
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Verifier' }));
+    fireEvent.change(screen.getByLabelText('Verifier until'), {
+      target: { value: '2030-03-31' },
+    });
+    await userEvent.click(screen.getByRole('button', { name: /save changes/i }));
+
+    await waitFor(() => expect(patched).toHaveLength(1));
+    expect(patched[0]).toEqual({ roles: ['member', 'verifier'], verifier_until: '2030-03-31' });
+  });
+
+  it('asks for the last day only while Verifier is checked', async () => {
+    stubDetail();
+    renderDetail();
+    await screen.findByRole('heading', { name: 'Priya Raman' });
+
+    expect(screen.queryByLabelText('Verifier until')).toBeNull();
   });
 
   it('surfaces the escalation rule from the API', async () => {

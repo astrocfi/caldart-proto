@@ -10,7 +10,7 @@ from django.db import models
 from django.db.models.functions import Lower
 from django.utils import timezone
 
-from apps.accounts.roles import ROLE_SLUGS, STAFF_ROLE_SLUGS, SYSTEM_ADMIN
+from apps.accounts.roles import ROLE_SLUGS, STAFF_ROLE_SLUGS, SYSTEM_ADMIN, VERIFIER
 from caldart.casing import person_last_name, person_name
 from caldart.models import TimestampedModel
 
@@ -40,6 +40,20 @@ PERSON_KINDS: tuple[AccountKind, ...] = (AccountKind.MEMBER, AccountKind.FRIEND)
 
 #: ``PERSON_KINDS`` as a choice list, for the serializers that accept one.
 PERSON_KIND_CHOICES: list[tuple[str, str]] = [(kind.value, kind.label) for kind in PERSON_KINDS]
+
+
+def role_holder_q(slug: str) -> models.Q:
+    """The accounts holding role ``slug``, as a filter on ``User``.
+
+    The account's role group decides, except that a verifier grant whose
+    ``verifier_until`` has passed doesn't count, as :attr:`User.roles` doesn't count it.
+    """
+    holds = models.Q(groups__name=slug)
+    if slug != VERIFIER:
+        return holds
+    return holds & (
+        models.Q(verifier_until__isnull=True) | models.Q(verifier_until__gte=timezone.localdate())
+    )
 
 
 class UserManager(DjangoUserManager["User"]):
@@ -158,6 +172,12 @@ class User(AbstractUser):
     #: ``create_admin`` taking the account back, a new password (changed or reset), and
     #: a completed change of address clear it, and nothing else writes it.
     is_demo = models.BooleanField(default=False, help_text="Seeded demo account")
+    #: The last day the verifier role works, for a verifier granted for an exercise or
+    #: a deployment; ``NULL`` for a grant without an end, and for an account that isn't
+    #: a verifier.  After that day :attr:`roles` leaves ``verifier`` out, so the role
+    #: stops working on the next request, a session already signed in included, while
+    #: the group stays until the next role write drops it.
+    verifier_until = models.DateField(null=True, blank=True)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS: ClassVar[list[str]] = []
@@ -217,9 +237,20 @@ class User(AbstractUser):
     # -- roles ------------------------------------------------------------
     @property
     def roles(self) -> list[str]:
-        """Role slugs held by this user, in privilege order."""
+        """Role slugs held by this user, in privilege order.
+
+        ``verifier`` is left out once :attr:`verifier_until` has passed: a grant that
+        ends on a day works through that day and no longer.
+        """
         held = {g.name for g in self.groups.all()} & set(ROLE_SLUGS)
+        if self.verifier_grant_has_ended:
+            held.discard(VERIFIER)
         return [slug for slug in ROLE_SLUGS if slug in held]
+
+    @property
+    def verifier_grant_has_ended(self) -> bool:
+        """True when :attr:`verifier_until` is a day before today."""
+        return self.verifier_until is not None and self.verifier_until < timezone.localdate()
 
     def has_role(self, slug: str) -> bool:
         """True when the user holds ``slug``.  ``system_admin`` implies all."""

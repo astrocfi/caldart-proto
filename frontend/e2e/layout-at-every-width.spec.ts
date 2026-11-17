@@ -129,9 +129,9 @@ test('Shift+Tab never leaves a field under the sticky header on a phone', async 
   await page.setViewportSize(PHONE);
   await signIn(page, DEMO.member);
   await page.goto('portal/profile');
-  const hours = page.getByLabel(/^Total hours/);
-  await expect(hours).toBeVisible();
-  await hours.focus();
+  const medical = page.getByLabel(/^Medical expires/);
+  await expect(medical).toBeVisible();
+  await medical.focus();
   const bar = await page.locator('.portal__bar').boundingBox();
   if (bar === null) throw new Error('The header is not laid out');
 

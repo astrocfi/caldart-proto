@@ -319,19 +319,6 @@ export function AircraftForm({
               />
             )}
           </Field>
-          <Field label="Hull" error={shown.hull ?? shown.insurance_hull_cents}>
-            {(field) => (
-              <MaskedInput
-                {...field}
-                className="num"
-                inputMode="decimal"
-                mask={maskDollars}
-                value={values.hull}
-                onValueChange={(next) => set('hull', next)}
-                onBlur={handleBlur('hull')}
-              />
-            )}
-          </Field>
           <Field label="Insurance expires" error={shown.insurance_expiration}>
             {(field) => (
               <input

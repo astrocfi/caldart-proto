@@ -1,7 +1,8 @@
 /**
  * The **Coverage policy** card on the aircraft register: which aircraft
  * categories and airworthiness classifications CalDART's insurance does not
- * cover, and the note members read on My aircraft.  Only a system administrator
+ * cover, the least liability an aircraft's own policy must carry, and the note
+ * members read on My aircraft.  Only a system administrator
  * sees it, on the aircraft register, and edits it in place.
  */
 import { useState } from 'react';
@@ -12,6 +13,7 @@ import type { AircraftCategory, AircraftCoveragePolicy, Airworthiness } from '@/
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { Field } from '@/portal/components/Field';
+import { MaskedInput } from '@/portal/components/MaskedInput';
 import { MultiSelect } from '@/portal/components/MultiSelect';
 import { useToast } from '@/portal/components/Toast';
 import { useCoveragePolicy, useSaveCoveragePolicy } from '@/portal/features/aircraft/api';
@@ -21,6 +23,8 @@ import {
   CATEGORIES,
   CATEGORY_LABELS,
 } from '@/portal/features/aircraft/categories';
+import { centsToDollars, dollarsToCents } from '@/portal/features/aircraft/insurance';
+import { maskDollars } from '@/portal/masks';
 import './policy.css';
 
 const CATEGORY_OPTIONS = CATEGORIES.map((value) => ({ value, label: CATEGORY_LABELS[value] }));
@@ -39,6 +43,19 @@ function listed<Code extends string>(
   labels: Record<Code, string>,
 ): string {
   return values.length === 0 ? 'None' : values.map((value) => labels[value]).join(', ');
+}
+
+/** The minimums in words, such as `$1,000,000 per occurrence, $100,000 per person`. */
+export function minimumsText(policy: AircraftCoveragePolicy): string {
+  const parts = [
+    policy.min_liability_per_occurrence_cents > 0
+      ? `$${centsToDollars(policy.min_liability_per_occurrence_cents)} per occurrence`
+      : null,
+    policy.min_liability_per_person_cents > 0
+      ? `$${centsToDollars(policy.min_liability_per_person_cents)} per person`
+      : null,
+  ].filter((part) => part !== null);
+  return parts.length === 0 ? 'None' : parts.join(', ');
 }
 
 /** The coverage policy, read and edited by a system administrator. */
@@ -80,6 +97,10 @@ export function CoveragePolicyCard(): JSX.Element {
               <dd>{listed(stored.excluded_airworthiness, AIRWORTHINESS_LABELS)}</dd>
             </div>
             <div>
+              <dt>Minimum liability</dt>
+              <dd>{minimumsText(stored)}</dd>
+            </div>
+            <div>
               <dt>Note to members</dt>
               <dd>{stored.note === '' ? 'None' : stored.note}</dd>
             </div>
@@ -100,16 +121,31 @@ interface CoveragePolicyFormProps {
   onDone: () => void;
 }
 
-/** The policy's edit form: two lists of exclusions and the note. */
+/** The two minimums as typed, in dollars; a blank box saves as 0, without a minimum. */
+interface MinimumsDraft {
+  perOccurrence: string;
+  perPerson: string;
+}
+
+/** The policy's edit form: two lists of exclusions, the liability minimums, and the note. */
 function CoveragePolicyForm({ initial, onDone: handleDone }: CoveragePolicyFormProps): JSX.Element {
   const [values, setValues] = useState<AircraftCoveragePolicy>(initial);
+  const [minimums, setMinimums] = useState<MinimumsDraft>({
+    perOccurrence: centsToDollars(initial.min_liability_per_occurrence_cents),
+    perPerson: centsToDollars(initial.min_liability_per_person_cents),
+  });
   const save = useSaveCoveragePolicy();
   const toast = useToast();
   const errors = save.error instanceof ApiError ? save.error.fieldErrors : {};
 
   const handleSubmit = (event: React.FormEvent): void => {
     event.preventDefault();
-    save.mutate(values, {
+    const policy: AircraftCoveragePolicy = {
+      ...values,
+      min_liability_per_occurrence_cents: dollarsToCents(minimums.perOccurrence) ?? 0,
+      min_liability_per_person_cents: dollarsToCents(minimums.perPerson) ?? 0,
+    };
+    save.mutate(policy, {
       onSuccess: () => {
         toast.show('Coverage policy saved.', 'success');
         handleDone();
@@ -152,6 +188,40 @@ function CoveragePolicyForm({ initial, onDone: handleDone }: CoveragePolicyFormP
                 excluded_airworthiness: next as Airworthiness[],
               }))
             }
+          />
+        )}
+      </Field>
+      <Field
+        label="Minimum liability per occurrence"
+        hint="In US dollars. An airplane whose policy carries less isn't covered. Leave it blank to drop the minimum."
+        error={errors.min_liability_per_occurrence_cents}
+      >
+        {(field) => (
+          <MaskedInput
+            {...field}
+            className="num"
+            inputMode="decimal"
+            mask={maskDollars}
+            value={minimums.perOccurrence}
+            onValueChange={(next) =>
+              setMinimums((current) => ({ ...current, perOccurrence: next }))
+            }
+          />
+        )}
+      </Field>
+      <Field
+        label="Minimum liability per person"
+        hint="In US dollars. Leave it blank to drop the minimum."
+        error={errors.min_liability_per_person_cents}
+      >
+        {(field) => (
+          <MaskedInput
+            {...field}
+            className="num"
+            inputMode="decimal"
+            mask={maskDollars}
+            value={minimums.perPerson}
+            onValueChange={(next) => setMinimums((current) => ({ ...current, perPerson: next }))}
           />
         )}
       </Field>

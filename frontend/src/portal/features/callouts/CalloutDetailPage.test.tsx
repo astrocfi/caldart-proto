@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
@@ -159,6 +159,48 @@ describe('CalloutDetailPage', () => {
 
     await waitFor(() => expect(calls.closes).toBe(1));
     expect(await screen.findByText(CLOSED_MESSAGE)).toBeInTheDocument();
+  });
+
+  it('moves the closing time, starting from the one it has', async () => {
+    const calls = renderCallout();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Change closing time' }));
+    expect(screen.getByLabelText('Date')).toHaveValue('2026-04-08');
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-04-10' } });
+    await userEvent.selectOptions(screen.getByLabelText('Time'), '17:00');
+    await userEvent.click(screen.getByRole('button', { name: 'Save closing time' }));
+
+    await waitFor(() => expect(calls.moves).toEqual(['2026-04-10T17:00']));
+    expect(
+      await screen.findByText('Answers now close 04/10/2026 at 5:00 PM Pacific time.'),
+    ).toBeInTheDocument();
+  });
+
+  it('shows why the server refused a closing time', async () => {
+    renderCallout();
+    server.use(
+      http.post(`${API}/bulk-email/callouts/7/closes-at`, () =>
+        HttpResponse.json({ closes_at: ['Choose a time in the future.'] }, { status: 400 }),
+      ),
+    );
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Change closing time' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save closing time' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Choose a time in the future.');
+  });
+
+  it('offers to change the closing time once the time has run out', async () => {
+    renderCallout(makeCallout({ is_open: false }));
+
+    expect(await screen.findByRole('button', { name: 'Change closing time' })).toBeInTheDocument();
+  });
+
+  it("doesn't offer to change the closing time after Close now", async () => {
+    renderCallout(makeCallout({ is_open: false, closed_at: '2026-04-07T16:00:00Z' }));
+
+    await answersTable();
+    expect(screen.queryByRole('button', { name: 'Change closing time' })).not.toBeInTheDocument();
   });
 
   it("doesn't offer Close now once the callout has closed", async () => {

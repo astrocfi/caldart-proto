@@ -25,9 +25,9 @@ address.*, and a name shows *Enter a first name.* or *Enter a last name.*
    pay dues and is never current or expired.* There isn't a password box. The person chooses
    their own password from the email the site sends them, so nobody else ever knows it.
 
-**Contact**, **Amateur radio**, **Aviation**, and **Volunteer interests**
-   The same fields a member fills in on their own profile: address and phones, the amateur
-   radio callsign, DART, certificate, medical, ratings, hours, and the ways they would like
+**Contact**, **Aviation**, **Amateur radio**, and **Volunteer interests**
+   The same fields a member fills in on their own profile: address and phones, DART,
+   certificate, medical, ratings, the amateur radio callsign, and the ways they would like
    to help. None of them is required here.
 
 **Administration**

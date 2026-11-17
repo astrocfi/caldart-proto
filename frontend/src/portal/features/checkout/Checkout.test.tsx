@@ -1335,11 +1335,13 @@ describe('Checkout · the words over a gift', () => {
     expect(chooser).toHaveTextContent('Gifts to CalDART, a 501(c)(3), are tax deductible.');
   });
 
-  it('says a contribution added to dues is tax deductible', async () => {
+  it('says dues and a contribution added to them are tax deductible', async () => {
     serveConfig(config());
     renderWithProviders(<Checkout mode="renew" onSuccess={() => {}} />);
 
     const chooser = await screen.findByRole('group', { name: 'Add a contribution' });
-    expect(chooser).toHaveTextContent('a contribution on top of your dues is tax deductible');
+    expect(chooser).toHaveTextContent(
+      'your dues and a contribution on top of them are tax deductible',
+    );
   });
 });

@@ -32,7 +32,6 @@ export interface AircraftFormValues {
   insurance_policy_number: string;
   liability_per_occurrence: string;
   liability_per_person: string;
-  hull: string;
   insurance_expiration: string;
   notes: string;
   is_active: boolean;
@@ -62,7 +61,6 @@ export function emptyAircraftValues(nNumber = ''): AircraftFormValues {
     insurance_policy_number: '',
     liability_per_occurrence: '',
     liability_per_person: '',
-    hull: '',
     insurance_expiration: '',
     notes: '',
     is_active: true,
@@ -94,14 +92,13 @@ export function aircraftToValues(aircraft: Aircraft): AircraftFormValues {
     insurance_policy_number: aircraft.insurance_policy_number,
     liability_per_occurrence: limitToDollars(aircraft.insurance_liability_per_occurrence_cents),
     liability_per_person: limitToDollars(aircraft.insurance_liability_per_person_cents),
-    hull: centsToDollars(aircraft.insurance_hull_cents),
     insurance_expiration: aircraft.insurance_expiration ?? '',
     notes: aircraft.notes,
     is_active: aircraft.is_active,
   };
 }
 
-const MONEY_FIELDS = ['liability_per_occurrence', 'liability_per_person', 'hull'] as const;
+const MONEY_FIELDS = ['liability_per_occurrence', 'liability_per_person'] as const;
 
 export const MONEY_ERROR = 'Enter an amount of $0 or more.';
 
@@ -162,7 +159,6 @@ export function aircraftPayload(values: AircraftFormValues): AircraftPatch {
     insurance_policy_number: values.insurance_policy_number.trim(),
     insurance_liability_per_occurrence_cents: dollarsToCents(values.liability_per_occurrence) ?? 0,
     insurance_liability_per_person_cents: dollarsToCents(values.liability_per_person) ?? 0,
-    insurance_hull_cents: dollarsToCents(values.hull),
     insurance_expiration: values.insurance_expiration || null,
     notes: values.notes,
     is_active: values.is_active,

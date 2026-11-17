@@ -1044,6 +1044,28 @@ false and ``closed_at`` and ``closed_by`` set.  A callout already closed, by **C
 now** or by its ``closes_at``, is **409** *This callout has closed.*  One
 ``callout.close`` audit line names the caller.
 
+``POST /bulk-email/callouts/{id}/closes-at``
+--------------------------------------------
+
+**Change closing time**: ``apps.bulk_email.callouts.move_close`` makes the body's
+``closes_at`` the callout's close time, after it has gone out, for a deployment that runs
+longer than planned, or shorter.  A time without an offset is read in the site's time
+zone, as the compose screen sends it.
+
+.. code-block:: json
+
+   {"closes_at": "2026-04-10T17:00"}
+
+The answer links already sent keep working until the new time.  A callout whose
+``closes_at`` has passed takes answers again; the copies a send skipped while it was
+closed stay ``skipped``, and **Remind non-responders** reaches those people.  The
+reminders are sent by hand, so there isn't a schedule to move.  The same people who
+may close the callout may move its time.  **200** with the callout and its new
+``closes_at``.  **400** ``{"closes_at": ["Choose a time in the future."]}`` for a time
+that isn't after now, or a missing one.  **409** *This callout was closed with Close
+now, so its answers stay closed.* for a callout closed with **Close now**, which can't
+be undone.  One ``callout.move_close`` audit line names the caller.
+
 The answer page
 ---------------
 

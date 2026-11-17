@@ -129,7 +129,6 @@ AIRCRAFT_REPORT_COLUMNS: tuple[ReportColumn[RegisterRow], ...] = (
         lambda row: _money(row, "insurance_liability_per_person_cents"),
         width=3.0,
     ),
-    ReportColumn("hull", "Hull", True, lambda row: _money(row, "insurance_hull_cents"), width=2.0),
     ReportColumn("insurance_expiration", "Expires", True, _expires, width=2.1),
     ReportColumn(
         "covered",
@@ -171,7 +170,7 @@ def aircraft_report_query(params: Params) -> ReportQuery[RegisterRow]:
 def _judged(aircraft: Iterable[Aircraft], rule: CoverageRule) -> Iterator[RegisterRow]:
     """One :class:`RegisterRow` per aircraft, lazily, judged by ``rule``."""
     for plane in aircraft:
-        coverage = rule.judge(category=plane.category, airworthiness=plane.airworthiness)
+        coverage = rule.judge(plane)
         yield RegisterRow(aircraft=plane, covered=not coverage.excluded)
 
 

@@ -176,7 +176,7 @@ def run(ctx: dict[str, Any], stdout: TextIOBase | None = None) -> dict[str, Any]
         else:
             owner_name = f"{faker.city()} Aviation Services"
 
-        per_occurrence = rng.choice([500_000, 1_000_000, 1_000_000, 2_000_000]) * 100
+        per_occurrence = rng.choice([1_000_000, 1_000_000, 1_000_000, 2_000_000]) * 100
         per_person = rng.choice([100_000, 100_000, 200_000]) * 100
 
         aircraft, _ = Aircraft.objects.update_or_create(
@@ -196,11 +196,6 @@ def run(ctx: dict[str, Any], stdout: TextIOBase | None = None) -> dict[str, Any]
                 "insurance_policy_number": (faker.numerify("AV-########") if expiration else ""),
                 "insurance_liability_per_occurrence_cents": per_occurrence if expiration else 0,
                 "insurance_liability_per_person_cents": per_person if expiration else 0,
-                "insurance_hull_cents": (
-                    rng.choice([80_000, 145_000, 260_000, 410_000]) * 100
-                    if expiration and rng.random() < 0.8
-                    else None
-                ),
                 "insurance_expiration": expiration,
                 "notes": "",
                 "is_active": True,

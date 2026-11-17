@@ -29,12 +29,10 @@ Slug               Label                Fields it covers                        
                                         ``insurance_policy_number``,
                                         ``insurance_liability_per_occurrence_cents``,
                                         ``insurance_liability_per_person_cents``,
-                                        ``insurance_hull_cents``,
                                         ``insurance_expiration``
 =================  ===================  ===================================================  ===================
 
-Ratings, the instrument rating, the flight review date, and total hours are not
-verified.  ``apps/members/verification.py`` holds the person's catalog,
+Ratings and the instrument rating are not verified.  ``apps/members/verification.py`` holds the person's catalog,
 ``ITEMS`` (each an ``Item`` with its slug, label, and fields) and
 ``ITEM_LABELS``; ``apps/aircraft/verification.py`` holds ``INSURANCE_FIELDS`` and
 ``INSURANCE_LABEL``.

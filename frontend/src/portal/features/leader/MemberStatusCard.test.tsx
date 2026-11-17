@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
@@ -14,7 +14,7 @@ import {
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import type { RoleSlug } from '@/portal/api/types';
-import { MemberStatusCard, isGo, noGoReasons } from './MemberStatusCard';
+import { MemberStatusCard, cardMeta, isGo, noGoReasons } from './MemberStatusCard';
 
 const TODAY = new Date('2026-06-01T09:00:00');
 
@@ -467,6 +467,28 @@ describe('MemberStatusCard verification', () => {
       expect(calls.verifier).toEqual([{ userId: 7, body: { verifier: true } }]);
     },
   );
+
+  it('makes somebody a verifier until the day chosen', async () => {
+    const user = userEvent.setup();
+    const calls = emptyVerificationCalls();
+    server.use(...verificationHandlers(calls));
+    await renderAs(['member', 'dart_leader']);
+
+    await user.click(await screen.findByRole('button', { name: 'Make a verifier' }));
+    fireEvent.change(screen.getByLabelText('Until'), { target: { value: '2030-03-31' } });
+    await user.click(screen.getByRole('button', { name: 'Yes, make a verifier' }));
+
+    expect(
+      await screen.findByText('Marta Reyes is a verifier until 03/31/2030.'),
+    ).toBeInTheDocument();
+    expect(calls.verifier).toEqual([{ userId: 7, body: { verifier: true, until: '2030-03-31' } }]);
+  });
+
+  it('names the last day of a verifier grant that ends', () => {
+    expect(cardMeta(makeStatus({ is_verifier: true, verifier_until: '2030-03-31' }))).toBe(
+      'Palo Alto DART · Verifier until 03/31/2030',
+    );
+  });
 
   it('offers to remove a verifier', async () => {
     const user = userEvent.setup();

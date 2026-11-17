@@ -132,6 +132,26 @@ function upgradeCheck(health: Health): HealthCheck {
   };
 }
 
+/** The EIN's row: every receipt and contribution statement prints it from Site settings. */
+function einCheck(health: Health): HealthCheck {
+  const base = { key: 'ein_set', label: 'EIN on receipts' };
+  if (health.ein_set === null) {
+    return {
+      ...base,
+      value: 'Unknown',
+      verdict: 'warn',
+      note: 'The database could not be reached to check.',
+    };
+  }
+  if (health.ein_set) return { ...base, value: 'Entered', verdict: 'ok' };
+  return {
+    ...base,
+    value: 'Missing',
+    verdict: 'warn',
+    note: 'Receipts and contribution statements are going out without the EIN. Ask a website administrator to enter it in Site settings.',
+  };
+}
+
 /** `count` and a word, such as *1 failed* or *2 late*, or `null` for a count of 0. */
 function tally(count: number, word: string): string | null {
   return count === 0 ? null : `${count} ${word}`;
@@ -201,6 +221,7 @@ export function healthChecks(health: Health, now: Date = new Date()): HealthChec
     diskCheck(health),
     backupCheck(health, now),
     scheduledJobsCheck(health, now),
+    einCheck(health),
     {
       key: 'version',
       label: 'Version',

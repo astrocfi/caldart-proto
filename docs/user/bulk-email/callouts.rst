@@ -97,8 +97,17 @@ answer or change an answer, and the answers already given stay. Reminders that h
 out yet aren't sent. This can't be undone. Once a callout has closed, nobody is sent a copy of
 it, even if sending ran late, and the page says how many people weren't sent it.
 
+**Change closing time** moves when the answers close, for a deployment that runs longer
+than planned, or shorter. Choose the new **Date** and **Time** and press **Save closing
+time**. The toast says *Answers now close* and the new time, and the buttons in the email
+keep working until then. You don't need to send the callout again. The time must be in the
+future, or you see *Choose a time in the future.* You can also move the time after it has
+run out, and the callout takes answers again. Nobody who was skipped while it was closed is
+sent a copy, so remind them with **Remind non-responders** if you want them to answer. A
+callout closed with **Close now** stays closed, so the button isn't there.
+
 A DART leader can open a callout another leader sent to their DART. They can remind, close,
-and stop its reminders, and read its email on :doc:`sent`, where its other actions are left
+change its closing time, and stop its reminders, and read its email on :doc:`sent`, where its other actions are left
 out.
 
 You can also have each new or changed answer emailed to you as it arrives. An account

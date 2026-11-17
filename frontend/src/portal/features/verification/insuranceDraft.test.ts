@@ -17,7 +17,6 @@ describe('draftFromAircraft', () => {
       insurance_policy_number: 'AV-00012345',
       liability_per_occurrence: '1,000,000',
       liability_per_person: '100,000',
-      hull: '145,000',
       insurance_expiration: '2027-03-01',
       verified: true,
     });
@@ -30,8 +29,11 @@ describe('editInsurance', () => {
   });
 
   it('keeps the check when a field is put back to its opening value', () => {
-    const edited = { ...editInsurance(INITIAL, INITIAL, 'hull', '1'), verified: true };
-    expect(editInsurance(edited, INITIAL, 'hull', '145,000').verified).toBe(true);
+    const edited = {
+      ...editInsurance(INITIAL, INITIAL, 'liability_per_person', '1'),
+      verified: true,
+    };
+    expect(editInsurance(edited, INITIAL, 'liability_per_person', '100,000').verified).toBe(true);
   });
 });
 
@@ -50,10 +52,10 @@ describe('insurancePayload', () => {
     });
   });
 
-  it('sends a blank hull and a blank date as null', () => {
-    const draft = { ...INITIAL, hull: '', insurance_expiration: '' };
+  it('sends a blank liability as 0 and a blank date as null', () => {
+    const draft = { ...INITIAL, liability_per_person: '', insurance_expiration: '' };
     expect(insurancePayload(INITIAL, draft)).toMatchObject({
-      insurance_hull_cents: null,
+      insurance_liability_per_person_cents: 0,
       insurance_expiration: null,
     });
   });
@@ -66,8 +68,8 @@ describe('insurancePayload', () => {
 
 describe('validateInsurance', () => {
   it('refuses an amount that is not a sum of money', () => {
-    expect(validateInsurance({ ...INITIAL, hull: 'lots' })).toEqual({
-      hull: 'Enter an amount of $0 or more.',
+    expect(validateInsurance({ ...INITIAL, liability_per_person: 'lots' })).toEqual({
+      liability_per_person: 'Enter an amount of $0 or more.',
     });
   });
 });

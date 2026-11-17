@@ -353,14 +353,14 @@ def ledger_totals(payments: list[Payment]) -> dict[str, int]:
 def statement_years(payments: list[Payment]) -> list[int]:
     """The years the member can download a contribution statement for, newest first.
 
-    A year qualifies when at least one payment carrying a contribution arrived in
+    A year qualifies when at least one payment, dues or a contribution, arrived in
     it, dated the same way the ledger dates every payment.
     """
     years = {
         payment.paid_on.year
         for payment in payments
         if payment.paid_on is not None
-        and payment.contribution_cents > 0
+        and payment.amount_cents > 0
         and payment.status in reports.RECEIVED_STATUSES
     }
     return sorted(years, reverse=True)

@@ -77,6 +77,11 @@ urlpatterns = [
         callouts.CalloutCloseView.as_view(),
         name="callout-close",
     ),
+    path(
+        "bulk-email/callouts/<int:pk>/closes-at",
+        callouts.CalloutCloseTimeView.as_view(),
+        name="callout-closes-at",
+    ),
     path("bulk-email/<int:pk>", drafts.BulkEmailDetailView.as_view(), name="detail"),
     path("bulk-email/<int:pk>/send", drafts.SendView.as_view(), name="send"),
     path("bulk-email/<int:pk>/cancel", drafts.CancelView.as_view(), name="cancel"),

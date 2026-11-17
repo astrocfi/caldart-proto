@@ -75,8 +75,6 @@ const PROFILE: AdminProfile = {
   medical_type: 'third',
   medical_expiration: '2027-01-31',
   medical_is_current: true,
-  flight_review_date: '2026-02-01',
-  total_hours: 750,
   aircraft: [
     {
       id: 9,
@@ -100,10 +98,6 @@ const PROFILE: AdminProfile = {
   vol_mission_pilot: false,
   vol_ground_team: true,
   vol_exercise_training: false,
-  vol_member_support: false,
-  vol_fundraising: false,
-  vol_social_media: false,
-  vol_newsletter: false,
   notes: 'Called about the Napa exercise.',
   how_heard: 'EAA chapter meeting',
   photo_id_type: 'drivers_license',

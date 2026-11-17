@@ -536,7 +536,8 @@ what is running.
     "last_backup": "2026-01-08T02:00:04-08:00", "version": "0.1.0",
     "debug": false,
     "scheduled_jobs": [{"job": "backup", "name": "Nightly backup", "state": "waiting",
-                        "last_run": null, "missed_at": null}]}
+                        "last_run": null, "missed_at": null}],
+    "ein_set": true}
 
 ``db``
    ``ok`` when a ``SELECT 1`` succeeds, and ``error: <message>`` when it does
@@ -570,6 +571,12 @@ what is running.
    **Scheduled jobs** check reads it: a problem for each ``failed`` or ``stopped``
    job, a warning for each ``overdue`` or ``never_run`` one, and *Unknown* for
    ``null``.
+
+``ein_set``
+   Whether the default site's ``SiteSettings`` hold an EIN, which every receipt and
+   contribution statement prints (``caldart.org.org_details``), and ``null`` when
+   ``db`` is not ``ok``.  The portal's **EIN on receipts** check warns on ``false``
+   and on ``null``.
 
 Statuses: **200**; **401** when anonymous; **403** for every other role.
 

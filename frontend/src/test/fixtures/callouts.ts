@@ -78,14 +78,16 @@ export function makeCallout(overrides: Partial<CalloutDetail> = {}): CalloutDeta
 export interface CalloutCalls {
   reminds: number;
   closes: number;
+  /** The `closes_at` of each **Change closing time**, as sent. */
+  moves: string[];
 }
 
 /**
- * Answer `GET /bulk-email/callouts/{id}` with `callout`, and **Remind** and **Close
- * now** as the server would, recording each.
+ * Answer `GET /bulk-email/callouts/{id}` with `callout`, and **Remind**, **Close now**,
+ * and **Change closing time** as the server would, recording each.
  */
 export function answerCallout(callout: CalloutDetail): CalloutCalls {
-  const calls: CalloutCalls = { reminds: 0, closes: 0 };
+  const calls: CalloutCalls = { reminds: 0, closes: 0, moves: [] };
   let state = callout;
   const base = `${API}/bulk-email/callouts/${callout.id}`;
   server.use(
@@ -106,6 +108,12 @@ export function answerCallout(callout: CalloutDetail): CalloutCalls {
         closed_at: '2026-04-07T16:00:00Z',
         closed_by: 'Grace Holloway',
       };
+      return HttpResponse.json(state);
+    }),
+    http.post(`${base}/closes-at`, async ({ request }) => {
+      const body = (await request.json()) as { closes_at: string };
+      calls.moves.push(body.closes_at);
+      state = { ...state, is_open: true, closes_at: `${body.closes_at}:00-07:00` };
       return HttpResponse.json(state);
     }),
   );

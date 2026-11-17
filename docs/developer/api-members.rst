@@ -474,8 +474,6 @@ a requested change waits to move the account to, or ``""`` (:ref:`api-email-chan
        "medical_type": "third",
        "medical_expiration": "2027-01-31",
        "medical_is_current": true,
-       "flight_review_date": null,
-       "total_hours": 750,
        "photo_id_type": "passport",
        "verification": {
          "certificate": {"verified": false, "verified_by": null, "verified_at": null},
@@ -497,10 +495,6 @@ a requested change waits to move the account to, or ``""`` (:ref:`api-email-chan
        ],
        "vol_ground_team": false,
        "vol_exercise_training": false,
-       "vol_member_support": false,
-       "vol_fundraising": false,
-       "vol_social_media": false,
-       "vol_newsletter": false,
        "notes": "Joined at the Palo Alto airshow.",
        "how_heard": "Airshow"
      },

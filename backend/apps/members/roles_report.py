@@ -18,7 +18,13 @@ import django_filters
 from django.db.models import Q
 
 from apps.accounts.models import AccountKind, User
-from apps.accounts.roles import ACCOUNT_ADMIN, STAFF_ROLE_LABELS, STAFF_ROLE_SLUGS, USER_ADMIN
+from apps.accounts.roles import (
+    ACCOUNT_ADMIN,
+    STAFF_ROLE_LABELS,
+    STAFF_ROLE_SLUGS,
+    USER_ADMIN,
+    VERIFIER,
+)
 from apps.members.models import MemberProfile
 from apps.members.services import (
     MembershipStatusDict,
@@ -27,6 +33,7 @@ from apps.members.services import (
     membership_payload,
     with_membership,
 )
+from caldart.dates import format_display_date
 from caldart.reports import (
     Params,
     ReportColumn,
@@ -128,6 +135,17 @@ class RoleRow:
     membership: MembershipStatusDict
 
 
+def _role_cell(row: RoleRow) -> str:
+    """The role's name, with the last day of a verifier grant that ends.
+
+    For example ``Verifier until 03/31/2027``; every other row is the role's name.
+    """
+    until = row.user.verifier_until
+    if row.role == VERIFIER and until is not None:
+        return f"{row.role_label} until {format_display_date(until)}"
+    return row.role_label
+
+
 def _profile_text(row: RoleRow, field: str) -> str:
     """The text in the profile's ``field``, or a blank cell without a profile."""
     text: str = getattr(row.profile, field) if row.profile is not None else ""
@@ -147,7 +165,7 @@ def _dart(row: RoleRow) -> str:
 #: kind's label (``listed_kind``), Member or Friend, and ``membership`` the membership
 #: state's label, exactly as the membership report's Kind and Status columns read them.
 ROLES_REPORT_COLUMNS: tuple[ReportColumn[RoleRow], ...] = (
-    ReportColumn("role", "Role", True, lambda row: row.role_label, width=2.6),
+    ReportColumn("role", "Role", True, _role_cell, width=2.6),
     ReportColumn("name", "Name", True, lambda row: row.user.display_name, width=2.6),
     ReportColumn("email", "Email", True, lambda row: row.user.email, width=4.4),
     ReportColumn("phone", "Phone", True, lambda row: _profile_text(row, "phone"), width=1.9),

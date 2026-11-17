@@ -60,10 +60,11 @@ ADMIN_USERS_QUERIES = 7
 ADMIN_MEMBERS_QUERIES = 6
 LEADER_SEARCH_QUERIES = 4
 #: The aircraft endpoints add one query for the access check, which finds the leader's
-#: role (``apps.aircraft.access``).
-AIRCRAFT_DETAIL_QUERIES = 7
-AIRCRAFT_LOOKUP_QUERIES = 7
-LEADER_AIRCRAFT_QUERIES = 6
+#: role (``apps.aircraft.access``), and two for the site settings that name the
+#: organization in a coverage reason, read once for the default liability minimums.
+AIRCRAFT_DETAIL_QUERIES = 9
+AIRCRAFT_LOOKUP_QUERIES = 9
+LEADER_AIRCRAFT_QUERIES = 8
 
 
 def _add_history(

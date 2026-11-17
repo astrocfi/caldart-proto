@@ -2,8 +2,7 @@
 
 An *item* is the unit that is verified: a group of profile fields an authority checks
 against a document.  A person has three items, each listed in :data:`ITEMS` with the
-fields it covers.  Ratings, the instrument rating, the flight review date, and total
-hours are not verified.
+fields it covers.  Ratings and the instrument rating are not verified.
 
 Each item is recorded on ``MemberProfile`` as ``<item>_verified_at`` and
 ``<item>_verified_by``, and read through ``<item>_is_verified``, which is true when

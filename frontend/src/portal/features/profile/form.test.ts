@@ -18,13 +18,8 @@ describe('profileToForm', () => {
     expect(profileToForm(makeProfile({ dart: null })).dart_id).toBe('');
   });
 
-  it('turns nullable numbers and dates into empty strings', () => {
-    const values = profileToForm(
-      makeProfile({ total_hours: null, medical_expiration: null, flight_review_date: null }),
-    );
-    expect(values.total_hours).toBe('');
-    expect(values.medical_expiration).toBe('');
-    expect(values.flight_review_date).toBe('');
+  it('turns a null date into an empty string', () => {
+    expect(profileToForm(makeProfile({ medical_expiration: null })).medical_expiration).toBe('');
   });
 
   it('reads the kind of photo ID onto its select', () => {
@@ -44,7 +39,6 @@ describe('formToPatch', () => {
     expect(patch.phone).toBe('650-555-0101');
     expect(patch.dart_id).toBe(1);
     expect(patch.ratings).toEqual(['instrument']);
-    expect(patch.total_hours).toBe(750);
     expect(patch.vol_ground_team).toBe(false);
   });
 
@@ -57,12 +51,10 @@ describe('formToPatch', () => {
     expect(EMPTY_PROFILE_FORM.photo_id_type).toBe('not_provided');
   });
 
-  it('nulls the empty date, hour, and dart values', () => {
+  it('nulls the empty date and dart values', () => {
     const patch = formToPatch({ ...EMPTY_PROFILE_FORM, phone: '415-555-0100' });
     expect(patch.dart_id).toBeNull();
     expect(patch.medical_expiration).toBeNull();
-    expect(patch.flight_review_date).toBeNull();
-    expect(patch.total_hours).toBeNull();
   });
 
   it('sends every phone in the one stored shape', () => {
@@ -272,23 +264,5 @@ describe('validateProfileForm', () => {
   it('accepts a seven-digit certificate number', () => {
     const values = { ...profileToForm(makeProfile()), certificate_number: '0123456' };
     expect(validateProfileForm(values).certificate_number).toBeUndefined();
-  });
-
-  const HOURS_MESSAGE = 'Enter your total hours as a whole number.';
-
-  it.each([
-    ['', undefined],
-    ['0', undefined],
-    ['900', undefined],
-    ['  900  ', undefined],
-    ['99999', undefined],
-    ['lots', HOURS_MESSAGE],
-    ['-1', HOURS_MESSAGE],
-    ['12.5', HOURS_MESSAGE],
-    ['1e4', HOURS_MESSAGE],
-    ['1,200', HOURS_MESSAGE],
-  ])('judges total hours %s', (totalHours, expected) => {
-    const values = { ...profileToForm(makeProfile()), total_hours: totalHours };
-    expect(validateProfileForm(values).total_hours).toBe(expected);
   });
 });

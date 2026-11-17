@@ -25,7 +25,7 @@ from apps.payments.statements import givers_in_year, send_year_statements
 from caldart.org import org_details
 from caldart.receipts import CONTRIBUTIONS_NOTICE
 from tests.conftest import audit_messages
-from tests.factories import PaymentFactory, RefundFactory, UserFactory
+from tests.factories import MembershipPlanFactory, PaymentFactory, RefundFactory, UserFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -80,6 +80,24 @@ def test_givers_in_year_excludes_a_deactivated_account() -> None:
     _settled_gift(inactive, cents=1_000)
 
     assert [user.pk for user in givers_in_year(YEAR)] == [active.pk]
+
+
+def test_givers_in_year_includes_a_member_who_paid_dues_alone() -> None:
+    """Dues are tax deductible, so a member who only paid dues is sent a statement."""
+    payer = _giver()
+    payment = PaymentFactory(
+        user=payer,
+        plan=MembershipPlanFactory(),
+        status=PaymentStatus.SUCCEEDED,
+        contribution_cents=0,
+        plan_amount_cents=4_500,
+        amount_cents=4_500,
+    )
+    Payment.objects.filter(pk=payment.pk).update(
+        completed_at=datetime(YEAR, 6, 15, 12, 0, tzinfo=UTC)
+    )
+
+    assert givers_in_year(YEAR) == [payer]
 
 
 def test_givers_in_year_excludes_a_gift_from_another_year() -> None:

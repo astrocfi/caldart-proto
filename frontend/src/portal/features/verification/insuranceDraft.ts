@@ -14,7 +14,6 @@ export interface InsuranceDraft {
   /** Dollars, as typed. */
   liability_per_occurrence: string;
   liability_per_person: string;
-  hull: string;
   /** `YYYY-MM-DD`, or empty when there isn't a date. */
   insurance_expiration: string;
   verified: boolean;
@@ -27,7 +26,6 @@ export type InsuranceField = Exclude<keyof InsuranceDraft, 'verified'>;
 export const MONEY_FIELDS = {
   liability_per_occurrence: 'insurance_liability_per_occurrence_cents',
   liability_per_person: 'insurance_liability_per_person_cents',
-  hull: 'insurance_hull_cents',
 } as const;
 
 type MoneyField = keyof typeof MONEY_FIELDS;
@@ -39,7 +37,6 @@ export function draftFromAircraft(aircraft: AircraftDetail): InsuranceDraft {
     insurance_policy_number: aircraft.insurance_policy_number,
     liability_per_occurrence: centsToDollars(aircraft.insurance_liability_per_occurrence_cents),
     liability_per_person: centsToDollars(aircraft.insurance_liability_per_person_cents),
-    hull: centsToDollars(aircraft.insurance_hull_cents),
     insurance_expiration: aircraft.insurance_expiration ?? '',
     verified: aircraft.insurance_verification.verified,
   };
@@ -78,8 +75,8 @@ export function isPolicyOnFile(draft: InsuranceDraft): boolean {
 /**
  * The request body: the fields that differ from the ones the panel opened with, and
  * whether the insurance is verified, never verified while no policy is on file.  An
- * untouched field is left out, so it is left alone; a blank liability is sent as 0 and a
- * blank hull as null, as on the form.
+ * untouched field is left out, so it is left alone; a blank liability is sent as 0, as on
+ * the form.
  */
 export function insurancePayload(
   initial: InsuranceDraft,
@@ -100,7 +97,6 @@ export function insurancePayload(
   if (changed('liability_per_person')) {
     payload.insurance_liability_per_person_cents = dollarsToCents(draft.liability_per_person) ?? 0;
   }
-  if (changed('hull')) payload.insurance_hull_cents = dollarsToCents(draft.hull);
   if (changed('insurance_expiration')) {
     payload.insurance_expiration = draft.insurance_expiration || null;
   }

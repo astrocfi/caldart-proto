@@ -128,8 +128,8 @@ def test_clear_stale_does_not_clear_anything_for_a_value_resent_unchanged(
 
 
 def test_clear_stale_ignores_a_field_outside_verification(verified_profile: MemberProfile) -> None:
-    """Editing the unverified ratings, flight review, or hours keeps every stamp."""
-    changes = {"ratings": ["instrument"], "total_hours": 9000}
+    """Editing the unverified ratings keeps every stamp."""
+    changes = {"ratings": ["instrument"]}
     assert clear_stale(verified_profile, changes) == []
 
 
@@ -171,7 +171,7 @@ def test_clear_stale_insurance_leaves_it_for_a_field_it_does_not_cover(
         ({"certificate_number": "7654321"}, ["medical", "photo_id"]),
         ({"pilot_certificate_type": "commercial"}, ["medical", "photo_id"]),
         ({"photo_id_type": "state_id"}, ["certificate", "medical"]),
-        ({"ratings": ["instrument", "amel"], "total_hours": 1200}, list(PERSON_ITEMS)),
+        ({"ratings": ["instrument", "amel"]}, list(PERSON_ITEMS)),
     ],
     ids=["medical-type", "medical-expiration", "number", "certificate", "photo-id", "unverified"],
 )

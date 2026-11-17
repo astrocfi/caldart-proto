@@ -232,7 +232,6 @@ class AircraftFactory(ModelFactory[Aircraft]):
     insurance_policy_number = factory.Sequence(lambda n: f"AV-{n:08d}")
     insurance_liability_per_occurrence_cents = 100_000_000
     insurance_liability_per_person_cents = 10_000_000
-    insurance_hull_cents = 20_000_000
     insurance_expiration = factory.LazyFunction(lambda: timezone.localdate() + timedelta(days=200))
     is_active = True
 
@@ -274,7 +273,6 @@ class MemberProfileFactory(ModelFactory[MemberProfile]):
     medical_type = MedicalType.THIRD
     medical_expiration = factory.LazyFunction(lambda: timezone.localdate() + timedelta(days=365))
     photo_id_type = PhotoIdType.DRIVERS_LICENSE
-    total_hours = 750
 
 
 class MembershipPlanFactory(ModelFactory[MembershipPlan]):

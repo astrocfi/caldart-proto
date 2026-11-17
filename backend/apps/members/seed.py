@@ -270,7 +270,7 @@ def _profile_defaults(
     """One plausible profile, drawn from ``rng``, ``faker`` and ``towns``.
 
     The answers hang together: only a pilot carries a medical, a certificate
-    number, ratings, hours, and a flight review, and roughly a quarter of pilots
+    number, and ratings, and roughly a quarter of pilots
     are given a medical that expired before ``today`` so the leader checks have
     something to fail on.  The DART is drawn from ``darts`` and supplies the
     member's home airport -- never :data:`EMPTY_DART`, which the seed leaves
@@ -342,16 +342,10 @@ def _profile_defaults(
         "ratings": ratings,
         "medical_type": medical_type,
         "medical_expiration": medical_expiration,
-        "flight_review_date": (today - timedelta(days=rng.randint(10, 800)) if is_pilot else None),
-        "total_hours": rng.randint(60, 6_000) if is_pilot else None,
         "flies_rented_aircraft": is_pilot and rng.random() < 0.2,
         "vol_mission_pilot": is_pilot and rng.random() < 0.5,
         "vol_ground_team": rng.random() < 0.45,
         "vol_exercise_training": rng.random() < 0.5,
-        "vol_member_support": rng.random() < 0.3,
-        "vol_fundraising": rng.random() < 0.2,
-        "vol_social_media": rng.random() < 0.18,
-        "vol_newsletter": rng.random() < 0.25,
         "how_heard": rng.choice(HOW_HEARD),
     }
 
