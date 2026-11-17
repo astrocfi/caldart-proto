@@ -413,13 +413,24 @@ These are every option ``install.sh`` accepts (``sudo
    credentials URL-encoded.  Quote it: it holds a password.  Without it bounce
    checking stays off (``docs/developer/email.rst``, *Bounces*).
 ``--bounce-address ADDRESS``
-   ``BOUNCE_ADDRESS``, the address a refused message is returned to: the
-   bounce mailbox's own address.  Each message goes out from it with a signed
-   plus tag (``bounces+<id>.<signature>@``), so the mailbox must accept plus
-   addresses; when this machine's postfix delivers the address's domain without
-   ``recipient_delimiter = +`` the install says so in a note.  Default empty,
-   which returns bounces to ``DEFAULT_FROM_EMAIL`` and leaves bounce checking
-   off.
+   ``BOUNCE_ADDRESS``: the plain address of the bounce mailbox, such as
+   ``bounces@caldart.example.org``.  Give the address alone, without a display
+   name, angle brackets, or a tag, with at most 28 characters before the ``@``.
+
+   The site adds the rest itself.  Each message goes out with a return address
+   of its own, such as ``bounces+4182.9f3c2a7d51e0b846@caldart.example.org``: the
+   number is the message's row in the email log, and the hex digits are a
+   signature that proves the site sent it.  A mail server that can't deliver the
+   message sends the failure report to that address, the mailbox files it under
+   ``bounces@``, and the hourly bounce check reads it through
+   ``--bounce-imap-url`` and marks the message bounced.  So the mailbox must
+   deliver plus addresses (``bounces+anything@``) to ``bounces@``.  Most mail
+   providers do; when this machine's postfix delivers the address's domain
+   without ``recipient_delimiter = +``, the install says so in a note.
+
+   Readers never see this address: the ``From`` line stays ``--from-email``, and
+   replies go there.  Default empty, which returns failure reports to
+   ``DEFAULT_FROM_EMAIL`` and leaves bounce checking off.
 ``--admin-email ADDRESS``
    Create the first administrator with this address (or give an existing
    account with that address the administrator's roles).

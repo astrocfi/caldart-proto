@@ -149,9 +149,10 @@ The flags:
        ``imaps://user:password@host[:port]/MAILBOX`` (:ref:`email-bounces`)
      - empty: bounce checking off
    * - ``--bounce-address ADDRESS``
-     - ``BOUNCE_ADDRESS``: the address a refused message is returned to, signed
-       per message with a plus tag, so its mailbox must accept plus addresses
-       (:ref:`email-bounces`)
+     - ``BOUNCE_ADDRESS``: the bounce mailbox's plain address, such as
+       ``bounces@caldart.example.org``, without a display name or tag.  The site
+       adds a signed plus tag to it for each message itself, so the mailbox must
+       accept plus addresses (:ref:`email-bounces`)
      - empty: ``DEFAULT_FROM_EMAIL``, and bounce checking off
    * - ``--admin-email ADDRESS``
      - create the first administrator

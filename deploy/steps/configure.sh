@@ -51,8 +51,10 @@
 #   --bounce-imap-url URL  BOUNCE_IMAP_URL, the mailbox the bounce check reads
 #                          (imaps://user:password@host[:port]/MAILBOX); default: off
 #   --bounce-address ADDRESS
-#                          BOUNCE_ADDRESS, the address bounces return to, signed
-#                          per message with a plus tag (default: DEFAULT_FROM_EMAIL)
+#                          BOUNCE_ADDRESS, the bounce mailbox's plain address, such
+#                          as bounces@caldart.example.org; the site adds a signed
+#                          +<id>.<signature> tag to it for each message itself
+#                          (default: DEFAULT_FROM_EMAIL)
 #   --dry-run              print every state-changing command instead of running it
 #   --help                 show this help
 #
