@@ -25,13 +25,15 @@
 #
 # Options:
 #   --hostname HOST            the public hostname; required on the first run
+#   --admin-email ADDRESS      create the first administrator with this address
 #   --www, --no-www            also answer for www.HOST (default --www)
 #   --web-server apache|nginx  which web server to install (default apache)
 #   --tls certbot|self-signed|existing
 #                              how the certificate is obtained (default certbot); existing
 #                              means a web server here already serves HOST over HTTPS, and
 #                              CalDART is included in its vhost instead of getting its own
-#   --certbot-email ADDRESS    the Let's Encrypt account address; required with certbot
+#   --certbot-email ADDRESS    the Let's Encrypt account address (default --admin-email);
+#                              certbot needs one or the other
 #   --url-prefix PREFIX        serve the site under this path, such as /caldart-proto
 #                              (default: the root of HOST, which / also names); must match
 #                              URL_PREFIX once the environment file exists
@@ -54,7 +56,6 @@
 #   --bounce-address ADDRESS   BOUNCE_ADDRESS, the address a refused message is
 #                              returned to, signed per message with a plus tag
 #                              (default: DEFAULT_FROM_EMAIL)
-#   --admin-email ADDRESS      create the first administrator with this address
 #   --seed-demo                load the demo accounts (the shared password README.rst
 #                              documents; a server seeded with them is a demonstration
 #                              server)
@@ -180,20 +181,18 @@ apply_record_flags() {
     done
 }
 
-# Stop with a usage error naming the flag a first run is missing, or an invalid
-# value.
+# Stop with one usage error that names every option a first run is missing, then
+# check each value.
 validate() {
-    [[ -n "$CALDART_HOSTNAME" ]] || usage_error "--hostname is required on the first run"
+    validate_email_flags
+    require_first_install_options
     validate_hostname "$CALDART_HOSTNAME"
     case "$CALDART_WEB_SERVER" in
         apache | nginx) ;;
         *) usage_error "--web-server must be apache or nginx, not $CALDART_WEB_SERVER" ;;
     esac
     case "$CALDART_TLS" in
-        certbot)
-            [[ -n "$CALDART_CERTBOT_EMAIL" ]] || usage_error "--certbot-email is required with --tls certbot"
-            ;;
-        self-signed | existing) ;;
+        certbot | self-signed | existing) ;;
         *) usage_error "--tls must be certbot, self-signed, or existing, not $CALDART_TLS" ;;
     esac
     if [[ -n "$CALDART_ATTACH_TO" ]]; then
@@ -206,16 +205,40 @@ validate() {
     validate_gunicorn_port "$CALDART_GUNICORN_PORT"
     validate_url_prefix
     validate_url_prefix_matches_env_file
-    validate_email_flags
-    if [[ -z "$EMAIL_URL" && ! -f "$ENV_FILE" ]]; then
-        usage_error "--email-url or --email local is required until $ENV_FILE exists"
+}
+
+# The Let's Encrypt account address falls back to the administrator's, so a first
+# install with certbot needs only --admin-email to have both.
+default_certbot_email() {
+    if [[ "$CALDART_TLS" == certbot && -z "$CALDART_CERTBOT_EMAIL" ]]; then
+        CALDART_CERTBOT_EMAIL="$ADMIN_EMAIL"
     fi
+}
+
+# Stop with a usage error that lists, in one message, each option a first install
+# needs and doesn't have: the hostname, an address for Let's Encrypt with certbot,
+# and the mail relay until the environment file exists.
+require_first_install_options() {
+    local missing=()
+    [[ -n "$CALDART_HOSTNAME" ]] ||
+        missing+=("  --hostname HOST          the site's public name, such as caldart.example.org")
+    if [[ "$CALDART_TLS" == certbot && -z "$CALDART_CERTBOT_EMAIL" ]]; then
+        missing+=("  --admin-email ADDRESS    your address: the first administrator, and where"
+            "                           Let's Encrypt sends certificate warnings")
+    fi
+    if [[ -z "$EMAIL_URL" && ! -f "$ENV_FILE" ]]; then
+        missing+=("  --email-url URL          how the site sends mail: your SMTP relay,"
+            "    or --email local       or the postfix on this machine")
+    fi
+    ((${#missing[@]} == 0)) && return 0
+    usage_error "$(printf 'this install needs these options:\n'; printf '%s\n' "${missing[@]}")"
 }
 
 main() {
     parse_flags "$@"
     load_record
     apply_record_flags
+    default_certbot_email
     validate
     require_root
 

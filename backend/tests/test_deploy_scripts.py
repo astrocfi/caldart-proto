@@ -499,16 +499,64 @@ def test_no_www_asks_for_one_name(root: Path, etc: Path, tmp_path: Path) -> None
     assert "www.caldart.test" not in commands[_position(commands, "certbot certonly")]
 
 
-@pytest.mark.parametrize("flag", ["--hostname", "--email-url", "--certbot-email"])
+def _without(flags: tuple[str, ...], *names: str) -> tuple[str, ...]:
+    """``flags`` without each named option and the value after it."""
+    kept: list[str] = []
+    skip = False
+    for word in flags:
+        if skip:
+            skip = False
+        elif word in names:
+            skip = True
+        else:
+            kept.append(word)
+    return tuple(kept)
+
+
+@pytest.mark.parametrize("flag", ["--hostname", "--email-url"])
 def test_a_first_install_names_the_flag_it_is_missing(
     flag: str, root: Path, etc: Path, tmp_path: Path
 ) -> None:
     """Without a record or an environment file, a missing flag exits 2 naming it."""
-    index = FIRST_INSTALL.index(flag)
-    args = (*FIRST_INSTALL[:index], *FIRST_INSTALL[index + 2 :])
-    result = _install_dry_run(root, etc, tmp_path, flags=args)
+    result = _install_dry_run(root, etc, tmp_path, flags=_without(FIRST_INSTALL, flag))
     assert result.returncode == 2
-    assert flag in result.stderr
+    assert f"  {flag} " in result.stderr
+
+
+def test_certbot_without_any_address_asks_for_the_admin_email(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """With neither address, the error asks for ``--admin-email``, which covers both."""
+    flags = _without(FIRST_INSTALL, "--certbot-email", "--admin-email")
+    result = _install_dry_run(root, etc, tmp_path, flags=flags)
+    assert "  --admin-email ADDRESS " in result.stderr
+
+
+def test_the_admin_email_is_the_lets_encrypt_address_by_default(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """Without ``--certbot-email``, certbot registers the administrator's address."""
+    flags = (
+        *_without(FIRST_INSTALL, "--certbot-email", "--admin-email"),
+        "--admin-email",
+        "a@x.org",
+    )
+    commands = _commands(_install_dry_run(root, etc, tmp_path, flags=flags))
+    assert commands[_position(commands, "certbot certonly")].endswith(" -m a@x.org")
+
+
+def test_a_first_install_lists_every_missing_option_in_one_error(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """A run without any flags names the hostname, the address, and the mail together."""
+    result = _install_dry_run(root, etc, tmp_path, flags=())
+    assert _option_lines(result) == ["--hostname", "--admin-email", "--email-url", "or"]
+
+
+def _option_lines(result: subprocess.CompletedProcess[str]) -> list[str]:
+    """The option, or ``or``, that starts each line of a missing-options error."""
+    words = [line.split()[0] for line in result.stderr.splitlines() if line.startswith("  ")]
+    return [word for word in words if word.startswith("--") or word == "or"]
 
 
 def test_an_unknown_web_server_is_a_usage_error(root: Path, etc: Path, tmp_path: Path) -> None:
@@ -782,8 +830,10 @@ def test_a_first_install_without_mail_names_both_flags(
 ) -> None:
     """With neither a mail flag nor an environment file, the error names both."""
     result = _install_dry_run(root, etc, tmp_path, flags=LOCAL_MAIL_INSTALL[:4])
-    assert _errors(result) == [
-        f"error: --email-url or --email local is required until {etc}/caldart.env exists"
+    assert [line.split()[:3] for line in result.stderr.splitlines()[1:4]] == [
+        ["error:", "this", "install"],
+        ["--email-url", "URL", "how"],
+        ["or", "--email", "local"],
     ]
 
 
@@ -3313,6 +3363,26 @@ def test_bootstrap_creates_the_deploy_root_and_clones_into_it(tmp_path: Path) ->
     assert commands[:2] == [
         f"install -d {tmp_path}/srv",
         f"git clone /nowhere {tmp_path}/srv/caldart",
+    ]
+
+
+def test_bootstrap_fetch_only_stops_before_the_installer(tmp_path: Path) -> None:
+    """``--fetch-only`` clones and checks out, and doesn't run ``install.sh``."""
+    commands = _commands(_bootstrap_dry_run(tmp_path, "--fetch-only"))
+    assert commands[-1] == f"git -C {tmp_path}/srv/caldart checkout main"
+
+
+def test_bootstrap_fetch_only_names_the_installer_to_run_next(tmp_path: Path) -> None:
+    """After ``--fetch-only``, the output names the installer's dry run."""
+    result = _bootstrap_dry_run(tmp_path, "--fetch-only")
+    assert f"sudo {tmp_path}/srv/caldart/deploy/install.sh --dry-run" in result.stdout
+
+
+def test_bootstrap_fetch_only_refuses_install_options(tmp_path: Path) -> None:
+    """``--fetch-only`` with an install option is a usage error: it doesn't install."""
+    result = _bootstrap_dry_run(tmp_path, "--fetch-only", "--hostname", "x.org")
+    assert _errors(result) == [
+        "error: --fetch-only doesn't run the installer, so it doesn't take install options"
     ]
 
 

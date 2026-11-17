@@ -127,36 +127,174 @@ Postgres already uses 5432, give ``--db-port``; when something already uses
 Installing
 ==========
 
-Step 1: bootstrap
------------------
+An install has four steps: choose your options, fetch the code, check the
+options with a dry run, and install.  Once you know your options, `The
+one-command install`_ does the last three together.
 
-On the server, one command fetches the code and installs everything::
+Step 1: choose your options
+---------------------------
+
+A first install on a server with a hostname of its own needs three options:
+
+``--hostname HOST``
+   The site's public name, such as ``caldart.example.org``.  Its DNS must
+   already point at this server, because Let's Encrypt checks the name before
+   it issues the site's certificate.  ``www.HOST`` must point at the server
+   too; give ``--no-www`` when it doesn't.
+``--admin-email ADDRESS``
+   Your address.  The installer creates the first administrator account with
+   it and prints a link for setting its password.  Without it, there isn't an
+   account that can sign in.  Let's Encrypt sends certificate expiry warnings
+   to it too, unless ``--certbot-email`` names another address.
+``--email-url URL`` or ``--email local``
+   How the site sends mail: receipts, reminders, password resets, and bulk
+   email.  ``--email-url`` names your mail provider's SMTP relay, such as
+   ``'smtp+tls://user:password@smtp.example.org:587'``; quote it, since it holds a password.  ``--email local`` uses
+   a postfix that already runs on this machine.  `Mail`_ says which to pick.
+
+Every other option has a default that suits a server of CalDART's own: Apache
+in front, a Let's Encrypt certificate, Postgres on port 5432, and gunicorn on
+port 8001.  Add an option only when your situation calls for it:
+
+.. list-table::
+   :header-rows: 1
+
+   * - When
+     - Add
+   * - You know nginx better than Apache
+     - ``--web-server nginx``
+   * - ``www.HOST`` doesn't point at the server
+     - ``--no-www``
+   * - A trial server without a public hostname
+     - ``--tls self-signed`` (browsers warn about the certificate)
+   * - Another website already runs on this server
+     - ``--tls existing``, usually with ``--url-prefix`` and ``--attach-to``
+       (`A sub-path behind an existing Apache site, with local postfix`_), and
+       ``--db-port`` or ``--gunicorn-port`` when port 5432 or 8001 is taken
+       (`Sharing the machine`_)
+   * - Mail should come from an address other than ``noreply@HOST``
+     - ``--from-email``
+   * - Bounced mail should be handled
+     - ``--bounce-imap-url`` and ``--bounce-address``
+   * - Certificate warnings should go to another address
+     - ``--certbot-email``
+   * - A demonstration server, never one with real member data
+     - ``--seed-demo`` and ``--seed-content`` (`Seeding`_)
+
+`Every install option`_ describes each one in full.
+
+Step 2: fetch the code
+----------------------
+
+On the server, fetch the code without installing anything yet::
+
+  curl -fsSL https://raw.githubusercontent.com/astrocfi/caldart-proto/main/deploy/bootstrap.sh \
+      | sudo bash -s -- --fetch-only
+
+This installs ``git`` when it is missing, creates ``/opt/caldart``, clones the
+repository into ``/opt/caldart/caldart``, and prints the installer's path.
+Every command on this page names those paths.  To install a branch other than
+``main``, or into a directory other than ``/opt/caldart``, see `Fetching other
+code or into another directory`_.
+
+Step 3: check your options with a dry run
+-----------------------------------------
+
+Run the installer with ``--dry-run`` and your options from step 1::
+
+  sudo /opt/caldart/caldart/deploy/install.sh --dry-run \
+      --hostname caldart.example.org \
+      --admin-email you@example.org \
+      --email-url 'smtp+tls://user:password@smtp.example.org:587'
+
+A dry run doesn't change anything.  It prints every command a real run would,
+prefixed ``+``, in order.  When an option is missing or a value is wrong, it
+stops with an ``error:`` line, and a first install that lacks more than one
+option lists them all::
+
+  error: this install needs these options:
+    --admin-email ADDRESS    your address: the first administrator, and where
+                             Let's Encrypt sends certificate warnings
+    --email-url URL          how the site sends mail: your SMTP relay,
+      or --email local       or the postfix on this machine
+
+Fix the options and run the dry run again until it finishes.  The generated
+secrets appear as ``<generated>``, and a file the dry run never wrote (the
+environment file and the install record) is treated as absent, with a note on
+standard error.  ``CALDART_DRY_RUN=1`` in the environment does the same as
+``--dry-run``.
+
+Step 4: install
+---------------
+
+Run the same command without ``--dry-run``::
+
+  sudo /opt/caldart/caldart/deploy/install.sh \
+      --hostname caldart.example.org \
+      --admin-email you@example.org \
+      --email-url 'smtp+tls://user:password@smtp.example.org:587'
+
+The install takes a few minutes, most of them the package installs and the
+build.  It runs these stages, each announced by an ``==>`` line:
+
+1. the operating system packages, Node, ``uv``, and Docker;
+2. the ``caldart`` system user and its directories;
+3. the install record;
+4. Postgres in Docker, and, on the first run, a generated database password;
+5. the environment file, on the first run only;
+6. the build: the Python packages from ``uv.lock``, the frontend, and the user
+   guide;
+7. the database: migrations, the cache table, the roles, the membership plans,
+   the demo accounts with ``--seed-demo``, the example pages with
+   ``--seed-content``, the static
+   files, and the administrator with ``--admin-email``;
+8. gunicorn under systemd, waiting up to 30 seconds for it to answer;
+9. the web server and the certificate, or the snippet behind an existing
+   site;
+10. the scheduled jobs, and a first FAA registry import in the background;
+11. a first database backup;
+12. the checks, and the summary.
+
+When a command fails, its own output is followed by an ``error:`` line naming
+the stage and the command.  Fix what it names and run ``install.sh`` again.
+
+The summary at the end looks like this::
+
+  CalDART is running at https://caldart.example.org/
+  Settings: /etc/caldart/caldart.env (edit with sudoedit, then systemctl restart caldart-web)
+  Set the administrator's password at: https://caldart.example.org/portal/reset-password?uid=...&token=...
+  Still empty in the settings: STRIPE_PUBLISHABLE_KEY STRIPE_SECRET_KEY ...
+
+``--admin-email`` runs ``create_admin``, which makes the account a superuser
+with the ``member``, ``system_admin``, and ``website_admin`` roles but without
+a usable password, and prints one line: a one-time password-reset link.  Open it,
+signed out, to set the administrator's password.  It expires with any
+password-reset link, after ``PASSWORD_RESET_TIMEOUT`` (three days by default).
+When an account with that address already exists, because somebody registered
+it through the portal, ``create_admin`` clears its password, ends its sessions,
+mails the address a set-password link, and says so; only the person who reads
+that mailbox, or holds the printed link, can sign in.  To make another link
+later::
+
+  sudo /opt/caldart/caldart/deploy/manage.sh create_admin --email you@example.org
+
+That run also clears the administrator's password and signs them out until
+they use the link.
+
+With a self-signed certificate the summary adds that browsers warn until a
+real certificate replaces it.
+
+The one-command install
+-----------------------
+
+Given install options in place of ``--fetch-only``, ``bootstrap.sh`` fetches
+the code and runs the installer with them: steps 2 and 4 in one command.  The
+worked examples below are written this way::
 
   curl -fsSL https://raw.githubusercontent.com/astrocfi/caldart-proto/main/deploy/bootstrap.sh \
       | sudo bash -s -- --hostname caldart.example.org \
-          --certbot-email ops@example.org \
-          --email-url 'smtp+tls://user:password@smtp.example.org:587' \
-          --admin-email you@example.org
-
-``bootstrap.sh`` takes three options of its own and passes every other one to
-``install.sh`` untouched:
-
-``--repo URL-OR-PATH``
-   What to clone.  Default ``https://github.com/astrocfi/caldart-proto.git``.
-``--ref REF``
-   The branch, tag, or commit to install.  Default ``main``.
-``--dry-run``
-   Print the clone and the install instead of running them (also passed on
-   to ``install.sh``).
-
-``bootstrap.sh`` creates the deploy root when it is missing and clones into
-``caldart/`` inside it, so the checkout is ``/opt/caldart/caldart``.
-``CALDART_ROOT`` in its environment picks another deploy root; the checkout
-always goes in its ``caldart`` directory.  Because ``sudo`` drops the caller's
-environment, set it after ``sudo``::
-
-  curl -fsSL https://raw.githubusercontent.com/astrocfi/caldart-proto/main/deploy/bootstrap.sh \
-      | sudo env CALDART_ROOT=/srv/caldart bash -s -- --hostname caldart.example.org ...
+          --admin-email you@example.org \
+          --email-url 'smtp+tls://user:password@smtp.example.org:587'
 
 When ``/opt/caldart/caldart`` is already a checkout, ``bootstrap.sh`` fetches,
 checks out ``--ref``, and pulls it (when it is a branch) instead of cloning.
@@ -164,19 +302,39 @@ When that directory exists, is not empty, and is not a checkout, it stops.  The
 deploy root around it may already hold ``backups/`` and ``media/``, as it does
 after an uninstall without ``--purge``; the install keeps them.
 
-On a server that already has the checkout, run the installer directly, with
-the same flags::
+Fetching other code or into another directory
+---------------------------------------------
 
-  sudo /opt/caldart/caldart/deploy/install.sh --hostname caldart.example.org ...
+``bootstrap.sh`` takes four options of its own and passes every other one to
+``install.sh`` untouched:
 
-The commands on this page name ``/opt/caldart``; with another deploy root,
-run the scripts from its ``caldart`` checkout instead.
+``--repo URL-OR-PATH``
+   What to clone.  Default ``https://github.com/astrocfi/caldart-proto.git``.
+``--ref REF``
+   The branch, tag, or commit to install.  Default ``main``.
+``--fetch-only``
+   Fetch the code and stop, without running the installer.  It doesn't take
+   install options.
+``--dry-run``
+   Print the clone and the install instead of running them (also passed on
+   to ``install.sh``).
 
-Step 2: the install flags
--------------------------
+The deploy root is ``/opt/caldart``, and the checkout always goes in its
+``caldart`` directory.  ``CALDART_ROOT`` in the environment of ``bootstrap.sh``
+picks another deploy root.  Because ``sudo`` drops the caller's environment,
+set it after ``sudo``::
 
-These are every option ``install.sh`` accepts (``sudo deploy/install.sh
---help`` prints the same list).
+  curl -fsSL https://raw.githubusercontent.com/astrocfi/caldart-proto/main/deploy/bootstrap.sh \
+      | sudo env CALDART_ROOT=/srv/caldart bash -s -- --fetch-only
+
+With another deploy root, run the scripts from its ``caldart`` checkout in place
+of ``/opt/caldart/caldart``.
+
+Every install option
+--------------------
+
+These are every option ``install.sh`` accepts (``sudo
+/seti/newnav/capped-run.sh /opt/caldart/caldart/deploy/install.sh --help`` prints the same list).
 
 ``--hostname HOST``
    The public hostname, a DNS name of at least two labels such as
@@ -195,7 +353,7 @@ These are every option ``install.sh`` accepts (``sudo deploy/install.sh
    ``certbot``
       A Let's Encrypt certificate for the hostname (and ``www.HOST``),
       obtained over port 80 and renewed by certbot's own timer.  Needs
-      ``--certbot-email``.
+      ``--admin-email`` or ``--certbot-email``.
    ``self-signed``
       An ``openssl`` certificate, valid ten years, in ``/etc/caldart/tls/``.
       Browsers warn.  For a trial or staging box without a public hostname.
@@ -211,7 +369,8 @@ These are every option ``install.sh`` accepts (``sudo deploy/install.sh
    cookies and redirect HTTP to HTTPS.
 ``--certbot-email ADDRESS``
    The Let's Encrypt account address, which receives expiry warnings.
-   Required with ``--tls certbot``.
+   Default: the ``--admin-email`` address.  ``--tls certbot`` needs one or the
+   other.
 ``--certbot-staging``
    Use Let's Encrypt's staging directory: a certificate browsers do not trust,
    without the production rate limits.  For a trial run of certbot itself.
@@ -287,72 +446,6 @@ record.  The mail flags, ``--from-email``, the two bounce flags, ``--admin-email
 ``--seed-demo``, and ``--seed-content`` are used by the run that writes the environment file or
 creates the administrator, and are not recorded.
 
-Step 3: try it with a dry run
------------------------------
-
-``--dry-run``, or ``CALDART_DRY_RUN=1`` in the environment, prints what a run
-would do without doing it, and doesn't need root.  It reads the machine as it is,
-so on a fresh box it prints the whole sequence in order; the generated
-secrets appear as ``<generated>``, and a file the dry run never wrote (the
-environment file, the install record) is treated as absent, with a note on
-standard error.  A dry run is the quickest way to check a set of flags::
-
-  sudo /opt/caldart/caldart/deploy/install.sh --dry-run --hostname caldart.example.org \
-      --certbot-email ops@example.org --email local
-  CALDART_DRY_RUN=1 /opt/caldart/caldart/deploy/install.sh --hostname caldart.example.org ...
-
-Step 4: what the run prints
----------------------------
-
-The install takes a few minutes, most of them the package installs and the
-build.  It runs these stages, each announced by an ``==>`` line:
-
-1. the operating system packages, Node, ``uv``, and Docker;
-2. the ``caldart`` system user and its directories;
-3. the install record;
-4. Postgres in Docker, and, on the first run, a generated database password;
-5. the environment file, on the first run only;
-6. the build: the Python packages from ``uv.lock``, the frontend, and the user
-   guide;
-7. the database: migrations, the cache table, the roles, the membership plans,
-   the demo accounts with ``--seed-demo``, the example pages with
-   ``--seed-content``, the static
-   files, and the administrator with ``--admin-email``;
-8. gunicorn under systemd, waiting up to 30 seconds for it to answer;
-9. the web server and the certificate, or the snippet behind an existing
-   site;
-10. the scheduled jobs, and a first FAA registry import in the background;
-11. a first database backup;
-12. the checks, and the summary.
-
-When a command fails, its own output is followed by an ``error:`` line naming
-the stage and the command.  Fix what it names and run ``install.sh`` again.
-
-The summary at the end looks like this::
-
-  CalDART is running at https://caldart.example.org/
-  Settings: /etc/caldart/caldart.env (edit with sudoedit, then systemctl restart caldart-web)
-  Set the administrator's password at: https://caldart.example.org/portal/reset-password?uid=...&token=...
-  Still empty in the settings: STRIPE_PUBLISHABLE_KEY STRIPE_SECRET_KEY ...
-
-``--admin-email`` runs ``create_admin``, which makes the account a superuser
-with the ``member``, ``system_admin``, and ``website_admin`` roles but without
-a usable password, and prints one line: a one-time password-reset link.  Open it,
-signed out, to set the administrator's password.  It expires with any
-password-reset link, after ``PASSWORD_RESET_TIMEOUT`` (three days by default).
-When an account with that address already exists, because somebody registered
-it through the portal, ``create_admin`` clears its password, ends its sessions,
-mails the address a set-password link, and says so; only the person who reads
-that mailbox, or holds the printed link, can sign in.  To make another link
-later::
-
-  sudo /opt/caldart/caldart/deploy/manage.sh create_admin --email you@example.org
-
-That run also clears the administrator's password and signs them out until
-they use the link.
-
-With a self-signed certificate the summary adds that browsers warn until a
-real certificate replaces it.
 
 
 Worked examples
@@ -367,7 +460,6 @@ organization's relay::
 
   curl -fsSL https://raw.githubusercontent.com/astrocfi/caldart-proto/main/deploy/bootstrap.sh \
       | sudo bash -s -- --hostname caldart.example.org \
-          --certbot-email ops@example.org \
           --email-url 'smtp+tls://caldart%40example.org:app-password@smtp.example.org:587' \
           --from-email 'CalDART <noreply@example.org>' \
           --admin-email you@example.org
@@ -487,7 +579,8 @@ secret.  Every script reads it; it is never executed.
 ``CALDART_TLS``
    ``certbot``, ``self-signed``, or ``existing``.
 ``CALDART_CERTBOT_EMAIL``
-   ``--certbot-email``, or empty.
+   ``--certbot-email``; with certbot and without it, the ``--admin-email``
+   address; otherwise empty.
 ``CALDART_CERTBOT_STAGING``
    ``yes`` or ``no``.
 ``CALDART_DB_PORT``
@@ -941,7 +1034,7 @@ install and point here, while ``uninstall.sh``, ``manage.sh``, and
 
      sudo /opt/caldart/deploy/uninstall.sh --yes --purge
 
-4. Run ``bootstrap.sh`` with the same flags (`Step 1: bootstrap`_), which
+4. Run ``bootstrap.sh`` with the same flags (`The one-command install`_), which
    clones into ``/opt/caldart/caldart`` and installs an empty site.
 5. Put the dumps and the uploads under the deploy root::
 
@@ -1297,12 +1390,12 @@ the message says, then run the same command again.
 ``error: --attach-to is used only with --tls existing``, ``error: --attach-to must be an absolute path, not ...``
    Give ``--tls existing`` with it, and a full path.
 
-``error: --certbot-email is required with --tls certbot``
-   Give ``--certbot-email ADDRESS``, or pick ``--tls self-signed`` or
-   ``--tls existing``.
-
-``error: --hostname is required on the first run``
-   No install record exists yet.  Give ``--hostname``.
+``error: this install needs these options:``
+   A first install lacks the options listed below the line: ``--hostname``
+   when there isn't an install record yet, ``--admin-email`` (or
+   ``--certbot-email``) with ``--tls certbot``, and ``--email-url`` or
+   ``--email local`` while there isn't an environment file.  Give them, and see
+   `Step 1: choose your options`_.
 
 ``error: ... is not supported; use Debian or Ubuntu``
    The packages step runs only on Debian and Ubuntu.

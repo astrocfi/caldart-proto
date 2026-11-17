@@ -159,14 +159,15 @@ backup.
 .. code-block:: console
 
    $ curl -fsSL https://raw.githubusercontent.com/astrocfi/caldart-proto/main/deploy/bootstrap.sh \
-       | sudo bash -s -- --hostname caldart.example.org --certbot-email ops@example.org \
+       | sudo bash -s -- --hostname caldart.example.org \
            --email-url smtp+tls://user:password@smtp.example.org:587 \
            --admin-email you@example.org
 
 The checkout lands in ``/opt/caldart/caldart``, with the database dumps in
 ``/opt/caldart/backups`` and the uploads in ``/opt/caldart/media`` beside it,
-and ``sudo /opt/caldart/caldart/deploy/upgrade.sh`` upgrades it later.  The
-Deployment page of the developer guide, ``docs/developer/deployment.rst``,
+and ``sudo /opt/caldart/caldart/deploy/upgrade.sh`` upgrades it later.
+``deploy/README.rst`` walks through the install a step at a time, with a dry run
+before the real one.  The Deployment page of the developer guide, ``docs/developer/deployment.rst``,
 describes every flag and every step the scripts run.
 
 

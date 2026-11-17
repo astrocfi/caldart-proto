@@ -68,7 +68,6 @@ and 443 open, one command installs everything::
 
   curl -fsSL https://raw.githubusercontent.com/astrocfi/caldart-proto/main/deploy/bootstrap.sh \
       | sudo bash -s -- --hostname caldart.example.org \
-          --certbot-email ops@example.org \
           --email-url smtp+tls://user:password@smtp.example.org:587 \
           --admin-email you@example.org
 
@@ -82,6 +81,12 @@ checkout always goes in its ``caldart`` directory.  On a server that already
 has the checkout, run the installer directly::
 
   sudo /opt/caldart/caldart/deploy/install.sh --hostname caldart.example.org ...
+
+/seti/newnav/capped-run.sh ``bootstrap.sh --fetch-only`` clones (or updates) the checkout and stops, without
+running the installer, so an operator can check the install options with
+/seti/newnav/capped-run.sh ``install.sh --dry-run`` before the first real run.  It refuses install options.
+The operator's runbook, ``deploy/README.rst``, walks through the install in that
+order.
 
 The flags:
 
@@ -108,7 +113,7 @@ The flags:
      - ``certbot``
    * - ``--certbot-email ADDRESS``
      - the Let's Encrypt account address
-     - required with ``--tls certbot``
+     - the ``--admin-email`` address; ``--tls certbot`` needs one or the other
    * - ``--url-prefix PREFIX``
      - serve the site under this path, such as ``/caldart-proto``; ``/`` names
        the root of the host (:ref:`deploy-prefix`)
@@ -167,6 +172,10 @@ The flags:
    * - ``--ref REF``
      - ``bootstrap.sh`` and ``upgrade.sh``: the branch, tag, or commit
      - ``main``, or the current branch
+   * - ``--fetch-only``
+     - ``bootstrap.sh`` only: fetch the code and stop, without running the
+       installer
+     - off
    * - ``--dry-run``
      - print every command that changes the machine instead of running it
      - off
@@ -191,11 +200,14 @@ later run doesn't need any flags, and a flag given on a later run updates the re
 are used by the run that writes the environment file or creates the
 administrator, and are not recorded.  ``bootstrap.sh`` prints the installer line
 with the values of ``--email-url`` and ``--bounce-imap-url`` masked, since both can
-carry a password.  The
-first run stops with a
-usage error naming ``--hostname`` when no record exists, ``--email-url`` and
-``--email local`` while no environment file exists, and ``--certbot-email``
-with certbot.  Giving both ``--email-url`` and ``--email local`` is a usage
+carry a password.  A first
+run that lacks a required option stops before it changes anything, with one
+usage error that lists each missing option on a line of its own: ``--hostname``
+when there isn't a record, ``--admin-email`` with certbot when there isn't a
+``--certbot-email`` either, and ``--email-url`` or ``--email local`` while there
+isn't an environment file.  With certbot and without ``--certbot-email``, the
+``--admin-email`` address becomes the Let's Encrypt account address, and the
+record keeps it.  Giving both ``--email-url`` and ``--email local`` is a usage
 error too, and so is ``--attach-to`` without ``--tls existing`` or with a
 relative path.
 

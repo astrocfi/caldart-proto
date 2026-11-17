@@ -12,15 +12,20 @@
 # into bash:
 #
 #   curl -fsSL https://raw.githubusercontent.com/astrocfi/caldart-proto/main/deploy/bootstrap.sh \
-#       | sudo bash -s -- --hostname caldart.example.org --certbot-email ops@example.org \
+#       | sudo bash -s -- --hostname caldart.example.org \
 #           --email-url smtp+tls://user:password@smtp.example.org:587 --admin-email you@example.org
+#
+# With --fetch-only it stops once the code is there and prints the installer's
+# path, so the install options can be checked with a dry run first.
 #
 # Usage:
 #   sudo deploy/bootstrap.sh [--repo URL-OR-PATH] [--ref REF] [install options]
+#   sudo deploy/bootstrap.sh --fetch-only [--repo URL-OR-PATH] [--ref REF]
 #
 # Options:
 #   --repo URL-OR-PATH   what to clone (default https://github.com/astrocfi/caldart-proto.git)
 #   --ref REF            the branch, tag, or commit to install (default main)
+#   --fetch-only         fetch the code and stop, without running the installer
 #   --dry-run            print every state-changing command instead of running it
 #   --help               show this help
 #   Every other option goes to deploy/install.sh; see its --help.
@@ -42,6 +47,7 @@ readonly VALUE_OPTIONS=" --hostname --web-server --tls --certbot-email --db-port
 REPO="$DEFAULT_REPO"
 REF="$DEFAULT_REF"
 DRY_RUN="${CALDART_DRY_RUN:-0}"
+FETCH_ONLY=no
 PASSTHROUGH=()
 
 # The lines this script prints match deploy/lib.sh's, which it cannot source:
@@ -123,12 +129,14 @@ parse_flags() {
                 DRY_RUN=1
                 PASSTHROUGH+=("$1")
                 ;;
+            --fetch-only) FETCH_ONLY=yes ;;
             --help)
                 # Piped into bash, there isn't a file to read the header from.
                 if [[ -f "${BASH_SOURCE[0]}" ]]; then
                     print_help "${BASH_SOURCE[0]}"
                 else
                     printf 'Usage: bootstrap.sh [--repo URL-OR-PATH] [--ref REF] [install options]\n'
+                    printf '       bootstrap.sh --fetch-only [--repo URL-OR-PATH] [--ref REF]\n'
                 fi
                 exit 0
                 ;;
@@ -180,8 +188,19 @@ fetch_code() {
     run git -C "$CHECKOUT" checkout "$REF"
 }
 
+# Say where the code is and what to run next, after --fetch-only.
+print_next_step() {
+    log "Fetched the code into $CHECKOUT; nothing is installed yet"
+    printf 'Check your install options with a dry run, then run the same command without --dry-run:\n'
+    printf '  sudo %s/deploy/install.sh --dry-run --hostname HOST --admin-email ADDRESS --email-url URL\n' \
+        "$CHECKOUT"
+}
+
 main() {
     parse_flags "$@"
+    if [[ "$FETCH_ONLY" == yes && "${#PASSTHROUGH[@]}" -gt 0 && "${PASSTHROUGH[*]}" != --dry-run ]]; then
+        usage_error "--fetch-only doesn't run the installer, so it doesn't take install options"
+    fi
     if [[ "$DRY_RUN" != 1 && "$(id -u)" != 0 ]]; then
         die "run this as root (sudo bash)"
     fi
@@ -197,6 +216,10 @@ main() {
         run env DEBIAN_FRONTEND=noninteractive apt-get install -y git
     fi
     fetch_code
+    if [[ "$FETCH_ONLY" == yes ]]; then
+        print_next_step
+        return 0
+    fi
 
     local installer="$CHECKOUT/deploy/install.sh"
     if [[ "$DRY_RUN" == 1 && ! -f "$installer" ]]; then
