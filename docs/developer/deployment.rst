@@ -68,7 +68,6 @@ and 443 open, one command installs everything::
 
   curl -fsSL https://raw.githubusercontent.com/astrocfi/caldart-proto/main/deploy/bootstrap.sh \
       | sudo bash -s -- --hostname caldart.example.org \
-          --certbot-email ops@example.org \
           --email-url smtp+tls://user:password@smtp.example.org:587 \
           --admin-email you@example.org
 
@@ -82,6 +81,12 @@ checkout always goes in its ``caldart`` directory.  On a server that already
 has the checkout, run the installer directly::
 
   sudo /opt/caldart/caldart/deploy/install.sh --hostname caldart.example.org ...
+
+``bootstrap.sh --fetch-only`` clones (or updates) the checkout and stops, without
+running the installer, so an operator can check the install options with
+``install.sh --dry-run`` before the first real run.  It refuses install options.
+The operator's runbook, ``deploy/README.rst``, walks through the install in that
+order.
 
 The flags:
 
@@ -108,10 +113,12 @@ The flags:
      - ``certbot``
    * - ``--certbot-email ADDRESS``
      - the Let's Encrypt account address
-     - required with ``--tls certbot``
+     - the ``--admin-email`` address; ``--tls certbot`` needs one or the other
    * - ``--url-prefix PREFIX``
      - serve the site under this path, such as ``/caldart-proto``; ``/`` names
-       the root of the host (:ref:`deploy-prefix`)
+       the root of the host.  With ``certbot`` or ``self-signed`` the root of
+       the host serves ``/var/www/HOST`` (:ref:`deploy-own-prefix`); with
+       ``existing`` it stays the existing site's (:ref:`deploy-prefix`)
      - the root of the host
    * - ``--attach-to FILE``
      - with ``--tls existing``, the existing site's vhost file to include
@@ -144,9 +151,10 @@ The flags:
        ``imaps://user:password@host[:port]/MAILBOX`` (:ref:`email-bounces`)
      - empty: bounce checking off
    * - ``--bounce-address ADDRESS``
-     - ``BOUNCE_ADDRESS``: the address a refused message is returned to, signed
-       per message with a plus tag, so its mailbox must accept plus addresses
-       (:ref:`email-bounces`)
+     - ``BOUNCE_ADDRESS``: the bounce mailbox's plain address, such as
+       ``bounces@caldart.example.org``, without a display name or tag.  The site
+       adds a signed plus tag to it for each message itself, so the mailbox must
+       accept plus addresses (:ref:`email-bounces`)
      - empty: ``DEFAULT_FROM_EMAIL``, and bounce checking off
    * - ``--admin-email ADDRESS``
      - create the first administrator
@@ -167,6 +175,10 @@ The flags:
    * - ``--ref REF``
      - ``bootstrap.sh`` and ``upgrade.sh``: the branch, tag, or commit
      - ``main``, or the current branch
+   * - ``--fetch-only``
+     - ``bootstrap.sh`` only: fetch the code and stop, without running the
+       installer
+     - off
    * - ``--dry-run``
      - print every command that changes the machine instead of running it
      - off
@@ -191,11 +203,14 @@ later run doesn't need any flags, and a flag given on a later run updates the re
 are used by the run that writes the environment file or creates the
 administrator, and are not recorded.  ``bootstrap.sh`` prints the installer line
 with the values of ``--email-url`` and ``--bounce-imap-url`` masked, since both can
-carry a password.  The
-first run stops with a
-usage error naming ``--hostname`` when no record exists, ``--email-url`` and
-``--email local`` while no environment file exists, and ``--certbot-email``
-with certbot.  Giving both ``--email-url`` and ``--email local`` is a usage
+carry a password.  A first
+run that lacks a required option stops before it changes anything, with one
+usage error that lists each missing option on a line of its own: ``--hostname``
+when there isn't a record, ``--admin-email`` with certbot when there isn't a
+``--certbot-email`` either, and ``--email-url`` or ``--email local`` while there
+isn't an environment file.  With certbot and without ``--certbot-email``, the
+``--admin-email`` address becomes the Let's Encrypt account address, and the
+record keeps it.  Giving both ``--email-url`` and ``--email local`` is a usage
 error too, and so is ``--attach-to`` without ``--tls existing`` or with a
 relative path.
 
@@ -1110,6 +1125,16 @@ its ``https://`` form in ``CSRF_TRUSTED_ORIGINS`` (step 5).  Its DNS ``A`` (and
 ``AAAA``) records must already point at this server, and ports 80 and 443 must
 be open, or the certificate step fails.
 
+Before the certificate, with ``certbot`` or ``self-signed``, the step allows
+ports 80 and 443 through ``ufw`` when ``ufw status`` reports it active (``ufw
+allow 80/tcp`` and ``ufw allow 443/tcp``, which don't change anything when the ports
+are already allowed), since some cloud images ship ``ufw`` with only SSH
+allowed.  A firewall in the hosting provider's control panel is outside the
+machine, so the step can't open it.  When ``certbot certonly`` fails, the step
+stops with an error that points at port 80 and both firewalls, since a timeout
+there is the usual cause.  With ``--tls existing`` the ports belong to the
+existing site, and the step leaves ``ufw`` alone.
+
 Apache
 ------
 
@@ -1166,6 +1191,8 @@ syntax before reloading::
   sed -e "s#/opt/caldart/caldart#__CALDART_CHECKOUT__#g" -e "s#/opt/caldart#$ROOT#g" \
       -e "s#__CALDART_CHECKOUT__#$CHECKOUT#g" -e "s#127.0.0.1:8001#127.0.0.1:$PORT#g" \
       -e "s/caldart\.example\.org/$HOST/g" \
+      -e '/^ *# BEGIN under-prefix$/,/^ *# END under-prefix$/d' \
+      -e '/^ *# \(BEGIN\|END\) whole-host$/d' \
       deploy/apache/caldart.conf \
       | sudo tee /etc/apache2/sites-available/caldart.conf >/dev/null
   sudo a2ensite caldart
@@ -1178,8 +1205,11 @@ while the deploy root is written, so a checkout whose own path contains
 ``/opt/caldart`` is not rewritten twice.  The dry run of the
 step prints the command with the real values.  ``reload-or-restart`` rather
 than ``reload``, because it also starts a web server that is stopped, where a
-plain reload fails.  Under ``--no-www`` a third
-expression drops the ``ServerAlias`` line.
+plain reload fails.  Under ``--no-www`` another
+expression drops the ``ServerAlias`` line.  The last two expressions keep the
+vhost's ``whole-host`` section, which proxies ``/`` to gunicorn, and drop its
+``under-prefix`` section; a site under a URL prefix keeps the other one
+(:ref:`deploy-own-prefix`).
 
 The vhost:
 
@@ -1266,6 +1296,8 @@ both files are there::
   sed -e "s#/opt/caldart/caldart#__CALDART_CHECKOUT__#g" -e "s#/opt/caldart#$ROOT#g" \
       -e "s#__CALDART_CHECKOUT__#$CHECKOUT#g" -e "s#127.0.0.1:8001#127.0.0.1:$PORT#g" \
       -e "s/caldart\.example\.org/$HOST/g" \
+      -e '/^ *# BEGIN under-prefix$/,/^ *# END under-prefix$/d' \
+      -e '/^ *# \(BEGIN\|END\) whole-host$/d' \
       deploy/nginx/caldart.conf \
       | sudo tee /etc/nginx/sites-available/caldart >/dev/null
   sudo ln -sfn /etc/nginx/sites-available/caldart /etc/nginx/sites-enabled/caldart
@@ -1376,6 +1408,43 @@ early.  ``SECURE_HSTS_PRELOAD`` stays off unless you mean to join the
 browser preload list; :doc:`configuration` explains what that commits the site
 to.
 
+
+.. _deploy-own-prefix:
+
+Under a URL prefix, on CalDART's own vhost
+------------------------------------------
+
+With ``--url-prefix`` and ``--tls certbot`` or ``self-signed``, CalDART keeps
+its own vhost and certificate, and the root of the host serves a folder of the
+operator's.  Each shipped vhost holds two sections between marker comments in its
+port-443 host: ``whole-host``, which serves ``/media/`` and proxies ``/`` to
+gunicorn, and ``under-prefix``, which serves ``/var/www/HOST`` at ``/`` and
+includes the snippet of :ref:`deploy-prefix`.  ``render_vhost`` keeps the
+section that matches the recorded prefix and deletes the other, with both
+sections' marker lines.  Before it writes the vhost, the step:
+
+- creates ``/var/www/HOST`` with an empty ``index.html``, when the folder
+  doesn't exist yet (the page leaves out any link to ``PREFIX/``, so a crawler
+  that reads the root doesn't find CalDART); once it exists, its contents are the
+  operator's, and later runs leave them alone;
+- writes the snippet, with the prefix and the deploy root written in: Apache's
+  ``deploy/apache/caldart-attach.conf`` to
+  ``/etc/apache2/conf-available/caldart.conf``, and nginx's
+  ``deploy/nginx/caldart-attach.conf`` to ``/etc/nginx/snippets/caldart.conf``.
+
+The nginx vhost defines the ``caldart_app`` upstream the snippet proxies to, so
+the step doesn't write ``/etc/nginx/conf.d/caldart-upstream.conf``, and removes a
+copy an earlier ``--tls existing`` install left there, since nginx refuses an
+upstream defined twice.  The vhost includes the snippet itself, so nothing is
+attached to another file.  The snippet's prefix locations win over the folder:
+in Apache because its ``ProxyPass`` and ``Alias`` name a longer path, and in
+nginx because they are ``^~`` locations.  The check step requests the site
+under the prefix, as it does behind an existing site.
+
+A site installed at the root moves under a prefix once ``URL_PREFIX`` and the
+path of ``SITE_URL`` in the environment file name it (the install leaves an
+existing environment file alone, and refuses a ``--url-prefix`` that differs),
+by running ``install.sh --url-prefix PREFIX``.  ``--url-prefix /`` moves it back.
 
 .. _deploy-prefix:
 

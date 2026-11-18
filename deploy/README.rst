@@ -100,7 +100,9 @@ You need:
   well, since the certificate covers both names; give ``--no-www`` otherwise.
   A self-signed install (``--tls self-signed``) doesn't need public DNS.
 - **Ports 80 and 443 open** to the internet.  Let's Encrypt checks port 80
-  before it issues a certificate, and certbot renews through it.  Behind an
+  before it issues a certificate, and certbot renews through it.  When ``ufw``
+  is active on the server, the installer allows both ports through it.  A
+  firewall in your hosting provider's control panel is yours to open.  Behind an
   existing site (``--tls existing``) the site's own web server already holds
   them.
 - **Outbound HTTPS**, to the distribution's archive, NodeSource, PyPI, npm,
@@ -127,182 +129,115 @@ Postgres already uses 5432, give ``--db-port``; when something already uses
 Installing
 ==========
 
-Step 1: bootstrap
------------------
+An install has four steps: choose your options, fetch the code, check the
+options with a dry run, and install.  Once you know your options, `The
+one-command install`_ does the last three together.
 
-On the server, one command fetches the code and installs everything::
+Step 1: choose your options
+---------------------------
 
-  curl -fsSL https://raw.githubusercontent.com/astrocfi/caldart-proto/main/deploy/bootstrap.sh \
-      | sudo bash -s -- --hostname caldart.example.org \
-          --certbot-email ops@example.org \
-          --email-url 'smtp+tls://user:password@smtp.example.org:587' \
-          --admin-email you@example.org
-
-``bootstrap.sh`` takes three options of its own and passes every other one to
-``install.sh`` untouched:
-
-``--repo URL-OR-PATH``
-   What to clone.  Default ``https://github.com/astrocfi/caldart-proto.git``.
-``--ref REF``
-   The branch, tag, or commit to install.  Default ``main``.
-``--dry-run``
-   Print the clone and the install instead of running them (also passed on
-   to ``install.sh``).
-
-``bootstrap.sh`` creates the deploy root when it is missing and clones into
-``caldart/`` inside it, so the checkout is ``/opt/caldart/caldart``.
-``CALDART_ROOT`` in its environment picks another deploy root; the checkout
-always goes in its ``caldart`` directory.  Because ``sudo`` drops the caller's
-environment, set it after ``sudo``::
-
-  curl -fsSL https://raw.githubusercontent.com/astrocfi/caldart-proto/main/deploy/bootstrap.sh \
-      | sudo env CALDART_ROOT=/srv/caldart bash -s -- --hostname caldart.example.org ...
-
-When ``/opt/caldart/caldart`` is already a checkout, ``bootstrap.sh`` fetches,
-checks out ``--ref``, and pulls it (when it is a branch) instead of cloning.
-When that directory exists, is not empty, and is not a checkout, it stops.  The
-deploy root around it may already hold ``backups/`` and ``media/``, as it does
-after an uninstall without ``--purge``; the install keeps them.
-
-On a server that already has the checkout, run the installer directly, with
-the same flags::
-
-  sudo /opt/caldart/caldart/deploy/install.sh --hostname caldart.example.org ...
-
-The commands on this page name ``/opt/caldart``; with another deploy root,
-run the scripts from its ``caldart`` checkout instead.
-
-Step 2: the install flags
--------------------------
-
-These are every option ``install.sh`` accepts (``sudo deploy/install.sh
---help`` prints the same list).
+A first install on a server with a hostname of its own needs three options:
 
 ``--hostname HOST``
-   The public hostname, a DNS name of at least two labels such as
-   ``caldart.example.org``.  Required on the first run.
-``--www``, ``--no-www``
-   Also answer for ``www.HOST``: the vhost, the certificate, ``ALLOWED_HOSTS``,
-   and ``CSRF_TRUSTED_ORIGINS`` all name both.  Default ``--www``.
-``--web-server apache|nginx``
-   Which web server to install and configure.  Default ``apache``.  The other
-   server's configuration is never touched; when it is running too, the web
-   server step says so, since with a vhost of CalDART's own both would want
-   ports 80 and 443, and carries on.
-``--tls certbot|self-signed|existing``
-   How the site gets its certificate.  Default ``certbot``.
-
-   ``certbot``
-      A Let's Encrypt certificate for the hostname (and ``www.HOST``),
-      obtained over port 80 and renewed by certbot's own timer.  Needs
-      ``--certbot-email``.
-   ``self-signed``
-      An ``openssl`` certificate, valid ten years, in ``/etc/caldart/tls/``.
-      Browsers warn.  For a trial or staging box without a public hostname.
-      The environment file gets ``SECURE_HSTS_SECONDS=0`` so no browser
-      remembers HSTS for a name the box does not own.
-   ``existing``
-      A web server on this machine already serves the hostname over HTTPS.
-      The installer doesn't obtain a certificate, install certbot, or write a
-      vhost of its own: it writes a snippet that the existing site's vhost
-      includes.  Usually paired with ``--url-prefix`` and ``--attach-to``.
-
-   There isn't a plain-HTTP mode: the production settings insist on secure
-   cookies and redirect HTTP to HTTPS.
-``--certbot-email ADDRESS``
-   The Let's Encrypt account address, which receives expiry warnings.
-   Required with ``--tls certbot``.
-``--certbot-staging``
-   Use Let's Encrypt's staging directory: a certificate browsers do not trust,
-   without the production rate limits.  For a trial run of certbot itself.
-``--url-prefix PREFIX``
-   Serve the site under a path of the host, such as ``/caldart-proto``, so
-   the site is ``https://HOST/caldart-proto/``.  One leading and one trailing
-   slash are optional; each segment is letters, digits, ``.``, ``_``, ``~``, or
-   ``-``.  Default: the root of the host (``/`` names it too).  Once the
-   environment file exists this must match its ``URL_PREFIX``.
-``--attach-to FILE``
-   With ``--tls existing`` only: the absolute path of the existing site's
-   vhost file to insert the include line into.  Without it the installer
-   prints the line and where it goes, for you to add by hand.
-``--db-port PORT``
-   The host port the Postgres container is published on, from 1024 to 65535.
-   Default ``5432``.  Once the environment file exists this must match the
-   port in its ``DATABASE_URL``.
-``--gunicorn-port PORT``
-   The port on ``127.0.0.1`` where the web server's proxy reaches gunicorn,
-   from 1024 to 65535; not the site's port, which is 80 and 443 on the web
-   server.  Default ``8001`` (see `Sharing the machine`_).
-``--email-url URL``
-   The SMTP relay, written as ``EMAIL_URL``: ``smtp+tls://`` for STARTTLS
-   (usually port 587), ``smtp+ssl://`` for implicit TLS (port 465), or
-   ``smtp://`` plain, with the credentials URL-encoded (an ``@`` in the user
-   name is ``%40``).  Quote it: it holds a password.
-``--email local``
-   Send mail through the postfix on this machine: ``EMAIL_URL`` becomes
-   ``smtp://localhost:25``.  ``local`` is the only value ``--email`` takes.
-   Give either this or ``--email-url``, not both; one of them is required
-   until the environment file exists.
-``--from-email ADDRESS``
-   ``DEFAULT_FROM_EMAIL``, the ``From`` of every message.  Default
-   ``CalDART <noreply@HOST>``.  Quote it when it has a display name.
-``--bounce-imap-url URL``
-   The bounce mailbox the hourly bounce check reads, written as
-   ``BOUNCE_IMAP_URL``: ``imaps://user:password@host[:port]/MAILBOX``, with the
-   credentials URL-encoded.  Quote it: it holds a password.  Without it bounce
-   checking stays off (``docs/developer/email.rst``, *Bounces*).
-``--bounce-address ADDRESS``
-   ``BOUNCE_ADDRESS``, the address a refused message is returned to: the
-   bounce mailbox's own address.  Each message goes out from it with a signed
-   plus tag (``bounces+<id>.<signature>@``), so the mailbox must accept plus
-   addresses; when this machine's postfix delivers the address's domain without
-   ``recipient_delimiter = +`` the install says so in a note.  Default empty,
-   which returns bounces to ``DEFAULT_FROM_EMAIL`` and leaves bounce checking
-   off.
+   The site's public name, such as ``caldart.example.org``.  Its DNS must
+   already point at this server, because Let's Encrypt checks the name before
+   it issues the site's certificate.  ``www.HOST`` must point at the server
+   too; give ``--no-www`` when it doesn't.
 ``--admin-email ADDRESS``
-   Create the first administrator with this address (or give an existing
-   account with that address the administrator's roles).
-``--seed-demo``
-   Load the demo accounts and their records (members, DARTs, aircraft,
-   payments), sharing the password this repository's ``README.rst`` documents.
-   A server seeded with them is a demonstration server, never one holding real
-   member data.  The demo staff accounts must use two-factor sign-in, as every
-   staff account does, unless ``/etc/caldart/caldart.env`` sets
-   ``DEMO_ACCOUNTS_SKIP_TWO_FACTOR=true`` (`Seeding`_).  Independent of
-   ``--seed-content``.
-``--seed-content``
-   Load the example website: the public pages and the members-only area, without
-   any accounts.  Give it alone to see the website by itself.  Independent of
-   ``--seed-demo``.
-``--dry-run``
-   Print every state-changing command instead of running it.
-``--help``
-   Print the options.
+   Your address.  The installer creates the first administrator account with
+   it and prints a link for setting its password.  Without it, there isn't an
+   account that can sign in.  Let's Encrypt sends certificate expiry warnings
+   to it too, unless ``--certbot-email`` names another address.
+``--email-url URL`` or ``--email local``
+   How the site sends mail: receipts, reminders, password resets, and bulk
+   email.  ``--email-url`` names your mail provider's SMTP relay, such as
+   ``'smtp+tls://user:password@smtp.example.org:587'``; quote it, since it holds a password.  ``--email local`` uses
+   a postfix that already runs on this machine.  `Mail`_ says which to pick.
 
-The hostname, ``www``, the web server, the TLS mode, the certbot address and
-staging switch, the database port, the gunicorn port, the URL prefix, and the
-attached vhost file are kept in the install record (see `What the installer
-writes`_), so a later run doesn't need any flags, and a flag given later updates the
-record.  The mail flags, ``--from-email``, the two bounce flags, ``--admin-email``,
-``--seed-demo``, and ``--seed-content`` are used by the run that writes the environment file or
-creates the administrator, and are not recorded.
+Every other option has a default that suits a server of CalDART's own: Apache
+in front, a Let's Encrypt certificate, Postgres on port 5432, and gunicorn on
+port 8001.  Add an option only when your situation calls for it:
 
-Step 3: try it with a dry run
------------------------------
+.. list-table::
+   :header-rows: 1
 
-``--dry-run``, or ``CALDART_DRY_RUN=1`` in the environment, prints what a run
-would do without doing it, and doesn't need root.  It reads the machine as it is,
-so on a fresh box it prints the whole sequence in order; the generated
+   * - When
+     - Add
+   * - You know nginx better than Apache
+     - ``--web-server nginx``
+   * - ``www.HOST`` doesn't point at the server
+     - ``--no-www``
+   * - A trial server without a public hostname
+     - ``--tls self-signed`` (browsers warn about the certificate)
+   * - CalDART under a path, such as ``https://HOST/caldart/``, with your own
+       pages at the root
+     - ``--url-prefix /caldart`` (`A site under a path of its own host`_)
+   * - Another website already runs on this server
+     - ``--tls existing``, usually with ``--url-prefix`` and ``--attach-to``
+       (`A sub-path behind an existing Apache site, with local postfix`_), and
+       ``--db-port`` or ``--gunicorn-port`` when port 5432 or 8001 is taken
+       (`Sharing the machine`_)
+   * - Mail should come from an address other than ``noreply@HOST``
+     - ``--from-email``
+   * - Bounced mail should be handled
+     - ``--bounce-imap-url`` and ``--bounce-address``
+   * - Certificate warnings should go to another address
+     - ``--certbot-email``
+   * - A demonstration server, never one with real member data
+     - ``--seed-demo`` and ``--seed-content`` (`Seeding`_)
+
+`Every install option`_ describes each one in full.
+
+Step 2: fetch the code
+----------------------
+
+On the server, fetch the code without installing anything yet::
+
+  curl -fsSL https://raw.githubusercontent.com/astrocfi/caldart-proto/main/deploy/bootstrap.sh \
+      | sudo bash -s -- --fetch-only
+
+This installs ``git`` when it is missing, creates ``/opt/caldart``, clones the
+repository into ``/opt/caldart/caldart``, and prints the installer's path.
+Every command on this page names those paths.  To install a branch other than
+``main``, or into a directory other than ``/opt/caldart``, see `Fetching other
+code or into another directory`_.
+
+Step 3: check your options with a dry run
+-----------------------------------------
+
+Run the installer with ``--dry-run`` and your options from step 1::
+
+  sudo /opt/caldart/caldart/deploy/install.sh --dry-run \
+      --hostname caldart.example.org \
+      --admin-email you@example.org \
+      --email-url 'smtp+tls://user:password@smtp.example.org:587'
+
+A dry run doesn't change anything.  It prints every command a real run would,
+prefixed ``+``, in order.  When an option is missing or a value is wrong, it
+stops with an ``error:`` line, and a first install that lacks more than one
+option lists them all::
+
+  error: this install needs these options:
+    --admin-email ADDRESS    your address: the first administrator, and where
+                             Let's Encrypt sends certificate warnings
+    --email-url URL          how the site sends mail: your SMTP relay,
+      or --email local       or the postfix on this machine
+
+Fix the options and run the dry run again until it finishes.  The generated
 secrets appear as ``<generated>``, and a file the dry run never wrote (the
-environment file, the install record) is treated as absent, with a note on
-standard error.  A dry run is the quickest way to check a set of flags::
+environment file and the install record) is treated as absent, with a note on
+standard error.  ``CALDART_DRY_RUN=1`` in the environment does the same as
+``--dry-run``.
 
-  sudo /opt/caldart/caldart/deploy/install.sh --dry-run --hostname caldart.example.org \
-      --certbot-email ops@example.org --email local
-  CALDART_DRY_RUN=1 /opt/caldart/caldart/deploy/install.sh --hostname caldart.example.org ...
+Step 4: install
+---------------
 
-Step 4: what the run prints
----------------------------
+Run the same command without ``--dry-run``::
+
+  sudo /opt/caldart/caldart/deploy/install.sh \
+      --hostname caldart.example.org \
+      --admin-email you@example.org \
+      --email-url 'smtp+tls://user:password@smtp.example.org:587'
 
 The install takes a few minutes, most of them the package installs and the
 build.  It runs these stages, each announced by an ``==>`` line:
@@ -354,6 +289,183 @@ they use the link.
 With a self-signed certificate the summary adds that browsers warn until a
 real certificate replaces it.
 
+The one-command install
+-----------------------
+
+Given install options in place of ``--fetch-only``, ``bootstrap.sh`` fetches
+the code and runs the installer with them: steps 2 and 4 in one command.  The
+worked examples below are written this way::
+
+  curl -fsSL https://raw.githubusercontent.com/astrocfi/caldart-proto/main/deploy/bootstrap.sh \
+      | sudo bash -s -- --hostname caldart.example.org \
+          --admin-email you@example.org \
+          --email-url 'smtp+tls://user:password@smtp.example.org:587'
+
+When ``/opt/caldart/caldart`` is already a checkout, ``bootstrap.sh`` fetches,
+checks out ``--ref``, and pulls it (when it is a branch) instead of cloning.
+When that directory exists, is not empty, and is not a checkout, it stops.  The
+deploy root around it may already hold ``backups/`` and ``media/``, as it does
+after an uninstall without ``--purge``; the install keeps them.
+
+Fetching other code or into another directory
+---------------------------------------------
+
+``bootstrap.sh`` takes four options of its own and passes every other one to
+``install.sh`` untouched:
+
+``--repo URL-OR-PATH``
+   What to clone.  Default ``https://github.com/astrocfi/caldart-proto.git``.
+``--ref REF``
+   The branch, tag, or commit to install.  Default ``main``.
+``--fetch-only``
+   Fetch the code and stop, without running the installer.  It doesn't take
+   install options.
+``--dry-run``
+   Print the clone and the install instead of running them (also passed on
+   to ``install.sh``).
+
+The deploy root is ``/opt/caldart``, and the checkout always goes in its
+``caldart`` directory.  ``CALDART_ROOT`` in the environment of ``bootstrap.sh``
+picks another deploy root.  Because ``sudo`` drops the caller's environment,
+set it after ``sudo``::
+
+  curl -fsSL https://raw.githubusercontent.com/astrocfi/caldart-proto/main/deploy/bootstrap.sh \
+      | sudo env CALDART_ROOT=/srv/caldart bash -s -- --fetch-only
+
+With another deploy root, run the scripts from its ``caldart`` checkout in place
+of ``/opt/caldart/caldart``.
+
+Every install option
+--------------------
+
+These are every option ``install.sh`` accepts (``sudo
+/opt/caldart/caldart/deploy/install.sh --help`` prints the same list).
+
+``--hostname HOST``
+   The public hostname, a DNS name of at least two labels such as
+   ``caldart.example.org``.  Required on the first run.
+``--www``, ``--no-www``
+   Also answer for ``www.HOST``: the vhost, the certificate, ``ALLOWED_HOSTS``,
+   and ``CSRF_TRUSTED_ORIGINS`` all name both.  Default ``--www``.
+``--web-server apache|nginx``
+   Which web server to install and configure.  Default ``apache``.  The other
+   server's configuration is never touched; when it is running too, the web
+   server step says so, since with a vhost of CalDART's own both would want
+   ports 80 and 443, and carries on.
+``--tls certbot|self-signed|existing``
+   How the site gets its certificate.  Default ``certbot``.
+
+   ``certbot``
+      A Let's Encrypt certificate for the hostname (and ``www.HOST``),
+      obtained over port 80 and renewed by certbot's own timer.  Needs
+      ``--admin-email`` or ``--certbot-email``.
+   ``self-signed``
+      An ``openssl`` certificate, valid ten years, in ``/etc/caldart/tls/``.
+      Browsers warn.  For a trial or staging box without a public hostname.
+      The environment file gets ``SECURE_HSTS_SECONDS=0`` so no browser
+      remembers HSTS for a name the box does not own.
+   ``existing``
+      A web server on this machine already serves the hostname over HTTPS.
+      The installer doesn't obtain a certificate, install certbot, or write a
+      vhost of its own: it writes a snippet that the existing site's vhost
+      includes.  Usually paired with ``--url-prefix`` and ``--attach-to``.
+
+   There isn't a plain-HTTP mode: the production settings insist on secure
+   cookies and redirect HTTP to HTTPS.
+``--certbot-email ADDRESS``
+   The Let's Encrypt account address, which receives expiry warnings.
+   Default: the ``--admin-email`` address.  ``--tls certbot`` needs one or the
+   other.
+``--certbot-staging``
+   Use Let's Encrypt's staging directory: a certificate browsers do not trust,
+   without the production rate limits.  For a trial run of certbot itself.
+``--url-prefix PREFIX``
+   Serve the site under a path of the host, such as ``/caldart-proto``, so
+   the site is ``https://HOST/caldart-proto/``.  With ``certbot`` or
+   ``self-signed``, CalDART's own vhost serves the root of the host from the
+   folder ``/var/www/HOST`` (`A site under a path of its own host`_); with
+   ``existing``, the existing site keeps the root.  One leading and one trailing
+   slash are optional; each segment is letters, digits, ``.``, ``_``, ``~``, or
+   ``-``.  Default: the root of the host (``/`` names it too).  Once the
+   environment file exists this must match its ``URL_PREFIX``.
+``--attach-to FILE``
+   With ``--tls existing`` only: the absolute path of the existing site's
+   vhost file to insert the include line into.  Without it the installer
+   prints the line and where it goes, for you to add by hand.
+``--db-port PORT``
+   The host port the Postgres container is published on, from 1024 to 65535.
+   Default ``5432``.  Once the environment file exists this must match the
+   port in its ``DATABASE_URL``.
+``--gunicorn-port PORT``
+   The port on ``127.0.0.1`` where the web server's proxy reaches gunicorn,
+   from 1024 to 65535; not the site's port, which is 80 and 443 on the web
+   server.  Default ``8001`` (see `Sharing the machine`_).
+``--email-url URL``
+   The SMTP relay, written as ``EMAIL_URL``: ``smtp+tls://`` for STARTTLS
+   (usually port 587), ``smtp+ssl://`` for implicit TLS (port 465), or
+   ``smtp://`` plain, with the credentials URL-encoded (an ``@`` in the user
+   name is ``%40``).  Quote it: it holds a password.
+``--email local``
+   Send mail through the postfix on this machine: ``EMAIL_URL`` becomes
+   ``smtp://localhost:25``.  ``local`` is the only value ``--email`` takes.
+   Give either this or ``--email-url``, not both; one of them is required
+   until the environment file exists.
+``--from-email ADDRESS``
+   ``DEFAULT_FROM_EMAIL``, the ``From`` of every message.  Default
+   ``CalDART <noreply@HOST>``.  Quote it when it has a display name.
+``--bounce-imap-url URL``
+   The bounce mailbox the hourly bounce check reads, written as
+   ``BOUNCE_IMAP_URL``: ``imaps://user:password@host[:port]/MAILBOX``, with the
+   credentials URL-encoded.  Quote it: it holds a password.  Without it bounce
+   checking stays off (``docs/developer/email.rst``, *Bounces*).
+``--bounce-address ADDRESS``
+   ``BOUNCE_ADDRESS``: the plain address of the bounce mailbox, such as
+   ``bounces@caldart.example.org``.  Give the address alone, without a display
+   name, angle brackets, or a tag, with at most 28 characters before the ``@``.
+
+   The site adds the rest itself.  Each message goes out with a return address
+   of its own, such as ``bounces+4182.9f3c2a7d51e0b846@caldart.example.org``: the
+   number is the message's row in the email log, and the hex digits are a
+   signature that proves the site sent it.  A mail server that can't deliver the
+   message sends the failure report to that address, the mailbox files it under
+   ``bounces@``, and the hourly bounce check reads it through
+   ``--bounce-imap-url`` and marks the message bounced.  So the mailbox must
+   deliver plus addresses (``bounces+anything@``) to ``bounces@``.  Most mail
+   providers do; when this machine's postfix delivers the address's domain
+   without ``recipient_delimiter = +``, the install says so in a note.
+
+   Readers never see this address: the ``From`` line stays ``--from-email``, and
+   replies go there.  Default empty, which returns failure reports to
+   ``DEFAULT_FROM_EMAIL`` and leaves bounce checking off.
+``--admin-email ADDRESS``
+   Create the first administrator with this address (or give an existing
+   account with that address the administrator's roles).
+``--seed-demo``
+   Load the demo accounts and their records (members, DARTs, aircraft,
+   payments), sharing the password this repository's ``README.rst`` documents.
+   A server seeded with them is a demonstration server, never one holding real
+   member data.  The demo staff accounts must use two-factor sign-in, as every
+   staff account does, unless ``/etc/caldart/caldart.env`` sets
+   ``DEMO_ACCOUNTS_SKIP_TWO_FACTOR=true`` (`Seeding`_).  Independent of
+   ``--seed-content``.
+``--seed-content``
+   Load the example website: the public pages and the members-only area, without
+   any accounts.  Give it alone to see the website by itself.  Independent of
+   ``--seed-demo``.
+``--dry-run``
+   Print every state-changing command instead of running it.
+``--help``
+   Print the options.
+
+The hostname, ``www``, the web server, the TLS mode, the certbot address and
+staging switch, the database port, the gunicorn port, the URL prefix, and the
+attached vhost file are kept in the install record (see `What the installer
+writes`_), so a later run doesn't need any flags, and a flag given later updates the
+record.  The mail flags, ``--from-email``, the two bounce flags, ``--admin-email``,
+``--seed-demo``, and ``--seed-content`` are used by the run that writes the environment file or
+creates the administrator, and are not recorded.
+
+
 
 Worked examples
 ===============
@@ -367,7 +479,6 @@ organization's relay::
 
   curl -fsSL https://raw.githubusercontent.com/astrocfi/caldart-proto/main/deploy/bootstrap.sh \
       | sudo bash -s -- --hostname caldart.example.org \
-          --certbot-email ops@example.org \
           --email-url 'smtp+tls://caldart%40example.org:app-password@smtp.example.org:587' \
           --from-email 'CalDART <noreply@example.org>' \
           --admin-email you@example.org
@@ -375,6 +486,47 @@ organization's relay::
 The site is at ``https://caldart.example.org/``, the portal at
 ``/portal/``, the Wagtail admin at ``/admin/``, and the user guide at
 ``/docs/``.  Add ``--web-server nginx`` for nginx instead of Apache.
+
+A site under a path of its own host
+-----------------------------------
+
+``robert-french.org`` points at the server, CalDART goes at
+``https://robert-french.org/caldart/``, and the root of the host serves pages
+of your own::
+
+  curl -fsSL https://raw.githubusercontent.com/astrocfi/caldart-proto/main/deploy/bootstrap.sh \
+      | sudo bash -s -- --hostname robert-french.org \
+          --url-prefix /caldart \
+          --email-url 'smtp+tls://user:password@smtp.example.org:587' \
+          --admin-email you@example.org
+
+CalDART keeps its own vhost and Let's Encrypt certificate.  Its port-443 host
+serves ``https://robert-french.org/`` from the folder
+``/var/www/robert-french.org``, and includes the snippet that serves CalDART
+under ``/caldart/``.  The installer creates the folder the first time, with an
+empty ``index.html``.  It doesn't link to ``/caldart/``, so a crawler that
+reads the root doesn't find CalDART.  From then on the folder is yours:
+replace that page, add others, and later runs and upgrades leave them as they
+are.  The portal is at ``/caldart/portal/``, and every link in an email carries
+the path.
+
+**Moving an installed site under a path.**  A site already installed at the
+root of the host moves in two steps.  First, point its settings at the path:
+in ``/etc/caldart/caldart.env`` (``sudoedit``), set::
+
+  URL_PREFIX=/caldart
+  SITE_URL=https://robert-french.org/caldart
+
+Then run the installer with the path::
+
+  sudo /opt/caldart/caldart/deploy/install.sh --url-prefix /caldart
+
+It creates the folder, rewrites the vhost, restarts the site, and checks it
+under ``/caldart/``.  The install record keeps the path, so later runs don't
+need the flag.  Links to the old addresses, such as a password-reset link sent
+before the move, stop working.  To move back to the root, empty ``URL_PREFIX``,
+take the path off ``SITE_URL``, and run ``install.sh --url-prefix /``; the
+folder stays, unused, until you remove it.
 
 A sub-path behind an existing Apache site, with local postfix
 --------------------------------------------------------------
@@ -487,7 +639,8 @@ secret.  Every script reads it; it is never executed.
 ``CALDART_TLS``
    ``certbot``, ``self-signed``, or ``existing``.
 ``CALDART_CERTBOT_EMAIL``
-   ``--certbot-email``, or empty.
+   ``--certbot-email``; with certbot and without it, the ``--admin-email``
+   address; otherwise empty.
 ``CALDART_CERTBOT_STAGING``
    ``yes`` or ``no``.
 ``CALDART_DB_PORT``
@@ -612,9 +765,15 @@ With ``certbot`` or ``self-signed``:
 Each holds a port-80 host, which answers Let's Encrypt's challenges and
 redirects everything else to HTTPS, and a port-443 host, which terminates TLS,
 serves ``/media/`` off disk from ``/opt/caldart/media``, and proxies the rest
-to gunicorn.  While a
+to gunicorn.  With ``--url-prefix``, the port-443 host serves the root of the
+host from ``/var/www/HOST`` instead, and includes the snippet that serves
+CalDART and its uploads under the prefix: Apache's in
+``/etc/apache2/conf-available/caldart.conf``, nginx's in
+``/etc/nginx/snippets/caldart.conf`` (`A site under a path of its own host`_).
+While a
 certbot certificate does not exist yet, a bootstrap host (``caldart-acme``)
 answers the challenge alone; it is removed once the certificate is there.
+When ``ufw`` is active, the installer first allows ports 80 and 443 through it.
 The certificate is in ``/etc/letsencrypt/live/HOST/`` with certbot, or
 ``/etc/caldart/tls/`` when self-signed.  With certbot the installer also adds
 ``/etc/letsencrypt/renewal-hooks/deploy/reload-web-server``, which reloads the
@@ -697,23 +856,149 @@ Mail
 
 With ``--email-url`` the site hands every message to the relay.  With
 ``--email local`` it hands them to the postfix on this machine, which the
-installer does not install or configure.  Postfix accepts mail from
-localhost in its default configuration; then either the domain's SPF record
-names this machine (and DKIM signing is set up in postfix if the domain's
-DMARC expects it), or postfix forwards everything to the organization's relay
-(``relayhost`` and the relay's credentials in ``main.cf``).  Either way, point
-the mail domain's SPF, DKIM, and DMARC records at whatever sends the mail
-before relying on it.
+installer does not install or configure: `Setting up postfix`_ below does that.
 
-Send a test message through the configured path::
+Which to pick:
+
+- **A mail provider with SMTP** (Google Workspace, Microsoft 365, Amazon SES,
+  Mailgun, Postmark, and the like): ``--email-url`` with the provider's SMTP
+  server and credentials.  It is the simplest path, and the provider's SPF and
+  DKIM already cover the mail.
+- **The same provider, through postfix**: ``--email local`` with postfix set up
+  as a relay to the provider (`Postfix that relays through a provider`_).
+  Postfix keeps a queue and retries for days when the provider is briefly
+  unreachable, where a send straight to the provider fails at once.
+- **Postfix delivering the mail itself**: ``--email local`` with postfix
+  sending straight to each recipient's mail server (`Postfix that delivers
+  directly`_).  It needs outbound port 25, a reverse DNS name, and DKIM
+  signing on this server, and mail from a new server's address is more likely
+  to land in spam.  Pick it only when you already run mail this way.
+
+Whichever you pick, publish the mail domain's SPF, DKIM, and DMARC records for
+whatever sends the mail before relying on it (``docs/developer/deployment.rst``,
+*Mail DNS records*).  Then send a test message through the configured path::
 
   sudo /opt/caldart/caldart/deploy/manage.sh sendtestemail you@example.org
 
-and read ``journalctl -u postfix`` (or the relay's logs) for its delivery.
-``docs/developer/email.rst`` covers the DNS records and the email log.
+With postfix, ``sudo journalctl -t postfix/smtp -n 20`` shows its delivery: a
+line with ``status=sent`` means the receiving server accepted it.  With a relay,
+the provider's logs do.  ``docs/developer/email.rst`` covers the DNS records and
+the email log.
 
-A postfix that also delivers the bounce mailbox (its domain is one this
-postfix receives for) must accept plus addresses, since every message goes out
+Setting up postfix
+~~~~~~~~~~~~~~~~~~
+
+Both setups below send only: postfix listens on this machine's loopback address
+for the site, and doesn't accept mail from the internet.  They are written for
+the hostname ``caldart.example.org`` and the mail domain ``example.org``; put
+your own in their place.
+
+Install postfix.  When the installer asks, pick **Internet Site**, and give the
+site's hostname as the mail name::
+
+  sudo apt-get install -y postfix libsasl2-modules
+
+Then make it listen on loopback only, and name the machine::
+
+  sudo postconf -e \
+      'myhostname = caldart.example.org' \
+      'myorigin = $myhostname' \
+      'inet_interfaces = loopback-only' \
+      'mydestination = localhost'
+  sudo systemctl restart postfix
+
+Postfix that relays through a provider
+''''''''''''''''''''''''''''''''''''''
+
+Point postfix at the provider's SMTP server on port 587, with TLS required::
+
+  sudo postconf -e \
+      'relayhost = [smtp.example.org]:587' \
+      'smtp_sasl_auth_enable = yes' \
+      'smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd' \
+      'smtp_sasl_security_options = noanonymous' \
+      'smtp_tls_security_level = encrypt' \
+      'smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt'
+
+Store the credentials in a file only root can read, and build its lookup
+table::
+
+  sudo install -m 0600 /dev/null /etc/postfix/sasl_passwd
+  echo '[smtp.example.org]:587 caldart@example.org:app-password' \
+      | sudo tee /etc/postfix/sasl_passwd >/dev/null
+  sudo postmap /etc/postfix/sasl_passwd
+  sudo systemctl restart postfix
+
+The first field must match ``relayhost`` exactly, brackets and port included.  A
+provider that offers only port 465 (TLS from the first byte) also needs
+``smtp_tls_wrappermode = yes``, with ``:465`` in both places.  Google Workspace
+and Microsoft 365 want an app password, or an SMTP relay set up in their admin
+console, in place of the account's own password.  Publish the SPF and DKIM
+records your provider gives you.
+
+Postfix that delivers directly
+''''''''''''''''''''''''''''''
+
+Check three things first:
+
+- **Outbound port 25.**  Many cloud providers, Vultr among them, block it on new
+  accounts until you ask them to lift the block.  This prints ``open`` when the
+  port is reachable::
+
+    timeout 5 bash -c '</dev/tcp/gmail-smtp-in.l.google.com/25' && echo open
+
+- **Reverse DNS.**  In the provider's control panel, set the server address's
+  reverse DNS (PTR) name to ``caldart.example.org``, the same name
+  ``myhostname`` gives.  Most receiving servers distrust mail from an address
+  without one.
+- **SPF.**  The domain's SPF record names this server, such as ``v=spf1
+  ip4:203.0.113.10 ~all``.  A domain that already has an SPF record (for its
+  staff mail, say) gets ``ip4:203.0.113.10`` added to that record: a domain has
+  exactly one.
+
+Then set up DKIM signing with OpenDKIM.  Make a key under the selector
+``caldart``::
+
+  sudo apt-get install -y opendkim opendkim-tools
+  sudo install -d -o opendkim -g opendkim -m 0750 /etc/opendkim/keys/example.org
+  sudo opendkim-genkey -b 2048 -d example.org -s caldart -D /etc/opendkim/keys/example.org
+  sudo chown opendkim:opendkim /etc/opendkim/keys/example.org/*
+
+Tell OpenDKIM to sign for the domain with it, listening where postfix can reach
+it::
+
+  printf '%s\n' 'Domain example.org' 'Selector caldart' \
+      'KeyFile /etc/opendkim/keys/example.org/caldart.private' \
+      | sudo tee -a /etc/opendkim.conf >/dev/null
+  sudo sed -i 's|^Socket\s.*|Socket inet:8891@localhost|' /etc/opendkim.conf
+  sudo opendkim -n -x /etc/opendkim.conf && sudo systemctl restart opendkim
+
+and postfix to pass each message through it::
+
+  sudo postconf -e \
+      'smtpd_milters = inet:localhost:8891' \
+      'non_smtpd_milters = $smtpd_milters' \
+      'milter_default_action = accept'
+  sudo systemctl restart postfix
+
+Publish the public key as a ``TXT`` record named ``caldart._domainkey`` on the
+domain.  Its value is the quoted text inside the parentheses of::
+
+  sudo cat /etc/opendkim/keys/example.org/caldart.txt
+
+joined into one string that starts ``v=DKIM1;``.  Then set ``DKIM_SELECTOR=caldart``
+in ``/etc/caldart/caldart.env`` (``sudoedit``, then ``sudo systemctl restart
+caldart-web``), so the Mail delivery card on the Health and database page checks
+that record.  Add a DMARC record too, as *Mail DNS records* describes.
+
+Postfix and the bounce mailbox
+''''''''''''''''''''''''''''''
+
+Neither setup receives mail, so neither can hold the bounce mailbox.  Use a
+mailbox at a mail provider for ``--bounce-address`` and ``--bounce-imap-url``.
+
+A postfix you run that also receives the bounce mailbox (its domain is one
+this postfix receives for) must accept plus addresses, since every message goes out
 from ``bounces+<id>.<signature>@`` the bounce domain::
 
   sudo postconf -e 'recipient_delimiter = +'
@@ -941,7 +1226,7 @@ install and point here, while ``uninstall.sh``, ``manage.sh``, and
 
      sudo /opt/caldart/deploy/uninstall.sh --yes --purge
 
-4. Run ``bootstrap.sh`` with the same flags (`Step 1: bootstrap`_), which
+4. Run ``bootstrap.sh`` with the same flags (`The one-command install`_), which
    clones into ``/opt/caldart/caldart`` and installs an empty site.
 5. Put the dumps and the uploads under the deploy root::
 
@@ -1250,6 +1535,18 @@ The scripts refuse with an ``error:`` line on standard error.  A usage error
 where they happen.  Every step is idempotent, so the fix is always: do what
 the message says, then run the same command again.
 
+``error: Let's Encrypt didn't issue the certificate. ...``
+   certbot prints why above the line.  *Timeout during connect (likely firewall
+   problem)* means Let's Encrypt couldn't reach port 80 on the server.  Check
+   ``sudo ufw status`` (the installer opens 80 and 443 when ufw is active, so
+   look for a rule that denies them), then the firewall in your hosting
+   provider's control panel, which must allow TCP 80 and 443 in.  ``curl -I
+   http://HOST/`` from another machine should answer.  A DNS problem shows up as
+   *NXDOMAIN* or an IP address other than the server's: fix the ``A`` record
+   and wait for it to spread.  Then run ``sudo
+   /opt/caldart/caldart/deploy/install.sh`` again; the record supplies the
+   flags.
+
 ``error: port 5432 is already in use on this machine; run install.sh --db-port PORT to put CalDART's Postgres on another port``
    Something, most often another Postgres, already listens on the port.  Run
    the installer again with a free port, ``--db-port 5433`` for example; the
@@ -1297,12 +1594,12 @@ the message says, then run the same command again.
 ``error: --attach-to is used only with --tls existing``, ``error: --attach-to must be an absolute path, not ...``
    Give ``--tls existing`` with it, and a full path.
 
-``error: --certbot-email is required with --tls certbot``
-   Give ``--certbot-email ADDRESS``, or pick ``--tls self-signed`` or
-   ``--tls existing``.
-
-``error: --hostname is required on the first run``
-   No install record exists yet.  Give ``--hostname``.
+``error: this install needs these options:``
+   A first install lacks the options listed below the line: ``--hostname``
+   when there isn't an install record yet, ``--admin-email`` (or
+   ``--certbot-email``) with ``--tls certbot``, and ``--email-url`` or
+   ``--email local`` while there isn't an environment file.  Give them, and see
+   `Step 1: choose your options`_.
 
 ``error: ... is not supported; use Debian or Ubuntu``
    The packages step runs only on Debian and Ubuntu.

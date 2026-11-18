@@ -175,6 +175,7 @@ def _machine_path(
     container: bool = False,
     service_home: str | None = None,
     active: tuple[str, ...] = (),
+    firewall: bool = False,
 ) -> str:
     """A ``PATH`` whose command shims describe a machine, ahead of the real ones.
 
@@ -182,7 +183,8 @@ def _machine_path(
     ``docker container inspect`` finds the CalDART database container only when
     ``container`` is true, the ``caldart`` user exists, with ``service_home`` as its
     home directory, only when ``service_home`` is given, and ``systemctl is-active``
-    reports exactly the units in ``active`` as active, so no test depends on what
+    reports exactly the units in ``active`` as active, ``ufw status`` reports the
+    firewall active only when ``firewall`` is true, so no test depends on what
     the machine running it has.  The shims sit ahead of the real commands, and hand
     any other question to them.
     """
@@ -218,6 +220,8 @@ def _machine_path(
         "done\n"
     )
     (shims / "docker").write_text(f"#!/bin/sh\nexit {0 if container else 1}\n")
+    ufw_state = "active" if firewall else "inactive"
+    (shims / "ufw").write_text(f'#!/bin/sh\n[ "$1" = status ] && echo "Status: {ufw_state}"\n')
     for shim in shims.iterdir():
         shim.chmod(0o755)
     return f"{shims}:{os.environ['PATH']}"
@@ -232,13 +236,14 @@ def _install_dry_run(
     container: bool = False,
     service_home: str | None = None,
     active: tuple[str, ...] = (),
+    firewall: bool = False,
     flags: tuple[str, ...] = FIRST_INSTALL,
 ) -> subprocess.CompletedProcess[str]:
     """The dry run of a first ``install.sh`` on Ubuntu, plus the ``extra`` flags.
 
-    ``listening``, ``container``, ``service_home``, and ``active`` describe the
-    machine (see ``_machine_path``), and ``flags`` replaces the first-install flags
-    the ``extra`` ones follow.
+    ``listening``, ``container``, ``service_home``, ``active``, and ``firewall``
+    describe the machine (see ``_machine_path``), and ``flags`` replaces the
+    first-install flags the ``extra`` ones follow.
     """
     env = _env(
         etc,
@@ -249,6 +254,7 @@ def _install_dry_run(
             container=container,
             service_home=service_home,
             active=active,
+            firewall=firewall,
         ),
     )
     return _run(_checkout(root) / "deploy" / "install.sh", "--dry-run", *flags, *extra, env=env)
@@ -268,13 +274,13 @@ def _configure(root: Path, etc: Path, *args: str, **extra: str) -> subprocess.Co
     )
 
 
-def _render_vhost(root: Path, vhost: str, www: str, tls: str) -> str:
+def _render_vhost(root: Path, vhost: str, www: str, tls: str, prefix: str = "") -> str:
     """What ``render_vhost`` writes for ``caldart.test`` under the root ``/srv/x``."""
     dest = root / "rendered"
     source = DEPLOY_DIR / vhost
     _source_lib(
         root,
-        f'{SRV_X_LAYOUT} render_vhost "{source}" "{dest}" caldart.test {www} {tls}',
+        f'{SRV_X_LAYOUT} render_vhost "{source}" "{dest}" caldart.test {www} {tls} "{prefix}"',
     )
     return dest.read_text()
 
@@ -499,16 +505,64 @@ def test_no_www_asks_for_one_name(root: Path, etc: Path, tmp_path: Path) -> None
     assert "www.caldart.test" not in commands[_position(commands, "certbot certonly")]
 
 
-@pytest.mark.parametrize("flag", ["--hostname", "--email-url", "--certbot-email"])
+def _without(flags: tuple[str, ...], *names: str) -> tuple[str, ...]:
+    """``flags`` without each named option and the value after it."""
+    kept: list[str] = []
+    skip = False
+    for word in flags:
+        if skip:
+            skip = False
+        elif word in names:
+            skip = True
+        else:
+            kept.append(word)
+    return tuple(kept)
+
+
+@pytest.mark.parametrize("flag", ["--hostname", "--email-url"])
 def test_a_first_install_names_the_flag_it_is_missing(
     flag: str, root: Path, etc: Path, tmp_path: Path
 ) -> None:
     """Without a record or an environment file, a missing flag exits 2 naming it."""
-    index = FIRST_INSTALL.index(flag)
-    args = (*FIRST_INSTALL[:index], *FIRST_INSTALL[index + 2 :])
-    result = _install_dry_run(root, etc, tmp_path, flags=args)
+    result = _install_dry_run(root, etc, tmp_path, flags=_without(FIRST_INSTALL, flag))
     assert result.returncode == 2
-    assert flag in result.stderr
+    assert f"  {flag} " in result.stderr
+
+
+def test_certbot_without_any_address_asks_for_the_admin_email(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """With neither address, the error asks for ``--admin-email``, which covers both."""
+    flags = _without(FIRST_INSTALL, "--certbot-email", "--admin-email")
+    result = _install_dry_run(root, etc, tmp_path, flags=flags)
+    assert "  --admin-email ADDRESS " in result.stderr
+
+
+def test_the_admin_email_is_the_lets_encrypt_address_by_default(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """Without ``--certbot-email``, certbot registers the administrator's address."""
+    flags = (
+        *_without(FIRST_INSTALL, "--certbot-email", "--admin-email"),
+        "--admin-email",
+        "a@x.org",
+    )
+    commands = _commands(_install_dry_run(root, etc, tmp_path, flags=flags))
+    assert commands[_position(commands, "certbot certonly")].endswith(" -m a@x.org")
+
+
+def test_a_first_install_lists_every_missing_option_in_one_error(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """A run without any flags names the hostname, the address, and the mail together."""
+    result = _install_dry_run(root, etc, tmp_path, flags=())
+    assert _option_lines(result) == ["--hostname", "--admin-email", "--email-url", "or"]
+
+
+def _option_lines(result: subprocess.CompletedProcess[str]) -> list[str]:
+    """The option, or ``or``, that starts each line of a missing-options error."""
+    words = [line.split()[0] for line in result.stderr.splitlines() if line.startswith("  ")]
+    return [word for word in words if word.startswith("--") or word == "or"]
 
 
 def test_an_unknown_web_server_is_a_usage_error(root: Path, etc: Path, tmp_path: Path) -> None:
@@ -782,8 +836,10 @@ def test_a_first_install_without_mail_names_both_flags(
 ) -> None:
     """With neither a mail flag nor an environment file, the error names both."""
     result = _install_dry_run(root, etc, tmp_path, flags=LOCAL_MAIL_INSTALL[:4])
-    assert _errors(result) == [
-        f"error: --email-url or --email local is required until {etc}/caldart.env exists"
+    assert [line.split()[:3] for line in result.stderr.splitlines()[1:4]] == [
+        ["error:", "this", "install"],
+        ["--email-url", "URL", "how"],
+        ["or", "--email", "local"],
     ]
 
 
@@ -1458,6 +1514,64 @@ def test_render_vhost_drops_the_www_alias(vhost: str, root: Path) -> None:
 def test_render_vhost_points_self_signed_at_the_local_certificate(vhost: str, root: Path) -> None:
     """In self-signed mode the certificate paths name ``/etc/caldart/tls/``."""
     assert "/etc/letsencrypt/live/" not in _render_vhost(root, vhost, "yes", "self-signed")
+
+
+@pytest.mark.parametrize("prefix", ["", "/caldart"], ids=["whole-host", "under-prefix"])
+@pytest.mark.parametrize("vhost", VHOSTS)
+def test_render_vhost_drops_every_section_marker(vhost: str, prefix: str, root: Path) -> None:
+    """Neither section's ``BEGIN`` or ``END`` line is left in a rendered vhost."""
+    rendered = _render_vhost(root, vhost, "yes", "certbot", prefix)
+    assert [line for line in rendered.splitlines() if "# BEGIN" in line or "# END" in line] == []
+
+
+#: A line only the whole-host section of each vhost has: the proxy for ``/``.
+WHOLE_HOST_LINES: Final = {
+    "apache/caldart.conf": "    ProxyPass        / http://127.0.0.1:8001/ retry=0 timeout=60",
+    "nginx/caldart.conf": "        proxy_pass http://caldart_app;",
+}
+
+#: The lines only the under-prefix section of each vhost has: the folder and the include.
+UNDER_PREFIX_LINES: Final = {
+    "apache/caldart.conf": (
+        "    DocumentRoot /var/www/caldart.test",
+        "    Include conf-available/caldart.conf",
+    ),
+    "nginx/caldart.conf": (
+        "    root  /var/www/caldart.test;",
+        "    include snippets/caldart.conf;",
+    ),
+}
+
+
+@pytest.mark.parametrize("vhost", VHOSTS)
+def test_a_vhost_without_a_prefix_proxies_the_whole_host(vhost: str, root: Path) -> None:
+    """At the root of the host, the vhost proxies ``/`` to gunicorn."""
+    assert WHOLE_HOST_LINES[vhost] in _render_vhost(root, vhost, "yes", "certbot").splitlines()
+
+
+@pytest.mark.parametrize("vhost", VHOSTS)
+def test_a_vhost_without_a_prefix_leaves_out_the_site_root(vhost: str, root: Path) -> None:
+    """At the root of the host, the vhost serves neither the folder nor the snippet."""
+    lines = _render_vhost(root, vhost, "yes", "certbot").splitlines()
+    assert [line for line in UNDER_PREFIX_LINES[vhost] if line in lines] == []
+
+
+@pytest.mark.parametrize("vhost", VHOSTS)
+def test_a_vhost_under_a_prefix_serves_the_site_root_and_includes_the_snippet(
+    vhost: str, root: Path
+) -> None:
+    """Under a prefix, the folder serves the root, and the snippet serves CalDART."""
+    lines = _render_vhost(root, vhost, "yes", "certbot", "/caldart").splitlines()
+    assert [line for line in UNDER_PREFIX_LINES[vhost] if line in lines] == list(
+        UNDER_PREFIX_LINES[vhost]
+    )
+
+
+@pytest.mark.parametrize("vhost", VHOSTS)
+def test_a_vhost_under_a_prefix_leaves_out_the_whole_host_proxy(vhost: str, root: Path) -> None:
+    """Under a prefix, ``/`` isn't proxied to gunicorn, so the folder answers it."""
+    lines = _render_vhost(root, vhost, "yes", "certbot", "/caldart").splitlines()
+    assert WHOLE_HOST_LINES[vhost] not in lines
 
 
 def test_the_backup_unit_prunes_by_the_retention_variable() -> None:
@@ -2210,6 +2324,99 @@ def test_existing_never_runs_certbot(root: Path, etc: Path, tmp_path: Path) -> N
     """``--tls existing`` doesn't install a certbot package or run a certbot command."""
     commands = _commands(_install_dry_run(root, etc, tmp_path, flags=EXISTING_INSTALL))
     assert [command for command in commands if "certbot" in command] == []
+
+
+def test_an_active_ufw_allows_the_web_ports_before_the_certificate(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """With ufw filtering, ports 80 and 443 are allowed before certbot needs port 80."""
+    commands = _commands(_install_dry_run(root, etc, tmp_path, firewall=True))
+    certbot = _position(commands, "certbot certonly")
+    assert commands.index("ufw allow 80/tcp") < commands.index("ufw allow 443/tcp") < certbot
+
+
+def test_an_inactive_ufw_is_left_alone(root: Path, etc: Path, tmp_path: Path) -> None:
+    """Without ufw filtering, the install doesn't add any firewall rule."""
+    commands = _commands(_install_dry_run(root, etc, tmp_path))
+    assert [command for command in commands if command.startswith("ufw ")] == []
+
+
+def test_existing_leaves_ufw_to_the_existing_site(root: Path, etc: Path, tmp_path: Path) -> None:
+    """Behind an existing site, the ports are already that site's business."""
+    result = _install_dry_run(root, etc, tmp_path, firewall=True, flags=EXISTING_INSTALL)
+    assert [command for command in _commands(result) if command.startswith("ufw ")] == []
+
+
+def test_a_failure_under_run_names_the_command(root: Path) -> None:
+    """A command that ``run`` started and that failed is named, not read as ``"$@"``."""
+    result = _source_lib(root, 'log "Testing"; run false')
+    assert _errors(result) == ["error: Testing failed: false exited with status 1"]
+
+
+#: The first-install flags for a site under ``PREFIX`` with its own certbot vhost.
+OWN_PREFIX_INSTALL: Final = (*FIRST_INSTALL, "--url-prefix", "/caldart")
+
+
+@pytest.mark.parametrize("web_server", ["apache", "nginx"])
+def test_a_prefix_writes_the_snippet_for_the_own_vhost(
+    web_server: str, root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """Under a prefix, the snippet is written before the vhost that includes it."""
+    result = _install_dry_run(
+        root, etc, tmp_path, "--web-server", web_server, flags=OWN_PREFIX_INSTALL
+    )
+    commands = _commands(result)
+    snippet = _position(commands, f"install -m 0644 /dev/stdin {SNIPPETS[web_server][1]}")
+    vhost = _position(commands, "caldart.conf | install -m 0644 /dev/stdin /etc/")
+    assert snippet < vhost
+
+
+@pytest.mark.parametrize("web_server", ["apache", "nginx"])
+def test_a_prefix_on_the_own_vhost_isnt_attached_anywhere(
+    web_server: str, root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """CalDART's own vhost includes the snippet, so no other file is edited."""
+    result = _install_dry_run(
+        root, etc, tmp_path, "--web-server", web_server, flags=OWN_PREFIX_INSTALL
+    )
+    assert [command for command in _commands(result) if command.startswith("sed -i")] == []
+
+
+def test_a_prefix_on_nginx_leaves_out_the_upstream_file(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """The own nginx vhost defines the upstream, so the conf.d copy isn't written."""
+    result = _install_dry_run(
+        root, etc, tmp_path, "--web-server", "nginx", flags=OWN_PREFIX_INSTALL
+    )
+    assert "caldart-upstream.conf" not in result.stdout
+
+
+def test_a_prefix_creates_the_site_root_with_a_front_page(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """The first run under a prefix makes ``/var/www/HOST`` and its ``index.html``."""
+    commands = _commands(_install_dry_run(root, etc, tmp_path, flags=OWN_PREFIX_INSTALL))
+    folder = commands.index("install -d -m 0755 /var/www/caldart.test")
+    assert commands[folder + 1] == "install -m 0644 /dev/stdin /var/www/caldart.test/index.html"
+
+
+def test_an_existing_site_root_is_left_alone(root: Path, tmp_path: Path) -> None:
+    """Once the folder exists, its pages are the operator's and stay as they are."""
+    site = tmp_path / "www" / "caldart.test"
+    site.mkdir(parents=True)
+    result = _source_lib(
+        root,
+        f'source "{DEPLOY_DIR}/steps/web-server.sh"; enable_dry_run; '
+        f'site_root() {{ printf "%s\\n" "{site}"; }}; make_site_root',
+    )
+    assert _commands(result) == []
+
+
+def test_without_a_prefix_the_site_root_isnt_made(root: Path, etc: Path, tmp_path: Path) -> None:
+    """At the root of the host, the install doesn't make a folder in ``/var/www``."""
+    commands = _commands(_install_dry_run(root, etc, tmp_path))
+    assert [command for command in commands if "/var/www/caldart.test" in command] == []
 
 
 def test_existing_still_installs_the_web_server(root: Path, etc: Path, tmp_path: Path) -> None:
@@ -3313,6 +3520,26 @@ def test_bootstrap_creates_the_deploy_root_and_clones_into_it(tmp_path: Path) ->
     assert commands[:2] == [
         f"install -d {tmp_path}/srv",
         f"git clone /nowhere {tmp_path}/srv/caldart",
+    ]
+
+
+def test_bootstrap_fetch_only_stops_before_the_installer(tmp_path: Path) -> None:
+    """``--fetch-only`` clones and checks out, and doesn't run ``install.sh``."""
+    commands = _commands(_bootstrap_dry_run(tmp_path, "--fetch-only"))
+    assert commands[-1] == f"git -C {tmp_path}/srv/caldart checkout main"
+
+
+def test_bootstrap_fetch_only_names_the_installer_to_run_next(tmp_path: Path) -> None:
+    """After ``--fetch-only``, the output names the installer's dry run."""
+    result = _bootstrap_dry_run(tmp_path, "--fetch-only")
+    assert f"sudo {tmp_path}/srv/caldart/deploy/install.sh --dry-run" in result.stdout
+
+
+def test_bootstrap_fetch_only_refuses_install_options(tmp_path: Path) -> None:
+    """``--fetch-only`` with an install option is a usage error: it doesn't install."""
+    result = _bootstrap_dry_run(tmp_path, "--fetch-only", "--hostname", "x.org")
+    assert _errors(result) == [
+        "error: --fetch-only doesn't run the installer, so it doesn't take install options"
     ]
 
 

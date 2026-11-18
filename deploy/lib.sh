@@ -137,6 +137,9 @@ readonly HOSTNAME_PATTERN='^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]
 
 # The stage the last log line announced, which a failing command is reported in.
 CURRENT_STAGE=""
+# The command run() last started, shell-quoted: under run(), BASH_COMMAND reads
+# only "$@", so a failure there is reported with this instead.
+RUNNING_COMMAND=""
 
 # Print one stage line on stdout.
 log() {
@@ -151,6 +154,9 @@ log() {
 report_failure() {
     local status=$1 command=$2
     [[ -n "$CURRENT_STAGE" ]] || return 0
+    if [[ "$command" == '"$@"' && -n "$RUNNING_COMMAND" ]]; then
+        command=$RUNNING_COMMAND
+    fi
     ((BASH_SUBSHELL == 0)) || return 0
     printf 'error: %s failed: %s exited with status %s\n' \
         "$CURRENT_STAGE" "$command" "$status" >&2
@@ -255,6 +261,7 @@ run() {
         printf '+ %s\n' "$(quote_command "$@")"
         return 0
     fi
+    RUNNING_COMMAND="$(quote_command "$@")"
     "$@"
 }
 
@@ -570,11 +577,21 @@ render_file() {
 }
 
 # Copy the vhost $1 to $2 for hostname $3, with $4 (yes or no) deciding the www.
-# alias and $5 (certbot or self-signed) where the certificate lives.
+# alias, $5 (certbot or self-signed) where the certificate lives, and $6, the URL
+# prefix, which of its two sections it keeps: "whole-host" when $6 is empty,
+# "under-prefix" otherwise.  The other section and both sections' marker lines go.
 render_vhost() {
-    local source=$1 dest=$2 hostname=$3 www=$4 tls=$5
+    local source=$1 dest=$2 hostname=$3 www=$4 tls=$5 prefix=${6:-}
     local shipped="${SHIPPED_HOSTNAME//./\\.}"
-    local args=()
+    local kept=whole-host dropped=under-prefix
+    if [[ -n "$prefix" ]]; then
+        kept=under-prefix
+        dropped=whole-host
+    fi
+    local args=(
+        -e "/^ *# BEGIN ${dropped}\$/,/^ *# END ${dropped}\$/d"
+        -e "/^ *# \\(BEGIN\\|END\\) ${kept}\$/d"
+    )
     if [[ "$tls" == self-signed ]]; then
         args+=(-e "s#${LETSENCRYPT_DIR}/live/${shipped}/#${TLS_DIR}/#g")
     fi

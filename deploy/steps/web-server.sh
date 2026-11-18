@@ -6,6 +6,7 @@
 # one's configuration is never touched), in the only order that works, since
 # neither server loads a vhost naming a certificate file that does not exist:
 #
+#   0. when ufw is active, rules allowing ports 80 and 443;
 #   1. with certbot, and until the certificate exists, a bootstrap port-80 host
 #      that serves only /.well-known/acme-challenge/ from /var/www/certbot;
 #   2. the certificate: certbot certonly --webroot, or with self-signed TLS an
@@ -65,6 +66,8 @@ readonly APACHE_SNIPPET_MODULES=(proxy proxy_http headers expires)
 readonly NGINX_SNIPPET=/etc/nginx/snippets/caldart.conf
 readonly NGINX_UPSTREAM=/etc/nginx/conf.d/caldart-upstream.conf
 readonly NGINX_INCLUDE='include snippets/caldart.conf;'
+# The folder whose HOST directory the root of the host serves under a URL prefix.
+readonly SITE_ROOT_PARENT=/var/www
 # The suffix of the copy of an attached vhost from before the first insertion.
 readonly ATTACH_BACKUP_SUFFIX=.caldart.bak
 
@@ -169,6 +172,23 @@ enable_site() {
     fi
 }
 
+# True when ufw is installed and filtering.  Reading its status needs root, so a
+# dry run as another user reads it as inactive.
+ufw_is_active() {
+    command -v ufw >/dev/null 2>&1 || return 1
+    ufw status 2>/dev/null | grep -q '^Status: active'
+}
+
+# Open ports 80 and 443 when ufw filters this machine, as some cloud images ship
+# it with only SSH allowed: Let's Encrypt reaches the site over port 80, and
+# visitors over 443.  Allowing a port that is already allowed doesn't change anything.
+open_firewall() {
+    ufw_is_active || return 0
+    log "Allowing ports 80 and 443 through ufw"
+    run ufw allow 80/tcp
+    run ufw allow 443/tcp
+}
+
 write_bootstrap_host() {
     log "Serving the ACME challenge over plain HTTP"
     run install -d "$CERTBOT_WEBROOT"
@@ -199,7 +219,11 @@ request_certificate() {
     log "Requesting the certificate from Let's Encrypt"
     args+=(--non-interactive --agree-tos -m "$CALDART_CERTBOT_EMAIL")
     [[ "$CALDART_CERTBOT_STAGING" != yes ]] || args+=(--staging)
-    run certbot certonly --webroot -w "$CERTBOT_WEBROOT" "${args[@]}"
+    run certbot certonly --webroot -w "$CERTBOT_WEBROOT" "${args[@]}" ||
+        die "Let's Encrypt didn't issue the certificate.  When certbot reports a" \
+            "timeout or a connection problem, port 80 on this server isn't reachable" \
+            "from the internet: check 'ufw status' and your hosting provider's" \
+            "firewall, then run install.sh again."
 }
 
 make_self_signed_certificate() {
@@ -253,15 +277,24 @@ install_vhost() {
     local dest
     log "Installing the $CALDART_WEB_SERVER vhost for $CALDART_HOSTNAME"
     remove_bootstrap_host
+    if [[ -n "$CALDART_URL_PREFIX" ]]; then
+        make_site_root
+        install_prefix_snippet
+    fi
     if [[ "$CALDART_WEB_SERVER" == apache ]]; then
         dest="$APACHE_SITES/caldart.conf"
         run a2enmod "${APACHE_MODULES[@]}"
         render_vhost "$CHECKOUT/deploy/apache/caldart.conf" "$dest" \
-            "$CALDART_HOSTNAME" "$CALDART_WWW" "$CALDART_TLS"
+            "$CALDART_HOSTNAME" "$CALDART_WWW" "$CALDART_TLS" "$CALDART_URL_PREFIX"
     else
+        # The vhost defines the upstream itself; the copy the existing TLS mode
+        # leaves in conf.d would define it twice, which nginx refuses.
+        if [[ -e "$NGINX_UPSTREAM" ]]; then
+            run rm -f "$NGINX_UPSTREAM"
+        fi
         dest="$NGINX_SITES/caldart"
         render_vhost "$CHECKOUT/deploy/nginx/caldart.conf" "$dest" \
-            "$CALDART_HOSTNAME" "$CALDART_WWW" "$CALDART_TLS"
+            "$CALDART_HOSTNAME" "$CALDART_WWW" "$CALDART_TLS" "$CALDART_URL_PREFIX"
         if nginx_needs_http2_on_listen; then
             run sed -i -e '/^ *http2 *on;/d' \
                 -e 's/listen\( *\)443 ssl;/listen\1443 ssl http2;/' \
@@ -271,6 +304,34 @@ install_vhost() {
     fi
     enable_site caldart
     reload_web_server
+}
+
+# The folder the root of the host serves when CalDART is under a URL prefix.
+site_root() {
+    printf '%s/%s\n' "$SITE_ROOT_PARENT" "$CALDART_HOSTNAME"
+}
+
+# Create the site root the first time, with an empty index.html, so the root of
+# the host leaves out any link to CalDART.  Once the folder is there its contents
+# are the operator's, and later runs leave them as they are.
+make_site_root() {
+    local dir
+    dir="$(site_root)"
+    [[ -d "$dir" ]] && return 0
+    log "Creating $dir for the pages at the root of $CALDART_HOSTNAME"
+    run install -d -m 0755 "$dir"
+    write_file "$dir/index.html" 0644 </dev/null
+}
+
+# Write the snippet that serves CalDART under its prefix, for CalDART's own vhost
+# to include.  The nginx vhost defines the upstream the snippet proxies to.
+install_prefix_snippet() {
+    if [[ "$CALDART_WEB_SERVER" == apache ]]; then
+        render_snippet "$CHECKOUT/deploy/apache/caldart-attach.conf" "$APACHE_SNIPPET"
+    else
+        run install -d "$(dirname "$NGINX_SNIPPET")"
+        render_snippet "$CHECKOUT/deploy/nginx/caldart-attach.conf" "$NGINX_SNIPPET"
+    fi
 }
 
 # The line that includes the snippet, for the web server in use.
@@ -451,6 +512,7 @@ web_server_step() {
         return 0
     fi
 
+    open_firewall
     local certificate
     certificate="$(certificate_path)"
     if [[ "$CALDART_TLS" == certbot ]]; then
