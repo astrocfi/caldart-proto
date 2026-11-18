@@ -339,7 +339,7 @@ Every install option
 --------------------
 
 These are every option ``install.sh`` accepts (``sudo
-/seti/newnav/capped-run.sh /opt/caldart/caldart/deploy/install.sh --help`` prints the same list).
+/opt/caldart/caldart/deploy/install.sh --help`` prints the same list).
 
 ``--hostname HOST``
    The public hostname, a DNS name of at least two labels such as
@@ -945,7 +945,7 @@ Check three things first:
   accounts until you ask them to lift the block.  This prints ``open`` when the
   port is reachable::
 
-    /seti/newnav/capped-run.sh timeout 5 bash -c '</dev/tcp/gmail-smtp-in.l.google.com/25' && echo open
+    timeout 5 bash -c '</dev/tcp/gmail-smtp-in.l.google.com/25' && echo open
 
 - **Reverse DNS.**  In the provider's control panel, set the server address's
   reverse DNS (PTR) name to ``caldart.example.org``, the same name

@@ -82,9 +82,9 @@ has the checkout, run the installer directly::
 
   sudo /opt/caldart/caldart/deploy/install.sh --hostname caldart.example.org ...
 
-/seti/newnav/capped-run.sh ``bootstrap.sh --fetch-only`` clones (or updates) the checkout and stops, without
+``bootstrap.sh --fetch-only`` clones (or updates) the checkout and stops, without
 running the installer, so an operator can check the install options with
-/seti/newnav/capped-run.sh ``install.sh --dry-run`` before the first real run.  It refuses install options.
+``install.sh --dry-run`` before the first real run.  It refuses install options.
 The operator's runbook, ``deploy/README.rst``, walks through the install in that
 order.
 
